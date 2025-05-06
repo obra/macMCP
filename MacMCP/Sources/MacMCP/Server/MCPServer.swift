@@ -282,6 +282,59 @@ public actor MCPServer {
             annotations: openApplicationTool.annotations,
             handler: openApplicationTool.handler
         )
+        
+        // Register the window management tool
+        let windowManagementTool = WindowManagementTool(
+            accessibilityService: accessibilityService,
+            logger: logger
+        )
+        await registerTool(
+            name: windowManagementTool.name,
+            description: windowManagementTool.description,
+            inputSchema: windowManagementTool.inputSchema,
+            annotations: windowManagementTool.annotations,
+            handler: windowManagementTool.handler
+        )
+        
+        // Register the menu navigation tool
+        let menuNavigationTool = MenuNavigationTool(
+            accessibilityService: accessibilityService,
+            interactionService: interactionService,
+            logger: logger
+        )
+        await registerTool(
+            name: menuNavigationTool.name,
+            description: menuNavigationTool.description,
+            inputSchema: menuNavigationTool.inputSchema,
+            annotations: menuNavigationTool.annotations,
+            handler: menuNavigationTool.handler
+        )
+        
+        // Register the interactive elements discovery tool
+        let interactiveElementsTool = InteractiveElementsDiscoveryTool(
+            accessibilityService: accessibilityService,
+            logger: logger
+        )
+        await registerTool(
+            name: interactiveElementsTool.name,
+            description: interactiveElementsTool.description,
+            inputSchema: interactiveElementsTool.inputSchema,
+            annotations: interactiveElementsTool.annotations,
+            handler: interactiveElementsTool.handler
+        )
+        
+        // Register the element capabilities tool
+        let elementCapabilitiesTool = ElementCapabilitiesTool(
+            accessibilityService: accessibilityService,
+            logger: logger
+        )
+        await registerTool(
+            name: elementCapabilitiesTool.name,
+            description: elementCapabilitiesTool.description,
+            inputSchema: elementCapabilitiesTool.inputSchema,
+            annotations: elementCapabilitiesTool.annotations,
+            handler: elementCapabilitiesTool.handler
+        )
     }
     
     /// Register a new tool with the server

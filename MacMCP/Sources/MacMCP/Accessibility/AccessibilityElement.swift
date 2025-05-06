@@ -319,6 +319,29 @@ public class AccessibilityElement {
                         }
                     }
                 }
+                
+                // Further boost priority for elements with actions
+                if let actions = try? getActionNames(for: child), !actions.isEmpty {
+                    if actions.contains(AXAttribute.Action.press) {
+                        // Elements with press action are highly interactive
+                        priority = min(priority, 2)
+                    } else if !actions.isEmpty {
+                        // Any actionable element gets priority boost
+                        priority = min(priority, 3)
+                    }
+                }
+                
+                // Boost elements that are visible and enabled
+                let isVisible = (try? getAttribute(child, attribute: "AXVisible") as? Bool) ?? true
+                let isEnabled = (try? getAttribute(child, attribute: "AXEnabled") as? Bool) ?? true
+                
+                if isVisible && isEnabled {
+                    // Give a slight boost to visible, enabled elements
+                    priority = max(0, priority - 1)
+                } else {
+                    // Deprioritize invisible or disabled elements
+                    priority += 3
+                }
             }
             
             prioritizedChildren.append((child, priority))
@@ -326,6 +349,70 @@ public class AccessibilityElement {
         
         // Sort by priority (lower number = higher priority)
         return prioritizedChildren.sorted { $0.1 < $1.1 }.map { $0.0 }
+    }
+    
+    /// Filter elements by element type
+    /// - Parameters:
+    ///   - elements: Array of UI elements to filter
+    ///   - elementType: The type of element to filter for (e.g., "button", "textfield")
+    /// - Returns: Filtered array of elements matching the type
+    public static func filterElementsByType(_ elements: [UIElement], type elementType: String) -> [UIElement] {
+        // Map of element types to role patterns
+        let typeToRoles: [String: [String]] = [
+            "button": [AXAttribute.Role.button, "AXButtonSubstitute"],
+            "checkbox": [AXAttribute.Role.checkbox],
+            "radio": [AXAttribute.Role.radioButton, "AXRadioGroup"],
+            "textfield": [AXAttribute.Role.textField, AXAttribute.Role.textArea, "AXSecureTextField"],
+            "dropdown": [AXAttribute.Role.popUpButton, "AXComboBox", "AXPopover"],
+            "slider": ["AXSlider", "AXScrollBar"],
+            "link": [AXAttribute.Role.link],
+            "tab": ["AXTabGroup", "AXTab", "AXTabButton"],
+            "menu": [AXAttribute.Role.menu, AXAttribute.Role.menuItem, "AXMenuBarItem"],
+            "image": [AXAttribute.Role.image, "AXGroup"],
+            "text": [AXAttribute.Role.staticText],
+            "window": [AXAttribute.Role.window],
+            "any": [] // Special case - will match any element
+        ]
+        
+        // If "any" type is requested or invalid type, return all elements
+        if elementType == "any" || !typeToRoles.keys.contains(elementType) {
+            return elements
+        }
+        
+        // Get the roles that match this element type
+        let matchingRoles = typeToRoles[elementType] ?? []
+        
+        // Filter elements by role
+        return elements.filter { element in
+            // Direct role match
+            if matchingRoles.contains(element.role) {
+                return true
+            }
+            
+            // Handle special cases based on element type
+            switch elementType {
+            case "button":
+                // Consider any element with a "press" action to be a button
+                return element.actions.contains(AXAttribute.Action.press)
+                
+            case "textfield":
+                // Consider any editable element to be a text field
+                return element.attributes["editable"] as? Bool == true
+                
+            case "image":
+                // Consider groups that contain images or have image-like names
+                return element.role == AXAttribute.Role.group && 
+                       (element.identifier.lowercased().contains("image") || 
+                        element.identifier.lowercased().contains("icon") ||
+                        element.identifier.lowercased().contains("picture"))
+                
+            case "any":
+                return true
+                
+            default:
+                return false
+            }
+        }
     }
     
     /// Check if an element role represents a container that likely contains controls

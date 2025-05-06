@@ -92,6 +92,61 @@ public enum AXAttribute {
     /// Available actions that can be performed on this element
     public let actions: [String]
     
+    // MARK: - Capability Properties
+    
+    /// Whether the element can be clicked or pressed
+    public var isClickable: Bool {
+        return actions.contains(AXAttribute.Action.press)
+    }
+    
+    /// Whether the element can be edited (e.g., text fields)
+    public var isEditable: Bool {
+        return role == AXAttribute.Role.textField || 
+               role == AXAttribute.Role.textArea || 
+               (attributes["editable"] as? Bool) == true
+    }
+    
+    /// Whether the element can be toggled (e.g., checkboxes, radio buttons)
+    public var isToggleable: Bool {
+        return role == AXAttribute.Role.checkbox || 
+               role == AXAttribute.Role.radioButton
+    }
+    
+    /// Whether the element can be selected from options (e.g., dropdowns)
+    public var isSelectable: Bool {
+        return role == AXAttribute.Role.popUpButton || 
+               role.contains("ComboBox") ||
+               actions.contains(AXAttribute.Action.showMenu)
+    }
+    
+    /// Whether the element can be incremented/decremented (e.g., sliders, steppers)
+    public var isAdjustable: Bool {
+        return actions.contains(AXAttribute.Action.increment) || 
+               actions.contains(AXAttribute.Action.decrement) ||
+               role.contains("Slider") ||
+               role.contains("Stepper")
+    }
+    
+    /// Whether the element is visible
+    public var isVisible: Bool {
+        return (attributes["visible"] as? Bool) ?? true
+    }
+    
+    /// Whether the element is enabled
+    public var isEnabled: Bool {
+        return (attributes["enabled"] as? Bool) ?? true
+    }
+    
+    /// Whether the element is focused
+    public var isFocused: Bool {
+        return (attributes["focused"] as? Bool) ?? false
+    }
+    
+    /// Whether the element is selected
+    public var isSelected: Bool {
+        return (attributes["selected"] as? Bool) ?? false
+    }
+    
     /// Create a new UI element
     /// - Parameters:
     ///   - identifier: Unique identifier for the element
@@ -155,6 +210,19 @@ public enum AXAttribute {
             "y": frame.origin.y,
             "width": frame.size.width,
             "height": frame.size.height
+        ]
+        
+        // Add capability flags
+        json["capabilities"] = [
+            "clickable": isClickable,
+            "editable": isEditable,
+            "toggleable": isToggleable,
+            "selectable": isSelectable, 
+            "adjustable": isAdjustable,
+            "visible": isVisible,
+            "enabled": isEnabled,
+            "focused": isFocused,
+            "selected": isSelected
         ]
         
         // Add attributes and actions
