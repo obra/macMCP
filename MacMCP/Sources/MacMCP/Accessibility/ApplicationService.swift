@@ -116,26 +116,111 @@ public actor ApplicationService: ApplicationServiceProtocol {
         configuration.createsNewApplicationInstance = true
         configuration.activates = true
         
-        // Find the application URL by name
-        let applicationURL: URL?
+        // Find the application URL by name - search in multiple locations
+        var applicationURL: URL? = nil
         
-        // NSWorkspace doesn't have a direct method for looking up by name,
-        // so we need to search for the application
-        let appPath = "/Applications/\(name).app"
-        if FileManager.default.fileExists(atPath: appPath) {
-            applicationURL = URL(fileURLWithPath: appPath)
-        } else {
-            // Search in the Applications directory
-            applicationURL = try? FileManager.default.contentsOfDirectory(
-                at: URL(fileURLWithPath: "/Applications"),
-                includingPropertiesForKeys: nil,
-                options: [.skipsHiddenFiles]
-            ).first(where: { url in
-                url.lastPathComponent.lowercased().hasPrefix(name.lowercased()) &&
-                url.pathExtension == "app"
-            })
+        // Step 1: Check if the app is already running - if so, we can just activate it
+        // This helps handle case differences and apps with slightly different names
+        var runningAppFound = false
+        for app in NSWorkspace.shared.runningApplications where app.activationPolicy == .regular {
+            if let appName = app.localizedName, 
+               appName.lowercased() == name.lowercased() || 
+               appName.lowercased().contains(name.lowercased()) {
+                
+                // The app is running, so we can activate it
+                logger.info("Found running application matching name", metadata: [
+                    "requestedName": "\(name)",
+                    "actualName": "\(appName)"
+                ])
+                
+                _ = app.activate(options: [.activateIgnoringOtherApps])
+                runningAppFound = true
+                return true
+            }
         }
         
+        // If the app wasn't running, look for it in the filesystem
+        // Try various path patterns for more robust application finding
+        
+        // Step 2: Check exact path in Applications directory
+        let exactAppPath = "/Applications/\(name).app"
+        if FileManager.default.fileExists(atPath: exactAppPath) {
+            applicationURL = URL(fileURLWithPath: exactAppPath)
+            logger.info("Found application at exact path", metadata: [
+                "path": "\(exactAppPath)"
+            ])
+        } 
+        
+        // Step 3: Check case-insensitive in Applications directory
+        if applicationURL == nil {
+            let appDir = URL(fileURLWithPath: "/Applications")
+            if let appFiles = try? FileManager.default.contentsOfDirectory(
+                at: appDir,
+                includingPropertiesForKeys: nil,
+                options: [.skipsHiddenFiles]
+            ) {
+                // First try exact name matches (case insensitive)
+                if let exactMatch = appFiles.first(where: { url in
+                    let filename = url.deletingPathExtension().lastPathComponent
+                    return filename.lowercased() == name.lowercased() && 
+                           url.pathExtension.lowercased() == "app"
+                }) {
+                    applicationURL = exactMatch
+                    logger.info("Found application with case-insensitive match", metadata: [
+                        "path": "\(exactMatch.path)"
+                    ])
+                }
+                
+                // If no exact match, try prefix matches
+                if applicationURL == nil {
+                    if let prefixMatch = appFiles.first(where: { url in
+                        let filename = url.deletingPathExtension().lastPathComponent
+                        return filename.lowercased().hasPrefix(name.lowercased()) && 
+                               url.pathExtension.lowercased() == "app"
+                    }) {
+                        applicationURL = prefixMatch
+                        logger.info("Found application with prefix match", metadata: [
+                            "path": "\(prefixMatch.path)"
+                        ])
+                    }
+                }
+                
+                // Finally try substring matches
+                if applicationURL == nil {
+                    if let containsMatch = appFiles.first(where: { url in
+                        let filename = url.deletingPathExtension().lastPathComponent
+                        return filename.lowercased().contains(name.lowercased()) && 
+                               url.pathExtension.lowercased() == "app"
+                    }) {
+                        applicationURL = containsMatch
+                        logger.info("Found application with substring match", metadata: [
+                            "path": "\(containsMatch.path)"
+                        ])
+                    }
+                }
+            }
+        }
+        
+        // Step 4: As a last resort, try using NSWorkspace's URL lookup for common apps
+        if applicationURL == nil {
+            let commonBundleIDs = [
+                "com.apple.calculator": "Calculator"
+            ]
+            
+            for (bundleID, appName) in commonBundleIDs where appName.lowercased() == name.lowercased() {
+                if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
+                    applicationURL = url
+                    logger.info("Found application using known bundle ID", metadata: [
+                        "name": "\(name)",
+                        "bundleID": "\(bundleID)",
+                        "path": "\(url.path)"
+                    ])
+                    break
+                }
+            }
+        }
+        
+        // Handle when application is not found
         guard let applicationURL = applicationURL else {
             logger.error("Application not found by name", metadata: [
                 "name": "\(name)"
