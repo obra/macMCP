@@ -41,6 +41,7 @@ actor MockTransport: Transport {
     // For testing, allow passing external services
     private var _applicationService: ApplicationServiceProtocol?
     private var _accessibilityService: AccessibilityServiceProtocol?
+    private var _interactionService: UIInteractionServiceProtocol?
     
     // Setter method for the application service (needed due to actor isolation)
     func setApplicationService(_ service: ApplicationServiceProtocol) {
@@ -60,6 +61,16 @@ actor MockTransport: Transport {
     // Getter for the accessibility service
     var accessibilityService: AccessibilityServiceProtocol? {
         return _accessibilityService
+    }
+    
+    // Setter method for the UI interaction service
+    func setInteractionService(_ service: UIInteractionServiceProtocol) {
+        self._interactionService = service
+    }
+    
+    // Getter for the UI interaction service
+    var interactionService: UIInteractionServiceProtocol? {
+        return _interactionService
     }
     
     let logger: Logger
