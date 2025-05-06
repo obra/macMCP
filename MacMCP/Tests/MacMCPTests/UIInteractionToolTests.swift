@@ -64,8 +64,8 @@ struct UIInteractionToolTests {
         // Create input for clicking at a position
         let input: [String: Value] = [
             "action": .string("click"),
-            "x": .number(100),
-            "y": .number(200)
+            "x": .int(100),
+            "y": .int(200)
         ]
         
         // Call the tool

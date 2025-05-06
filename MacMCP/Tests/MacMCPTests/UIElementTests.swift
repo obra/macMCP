@@ -13,7 +13,7 @@ struct UIElementTests {
             role: "button",
             title: "Test Button",
             value: "test value",
-            description: "A test button element",
+            elementDescription: "A test button element",
             frame: CGRect(x: 10, y: 20, width: 100, height: 50),
             parent: nil,
             children: [],
@@ -28,7 +28,7 @@ struct UIElementTests {
         #expect(element.role == "button")
         #expect(element.title == "Test Button")
         #expect(element.value == "test value")
-        #expect(element.description == "A test button element")
+        #expect(element.elementDescription == "A test button element")
         #expect(element.frame.origin.x == 10)
         #expect(element.frame.origin.y == 20)
         #expect(element.frame.size.width == 100)
@@ -79,7 +79,7 @@ struct UIElementTests {
             role: "button",
             title: "Test Button",
             value: "test value",
-            description: "A test button element",
+            elementDescription: "A test button element",
             frame: CGRect(x: 10, y: 20, width: 100, height: 50),
             attributes: [
                 "enabled": true,
@@ -129,20 +129,21 @@ struct UIElementTests {
             frame: CGRect(x: 10, y: 20, width: 100, height: 50)
         )
         
+        // Convert to Value, then to a Swift dictionary for testing
         let value = try element.toValue()
-        
-        // Check the type
-        #expect(value.isObject)
+        let jsonData = try JSONSerialization.data(withJSONObject: value.asAnyDictionary())
+        let dictionary = try JSONSerialization.jsonObject(with: jsonData) as? [String: Any]
         
         // Test some fields
-        #expect(value["identifier"]?.stringValue == "test-element")
-        #expect(value["role"]?.stringValue == "button")
-        #expect(value["title"]?.stringValue == "Test Button")
+        #expect(dictionary?["identifier"] as? String == "test-element")
+        #expect(dictionary?["role"] as? String == "button")
+        #expect(dictionary?["title"] as? String == "Test Button")
         
         // Check frame
-        #expect(value["frame"]?["x"]?.doubleValue == 10)
-        #expect(value["frame"]?["y"]?.doubleValue == 20)
-        #expect(value["frame"]?["width"]?.doubleValue == 100)
-        #expect(value["frame"]?["height"]?.doubleValue == 50)
+        let frame = dictionary?["frame"] as? [String: Any]
+        #expect(frame?["x"] as? Double == 10)
+        #expect(frame?["y"] as? Double == 20)
+        #expect(frame?["width"] as? Double == 100)
+        #expect(frame?["height"] as? Double == 50)
     }
 }

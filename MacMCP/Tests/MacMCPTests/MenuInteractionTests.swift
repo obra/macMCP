@@ -49,7 +49,7 @@ struct MenuInteractionTests {
         // Use key commands to access menu (e.g., Alt+F for File menu)
         let input: [String: Value] = [
             "action": .string("press_key"),
-            "keyCode": .number(3)  // Example key code for F key
+            "keyCode": .int(3)  // Example key code for F key
         ]
         
         let result = try await tool.handler(input)
