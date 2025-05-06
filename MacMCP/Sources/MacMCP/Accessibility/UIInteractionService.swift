@@ -636,15 +636,124 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
         // Build the current path for logging
         let currentPath = path.isEmpty ? root.role : "\(path)/\(root.role)"
         
-        // Check if this is the element we're looking for
+        // Check if this is the element we're looking for - with comprehensive ID matching
+        // First, try exact ID match
         if root.identifier == id {
-            logger.debug("Found element by ID", metadata: [
+            logger.debug("Found element by exact ID match", metadata: [
                 "id": "\(id)",
                 "path": "\(currentPath)",
                 "role": "\(root.role)",
                 "title": "\(root.title ?? "untitled")"
             ])
             return root
+        }
+        
+        // Handle our structured ID format
+        if id.hasPrefix("ui:") && root.identifier.hasPrefix("ui:") {
+            // Both IDs use our structured format ui:[descriptive-part]:[hash]
+            // Split the parts and compare
+            let idParts = id.split(separator: ":")
+            let rootIdParts = root.identifier.split(separator: ":")
+            
+            // Check if we have valid structured IDs with 3 parts 
+            if idParts.count >= 3 && rootIdParts.count >= 3 {
+                // For identical descriptor parts, consider it a match
+                if idParts[1] == rootIdParts[1] {
+                    logger.debug("Found element by matching descriptive part in structured ID", metadata: [
+                        "requestedId": "\(id)",
+                        "actualId": "\(root.identifier)",
+                        "descriptivePart": "\(idParts[1])",
+                        "path": "\(currentPath)",
+                        "role": "\(root.role)"
+                    ])
+                    return root
+                }
+                
+                // For interactive controls like buttons, also check descriptor part against title/description
+                if let title = root.title, !title.isEmpty, idParts[1] == title {
+                    logger.debug("Found element by matching title to ID descriptive part", metadata: [
+                        "requestedId": "\(id)",
+                        "actualId": "\(root.identifier)",
+                        "title": "\(title)",
+                        "path": "\(currentPath)",
+                        "role": "\(root.role)"
+                    ])
+                    return root
+                }
+                
+                // Check description field too
+                if let desc = root.elementDescription, !desc.isEmpty, idParts[1] == desc {
+                    logger.debug("Found element by matching description to ID descriptive part", metadata: [
+                        "requestedId": "\(id)",
+                        "actualId": "\(root.identifier)",
+                        "description": "\(desc)",
+                        "path": "\(currentPath)",
+                        "role": "\(root.role)"
+                    ])
+                    return root
+                }
+                
+                // For hash-based matching, compare hash parts
+                if idParts.count > 2 && rootIdParts.count > 2 && idParts[2] == rootIdParts[2] {
+                    logger.debug("Found element by matching hash part in structured ID", metadata: [
+                        "requestedId": "\(id)",
+                        "actualId": "\(root.identifier)",
+                        "hashPart": "\(idParts[2])",
+                        "path": "\(currentPath)",
+                        "role": "\(root.role)"
+                    ])
+                    return root
+                }
+            }
+        }
+        
+        // Backward compatibility for legacy ID formats
+        if root.identifier.contains(id) || id.contains(root.identifier) {
+            // For small IDs (likely from accessibility AXIdentifier), require exact substring match
+            if id.count < 20 || root.identifier.count < 20 {
+                if root.identifier == id || 
+                   (root.identifier.contains(id) && id.count > 3) ||
+                   (id.contains(root.identifier) && root.identifier.count > 3) {
+                    logger.debug("Found element by substring ID match", metadata: [
+                        "requestedId": "\(id)",
+                        "actualId": "\(root.identifier)",
+                        "path": "\(currentPath)",
+                        "role": "\(root.role)"
+                    ])
+                    return root
+                }
+            }
+        }
+        
+        // Special handling for button types with exact title/description match
+        if (root.role == AXAttribute.Role.button || 
+            root.role == AXAttribute.Role.menuItem || 
+            root.role == AXAttribute.Role.checkbox || 
+            root.role == AXAttribute.Role.radioButton) {
+            
+            // For buttons, check if ID exactly matches title or description
+            if let title = root.title, title == id {
+                logger.debug("Found button with exact title match", metadata: [
+                    "requestedId": "\(id)",
+                    "actualId": "\(root.identifier)",
+                    "title": "\(title)",
+                    "path": "\(currentPath)",
+                    "role": "\(root.role)"
+                ])
+                return root
+            }
+            
+            // Also check description for exact match
+            if let desc = root.elementDescription, desc == id {
+                logger.debug("Found button with exact description match", metadata: [
+                    "requestedId": "\(id)",
+                    "actualId": "\(root.identifier)",
+                    "description": "\(desc)",
+                    "path": "\(currentPath)",
+                    "role": "\(root.role)"
+                ])
+                return root
+            }
         }
         
         // Log that we're examining this element

@@ -110,91 +110,101 @@ public class AccessibilityElement {
             attributes["application"] = parentApp
         }
         
-        // Try to get an identifier - first try AXIdentifier, but if that's not available
-        // generate a unique identifier that's stable across sessions
+        // Generate a globally unique, stable identifier for this element
         let identifier: String
         do {
-            // Step 1: Try to use the explicit accessibility identifier if available
-            if let explicitID = try getAttribute(axElement, attribute: AXAttribute.identifier) as? String, !explicitID.isEmpty {
-                identifier = "ax-\(explicitID)"
+            // Step 1: Get the native accessibility identifier if available
+            let nativeID = try getAttribute(axElement, attribute: AXAttribute.identifier) as? String
+            
+            // Check if we have a valid native ID and it meets our requirements
+            let validNativeID = nativeID?.isEmpty == false
+            
+            // We'll use the native ID as part of our identifier structure, but we want
+            // to ensure global uniqueness by adding context information
+            
+            // Create a "fingerprint" of the element using its properties
+            var fingerprintParts: [String] = []
+            
+            // Always include the role as the primary type indicator
+            fingerprintParts.append(role)
+            
+            // Include application context when available - critical for global uniqueness
+            if let app = attributes["application"] as? String {
+                fingerprintParts.append(app)
+            }
+            
+            // Include position for spatial uniqueness (helpful for grids of similar elements)
+            let positionPart = "pos-\(Int(frame.origin.x))-\(Int(frame.origin.y))"
+            fingerprintParts.append(positionPart)
+            
+            // Include size information for additional uniqueness
+            let sizePart = "size-\(Int(frame.size.width))-\(Int(frame.size.height))"
+            fingerprintParts.append(sizePart)
+            
+            // Format the element's descriptive information (used for human readability)
+            let descriptivePart: String
+            if validNativeID {
+                // If this element has a native ID, prioritize that as the descriptive part
+                descriptivePart = nativeID!
+            } else if let title = title, !title.isEmpty {
+                // Next priority is the title for common interactive controls
+                descriptivePart = title
+            } else if let description = description, !description.isEmpty {
+                // Next priority is the accessibility description
+                descriptivePart = description
+            } else if let value = value, !value.isEmpty {
+                // Next priority is the value
+                descriptivePart = "value-\(value)"
             } else {
-                // Step 2: Generate a UUID-style identifier that's based on stable element properties
+                // Fallback to just using role
+                descriptivePart = role
+            }
+            
+            // Add the descriptive part to the fingerprint
+            fingerprintParts.append("desc-\(descriptivePart)")
+            
+            // Join all parts and create a hash for the stable part of the identifier
+            let fingerprint = fingerprintParts.joined(separator: "::")
+            let fingerprintData = fingerprint.data(using: .utf8) ?? Data()
+            
+            // Generate a hash from the fingerprint
+            let hashedID: String
+            if #available(macOS 10.15, *) {
+                let digest = SHA256.hash(data: fingerprintData)
+                let hashBytes = digest.prefix(8)
+                hashedID = hashBytes.map { String(format: "%02x", $0) }.joined()
+            } else {
+                // Fallback for older macOS versions
+                let hash = abs(fingerprint.hashValue)
+                hashedID = String(format: "%016llx", UInt64(hash))
+            }
+            
+            // Create the final identifier structure
+            // Format: [type]:[descriptive-part]:[hash]
+            // For common interactive controls like buttons, we include the descriptive part directly
+            // in the identifier to make it more recognizable to Claude
+            if role == AXAttribute.Role.button || 
+               role == AXAttribute.Role.menuItem ||
+               role == AXAttribute.Role.checkbox ||
+               role == AXAttribute.Role.radioButton ||
+               role == AXAttribute.Role.textField {
                 
-                // Create a "fingerprint" of the element using its properties
-                var fingerprintParts: [String] = []
-                
-                // Add role (always available)
-                fingerprintParts.append(role)
-                
-                // Add application context if available
-                if let app = attributes["application"] as? String {
-                    fingerprintParts.append(app)
-                }
-                
-                // Add position information
-                fingerprintParts.append("pos-\(Int(frame.origin.x))-\(Int(frame.origin.y))")
-                
-                // Add size information 
-                fingerprintParts.append("size-\(Int(frame.size.width))-\(Int(frame.size.height))")
-                
-                // Add title if available
-                if let title = title, !title.isEmpty {
-                    fingerprintParts.append("title-\(title)")
-                }
-                
-                // Add description if available
-                if let description = description, !description.isEmpty {
-                    fingerprintParts.append("desc-\(description)")
-                }
-                
-                // Add value if available
-                if let value = value, !value.isEmpty {
-                    fingerprintParts.append("val-\(value)")
-                }
-                
-                // Join all parts and hash them to create a stable, unique identifier
-                let fingerprint = fingerprintParts.joined(separator: "::")
-                let fingerprintData = fingerprint.data(using: .utf8) ?? Data()
-                
-                // Create a hashed identifier using the first 8 bytes of SHA256
-                // Note: This is just a way to create a stable, unique ID from the fingerprint
-                let hashedID: String
-                if #available(macOS 10.15, *) {
-                    let digest = SHA256.hash(data: fingerprintData)
-                    let hashBytes = digest.prefix(8)
-                    hashedID = hashBytes.map { String(format: "%02x", $0) }.joined()
+                // For native IDs, preserve them in a consistent format to ensure compatibility
+                if validNativeID {
+                    identifier = "ui:\(nativeID!):\(hashedID)"
                 } else {
-                    // Fallback for older macOS versions
-                    let hash = abs(fingerprint.hashValue)
-                    hashedID = String(format: "%016llx", UInt64(hash))
+                    // Create a more human-readable version for interactive elements
+                    identifier = "ui:\(descriptivePart):\(hashedID)"
                 }
-                
-                // Format the final identifier with a prefix indicating how it was generated
-                // and include key information for human readability
-                let prefix: String
-                if role == AXAttribute.Role.button || 
-                   role == AXAttribute.Role.menuItem ||
-                   role == AXAttribute.Role.checkbox ||
-                   role == AXAttribute.Role.radioButton {
-                    // For common controls, include the title for better human readability
-                    if let title = title, !title.isEmpty {
-                        prefix = "\(role)-\(title)"
-                    } else if let description = description, !description.isEmpty {
-                        prefix = "\(role)-\(description)"
-                    } else {
-                        prefix = role
-                    }
-                } else {
-                    prefix = role
-                }
-                
-                // Final globally unique identifier
-                identifier = "\(prefix)-\(hashedID)"
+            } else {
+                // For other elements, use a more generic format
+                identifier = "ui:\(role):\(hashedID)"
             }
         } catch {
             // On error, generate a fallback UUID with role as prefix
             let fallbackUUID = UUID().uuidString
-            identifier = "\(role)-\(fallbackUUID.prefix(8))"
+            let shortUUID = fallbackUUID.prefix(8).lowercased()
+            identifier = "ui:\(role):\(shortUUID)"
         }
         
         // Get available actions with robust error handling
