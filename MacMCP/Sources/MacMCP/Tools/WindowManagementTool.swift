@@ -193,7 +193,9 @@ public struct WindowManagementTool: @unchecked Sendable {
         if let window = mainWindow {
             return try formatResponse([window])
         } else {
-            return try formatResponse([])
+            // Return an empty array of the correct type
+            let emptyArray: [WindowDescriptor] = []
+            return try formatResponse(emptyArray)
         }
     }
     

@@ -335,8 +335,8 @@ public struct MenuNavigationTool: @unchecked Sendable {
                                 // Found the submenu item
                                 currentMenuItem = menuItem
                                 
-                                // Hover over it to open the submenu
-                                try await interactionService.hoverElement(identifier: menuItem.identifier)
+                                // Click it to open the submenu
+                                try await interactionService.clickElement(identifier: menuItem.identifier)
                                 
                                 // Brief pause to allow submenu to open
                                 try await Task.sleep(for: .milliseconds(300))
@@ -365,10 +365,15 @@ public struct MenuNavigationTool: @unchecked Sendable {
         }
         
         // Return success message
-        let result = [
-            "success": true,
-            "message": "Menu item activated: \(menuPath)"
-        ]
+        struct ActivationResult: Codable {
+            let success: Bool
+            let message: String
+        }
+        
+        let result = ActivationResult(
+            success: true,
+            message: "Menu item activated: \(menuPath)"
+        )
         
         return try formatResponse(result)
     }
