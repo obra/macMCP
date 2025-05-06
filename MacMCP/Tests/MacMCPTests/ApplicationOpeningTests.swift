@@ -22,11 +22,16 @@ final class ApplicationOpeningTests: XCTestCase {
         let mockApplicationService = MockApplicationService()
         applicationService = mockApplicationService
         
-        // Create the MCP server with default configuration
-        // We'll use the mockTransport to intercept requests instead of injecting the mock service
+        // Since we can't inject the mock service directly (MCPServer creates its own),
+        // we need to override the OpenApplicationTool in the server.
+        // Let's use the MCPServer first, then swap out its OpenApplicationTool
         server = MCPServer(
             logger: Logger(label: "test.mcp.macos.server")
         )
+        
+        // Add a reference to our mock application service in the transport
+        // to make it available to the executeToolRequest method
+        await mockTransport.setApplicationService(mockApplicationService)
         
         // Start the server with the mock transport
         try await server.start(transport: mockTransport)
