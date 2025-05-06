@@ -14,7 +14,13 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
     private let accessibilityService: any AccessibilityServiceProtocol
     
     /// A cache of AXUIElements by ID
-    private var elementCache: [String: AXUIElement] = [:]
+    private var elementCache: [String: (AXUIElement, Date)] = [:]
+    
+    /// Maximum age of cached elements in seconds
+    private let cacheMaxAge: TimeInterval = 5.0
+    
+    /// Maximum size of element cache
+    private let cacheMaxSize: Int = 50
     
     /// Create a new UI interaction service
     /// - Parameters:
@@ -315,14 +321,62 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
     
     /// Get the AXUIElement for an element identifier
     private func getAXUIElement(for identifier: String) async throws -> AXUIElement {
+        // Clean old entries from cache if it's getting too large
+        cleanCache()
+        
         // Check the cache first
-        if let element = elementCache[identifier] {
-            return element
+        if let (element, timestamp) = elementCache[identifier] {
+            // Check if the cached element is too old
+            let now = Date()
+            if now.timeIntervalSince(timestamp) > cacheMaxAge {
+                logger.debug("Cached element is too old, removing from cache", metadata: [
+                    "id": "\(identifier)",
+                    "age": "\(now.timeIntervalSince(timestamp))"
+                ])
+                elementCache.removeValue(forKey: identifier)
+            } 
+            // Verify the cached element is still valid before returning
+            else if AccessibilityPermissions.isAccessibilityEnabled() {
+                // Basic validity check - this isn't foolproof but helps catch some cases
+                var dummy: CFTypeRef?
+                let error = AXUIElementCopyAttributeValue(element, "AXRole" as CFString, &dummy)
+                
+                if error != .invalidUIElement {
+                    // Element appears to be valid, refresh its timestamp and return it
+                    logger.debug("Using cached element", metadata: ["id": "\(identifier)"])
+                    elementCache[identifier] = (element, Date())
+                    return element
+                } else {
+                    // Element is no longer valid, remove from cache
+                    logger.debug("Cached element is no longer valid, removing from cache", metadata: ["id": "\(identifier)"])
+                    elementCache.removeValue(forKey: identifier)
+                }
+            }
         }
+        
+        // Log what we're doing
+        logger.debug("Looking up UI element by identifier", metadata: ["id": "\(identifier)"])
         
         // Try to find the element in the UI hierarchy
         guard let uiElement = try await findUIElement(identifier: identifier) else {
+            logger.error("Element not found in UI hierarchy", metadata: ["id": "\(identifier)"])
             throw createError("Element not found: \(identifier)", code: 2000)
+        }
+        
+        logger.debug("Found element in UI hierarchy", metadata: [
+            "id": "\(identifier)",
+            "role": "\(uiElement.role)",
+            "frameOriginX": "\(uiElement.frame.origin.x)",
+            "frameOriginY": "\(uiElement.frame.origin.y)"
+        ])
+        
+        // If the element has zero dimensions, it might not be visible or clickable
+        if uiElement.frame.size.width <= 0 || uiElement.frame.size.height <= 0 {
+            logger.warning("Element has zero dimensions, may not be visible", metadata: [
+                "id": "\(identifier)",
+                "width": "\(uiElement.frame.size.width)",
+                "height": "\(uiElement.frame.size.height)"
+            ])
         }
         
         // For now, we'll need to get the element again from the system-wide element
@@ -335,6 +389,13 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
             y: uiElement.frame.origin.y + uiElement.frame.size.height / 2
         )
         
+        // Log the position we're querying
+        logger.debug("Querying element at position", metadata: [
+            "id": "\(identifier)",
+            "x": "\(position.x)",
+            "y": "\(position.y)"
+        ])
+        
         // Use AXUIElementCopyElementAtPosition to get the element at the position
         var foundElement: AXUIElement?
         let error = AXUIElementCopyElementAtPosition(
@@ -344,56 +405,375 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
             &foundElement
         )
         
-        guard error == .success, let axElement = foundElement else {
+        if error != .success {
+            logger.error("Failed to get element at position", metadata: [
+                "id": "\(identifier)",
+                "x": "\(position.x)",
+                "y": "\(position.y)",
+                "error": "\(error.rawValue)"
+            ])
+            
+            // Try a second approach - get all the windows from the application and search them
+            if let applicationTitle = uiElement.attributes["application"] as? String,
+               let applicationElement = try? await findApplicationByTitle(applicationTitle) {
+                
+                logger.debug("Trying to find element by searching application", metadata: [
+                    "id": "\(identifier)",
+                    "application": "\(applicationTitle)"
+                ])
+                
+                // Get windows and search through them
+                if let axElement = try await searchApplicationForElement(applicationElement, matchingId: identifier) {
+                    // Cache the element with current timestamp
+                    elementCache[identifier] = (axElement, Date())
+                    return axElement
+                }
+            }
+            
             throw createError(
-                "Failed to get AXUIElement for \(identifier) at position \(position)",
+                "Failed to get AXUIElement for \(identifier) at position \(position), error: \(error.rawValue)",
                 code: 2000
             )
         }
         
-        // Cache the element
-        elementCache[identifier] = axElement
+        guard let axElement = foundElement else {
+            logger.error("No element found at position", metadata: [
+                "id": "\(identifier)",
+                "x": "\(position.x)",
+                "y": "\(position.y)"
+            ])
+            throw createError(
+                "No element found at position \(position) for \(identifier)",
+                code: 2000
+            )
+        }
+        
+        // Verify the element we found is what we expect
+        var role: CFTypeRef?
+        let roleError = AXUIElementCopyAttributeValue(axElement, "AXRole" as CFString, &role)
+        
+        if roleError == .success, let roleString = role as? String {
+            logger.debug("Found element at position", metadata: [
+                "id": "\(identifier)",
+                "role": "\(roleString)"
+            ])
+            
+            // Verify the role matches what we expect
+            if roleString != uiElement.role {
+                logger.warning("Element role mismatch", metadata: [
+                    "id": "\(identifier)",
+                    "expectedRole": "\(uiElement.role)",
+                    "actualRole": "\(roleString)"
+                ])
+            }
+        } else {
+            logger.warning("Could not verify element role", metadata: [
+                "id": "\(identifier)",
+                "error": "\(roleError.rawValue)"
+            ])
+        }
+        
+        // Cache the element with current timestamp
+        elementCache[identifier] = (axElement, Date())
         
         return axElement
     }
     
+    /// Find an application element by its title
+    private func findApplicationByTitle(_ title: String) async throws -> AXUIElement? {
+        // Get all running applications
+        let runningApps = NSWorkspace.shared.runningApplications
+        
+        // Find the application with the matching title
+        for app in runningApps {
+            if app.localizedName == title {
+                return AccessibilityElement.applicationElement(pid: app.processIdentifier)
+            }
+        }
+        
+        return nil
+    }
+    
+    /// Search an application for an element with a specific ID
+    private func searchApplicationForElement(_ application: AXUIElement, matchingId id: String) async throws -> AXUIElement? {
+        // Get the windows from the application
+        var windowsRef: CFTypeRef?
+        let windowsError = AXUIElementCopyAttributeValue(application, "AXWindows" as CFString, &windowsRef)
+        
+        if windowsError != .success || windowsRef == nil {
+            logger.warning("Failed to get windows from application", metadata: [
+                "id": "\(id)",
+                "error": "\(windowsError.rawValue)"
+            ])
+            return nil
+        }
+        
+        guard let windows = windowsRef as? [AXUIElement] else {
+            logger.warning("Windows not in expected format", metadata: ["id": "\(id)"])
+            return nil
+        }
+        
+        // Search through each window
+        for window in windows {
+            if let element = try await searchElementAndChildren(window, matchingId: id) {
+                return element
+            }
+        }
+        
+        return nil
+    }
+    
+    /// Clean old or excessive entries from the cache
+    private func cleanCache() {
+        // If the cache is relatively small, don't bother cleaning
+        if elementCache.count < cacheMaxSize / 2 {
+            return
+        }
+        
+        // Current time for age checks
+        let now = Date()
+        
+        // First, remove any expired entries
+        for (id, (_, timestamp)) in elementCache {
+            if now.timeIntervalSince(timestamp) > cacheMaxAge {
+                elementCache.removeValue(forKey: id)
+            }
+        }
+        
+        // If still too many entries, remove oldest ones
+        if elementCache.count > cacheMaxSize {
+            let sortedEntries = elementCache.sorted { $0.value.1 < $1.value.1 }
+            let entriesToRemove = sortedEntries.prefix(elementCache.count - cacheMaxSize / 2)
+            
+            for (id, _) in entriesToRemove {
+                elementCache.removeValue(forKey: id)
+            }
+            
+            logger.debug("Cleaned \(entriesToRemove.count) old elements from cache", metadata: [
+                "remainingCacheSize": "\(elementCache.count)"
+            ])
+        }
+    }
+    
+    /// Recursively search an element and its children for an element with a specific ID
+    private func searchElementAndChildren(_ element: AXUIElement, matchingId id: String) async throws -> AXUIElement? {
+        // Check if this element matches the ID
+        var identifier: CFTypeRef?
+        let idError = AXUIElementCopyAttributeValue(element, "AXIdentifier" as CFString, &identifier)
+        
+        if idError == .success, let elementId = identifier as? String, elementId == id {
+            return element
+        }
+        
+        // Get the children
+        var childrenRef: CFTypeRef?
+        let childrenError = AXUIElementCopyAttributeValue(element, "AXChildren" as CFString, &childrenRef)
+        
+        if childrenError != .success || childrenRef == nil {
+            return nil
+        }
+        
+        guard let children = childrenRef as? [AXUIElement] else {
+            return nil
+        }
+        
+        // Search through each child
+        for child in children {
+            if let match = try await searchElementAndChildren(child, matchingId: id) {
+                return match
+            }
+        }
+        
+        return nil
+    }
+    
     /// Find a UI element by identifier
     private func findUIElement(identifier: String) async throws -> UIElement? {
-        // We need to use a separate task to avoid data races with accessibilityService
-        // Create a detached task that doesn't capture 'self'
-        let result = await Task.detached {
-            // Capture local copies of necessary values
-            let localAccessibilityService = self.accessibilityService
-            let localIdentifier = identifier
-            let localSelf = self
-            
-            do {
-                let systemElement = try await localAccessibilityService.getSystemUIElement(
-                    recursive: true,
-                    maxDepth: 20
-                )
-                return await localSelf.findElementById(systemElement, id: localIdentifier)
-            } catch {
-                return nil
-            }
-        }.value
+        logger.debug("Searching for UI element", metadata: ["id": "\(identifier)"])
         
-        return result
+        // Try multiple search strategies for more robust element finding
+        
+        // Strategy 1: Search the focused application first (most likely to contain the element)
+        do {
+            let focusedApp = try await accessibilityService.getFocusedApplicationUIElement(
+                recursive: true,
+                maxDepth: 25
+            )
+            
+            if let element = await findElementById(focusedApp, id: identifier) {
+                logger.debug("Found element in focused app", metadata: ["id": "\(identifier)"])
+                return element
+            }
+        } catch {
+            // If this fails, continue to the next strategy
+            logger.warning("Strategy 1 (focused app) failed: \(error.localizedDescription)")
+        }
+        
+        // Strategy 2: Try system-wide search with deeper traversal
+        do {
+            let systemElement = try await accessibilityService.getSystemUIElement(
+                recursive: true,
+                maxDepth: 25 
+            )
+            
+            if let element = await findElementById(systemElement, id: identifier) {
+                logger.debug("Found element in system-wide search", metadata: ["id": "\(identifier)"])
+                return element
+            }
+        } catch {
+            // If this fails, continue to the next strategy
+            logger.warning("Strategy 2 (system element) failed: \(error.localizedDescription)")
+        }
+        
+        // We've tried standard methods, search is complete
+        
+        logger.warning("Element not found in any location", metadata: ["id": "\(identifier)"])
+        return nil
     }
     
     /// Recursively find an element by ID
-    private func findElementById(_ root: UIElement, id: String) async -> UIElement? {
+    private func findElementById(_ root: UIElement, id: String, path: String = "") async -> UIElement? {
+        // Build the current path for logging
+        let currentPath = path.isEmpty ? root.role : "\(path)/\(root.role)"
+        
+        // Check if this is the element we're looking for
         if root.identifier == id {
+            logger.debug("Found element by ID", metadata: [
+                "id": "\(id)",
+                "path": "\(currentPath)",
+                "role": "\(root.role)",
+                "title": "\(root.title ?? "untitled")"
+            ])
             return root
         }
         
-        for child in root.children {
-            if let found = await findElementById(child, id: id) {
+        // Log that we're examining this element
+        logger.debug("Examining: role=\(root.role), id=\(root.identifier)")
+        
+        // Show child counts for debugging
+        if !root.children.isEmpty {
+            logger.debug("This element has \(root.children.count) children")
+            
+            // Log some details about the children for debugging
+            for (index, child) in root.children.prefix(5).enumerated() {
+                logger.debug("  Child \(index): role=\(child.role), id=\(child.identifier)")
+                if !child.children.isEmpty {
+                    logger.debug("    Child \(index) has \(child.children.count) children")
+                }
+            }
+        }
+        
+        // Optimize traversal by prioritizing containers and interactive elements
+        var sortedChildren = root.children
+        
+        // Sort children to prioritize application windows and containers over menus
+        sortedChildren.sort { (a, b) -> Bool in
+            // First, deprioritize menu elements
+            let aIsMenu = isMenuElement(a)
+            let bIsMenu = isMenuElement(b)
+            
+            if aIsMenu && !bIsMenu {
+                return false
+            } else if !aIsMenu && bIsMenu {
+                return true
+            }
+            
+            // Then prioritize window elements
+            let aIsWindow = a.role == AXAttribute.Role.window
+            let bIsWindow = b.role == AXAttribute.Role.window
+            
+            if aIsWindow && !bIsWindow {
+                return true
+            } else if !aIsWindow && bIsWindow {
+                return false
+            }
+            
+            // Then prioritize known container elements
+            let aIsContainer = isContainer(a)
+            let bIsContainer = isContainer(b)
+            
+            if aIsContainer && !bIsContainer {
+                return true
+            } else if !aIsContainer && bIsContainer {
+                return false
+            }
+            
+            // Then prioritize interactive elements
+            let aIsInteractive = isInteractive(a)
+            let bIsInteractive = isInteractive(b)
+            
+            if aIsInteractive && !bIsInteractive {
+                return true
+            } else if !aIsInteractive && bIsInteractive {
+                return false
+            }
+            
+            // Default to standard order
+            return true
+        }
+        
+        // Search through the prioritized children
+        for child in sortedChildren {
+            if let found = await findElementById(child, id: id, path: currentPath) {
                 return found
             }
         }
         
         return nil
+    }
+    
+    /// Check if an element is likely a container of interactive elements
+    private func isContainer(_ element: UIElement) -> Bool {
+        let containerRoles = [
+            AXAttribute.Role.group,
+            AXAttribute.Role.toolbar,
+            "AXTabGroup",
+            "AXSplitGroup",
+            "AXNavigationBar",
+            "AXDrawer",
+            "AXContentView",
+            "AXList",
+            "AXOutline",
+            "AXGrid",
+            "AXScrollArea",
+            "AXLayoutArea"
+        ]
+        
+        return containerRoles.contains(element.role)
+    }
+    
+    /// Check if an element is a menu-related element that should be deprioritized
+    private func isMenuElement(_ element: UIElement) -> Bool {
+        let menuRoles = [
+            "AXMenu",
+            "AXMenuBar",
+            "AXMenuBarItem",
+            "AXMenuItem",
+            "AXMenuButton"
+        ]
+        
+        return menuRoles.contains(element.role)
+    }
+    
+    /// Check if an element is likely interactive
+    private func isInteractive(_ element: UIElement) -> Bool {
+        let interactiveRoles = [
+            AXAttribute.Role.button,
+            AXAttribute.Role.popUpButton,
+            AXAttribute.Role.checkbox,
+            AXAttribute.Role.radioButton,
+            AXAttribute.Role.textField,
+            AXAttribute.Role.menu,
+            AXAttribute.Role.menuItem,
+            AXAttribute.Role.link,
+            "AXSlider",
+            "AXStepper",
+            "AXSwitch",
+            "AXToggle",
+            "AXTabButton"
+        ]
+        
+        return interactiveRoles.contains(element.role) || !element.actions.isEmpty
     }
     
     /// Perform an accessibility action on an element

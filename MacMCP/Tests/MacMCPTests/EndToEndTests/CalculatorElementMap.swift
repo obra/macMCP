@@ -81,32 +81,143 @@ extension CalculatorApp {
     /// - Parameter identifier: The button identifier (e.g., "1", "+", "=")
     /// - Returns: The UI element representing the button, or nil if not found
     func getButton(identifier: String) async throws -> UIElement? {
+        print("Searching for button with identifier: \(identifier)")
+        
+        // Get main window - with single focused attempt
         guard let window = try await getMainWindow() else {
+            print("Could not get main window")
             return nil
         }
-        
-        // Look for direct button match
-        for child in window.children {
-            if child.role == "AXButton" && (child.identifier.contains(identifier) || 
-                                           child.title?.contains(identifier) == true ||
-                                           child.value?.contains(identifier) == true) {
-                return child
-            }
-        }
-        
-        // If the window has a group containing buttons, search there
-        for child in window.children {
-            if child.role == "AXGroup" {
-                for button in child.children {
-                    if button.role == "AXButton" && (button.identifier.contains(identifier) || 
-                                                   button.title?.contains(identifier) == true ||
-                                                   button.value?.contains(identifier) == true) {
-                        return button
+            
+            // Try a multi-level recursive search to find the button
+            // This works better with modern macOS calculator which has a more complex hierarchy
+            func searchForButtonRecursively(in element: UIElement, depth: Int = 0) -> UIElement? {
+                // Increased recursion depth to find deeper elements like calculator buttons
+                guard depth < 20 else { return nil }
+                
+                // Print info about the current element at higher levels to help with debugging
+                let indent = String(repeating: "  ", count: depth)
+                
+                // Print every button regardless of depth
+                if element.role == "AXButton" || element.role.contains("Button") {
+                    print("\(indent)BUTTON FOUND: role=\(element.role), id=\(element.identifier), " +
+                          "title=\(element.title ?? "nil"), value=\(element.value ?? "nil"), " +
+                          "description=\(element.elementDescription ?? "nil"), frame=\(element.frame)")
+                }
+                // Print detailed info only at higher levels
+                else if depth < 2 {
+                    print("\(indent)Examining: role=\(element.role), id=\(element.identifier)")
+                    
+                    if !element.children.isEmpty && depth == 0 {
+                        print("\(indent)This element has \(element.children.count) children")
+                        
+                        // Print the first few direct children for visibility
+                        for (i, child) in element.children.enumerated().prefix(3) {
+                            print("\(indent)  Child \(i): role=\(child.role), id=\(child.identifier), " +
+                                  "title=\(child.title ?? "nil"), description=\(child.elementDescription ?? "nil")")
+                            if !child.children.isEmpty {
+                                print("\(indent)    Child \(i) has \(child.children.count) children")
+                            }
+                        }
                     }
                 }
+                
+                // Check if this is a button
+                if element.role == "AXButton" || 
+                   element.role == "AXButtonSubstitute" || 
+                   element.role.contains("Button") {
+                   
+                    // Print all button info to help with debugging
+                    let isMatch = element.identifier.contains(identifier) ||
+                                  element.title?.contains(identifier) == true ||
+                                  element.value?.contains(identifier) == true ||
+                                  element.description.contains(identifier)
+                    
+                    let prefix = isMatch ? "POTENTIAL MATCH: " : ""
+                    let buttonDetails = "\(prefix)Button: role=\(element.role), id=\(element.identifier), " +
+                                       "title=\(element.title ?? "nil"), " +
+                                       "value=\(element.value ?? "nil"), " +
+                                       "description=\(element.description)"
+                    
+                    // Only print detailed info if it's a potential match to reduce log noise
+                    if isMatch {
+                        print(buttonDetails)
+                        
+                        // Also print any available actions
+                        if !element.actions.isEmpty {
+                            print("  Actions: \(element.actions.joined(separator: ", "))")
+                        }
+                                   
+                        // Check for exact matches in different button properties
+                        if element.identifier == identifier ||
+                           element.title == identifier ||
+                           element.value == identifier {
+                            print("FOUND EXACT MATCH")
+                            return element
+                        }
+                        
+                        // For single-character identifiers like digits, be more lenient
+                        if identifier.count == 1 &&
+                           (element.title?.contains(identifier) == true ||
+                            element.value?.contains(identifier) == true ||
+                            element.identifier.contains(identifier)) {
+                            print("FOUND MATCH FOR DIGIT OR OPERATOR")
+                            return element
+                        }
+                        
+                        // Special case for operation buttons that might have different representations
+                        let specialOperations = ["+", "-", "×", "÷", "=", ".", "%", "±"]
+                        if specialOperations.contains(identifier) &&
+                           (element.title?.contains(identifier) == true ||
+                            element.value?.contains(identifier) == true ||
+                            element.description.contains(identifier)) {
+                            print("FOUND MATCH FOR SPECIAL OPERATION")
+                            return element
+                        }
+                    }
+                }
+                
+                // Recursively search children
+                for child in element.children {
+                    if let match = searchForButtonRecursively(in: child, depth: depth + 1) {
+                        return match
+                    }
+                }
+                
+                return nil
             }
-        }
-        
+            
+            // First try searching in the window hierarchy
+            if let button = searchForButtonRecursively(in: window) {
+                print("Found button '\(identifier)' in window hierarchy")
+                return button
+            }
+            
+            // If not found in window, try a direct app-level search that can see more elements
+            print("Button '\(identifier)' not found in window hierarchy, trying app-level search")
+            
+            do {
+                // Get the application element directly - using deep search
+                print("Trying app-level search for button '\(identifier)'")
+                let appElement = try await accessibilityService.getApplicationUIElement(
+                    bundleIdentifier: CalculatorApp.bundleId,
+                    recursive: true,
+                    maxDepth: 20 // Search much deeper to ensure we find buttons
+                )
+                
+                // Print high-level info about the app element
+                print("App element: role=\(appElement.role), children=\(appElement.children.count)")
+                
+                // Search through the entire app hierarchy
+                if let button = searchForButtonRecursively(in: appElement) {
+                    print("Found button '\(identifier)' via app-level search")
+                    return button
+                }
+            } catch {
+                print("Error in app-level search: \(error)")
+            }
+            
+            print("Button '\(identifier)' not found after exhaustive search")
         return nil
     }
     
@@ -114,14 +225,28 @@ extension CalculatorApp {
     /// - Parameter identifier: The button identifier (e.g., "1", "+", "=")
     /// - Returns: True if the button was successfully pressed
     func pressButton(identifier: String) async throws -> Bool {
+        // Single attempt with improved UI element discovery
+        print("Attempting to press button '\(identifier)'")
+        
+        // Use our enhanced getButton method which already does deep searching
         guard let button = try await getButton(identifier: identifier) else {
             print("Button with identifier '\(identifier)' not found")
             return false
         }
         
-        try await interactionService.clickElement(identifier: button.identifier)
-        try await Task.sleep(for: .milliseconds(100)) // Brief pause for UI update
-        return true
+        do {
+            // Try to click the button
+            try await interactionService.clickElement(identifier: button.identifier)
+            
+            // Wait longer for UI update - calculator can be slow to respond
+            try await Task.sleep(for: .milliseconds(300))
+            
+            print("Successfully pressed button '\(identifier)'")
+            return true
+        } catch {
+            print("Error clicking button '\(identifier)': \(error)")
+            throw error
+        }
     }
     
     /// Type a sequence of characters using button presses
@@ -129,7 +254,10 @@ extension CalculatorApp {
     /// - Returns: True if all buttons were successfully pressed
     func enterSequence(_ sequence: String) async throws -> Bool {
         // Clear the calculator first
-        try await pressButton(identifier: CalculatorElements.clear)
+        let clearSuccess = try await pressButton(identifier: CalculatorElements.clear)
+        if !clearSuccess {
+            return false
+        }
         
         // Press each button in sequence
         for char in sequence {
@@ -138,10 +266,10 @@ extension CalculatorApp {
             // Map specific characters to button identifiers if needed
             let mappedId: String
             switch char {
-            case '×': mappedId = CalculatorElements.Operations.multiply
-            case '÷': mappedId = CalculatorElements.Operations.divide
-            case '-': mappedId = CalculatorElements.Operations.minus
-            case '−': mappedId = CalculatorElements.Operations.minus
+            case "×": mappedId = CalculatorElements.Operations.multiply
+            case "÷": mappedId = CalculatorElements.Operations.divide
+            case "-": mappedId = CalculatorElements.Operations.minus
+            case "−": mappedId = CalculatorElements.Operations.minus
             default: mappedId = buttonId
             }
             
@@ -163,12 +291,33 @@ extension CalculatorApp {
     ///   - num2: Second number
     /// - Returns: The result as shown on Calculator's display, or nil on failure
     func calculate(num1: String, operation: String, num2: String) async throws -> String? {
-        // Clear the calculator
-        try await pressButton(identifier: CalculatorElements.clear)
+        print("Starting calculation: \(num1) \(operation) \(num2)")
+        
+        // Clear the calculator - try multiple button identifiers that might work
+        print("Attempting to clear calculator")
+        var clearSuccess = try await pressButton(identifier: CalculatorElements.clear)
+        if !clearSuccess {
+            print("Failed to clear with AC, trying alternative 'C' button")
+            clearSuccess = try await pressButton(identifier: "C")
+        }
+        if !clearSuccess {
+            print("Failed to clear with C, trying CE button")
+            clearSuccess = try await pressButton(identifier: "CE")
+        }
+        if !clearSuccess {
+            print("FAILED: Could not clear calculator with any clear button")
+            return nil
+        }
         
         // Enter the first number
+        print("Entering first number: \(num1)")
         for digit in num1 {
-            try await pressButton(identifier: String(digit))
+            print("Pressing digit: \(digit)")
+            let digitSuccess = try await pressButton(identifier: String(digit))
+            if !digitSuccess {
+                print("FAILED: Could not press digit \(digit)")
+                return nil
+            }
         }
         
         // Press the operation button
@@ -180,17 +329,44 @@ extension CalculatorApp {
         case "÷": operationId = CalculatorElements.Operations.divide
         default: operationId = operation
         }
-        try await pressButton(identifier: operationId)
+        
+        print("Pressing operation: \(operationId)")
+        let opSuccess = try await pressButton(identifier: operationId)
+        if !opSuccess {
+            print("FAILED: Could not press operation \(operationId)")
+            return nil
+        }
         
         // Enter the second number
+        print("Entering second number: \(num2)")
         for digit in num2 {
-            try await pressButton(identifier: String(digit))
+            print("Pressing digit: \(digit)")
+            let digitSuccess = try await pressButton(identifier: String(digit))
+            if !digitSuccess {
+                print("FAILED: Could not press digit \(digit)")
+                return nil
+            }
         }
         
         // Press equals
-        try await pressButton(identifier: CalculatorElements.Operations.equals)
+        print("Pressing equals")
+        let equalsSuccess = try await pressButton(identifier: CalculatorElements.Operations.equals)
+        if !equalsSuccess {
+            print("FAILED: Could not press equals button")
+            return nil
+        }
         
-        // Get the result
-        return try await getDisplayValue()
+        // Get the result - allow some time for UI to update
+        print("Getting display value")
+        try await Task.sleep(for: .milliseconds(300))
+        let result = try await getDisplayValue()
+        
+        if result == nil {
+            print("FAILED: Could not get display value")
+            return nil
+        }
+        
+        print("Calculation complete, result: \(result ?? "nil")")
+        return result
     }
 }

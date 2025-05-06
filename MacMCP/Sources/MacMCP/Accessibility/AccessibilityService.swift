@@ -11,7 +11,7 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
     private let logger: Logger
     
     /// The default maximum recursion depth for element hierarchy
-    public static let defaultMaxDepth = 10
+    public static let defaultMaxDepth = 25
     
     /// Initialize the accessibility service
     /// - Parameter logger: Optional logger to use (creates one if not provided)
@@ -60,7 +60,8 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
         }
         
         // Find the application by bundle ID
-        guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier).first else {
+        let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier)
+        guard let app = runningApps.first else {
             logger.error("Application not running", metadata: ["bundleId": "\(bundleIdentifier)"])
             throw NSError(
                 domain: "com.macos.mcp.accessibility",
@@ -69,12 +70,53 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
             )
         }
         
+        // Log some useful information for debugging
+        logger.info("Found application", metadata: [
+            "bundleId": "\(bundleIdentifier)", 
+            "pid": "\(app.processIdentifier)",
+            "isFinishedLaunching": "\(app.isFinishedLaunching)",
+            "isActive": "\(app.isActive)"
+        ])
+        
+        // Small delay to ensure app is ready for accessibility
+        if !app.isFinishedLaunching {
+            logger.info("Waiting for application to finish launching")
+            try await Task.sleep(for: .milliseconds(500))
+        }
+        
+        // Get the application element
         let appElement = AccessibilityElement.applicationElement(pid: app.processIdentifier)
-        return try AccessibilityElement.convertToUIElement(
-            appElement,
-            recursive: recursive,
-            maxDepth: maxDepth
-        )
+        
+        // Try to create a UIElement representing the app
+        do {
+            return try AccessibilityElement.convertToUIElement(
+                appElement,
+                recursive: recursive,
+                maxDepth: maxDepth
+            )
+        } catch {
+            // Log detailed error but try to recover
+            logger.error("Error converting application element", metadata: [
+                "bundleId": "\(bundleIdentifier)",
+                "error": "\(error.localizedDescription)"
+            ])
+            
+            // Try again with a simpler approach (less recursion, fewer attributes)
+            do {
+                logger.info("Retrying with simplified conversion")
+                return try AccessibilityElement.convertToUIElement(
+                    appElement,
+                    recursive: false,  // Don't try recursive conversion
+                    maxDepth: 1        // Minimal depth
+                )
+            } catch {
+                // If even the simplified approach fails, rethrow the error
+                logger.error("Failed simplified conversion attempt", metadata: [
+                    "error": "\(error.localizedDescription)"
+                ])
+                throw error
+            }
+        }
     }
     
     /// Get the UI element for the currently focused application
