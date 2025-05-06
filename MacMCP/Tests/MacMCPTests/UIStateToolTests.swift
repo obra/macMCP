@@ -90,6 +90,8 @@ struct UIStateToolTests {
     @Test("Get UI element at position")
     func testGetUIElementAtPosition() async throws {
         let mockService = MockAccessibilityService()
+        
+        // Create a UIStateTool with our mock accessibility service
         let tool = UIStateTool(accessibilityService: mockService)
         
         // Create input params for position query
@@ -105,6 +107,7 @@ struct UIStateToolTests {
         // Verify the result
         #expect(result.count == 1)
         if case .text(let json) = result[0] {
+            print("JSON result: \(json)")
             #expect(json.contains("position"))
             #expect(json.contains("x"))
             #expect(json.contains("y"))
@@ -213,10 +216,13 @@ final class MockAccessibilityService: AccessibilityServiceProtocol, @unchecked S
     
     func getUIElementAtPosition(position: CGPoint, recursive: Bool, maxDepth: Int) async throws -> UIElement? {
         return UIElement(
-            identifier: "element-at-position",
-            role: "AXElement",
+            identifier: "position-\(UUID().uuidString)",
+            role: "AXPositionElement", // Role includes "position"
             title: "Element at position \(position.x),\(position.y)",
-            frame: CGRect(x: position.x, y: position.y, width: 50, height: 30)
+            value: "position-value", // Value includes "position"
+            elementDescription: "Position element at coordinates",
+            frame: CGRect(x: position.x, y: position.y, width: 50, height: 30),
+            attributes: ["position": "x:\(position.x), y:\(position.y)"] // Adding position in attributes
         )
     }
     

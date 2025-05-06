@@ -6,7 +6,7 @@ import MCP
 import Logging
 
 /// A tool for getting the current UI state
-public struct UIStateTool {
+public struct UIStateTool: @unchecked Sendable {
     /// The name of the tool
     public let name = "macos/ui_state"
     
@@ -21,6 +21,13 @@ public struct UIStateTool {
     
     /// The accessibility service to use
     private let accessibilityService: any AccessibilityServiceProtocol
+    
+    /// Tool handler function that uses this instance's accessibility service
+    public var handler: @Sendable ([String: Value]?) async throws -> [Tool.Content] {
+        return { [self] params in
+            return try await self.processRequest(params)
+        }
+    }
     
     /// The logger
     private let logger: Logger
@@ -70,11 +77,11 @@ public struct UIStateTool {
                     "description": .string("The bundle identifier of the application to retrieve. Required when scope is 'application'.")
                 ]),
                 "x": .object([
-                    "type": .string("number"),
+                    "type": .array([.string("number"), .string("integer")]),
                     "description": .string("X coordinate for position scope")
                 ]),
                 "y": .object([
-                    "type": .string("number"),
+                    "type": .array([.string("number"), .string("integer")]),
                     "description": .string("Y coordinate for position scope")
                 ]),
                 "maxDepth": .object([
@@ -100,18 +107,6 @@ public struct UIStateTool {
             "required": .array([.string("scope")]),
             "additionalProperties": .bool(false)
         ])
-    }
-    
-    /// Tool handler function
-    public let handler: @Sendable ([String: Value]?) async throws -> [Tool.Content] = { params in
-        // Cast self to access properties
-        let this = Self(
-            accessibilityService: AccessibilityService(
-                logger: Logger(label: "mcp.tool.ui_state")
-            )
-        )
-        
-        return try await this.processRequest(params)
     }
     
     /// Process a UI state request
@@ -213,15 +208,28 @@ public struct UIStateTool {
             
         case "position":
             // Get UI element at position
-            guard
-                let x = params["x"]?.doubleValue,
-                let y = params["y"]?.doubleValue
-            else {
-                throw MCPError.invalidParams("x and y coordinates are required when scope is 'position'")
+            // Check for either double or int values for coordinates
+            let xCoord: Double
+            let yCoord: Double
+            
+            if let xDouble = params["x"]?.doubleValue {
+                xCoord = xDouble
+            } else if let xInt = params["x"]?.intValue {
+                xCoord = Double(xInt)
+            } else {
+                throw MCPError.invalidParams("x coordinate is required when scope is 'position'")
+            }
+            
+            if let yDouble = params["y"]?.doubleValue {
+                yCoord = yDouble
+            } else if let yInt = params["y"]?.intValue {
+                yCoord = Double(yInt)
+            } else {
+                throw MCPError.invalidParams("y coordinate is required when scope is 'position'")
             }
             
             if let element = try await accessibilityService.getUIElementAtPosition(
-                position: CGPoint(x: x, y: y),
+                position: CGPoint(x: xCoord, y: yCoord),
                 recursive: true,
                 maxDepth: maxDepth
             ) {

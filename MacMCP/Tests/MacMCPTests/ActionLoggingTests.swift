@@ -12,7 +12,6 @@ struct ActionLoggingTests {
     func testLogCaptureAndRetrieval() async throws {
         // Create a log capture service
         let logService = LogService()
-        let interactionService = MockUIInteractionService()
         
         // Create a tool with the log service
         let tool = ActionLogTool(logService: logService)
@@ -237,7 +236,7 @@ struct ActionLogEntry: Codable, Equatable {
 }
 
 // Mock log service for testing
-class LogService {
+class LogService: @unchecked Sendable {
     private var logs: [ActionLogEntry] = []
     
     func addLogEntry(_ entry: ActionLogEntry) {
@@ -280,7 +279,7 @@ class LogService {
 }
 
 // Mock action log tool for testing
-struct ActionLogTool {
+struct ActionLogTool: @unchecked Sendable {
     let name = "macos/action_log"
     let description = "Retrieve action logs from the macOS MCP server"
     
@@ -290,12 +289,15 @@ struct ActionLogTool {
         self.logService = logService
     }
     
-    let handler: @Sendable ([String: Value]?) async throws -> [Tool.Content] = { params in
-        // This is a stub that will be replaced with a real implementation in the test
-        []
+    // Handler property that captures self
+    var handler: @Sendable ([String: Value]?) async throws -> [Tool.Content] {
+        return { [self] params in
+            try await self.processRequest(params)
+        }
     }
     
-    func handler(_ params: [String: Value]?) async throws -> [Tool.Content] {
+    // Private method to do the actual work
+    private func processRequest(_ params: [String: Value]?) async throws -> [Tool.Content] {
         // Get filter parameters
         let limit = params?["limit"]?.intValue
         let category = params?["category"]?.stringValue

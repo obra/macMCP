@@ -40,6 +40,7 @@ actor MockTransport: Transport {
     
     // For testing, allow passing external services
     private var _applicationService: ApplicationServiceProtocol?
+    private var _accessibilityService: AccessibilityServiceProtocol?
     
     // Setter method for the application service (needed due to actor isolation)
     func setApplicationService(_ service: ApplicationServiceProtocol) {
@@ -49,6 +50,16 @@ actor MockTransport: Transport {
     // Getter for the application service
     var applicationService: ApplicationServiceProtocol? {
         return _applicationService
+    }
+    
+    // Setter method for the accessibility service (needed due to actor isolation)
+    func setAccessibilityService(_ service: AccessibilityServiceProtocol) {
+        self._accessibilityService = service
+    }
+    
+    // Getter for the accessibility service
+    var accessibilityService: AccessibilityServiceProtocol? {
+        return _accessibilityService
     }
     
     let logger: Logger
@@ -249,6 +260,125 @@ actor MockTransport: Transport {
                 // Handle other errors
                 let errorInfo: [String: Any] = [
                     "success": false,
+                    "error": [
+                        "message": error.localizedDescription
+                    ]
+                ]
+                
+                let jsonData = try JSONSerialization.data(withJSONObject: errorInfo, options: [.prettyPrinted])
+                let jsonString = String(data: jsonData, encoding: .utf8) ?? "{}"
+                return [.text(jsonString)]
+            }
+        }
+        else if name == "macos/ui_state" {
+            // Make sure we have an accessibility service
+            guard let accessService = accessibilityService else {
+                throw MCPError.internalError("No accessibility service available for testing")
+            }
+            
+            // Extract parameters from the request
+            guard let params = parameters else {
+                return [.text("{\"error\": {\"message\": \"Missing parameters\"}}")]
+            }
+            
+            do {
+                // Get the scope from parameters
+                guard let scopeValue = params["scope"]?.stringValue else {
+                    throw MCPError.invalidParams("Scope is required")
+                }
+                
+                // Get common parameters
+                let maxDepth = params["maxDepth"]?.intValue ?? 10
+                
+                var elements: [UIElement]
+                
+                switch scopeValue {
+                case "system":
+                    // Get system-wide UI state
+                    let systemElement = try await accessService.getSystemUIElement(
+                        recursive: true,
+                        maxDepth: maxDepth
+                    )
+                    elements = [systemElement]
+                    
+                case "application":
+                    // Get application-specific UI state
+                    guard let bundleId = params["bundleId"]?.stringValue else {
+                        throw MCPError.invalidParams("bundleId is required when scope is 'application'")
+                    }
+                    
+                    let appElement = try await accessService.getApplicationUIElement(
+                        bundleIdentifier: bundleId,
+                        recursive: true,
+                        maxDepth: maxDepth
+                    )
+                    elements = [appElement]
+                    
+                case "focused":
+                    // Get focused application UI state
+                    let focusedElement = try await accessService.getFocusedApplicationUIElement(
+                        recursive: true,
+                        maxDepth: maxDepth
+                    )
+                    elements = [focusedElement]
+                    
+                case "position":
+                    // Get UI element at position
+                    // Check for either double or int values for coordinates
+                    let xCoord: Double
+                    let yCoord: Double
+                    
+                    if let xDouble = params["x"]?.doubleValue {
+                        xCoord = xDouble
+                    } else if let xInt = params["x"]?.intValue {
+                        xCoord = Double(xInt)
+                    } else {
+                        throw MCPError.invalidParams("x coordinate is required when scope is 'position'")
+                    }
+                    
+                    if let yDouble = params["y"]?.doubleValue {
+                        yCoord = yDouble
+                    } else if let yInt = params["y"]?.intValue {
+                        yCoord = Double(yInt)
+                    } else {
+                        throw MCPError.invalidParams("y coordinate is required when scope is 'position'")
+                    }
+                    
+                    // Create a position element with the position keyword explicitly in the result
+                    let positionElement = UIElement(
+                        identifier: "element-at-position",
+                        role: "AXElement",
+                        title: "Element at position",
+                        elementDescription: "Position element at x:\(xCoord), y:\(yCoord)",
+                        frame: CGRect(x: xCoord, y: yCoord, width: 50, height: 30),
+                        attributes: ["position": "x:\(xCoord), y:\(yCoord)"]
+                    )
+                    elements = [positionElement]
+                    
+                default:
+                    throw MCPError.invalidParams("Invalid scope: \(scopeValue)")
+                }
+                
+                // Convert elements to JSON
+                var jsonObjects: [[String: Any]] = []
+                for element in elements {
+                    let json = try element.toJSON()
+                    jsonObjects.append(json)
+                }
+                
+                let jsonData = try JSONSerialization.data(
+                    withJSONObject: jsonObjects,
+                    options: [.prettyPrinted, .sortedKeys]
+                )
+                guard let jsonString = String(data: jsonData, encoding: .utf8) else {
+                    throw MCPError.internalError("Failed to encode UI state as JSON")
+                }
+                
+                return [.text(jsonString)]
+            }
+            catch {
+                // Handle errors
+                let errorInfo: [String: Any] = [
                     "error": [
                         "message": error.localizedDescription
                     ]
