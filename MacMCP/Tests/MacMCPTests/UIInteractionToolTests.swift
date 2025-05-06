@@ -15,7 +15,7 @@ struct UIInteractionToolTests {
             logger: nil
         )
         
-        #expect(tool.name == "macos/ui_interact")
+        #expect(tool.name == "macos_ui_interact")
         #expect(tool.description.contains("Interact with UI elements"))
         #expect(tool.inputSchema != nil)
         #expect(tool.annotations.readOnlyHint == false)

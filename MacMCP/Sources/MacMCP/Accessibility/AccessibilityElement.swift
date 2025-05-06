@@ -3,6 +3,7 @@
 
 import Foundation
 import AppKit
+import CryptoKit
 
 /// Utility for working with AXUIElement objects
 public class AccessibilityElement {
@@ -61,23 +62,6 @@ public class AccessibilityElement {
             description = nil
         }
         
-        // Try to get an identifier - first try AXIdentifier, but if that's not available
-        // construct one from properties and the memory address
-        let identifier: String
-        do {
-            if let explicitID = try getAttribute(axElement, attribute: AXAttribute.identifier) as? String {
-                identifier = explicitID
-            } else {
-                // Create an identifier from role + title + address
-                let address = UInt(bitPattern: Unmanaged.passUnretained(axElement).toOpaque())
-                identifier = "\(role)_\(title ?? "untitled")_\(address)"
-            }
-        } catch {
-            // On error, just use the memory address as identifier
-            let address = UInt(bitPattern: Unmanaged.passUnretained(axElement).toOpaque())
-            identifier = "\(role)_\(address)"
-        }
-        
         // Get frame with robust error handling
         let frame: CGRect
         do {
@@ -124,6 +108,93 @@ public class AccessibilityElement {
         } else if let parentApp = parent?.attributes["application"] as? String {
             // Inherit application context from parent
             attributes["application"] = parentApp
+        }
+        
+        // Try to get an identifier - first try AXIdentifier, but if that's not available
+        // generate a unique identifier that's stable across sessions
+        let identifier: String
+        do {
+            // Step 1: Try to use the explicit accessibility identifier if available
+            if let explicitID = try getAttribute(axElement, attribute: AXAttribute.identifier) as? String, !explicitID.isEmpty {
+                identifier = "ax-\(explicitID)"
+            } else {
+                // Step 2: Generate a UUID-style identifier that's based on stable element properties
+                
+                // Create a "fingerprint" of the element using its properties
+                var fingerprintParts: [String] = []
+                
+                // Add role (always available)
+                fingerprintParts.append(role)
+                
+                // Add application context if available
+                if let app = attributes["application"] as? String {
+                    fingerprintParts.append(app)
+                }
+                
+                // Add position information
+                fingerprintParts.append("pos-\(Int(frame.origin.x))-\(Int(frame.origin.y))")
+                
+                // Add size information 
+                fingerprintParts.append("size-\(Int(frame.size.width))-\(Int(frame.size.height))")
+                
+                // Add title if available
+                if let title = title, !title.isEmpty {
+                    fingerprintParts.append("title-\(title)")
+                }
+                
+                // Add description if available
+                if let description = description, !description.isEmpty {
+                    fingerprintParts.append("desc-\(description)")
+                }
+                
+                // Add value if available
+                if let value = value, !value.isEmpty {
+                    fingerprintParts.append("val-\(value)")
+                }
+                
+                // Join all parts and hash them to create a stable, unique identifier
+                let fingerprint = fingerprintParts.joined(separator: "::")
+                let fingerprintData = fingerprint.data(using: .utf8) ?? Data()
+                
+                // Create a hashed identifier using the first 8 bytes of SHA256
+                // Note: This is just a way to create a stable, unique ID from the fingerprint
+                let hashedID: String
+                if #available(macOS 10.15, *) {
+                    let digest = SHA256.hash(data: fingerprintData)
+                    let hashBytes = digest.prefix(8)
+                    hashedID = hashBytes.map { String(format: "%02x", $0) }.joined()
+                } else {
+                    // Fallback for older macOS versions
+                    let hash = abs(fingerprint.hashValue)
+                    hashedID = String(format: "%016llx", UInt64(hash))
+                }
+                
+                // Format the final identifier with a prefix indicating how it was generated
+                // and include key information for human readability
+                let prefix: String
+                if role == AXAttribute.Role.button || 
+                   role == AXAttribute.Role.menuItem ||
+                   role == AXAttribute.Role.checkbox ||
+                   role == AXAttribute.Role.radioButton {
+                    // For common controls, include the title for better human readability
+                    if let title = title, !title.isEmpty {
+                        prefix = "\(role)-\(title)"
+                    } else if let description = description, !description.isEmpty {
+                        prefix = "\(role)-\(description)"
+                    } else {
+                        prefix = role
+                    }
+                } else {
+                    prefix = role
+                }
+                
+                // Final globally unique identifier
+                identifier = "\(prefix)-\(hashedID)"
+            }
+        } catch {
+            // On error, generate a fallback UUID with role as prefix
+            let fallbackUUID = UUID().uuidString
+            identifier = "\(role)-\(fallbackUUID.prefix(8))"
         }
         
         // Get available actions with robust error handling

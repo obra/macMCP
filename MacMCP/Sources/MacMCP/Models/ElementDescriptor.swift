@@ -6,8 +6,11 @@ import MCP
 
 /// A standardized descriptor for a UI element
 public struct ElementDescriptor: Codable, Sendable, Identifiable {
-    /// Unique identifier for the element
+    /// Unique identifier for the element (guaranteed to be stable and unique)
     public let id: String
+    
+    /// Human-readable name of the element (derived from title or description)
+    public let name: String
     
     /// The accessibility role of the element
     public let role: String
@@ -54,6 +57,7 @@ public struct ElementDescriptor: Codable, Sendable, Identifiable {
     /// Create a new element descriptor
     /// - Parameters:
     ///   - id: Unique identifier
+    ///   - name: Human-readable name (optional, defaults to element title or role)
     ///   - role: Accessibility role
     ///   - title: Title or label (optional)
     ///   - value: Current value (optional)
@@ -70,6 +74,7 @@ public struct ElementDescriptor: Codable, Sendable, Identifiable {
     ///   - children: Child elements (optional)
     public init(
         id: String,
+        name: String? = nil,
         role: String,
         title: String? = nil,
         value: String? = nil,
@@ -86,6 +91,19 @@ public struct ElementDescriptor: Codable, Sendable, Identifiable {
         children: [ElementDescriptor]? = nil
     ) {
         self.id = id
+        // Generate a human-readable name if not provided
+        if let providedName = name {
+            self.name = providedName
+        } else if let title = title, !title.isEmpty {
+            self.name = title
+        } else if let desc = description, !desc.isEmpty {
+            self.name = desc
+        } else if let val = value, !val.isEmpty {
+            self.name = "\(role) with value \(val)"
+        } else {
+            self.name = role
+        }
+        
         self.role = role
         self.title = title
         self.value = value
@@ -142,8 +160,23 @@ public struct ElementDescriptor: Codable, Sendable, Identifiable {
             children = nil
         }
         
+        // Generate a human-readable name for the element
+        let name: String
+        if let title = element.title, !title.isEmpty {
+            name = title
+        } else if let desc = element.elementDescription, !desc.isEmpty {
+            name = desc
+        } else if let val = element.value, !val.isEmpty {
+            name = "\(element.role) with value \(val)"
+        } else {
+            name = element.role
+        }
+        
+        // Always use the original stable identifier
+        // This ensures uniqueness even when multiple elements have the same title
         return ElementDescriptor(
             id: element.identifier,
+            name: name,
             role: element.role,
             title: element.title,
             value: element.value,
@@ -204,6 +237,9 @@ public struct WindowDescriptor: Codable, Sendable, Identifiable {
     /// Unique identifier for the window
     public let id: String
     
+    /// Human-readable name for the window
+    public let name: String
+    
     /// Window title
     public let title: String?
     
@@ -222,6 +258,7 @@ public struct WindowDescriptor: Codable, Sendable, Identifiable {
     /// Create a new window descriptor
     /// - Parameters:
     ///   - id: Unique identifier
+    ///   - name: Human-readable name (optional)
     ///   - title: Window title (optional)
     ///   - isMain: Whether it's the main window
     ///   - isMinimized: Whether it's minimized
@@ -229,6 +266,7 @@ public struct WindowDescriptor: Codable, Sendable, Identifiable {
     ///   - frame: Window position and size
     public init(
         id: String,
+        name: String? = nil,
         title: String? = nil,
         isMain: Bool = false,
         isMinimized: Bool = false,
@@ -236,6 +274,14 @@ public struct WindowDescriptor: Codable, Sendable, Identifiable {
         frame: ElementFrame
     ) {
         self.id = id
+        // Generate a name if not provided
+        if let providedName = name {
+            self.name = providedName
+        } else if let title = title, !title.isEmpty {
+            self.name = title
+        } else {
+            self.name = "Window \(id)"
+        }
         self.title = title
         self.isMain = isMain
         self.isMinimized = isMinimized
@@ -262,8 +308,19 @@ public struct WindowDescriptor: Codable, Sendable, Identifiable {
             height: element.frame.size.height
         )
         
+        // Generate human-readable name
+        let name: String
+        if let title = element.title, !title.isEmpty {
+            name = title
+        } else if let app = element.attributes["application"] as? String {
+            name = "\(app) Window"
+        } else {
+            name = "Window"
+        }
+        
         return WindowDescriptor(
             id: element.identifier,
+            name: name,
             title: element.title,
             isMain: isMain,
             isMinimized: isMinimized, 
@@ -287,6 +344,9 @@ public struct MenuItemDescriptor: Codable, Sendable, Identifiable {
     /// Unique identifier for the menu item
     public let id: String
     
+    /// Human-readable name for the menu item
+    public let name: String
+    
     /// Menu item title
     public let title: String?
     
@@ -308,6 +368,7 @@ public struct MenuItemDescriptor: Codable, Sendable, Identifiable {
     /// Create a new menu item descriptor
     /// - Parameters:
     ///   - id: Unique identifier
+    ///   - name: Human-readable name (optional)
     ///   - title: Menu item title (optional)
     ///   - isEnabled: Whether it's enabled
     ///   - isSelected: Whether it's selected/checked
@@ -316,6 +377,7 @@ public struct MenuItemDescriptor: Codable, Sendable, Identifiable {
     ///   - shortcut: Keyboard shortcut (optional)
     public init(
         id: String,
+        name: String? = nil,
         title: String? = nil,
         isEnabled: Bool = true,
         isSelected: Bool = false,
@@ -324,6 +386,16 @@ public struct MenuItemDescriptor: Codable, Sendable, Identifiable {
         shortcut: String? = nil
     ) {
         self.id = id
+        
+        // Generate a name if not provided
+        if let providedName = name {
+            self.name = providedName
+        } else if let title = title, !title.isEmpty {
+            self.name = title
+        } else {
+            self.name = "Menu Item"
+        }
+        
         self.title = title
         self.isEnabled = isEnabled
         self.isSelected = isSelected
@@ -371,8 +443,20 @@ public struct MenuItemDescriptor: Codable, Sendable, Identifiable {
         // Extract keyboard shortcut if available
         let shortcut = element.attributes["keyboardShortcut"] as? String
         
+        // Generate human-readable name
+        var name: String
+        if let title = element.title, !title.isEmpty {
+            name = title
+            if let shortcut = shortcut, !shortcut.isEmpty {
+                name += " (\(shortcut))"
+            }
+        } else {
+            name = "Menu Item \(element.identifier)"
+        }
+        
         return MenuItemDescriptor(
             id: element.identifier,
+            name: name,
             title: element.title,
             isEnabled: isEnabled,
             isSelected: isSelected,
