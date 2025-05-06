@@ -42,8 +42,156 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
         // Get the AXUIElement for the identifier
         let axElement = try await getAXUIElement(for: identifier)
         
-        // Perform the click action
-        try performAction(axElement, action: AXAttribute.Action.press)
+        // Get the matching UIElement for diagnostics
+        var elementContext: [String: String] = [:]
+        if let uiElement = try? await findUIElement(identifier: identifier) {
+            elementContext = [
+                "role": uiElement.role,
+                "frame": "\(uiElement.frame)",
+                "title": uiElement.title ?? "nil",
+                "description": uiElement.elementDescription ?? "nil"
+            ]
+            
+            // Log children count if any
+            if !uiElement.children.isEmpty {
+                elementContext["childrenCount"] = "\(uiElement.children.count)"
+            }
+            
+            // Log parent application if available
+            if let app = uiElement.attributes["application"] as? String {
+                elementContext["application"] = app
+            }
+            
+            logger.debug("UIElement details", metadata: elementContext)
+        }
+        
+        // Log detailed AXUIElement information before interaction
+        do {
+            // Start with basic attributes
+            let attributes = [
+                "AXRole", "AXActions", "AXEnabled", "AXFocused", "AXFrame", 
+                "AXTitle", "AXDescription", "AXHelp", "AXParent",
+                "AXChildren", "AXIdentifier", "AXWindow"
+            ]
+            
+            var attributeValues: [String: String] = [:]
+            
+            // Try to get each attribute
+            for attribute in attributes {
+                var value: CFTypeRef?
+                let result = AXUIElementCopyAttributeValue(axElement, attribute as CFString, &value)
+                
+                if result == .success {
+                    if value == nil {
+                        attributeValues[attribute] = "nil"
+                    } else if let stringValue = value as? String {
+                        attributeValues[attribute] = stringValue
+                    } else if let boolValue = value as? Bool {
+                        attributeValues[attribute] = boolValue ? "true" : "false"
+                    } else if let arrayValue = value as? [AXUIElement] {
+                        attributeValues[attribute] = "[\(arrayValue.count) elements]"
+                    } else if CFGetTypeID(value!) == AXUIElementGetTypeID() {
+                        attributeValues[attribute] = "AXUIElement"
+                    } else {
+                        attributeValues[attribute] = "\(value!)"
+                    }
+                } else {
+                    attributeValues[attribute] = "Error: \(getAXErrorName(result)) (\(result.rawValue))"
+                }
+            }
+            
+            // Check if the element has a position
+            if let frameString = attributeValues["AXFrame"], frameString != "nil" {
+                // Try to get the element's position and size
+                var frame: CFTypeRef?
+                let frameResult = AXUIElementCopyAttributeValue(axElement, "AXFrame" as CFString, &frame)
+                if frameResult == .success, let axFrame = frame as? [String: Any],
+                   let x = axFrame["x"] as? CGFloat, let y = axFrame["y"] as? CGFloat,
+                   let width = axFrame["width"] as? CGFloat, let height = axFrame["height"] as? CGFloat {
+                    attributeValues["AXPosition"] = "{\(x), \(y)}"
+                    attributeValues["AXSize"] = "{\(width), \(height)}"
+                }
+            }
+            
+            // Try to get the process ID of the element
+            var pid: pid_t = 0
+            let pidResult = AXUIElementGetPid(axElement, &pid)
+            if pidResult == .success {
+                attributeValues["ProcessID"] = "\(pid)"
+                
+                // Try to get the application name
+                if let app = NSRunningApplication(processIdentifier: pid) {
+                    attributeValues["ApplicationName"] = app.localizedName ?? "unknown"
+                    attributeValues["BundleID"] = app.bundleIdentifier ?? "unknown"
+                }
+            }
+            
+            // Log all the attributes we found
+            logger.debug("AXUIElement attributes", metadata: attributeValues)
+            
+            // Get available actions if possible
+            var actions: CFTypeRef?
+            let actionsResult = AXUIElementCopyAttributeValue(axElement, "AXActions" as CFString, &actions)
+            
+            if actionsResult == .success, let actionsList = actions as? [String] {
+                logger.debug("Available actions", metadata: [
+                    "id": "\(identifier)",
+                    "actions": "\(actionsList.joined(separator: ", "))"
+                ])
+            }
+        } catch {
+            logger.warning("Error retrieving element details", metadata: [
+                "id": "\(identifier)",
+                "error": "\(error.localizedDescription)"
+            ])
+        }
+        
+        // Try to perform the click action
+        do {
+            try performAction(axElement, action: AXAttribute.Action.press)
+            logger.debug("AXPress succeeded", metadata: ["id": "\(identifier)"])
+        } catch {
+            // Get detailed error info
+            let nsError = error as NSError
+            
+            logger.error("AXPress failed", metadata: [
+                "id": "\(identifier)",
+                "error": "\(error.localizedDescription)",
+                "domain": "\(nsError.domain)",
+                "code": "\(nsError.code)",
+                "userInfo": "\(nsError.userInfo)"
+            ])
+            
+            // Create a more informative error with context and suggestions
+            var context: [String: String] = [
+                "elementId": identifier,
+                "errorCode": "\(nsError.code)",
+                "errorDomain": nsError.domain
+            ]
+            
+            // Merge in element context if available
+            for (key, value) in elementContext {
+                context["element_\(key)"] = value
+            }
+            
+            // Add specific details for known error codes
+            var errorMessage = "Failed to perform click action on element"
+            if nsError.code == -25200 {
+                errorMessage = "Element not pressable (AXError -25200). This commonly occurs when the element doesn't support direct interaction or has an incorrect role."
+            } else if nsError.code == -25204 {
+                errorMessage = "Operation timed out (AXError -25204). The element might be busy or unresponsive."
+            } else if nsError.code == -25205 {
+                errorMessage = "Element not enabled (AXError -25205). The element might be disabled in the UI."
+            } else if nsError.code == -25208 {
+                errorMessage = "Element not visible (AXError -25208). The element might be off-screen or hidden."
+            }
+            
+            throw createInteractionError(
+                message: errorMessage,
+                context: context,
+                underlyingError: error
+            )
+        }
     }
     
     /// Click at a specific screen position
@@ -887,13 +1035,63 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
     
     /// Perform an accessibility action on an element
     private func performAction(_ element: AXUIElement, action: String) throws {
+        logger.debug("Performing accessibility action", metadata: [
+            "action": "\(action)"
+        ])
+        
+        // Set a longer timeout for the action
+        let timeoutResult = AXUIElementSetMessagingTimeout(element, 1.0) // 1 second timeout
+        if timeoutResult != .success {
+            logger.warning("Failed to set messaging timeout", metadata: [
+                "error": "\(timeoutResult.rawValue)"
+            ])
+        }
+        
+        // Perform the action
         let error = AXUIElementPerformAction(element, action as CFString)
         
         if error != .success {
-            throw createError(
-                "Failed to perform action \(action), error: \(error.rawValue)",
-                code: 1000
+            // Log details about the error
+            logger.error("Accessibility action failed", metadata: [
+                "action": "\(action)",
+                "error": "\(error.rawValue)",
+                "errorName": getAXErrorName(error)
+            ])
+            
+            // Create a specific error based on error code
+            let context: [String: String] = [
+                "action": action,
+                "axErrorCode": "\(error.rawValue)",
+                "axErrorName": getAXErrorName(error)
+            ]
+            
+            throw createInteractionError(
+                message: "Failed to perform action \(action): \(getAXErrorName(error)) (\(error.rawValue))",
+                context: context
             )
+        }
+    }
+    
+    /// Get a human-readable name for an AXError code
+    private func getAXErrorName(_ error: AXError) -> String {
+        switch error {
+        case .success: return "Success"
+        case .failure: return "Failure"
+        case .illegalArgument: return "Illegal Argument"
+        case .invalidUIElement: return "Invalid UI Element"
+        case .invalidUIElementObserver: return "Invalid UI Element Observer"
+        case .cannotComplete: return "Cannot Complete"
+        case .attributeUnsupported: return "Attribute Unsupported"
+        case .actionUnsupported: return "Action Unsupported"
+        case .notificationUnsupported: return "Notification Unsupported"
+        case .notImplemented: return "Not Implemented"
+        case .notificationAlreadyRegistered: return "Notification Already Registered"
+        case .notificationNotRegistered: return "Notification Not Registered"
+        case .apiDisabled: return "API Disabled"
+        case .noValue: return "No Value"
+        case .parameterizedAttributeUnsupported: return "Parameterized Attribute Unsupported"
+        case .notEnoughPrecision: return "Not Enough Precision"
+        default: return "Unknown Error (\(error.rawValue))"
         }
     }
     
@@ -1164,10 +1362,9 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
     
     /// Create a standard error with a code
     private func createError(_ message: String, code: Int) -> Error {
-        return NSError(
-            domain: "com.macos.mcp.interaction",
-            code: code,
-            userInfo: [NSLocalizedDescriptionKey: message]
+        return createInteractionError(
+            message: message,
+            context: ["internalErrorCode": "\(code)"]
         )
     }
 }
