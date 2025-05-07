@@ -8,7 +8,7 @@ import Logging
 /// A tool for getting the current UI state
 public struct UIStateTool: @unchecked Sendable {
     /// The name of the tool
-    public let name = "macos_ui_state"
+    public let name = ToolNames.uiState
     
     /// Description of the tool
     public let description = "Get the current UI state and accessibility hierarchy of macOS applications"

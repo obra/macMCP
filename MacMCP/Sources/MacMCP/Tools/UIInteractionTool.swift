@@ -8,7 +8,7 @@ import Logging
 /// A tool for interacting with UI elements on macOS
 public struct UIInteractionTool {
     /// The name of the tool
-    public let name = "macos_ui_interact"
+    public let name = ToolNames.uiInteraction
     
     /// Description of the tool
     public let description = "Interact with UI elements on macOS - click, type, scroll and more"

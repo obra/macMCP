@@ -8,7 +8,7 @@ import Logging
 /// A tool for navigating and interacting with application menus
 public struct MenuNavigationTool: @unchecked Sendable {
     /// The name of the tool
-    public let name = "macos/menu_navigation"
+    public let name = ToolNames.menuNavigation
     
     /// Description of the tool
     public let description = "Get and interact with menus of macOS applications"

@@ -58,15 +58,17 @@ public actor MCPServer {
             name: name,
             version: version,
             capabilities: Server.Capabilities(
+                // We have a minimal resources implementation to pass validation
                 resources: .init(
-                    subscribe: true,
-                    listChanged: true
+                    subscribe: false,
+                    listChanged: false
                 ),
+                // We fully support tools
                 tools: .init(
                     listChanged: true
                 )
             ),
-            configuration: .default
+            configuration: .strict
         )
         
         self.logger = logger ?? Logger(label: "mcp.macos.server")
@@ -126,49 +128,96 @@ public actor MCPServer {
     
     /// Check if the process has the required accessibility permissions
     private func checkAccessibilityPermissions() async throws {
-        logger.info("Checking accessibility permissions")
+        logger.debug("Checking accessibility permissions")
         
+        // For now, don't enforce accessibility permissions to avoid crashes
+        // Just log the status but continue running
         if AccessibilityPermissions.isAccessibilityEnabled() {
             logger.info("Accessibility permissions already granted")
-            return
+        } else {
+            logger.warning("Accessibility permissions not granted - some functionality may be limited")
+            logger.warning("The user needs to grant accessibility permissions in System Settings > Privacy & Security > Accessibility")
+            
+            // Instead of trying to prompt for permissions (which can cause issues in direct mode),
+            // just log a warning and continue
         }
         
-        logger.info("Requesting accessibility permissions")
-        do {
-            try await AccessibilityPermissions.requestAccessibilityPermissions()
-            logger.info("Accessibility permissions granted")
-        } catch let error as AccessibilityPermissions.Error {
-            // Convert to our rich error type
-            let macError = error.asMacMCPError
-            
-            logger.error("Failed to obtain accessibility permissions", metadata: [
-                "error": "\(error.localizedDescription)",
-                "category": "\(macError.category.rawValue)",
-                "code": "\(macError.code)"
-            ])
-            
-            // Throw the rich error
-            throw macError
-        } catch {
-            // For other errors, convert to a standardized permission error
-            let macError = createPermissionError(
-                message: "Failed to obtain accessibility permissions: \(error.localizedDescription)"
-                // Cannot include error as underlyingError due to compatibility issues
-            )
-            
-            logger.error("Failed to obtain accessibility permissions", metadata: [
-                "error": "\(error.localizedDescription)",
-                "category": "\(macError.category.rawValue)",
-                "code": "\(macError.code)"
-            ])
-            
-            throw macError
-        }
+        // Continue without throwing an error, even if permissions aren't granted
+        // This allows the server to start and register tools, even if some tools won't work without permissions
     }
     
     /// Register all the tools the server provides
     private func registerTools() async {
         logger.info("Registering macOS accessibility tools")
+        
+        // Register server info handler
+        await server.withMethodHandler(ServerInfo.self) { [weak self] params in
+            guard let self = self else {
+                throw MCPError.internalError("Server was deallocated")
+            }
+            
+            logger.debug("Received server/info request")
+            
+            // Detect the platform and OS
+            let platform: String
+            let os: String
+            
+            #if os(macOS)
+            platform = "macOS"
+            let version = ProcessInfo.processInfo.operatingSystemVersion
+            os = "macOS \(version.majorVersion).\(version.minorVersion).\(version.patchVersion)"
+            #elseif os(iOS)
+            platform = "iOS"
+            let version = ProcessInfo.processInfo.operatingSystemVersion
+            os = "iOS \(version.majorVersion).\(version.minorVersion).\(version.patchVersion)"
+            #else
+            platform = "Unknown"
+            os = "Unknown"
+            #endif
+            
+            return ServerInfo.Result(
+                name: server.name,
+                version: server.version,
+                capabilities: ServerInfo.Capabilities(
+                    apiExplorer: false
+                ),
+                info: ServerInfo.ServerInfoDetails(
+                    platform: platform,
+                    os: os
+                ),
+                supportedVersions: ["2024-11-05"]
+            )
+        }
+        
+        // Register shutdown handler
+        await server.withMethodHandler(Shutdown.self) { [weak self] params in
+            guard let self = self else {
+                throw MCPError.internalError("Server was deallocated")
+            }
+            
+            logger.info("Received shutdown request, server will stop after response")
+            
+            // Schedule shutdown after response is sent
+            Task {
+                // Brief delay to ensure response is sent
+                try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+                await self.stop()
+            }
+            
+            return Shutdown.Result()
+        }
+        
+        // Register resource listing handler (empty implementation)
+        await server.withMethodHandler(ListResources.self) { params in
+            // Return empty list of resources
+            return ListResources.Result(resources: [], nextCursor: nil)
+        }
+        
+        // Register prompts listing handler (empty implementation)
+        await server.withMethodHandler(ListPrompts.self) { params in
+            // Return empty list of prompts
+            return ListPrompts.Result(prompts: [], nextCursor: nil)
+        }
         
         // Register tool listing handler
         await server.withMethodHandler(ListTools.self) { [weak self] params in
@@ -195,37 +244,26 @@ public actor MCPServer {
                 let content = try await handler(params.arguments)
                 return CallTool.Result(content: content)
             } catch let error as MCPError {
-                // Return MCP errors directly
-                return CallTool.Result(content: [.text(error.localizedDescription)], isError: true)
+                // Rethrow MCP errors for proper handling by the server framework
+                throw error
             } catch let error as MacMCPErrorInfo {
-                // Return our rich error info with category, message, and suggestion
-                let errorMessage = """
-                    Error: \(error.message)
-                    Category: \(error.category.rawValue)
-                    \(error.recoverySuggestion ?? "")
-                    """
-                return CallTool.Result(content: [.text(errorMessage)], isError: true)
-            } catch {
-                // Create a standardized error format
-                let macError = MacMCPErrorInfo(
-                    category: .unknown,
-                    code: (error as NSError).code,
-                    message: error.localizedDescription
+                // Convert our custom error to an MCP error
+                throw MCPError.invalidRequest(
+                    "Tool error: \(error.message) (Category: \(error.category.rawValue))"
                 )
-                
-                let errorMessage = """
-                    Error: \(macError.message)
-                    Category: \(macError.category.rawValue)
-                    \(macError.recoverySuggestion ?? "")
-                    """
-                return CallTool.Result(content: [.text(errorMessage)], isError: true)
+            } catch {
+                // Convert generic errors to MCP errors
+                throw MCPError.invalidRequest(
+                    "Tool error: \(error.localizedDescription)"
+                )
             }
         }
         
         // Register a simple ping tool for initial connectivity validation
         await registerTool(
-            name: "macos/ping", 
+            name: ToolNames.ping, 
             description: "Test connectivity with the macOS MCP server",
+            inputSchema: Value.object(["type": "object", "properties": [:], "additionalProperties": false, "$schema": "http://json-schema.org/draft-07/schema#"]),
             annotations: .init(
                 title: "Ping",
                 readOnlyHint: true
@@ -335,11 +373,22 @@ public actor MCPServer {
             annotations: elementCapabilitiesTool.annotations,
             handler: elementCapabilitiesTool.handler
         )
+        
+        // Register cancellation handler
+        await server.onNotification(CancelNotification.self) { [weak self] notification in
+            guard let self = self else { return }
+            logger.debug("Received cancellation request", metadata: [
+                "id": "\(notification.params.id)"
+            ])
+            // Note: Currently we don't have long-running operations that need to be cancelled
+            // If such operations are added in the future, we would need to implement 
+            // a cancellation mechanism here
+        }
     }
     
     /// Register a new tool with the server
     /// - Parameters:
-    ///   - name: The tool name (should be prefixed with 'macos/' for this server)
+    ///   - name: The tool name (should use the ToolNames constants for consistency)
     ///   - description: A description of what the tool does
     ///   - inputSchema: Optional JSON schema for the tool's input parameters
     ///   - annotations: Optional annotations for the tool

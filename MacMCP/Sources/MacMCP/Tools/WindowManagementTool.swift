@@ -8,7 +8,7 @@ import Logging
 /// A tool for managing and interacting with application windows
 public struct WindowManagementTool: @unchecked Sendable {
     /// The name of the tool
-    public let name = "macos/window_management"
+    public let name = ToolNames.windowManagement
     
     /// Description of the tool
     public let description = "Get and manage windows of macOS applications"

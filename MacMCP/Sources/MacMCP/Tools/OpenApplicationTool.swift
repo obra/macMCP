@@ -8,7 +8,7 @@ import Logging
 /// Tool for opening and managing macOS applications
 public struct OpenApplicationTool: Sendable {
     /// The name of the tool
-    public let name = "macos/openApplication"
+    public let name = ToolNames.openApplication
     
     /// Description of what the tool does
     public let description = "Open a macOS application by name or bundle identifier"

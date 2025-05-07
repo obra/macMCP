@@ -8,7 +8,7 @@ import Logging
 /// A tool for getting detailed capabilities of UI elements
 public struct ElementCapabilitiesTool: @unchecked Sendable {
     /// The name of the tool
-    public let name = "macos/element_capabilities"
+    public let name = ToolNames.elementCapabilities
     
     /// Description of the tool
     public let description = "Get detailed capabilities and properties of UI elements"

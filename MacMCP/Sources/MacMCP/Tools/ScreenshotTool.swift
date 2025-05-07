@@ -8,7 +8,7 @@ import Logging
 /// A tool for capturing screenshots on macOS
 public struct ScreenshotTool {
     /// The name of the tool
-    public let name = "macos/screenshot"
+    public let name = ToolNames.screenshot
     
     /// Description of the tool
     public let description = "Capture screenshot of macOS screen, window, or UI element"

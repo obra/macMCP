@@ -8,7 +8,7 @@ import Logging
 /// A tool for discovering interactive UI elements in applications
 public struct InteractiveElementsDiscoveryTool: @unchecked Sendable {
     /// The name of the tool
-    public let name = "macos/interactive_elements"
+    public let name = ToolNames.interactiveElements
     
     /// Description of the tool
     public let description = "Discover interactive UI elements in macOS applications"
