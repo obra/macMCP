@@ -8,7 +8,7 @@ import Logging
 /// A tool for getting the current UI state
 public struct UIStateTool: @unchecked Sendable {
     /// The name of the tool
-    public let name = "macos/ui_state"
+    public let name = "macos_ui_state"
     
     /// Description of the tool
     public let description = "Get the current UI state and accessibility hierarchy of macOS applications"
@@ -107,6 +107,53 @@ public struct UIStateTool: @unchecked Sendable {
             "required": .array([.string("scope")]),
             "additionalProperties": .bool(false)
         ])
+    }
+    
+    /// Filter elements to include only those with valid frames
+    /// - Parameter elements: The original element collection
+    /// - Returns: Filtered elements with valid frames
+    private func filterValidElements(_ elements: [UIElement]) -> [UIElement] {
+        var result: [UIElement] = []
+        
+        for element in elements {
+            // Check if this element has a valid frame
+            let hasValidFrame = hasValidCoordinates(element)
+            
+            if hasValidFrame {
+                // For this element, recursively filter its children
+                let filteredChildren = filterValidElements(element.children)
+                
+                // Create a new element with filtered children
+                let filteredElement = UIElement(
+                    identifier: element.identifier,
+                    role: element.role,
+                    title: element.title,
+                    value: element.value,
+                    elementDescription: element.elementDescription,
+                    frame: element.frame,
+                    parent: element.parent,
+                    children: filteredChildren,
+                    attributes: element.attributes,
+                    actions: element.actions
+                )
+                
+                result.append(filteredElement)
+            }
+            // If frame is invalid, skip this element entirely
+        }
+        
+        return result
+    }
+    
+    /// Check if an element has valid coordinates
+    /// - Parameter element: The element to check
+    /// - Returns: True if the element has valid coordinates
+    private func hasValidCoordinates(_ element: UIElement) -> Bool {
+        // Element must have non-zero frame size and position
+        let hasNonZeroPosition = element.frame.origin.x != 0 || element.frame.origin.y != 0
+        let hasNonZeroSize = element.frame.size.width > 0 && element.frame.size.height > 0
+        
+        return hasNonZeroPosition && hasNonZeroSize
     }
     
     /// Process a UI state request
@@ -242,13 +289,18 @@ public struct UIStateTool: @unchecked Sendable {
             throw MCPError.invalidParams("Invalid scope: \(scopeValue)")
         }
         
+        // Filter out elements with zero coordinates or invalid frames
+        let filteredElements = filterValidElements(elements)
+        
+        logger.debug("Filtered \(elements.count - filteredElements.count) elements with invalid frames")
+        
         // Convert elements to JSON
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         
         do {
             var jsonObjects: [[String: Any]] = []
-            for element in elements {
+            for element in filteredElements {
                 let json = try element.toJSON()
                 jsonObjects.append(json)
             }
