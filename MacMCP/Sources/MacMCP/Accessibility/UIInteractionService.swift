@@ -610,10 +610,10 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
                         var point = CGPoint.zero
                         var size = CGSize.zero
                         
-                        if let posValue = positionValue as? AXValue,
-                           let sizeVal = sizeValue as? AXValue,
-                           AXValueGetValue(posValue, .cgPoint, &point),
-                           AXValueGetValue(sizeVal, .cgSize, &size) {
+                        if CFGetTypeID(positionValue!) == AXValueGetTypeID() &&
+                           CFGetTypeID(sizeValue!) == AXValueGetTypeID() &&
+                           AXValueGetValue(positionValue as! AXValue, .cgPoint, &point) &&
+                           AXValueGetValue(sizeValue as! AXValue, .cgSize, &size) {
                             
                             // Check if position and size are valid
                             if (point.x > 0 || point.y > 0) && size.width > 0 && size.height > 0 {
@@ -633,7 +633,11 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
                     
                     if !validFrame {
                         logger.warning("Element found via application search has invalid frame", metadata: ["id": "\(identifier)"])
-                        continue // Try next search method
+                        // Cannot use this element, throw error
+                        throw createError(
+                            "Element \(identifier) has invalid frame.",
+                            code: 2011
+                        )
                     }
                     
                     // 2. Check if the element is interactable
@@ -657,7 +661,11 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
                     
                     if !isInteractable {
                         logger.warning("Element found via application search is not interactable", metadata: ["id": "\(identifier)"])
-                        continue // Try next search method
+                        // Cannot use this element, throw error
+                        throw createError(
+                            "Element \(identifier) is not interactable.",
+                            code: 2012
+                        )
                     }
                     
                     // If we got here, this is a good element to use
