@@ -40,8 +40,44 @@ enum CalculatorElements {
     }
 }
 
+/// Element map for Calculator buttons and display
+struct CalculatorElementMap {
+    // Display element
+    let display = CalculatorElements.display
+    
+    // Clear button
+    let clearButton = CalculatorElements.clear
+    
+    // Digit buttons
+    let zeroButton = CalculatorElements.Digits.zero
+    let oneButton = CalculatorElements.Digits.one
+    let twoButton = CalculatorElements.Digits.two
+    let threeButton = CalculatorElements.Digits.three
+    let fourButton = CalculatorElements.Digits.four
+    let fiveButton = CalculatorElements.Digits.five
+    let sixButton = CalculatorElements.Digits.six
+    let sevenButton = CalculatorElements.Digits.seven
+    let eightButton = CalculatorElements.Digits.eight
+    let nineButton = CalculatorElements.Digits.nine
+    
+    // Operation buttons
+    let plusButton = CalculatorElements.Operations.plus
+    let minusButton = CalculatorElements.Operations.minus
+    let multiplyButton = CalculatorElements.Operations.multiply
+    let divideButton = CalculatorElements.Operations.divide
+    let equalsButton = CalculatorElements.Operations.equals
+    let decimalButton = CalculatorElements.Operations.decimal
+    let percentButton = CalculatorElements.Operations.percent
+    let signButton = CalculatorElements.Operations.sign
+}
+
 /// Extensions to the CalculatorApp class for interacting with specific elements
 extension CalculatorApp {
+    /// Element map for Calculator buttons and display
+    var elementMap: CalculatorElementMap {
+        return CalculatorElementMap()
+    }
+    
     /// Get the display element of the Calculator
     /// - Returns: The UI element representing the display, or nil if not found
     func getDisplayElement() async throws -> UIElement? {

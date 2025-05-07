@@ -290,7 +290,14 @@ public class AccessibilityElement {
                             // Skip invisible or unavailable elements when they're not the primary interface
                             if depth > 1 {
                                 // Check various visibility attributes
-                                let isVisible = (try? getAttribute(axChild, attribute: "AXVisible") as? Bool) ?? true
+                                let visibilityAttr = try? getAttribute(axChild, attribute: "AXVisible")
+                                let isVisible = (visibilityAttr as? Bool) ?? true
+                                
+                                // Debug log for SplitGroup visibility issues
+                                if childRole == "AXSplitGroup" {
+                                    NSLog("AXSplitGroup visibility check: role=\(childRole), AXVisible=\(visibilityAttr as? Bool ?? true)")
+                                }
+                                
                                 let isEnabled = (try? getAttribute(axChild, attribute: "AXEnabled") as? Bool) ?? true
                                 let isHidden = (try? getAttribute(axChild, attribute: "AXHidden") as? Bool) ?? false
                                 
@@ -322,8 +329,21 @@ public class AccessibilityElement {
                                                           childRole == "AXTextField" ||
                                                           childRole == "AXLink"
                                 
-                                // If element isn't visible or available, don't traverse its children
-                                let isAvailable = isVisible && isEnabled && !isHidden && (!hasZeroSize || isInteractiveElement)
+                                // Identify important container elements
+                                let isImportantContainer = childRole == "AXSplitGroup" ||
+                                                        childRole == "AXGroup"
+                                
+                                // For important containers, we want to be less strict about frame size checks,
+                                // but still respect explicit disabled/hidden attributes
+                                let isAvailable: Bool
+                                if isImportantContainer {
+                                    // For containers: don't filter based on zero size, but respect enabled/hidden state
+                                    isAvailable = isVisible && isEnabled && !isHidden
+                                } else {
+                                    // For other elements: use the normal stringent checks
+                                    isAvailable = isVisible && isEnabled && !isHidden && (!hasZeroSize || isInteractiveElement)
+                                }
+                                
                                 let isMenuAvailable = !isMenuElement || (isMenuElement && (isExpanded || isMenuOpened))
                                 
                                 if (!isAvailable || !isMenuAvailable) {
@@ -657,10 +677,40 @@ public class AccessibilityElement {
         var viewportFrame: CGRect? = nil
         
         // Method 1: Try to get position and size directly (most reliable)
-        if let positionValue = try? getAttribute(axElement, attribute: AXAttribute.position) as? NSValue,
-           let sizeValue = try? getAttribute(axElement, attribute: AXAttribute.size) as? NSValue {
-            
-            frame = CGRect(origin: positionValue.pointValue, size: sizeValue.sizeValue)
+        // First get the position
+        var origin = CGPoint.zero
+        var size = CGSize.zero
+        var hasValidPosition = false
+        var hasValidSize = false
+        
+        // Get position
+        if let positionValue = try? getAttribute(axElement, attribute: AXAttribute.position) {
+            // Check for both NSValue and AXValue types since different macOS versions return different types
+            if let nsValue = positionValue as? NSValue {
+                origin = nsValue.pointValue
+                hasValidPosition = true
+            } else if CFGetTypeID(positionValue as CFTypeRef) == AXValueGetTypeID() {
+                // It's an AXValue, extract the CGPoint
+                AXValueGetValue(positionValue as! AXValue, .cgPoint, &origin)
+                hasValidPosition = true
+            }
+        }
+        
+        // Get size
+        if let sizeValue = try? getAttribute(axElement, attribute: AXAttribute.size) {
+            // Check for both NSValue and AXValue types
+            if let nsValue = sizeValue as? NSValue {
+                size = nsValue.sizeValue
+                hasValidSize = true
+            } else if CFGetTypeID(sizeValue as CFTypeRef) == AXValueGetTypeID() {
+                // It's an AXValue, extract the CGSize
+                AXValueGetValue(sizeValue as! AXValue, .cgSize, &size)
+                hasValidSize = true
+            }
+        }
+        
+        if hasValidPosition && hasValidSize {
+            frame = CGRect(origin: origin, size: size)
             frameSource = .direct
         }
         // Method 2: Try to get frame as a single value
@@ -917,10 +967,26 @@ public class AccessibilityElement {
     private static func getActionNames(for element: AXUIElement) throws -> [String] {
         // Use try-catch to handle any errors gracefully
         do {
-            guard let actionNames = try getAttribute(element, attribute: AXAttribute.actions) as? [String] else {
-                return []
+            // First try the normal attribute method
+            if let actionNames = try getAttribute(element, attribute: AXAttribute.actions) as? [String],
+               !actionNames.isEmpty {
+                return actionNames
             }
-            return actionNames
+            
+            // If that fails or returns empty, use direct API call
+            var actionNamesRef: CFArray?
+            let result = AXUIElementCopyActionNames(element, &actionNamesRef)
+            
+            if result == .success, let actions = actionNamesRef as? [String] {
+                // Log when using direct API finds actions that getAttribute didn't
+                if !actions.isEmpty {
+                    NSLog("Direct AXUIElementCopyActionNames found actions that getAttribute missed: \(actions.joined(separator: ", "))")
+                }
+                return actions
+            }
+            
+            // If we get here, no actions were found by either method
+            return []
         } catch {
             NSLog("WARNING: Failed to get action names: \(error.localizedDescription)")
             return []

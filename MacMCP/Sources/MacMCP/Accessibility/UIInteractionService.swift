@@ -550,9 +550,10 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
             "y": "\(position.y)"
         ])
         
-        // Verify the position is valid - we MUST have valid coordinates
-        if position.x <= 0 || position.y <= 0 {
-            logger.error("Element has invalid position (zero coordinates). Cannot use this element.", metadata: [
+        // Verify the position is valid - coordinates at (0,0) with zero size are definitely invalid
+        // But elements at screen edges (x=0 or y=0) with non-zero size can be valid
+        if (position.x <= 0 && position.y <= 0) && (uiElement.frame.size.width <= 0 || uiElement.frame.size.height <= 0) {
+            logger.error("Element has invalid position and size. Cannot use this element.", metadata: [
                 "id": "\(identifier)",
                 "x": "\(position.x)",
                 "y": "\(position.y)",
@@ -561,9 +562,9 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
                 "role": "\(uiElement.role)"
             ])
             
-            // Reject elements with zero coordinates
+            // Reject elements with zero coordinates and size
             throw createError(
-                "Element \(identifier) has invalid position (x=\(position.x), y=\(position.y)).",
+                "Element \(identifier) has invalid position (x=\(position.x), y=\(position.y)) and size.",
                 code: 2010
             )
         }
@@ -1327,9 +1328,37 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
     
     /// Perform an accessibility action on an element
     private func performAction(_ element: AXUIElement, action: String) throws {
+        // Get available actions first to check if the action is supported
+        var actionNames: CFArray?
+        let actionsResult = AXUIElementCopyActionNames(element, &actionNames)
+        
         logger.debug("Performing accessibility action", metadata: [
-            "action": "\(action)"
+            "action": "\(action)",
+            "actionsResult": "\(actionsResult.rawValue)",
+            "actionsAvailable": "\(actionNames != nil ? (actionNames as? [String])?.joined(separator: ", ") ?? "nil" : "nil")"
         ])
+        
+        // Check if the action is supported by the element
+        var actionSupported = false
+        if actionsResult == .success, let actionsList = actionNames as? [String] {
+            actionSupported = actionsList.contains(action)
+            
+            if !actionSupported {
+                logger.warning("Action not supported by element", metadata: [
+                    "action": "\(action)",
+                    "availableActions": "\(actionsList.joined(separator: ", "))"
+                ])
+            }
+        }
+        
+        // Try to get element role to see what we're working with
+        var role: CFTypeRef?
+        let roleResult = AXUIElementCopyAttributeValue(element, "AXRole" as CFString, &role)
+        if roleResult == .success {
+            logger.debug("Element role", metadata: [
+                "role": "\(role as? String ?? "unknown")"
+            ])
+        }
         
         // Set a longer timeout for the action
         let timeoutResult = AXUIElementSetMessagingTimeout(element, 1.0) // 1 second timeout
@@ -1347,14 +1376,33 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
             logger.error("Accessibility action failed", metadata: [
                 "action": .string(action),
                 "error": .string("\(error.rawValue)"),
-                "errorName": .string(getAXErrorName(error))
+                "errorName": .string(getAXErrorName(error)),
+                "actionSupported": .string("\(actionSupported)")
             ])
+            
+            // If action not supported, try fallback to mouse click for button elements
+            // We don't want to fall back to mouse clicks - if AXPress isn't supported,
+            // we should fail gracefully with a clear error message
+            if !actionSupported {
+                let availableActions: String
+                if let actions = actionNames as? [String] {
+                    availableActions = actions.joined(separator: ", ")
+                } else {
+                    availableActions = "none"
+                }
+                
+                logger.error("Element does not support AXPress action and no fallback is allowed", metadata: [
+                    "role": .string(role as? String ?? "unknown"),
+                    "actions": .string(availableActions)
+                ])
+            }
             
             // Create a specific error based on error code
             let context: [String: String] = [
                 "action": action,
                 "axErrorCode": "\(error.rawValue)",
-                "axErrorName": getAXErrorName(error)
+                "axErrorName": getAXErrorName(error),
+                "actionSupported": "\(actionSupported)"
             ]
             
             throw createInteractionError(
