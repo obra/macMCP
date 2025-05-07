@@ -482,15 +482,139 @@ public actor ApplicationService: ApplicationServiceProtocol {
         )
     }
     
+    /// Verify that an application has properly initialized after launch
+    /// - Parameters:
+    ///   - application: The running application to verify
+    ///   - timeout: Timeout in seconds (default is 5)
+    /// - Returns: True if the application appears to be properly initialized
+    /// - Throws: MacMCPErrorInfo if the application fails to initialize properly
+    private func verifyApplicationLaunch(_ application: NSRunningApplication, timeout: TimeInterval = 5) async throws -> Bool {
+        logger.debug("Verifying application launch", metadata: [
+            "bundleIdentifier": "\(application.bundleIdentifier ?? "unknown")",
+            "applicationName": "\(application.localizedName ?? "Unknown")",
+            "processIdentifier": "\(application.processIdentifier)" 
+        ])
+        
+        // Check if the application has finished launching
+        if !application.isFinishedLaunching {
+            logger.debug("Waiting for application to finish launching")
+            
+            // Wait for the app to finish launching
+            let startTime = Date()
+            var isLaunched = application.isFinishedLaunching
+            
+            while !isLaunched && Date().timeIntervalSince(startTime) < timeout {
+                // Sleep briefly to avoid spinning
+                try await Task.sleep(for: .milliseconds(100))
+                
+                // Refresh the app status
+                isLaunched = application.isFinishedLaunching
+            }
+            
+            // If we timed out, report the error
+            if !isLaunched {
+                logger.error("Application failed to finish launching within timeout", metadata: [
+                    "bundleIdentifier": "\(application.bundleIdentifier ?? "unknown")",
+                    "timeout": "\(timeout)"
+                ])
+                
+                throw createApplicationLaunchError(
+                    message: "Application timed out while launching",
+                    context: [
+                        "bundleIdentifier": application.bundleIdentifier ?? "unknown",
+                        "applicationName": application.localizedName ?? "Unknown",
+                        "timeout": "\(timeout)"
+                    ]
+                )
+            }
+        }
+        
+        // Check if the application has any windows
+        // Note: Some applications might not immediately create windows, so we need to wait
+        logger.debug("Checking for application windows")
+        
+        // Get the application element
+        let appElement = AccessibilityElement.applicationElement(pid: application.processIdentifier)
+        
+        // Check if the application is responding to accessibility queries
+        let startTime = Date()
+        var isAccessible = false
+        
+        while !isAccessible && Date().timeIntervalSince(startTime) < timeout {
+            // Try to get the role to check if accessibility is working
+            if let _ = try? AccessibilityElement.getAttribute(appElement, attribute: "AXRole") {
+                isAccessible = true
+                break
+            }
+            
+            // Sleep briefly to avoid spinning
+            try await Task.sleep(for: .milliseconds(200))
+        }
+        
+        if !isAccessible {
+            logger.warning("Application is not responding to accessibility queries", metadata: [
+                "bundleIdentifier": "\(application.bundleIdentifier ?? "unknown")",
+                "applicationName": "\(application.localizedName ?? "Unknown")",
+                "timeout": "\(timeout)"
+            ])
+            
+            // Don't fail verification completely, just log the warning
+        }
+        
+        // Check for windows
+        var hasWindows = false
+        let windowCheckStartTime = Date()
+        
+        while !hasWindows && Date().timeIntervalSince(windowCheckStartTime) < timeout {
+            // Try to find windows
+            if let children = try? AccessibilityElement.getAttribute(appElement, attribute: "AXChildren") as? [AXUIElement] {
+                for child in children {
+                    if let role = try? AccessibilityElement.getAttribute(child, attribute: "AXRole") as? String,
+                       role == "AXWindow" {
+                        // Check if the window is visible
+                        if let visible = try? AccessibilityElement.getAttribute(child, attribute: "AXVisible") as? Bool,
+                           visible == true {
+                            hasWindows = true
+                            break
+                        }
+                    }
+                }
+            }
+            
+            if hasWindows {
+                break
+            }
+            
+            // Sleep briefly to avoid spinning
+            try await Task.sleep(for: .milliseconds(200))
+        }
+        
+        if !hasWindows {
+            logger.warning("No visible windows detected for application", metadata: [
+                "bundleIdentifier": "\(application.bundleIdentifier ?? "unknown")",
+                "applicationName": "\(application.localizedName ?? "Unknown")",
+                "timeout": "\(timeout)"
+            ])
+            
+            // Don't fail - some apps are legitimately windowless
+        } else {
+            logger.debug("Application has visible windows")
+        }
+        
+        // Verification passed
+        return true
+    }
+    
     /// Launch an application with the given URL and parameters
     /// - Parameters:
     ///   - url: The URL of the application to launch
     ///   - bundleIdentifier: The bundle identifier for logging/error reporting
     ///   - arguments: Optional arguments to pass to the application
     ///   - hideOthers: Whether to hide other applications
+    ///   - verificationTimeout: Optional timeout for post-launch verification in seconds (default is 5)
     /// - Returns: Whether the launch was successful
     /// - Throws: MacMCPErrorInfo if the launch fails
-    private func launchApplication(url: URL, bundleIdentifier: String, arguments: [String]? = nil, hideOthers: Bool? = nil) async throws -> Bool {
+    private func launchApplication(url: URL, bundleIdentifier: String, arguments: [String]? = nil, hideOthers: Bool? = nil, verificationTimeout: TimeInterval = 5) async throws -> Bool {
         // Create a configuration for launching the app
         let configuration = NSWorkspace.OpenConfiguration()
         
@@ -518,7 +642,16 @@ public actor ApplicationService: ApplicationServiceProtocol {
             // Update the cache with the running application
             updateCacheForRunningApp(runningApplication)
             
-            logger.info("Application opened successfully", metadata: [
+            logger.info("Application launched, verifying initialization", metadata: [
+                "bundleIdentifier": "\(bundleIdentifier)",
+                "applicationName": "\(runningApplication.localizedName ?? "Unknown")",
+                "processIdentifier": "\(runningApplication.processIdentifier)"
+            ])
+            
+            // Verify the application is properly initialized
+            try await verifyApplicationLaunch(runningApplication, timeout: verificationTimeout)
+            
+            logger.info("Application opened and verified successfully", metadata: [
                 "bundleIdentifier": "\(bundleIdentifier)",
                 "applicationName": "\(runningApplication.localizedName ?? "Unknown")",
                 "processIdentifier": "\(runningApplication.processIdentifier)"
