@@ -397,7 +397,21 @@ This plan requires review and approval before implementation begins. The next st
 ## Open Questions
 
 - How should we handle application-specific failures during tests?
+
+A: We'll log them for later review.
+
 - What's the best approach for simulating user input during tests?
+
+A: You have tools to provide input. clicks and text entry and mouse movement.
+
 - How should this framework integrate with the existing test suite?
+
+A: it should replace all existing E2E tests
+
 - How much test coverage should we aim for with the new framework?
+
+A: We need to start working toward full coverage for the API. Then we can work toward full code coverage across a range of apps.
+
 - Should we implement this incrementally or as a complete replacement?
+
+A: We should build it out to the point where it can completely replace the existing tests.
