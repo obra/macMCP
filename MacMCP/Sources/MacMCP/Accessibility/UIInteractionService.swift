@@ -518,8 +518,8 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
         // Log what we're doing
         logger.debug("Looking up UI element by identifier", metadata: ["id": "\(identifier)"])
         
-        // Try to find the element in the UI hierarchy
-        guard let uiElement = try await findUIElement(identifier: identifier) else {
+        // Try to find the element in the UI hierarchy - specifically looking for elements with valid frames
+        guard let uiElement = try await findInteractableUIElement(identifier: identifier) else {
             logger.error("Element not found in UI hierarchy", metadata: ["id": "\(identifier)"])
             throw createError("Element not found: \(identifier)", code: 2000)
         }
@@ -528,17 +528,10 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
             "id": "\(identifier)",
             "role": "\(uiElement.role)",
             "frameOriginX": "\(uiElement.frame.origin.x)",
-            "frameOriginY": "\(uiElement.frame.origin.y)"
+            "frameOriginY": "\(uiElement.frame.origin.y)",
+            "frameWidth": "\(uiElement.frame.size.width)",
+            "frameHeight": "\(uiElement.frame.size.height)"
         ])
-        
-        // If the element has zero dimensions, it might not be visible or clickable
-        if uiElement.frame.size.width <= 0 || uiElement.frame.size.height <= 0 {
-            logger.warning("Element has zero dimensions, may not be visible", metadata: [
-                "id": "\(identifier)",
-                "width": "\(uiElement.frame.size.width)",
-                "height": "\(uiElement.frame.size.height)"
-            ])
-        }
         
         // For now, we'll need to get the element again from the system-wide element
         // This is because we don't store the actual AXUIElement in our UIElement model
@@ -557,6 +550,32 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
             "y": "\(position.y)"
         ])
         
+        // Verify the position is valid
+        if position.x <= 0 || position.y <= 0 {
+            logger.warning("Element position appears invalid, will try alternative lookup methods", metadata: [
+                "id": "\(identifier)",
+                "x": "\(position.x)",
+                "y": "\(position.y)"
+            ])
+            
+            // Try direct application searching first before failing
+            if let applicationTitle = uiElement.attributes["application"] as? String,
+               let applicationElement = try? await findApplicationByTitle(applicationTitle) {
+                
+                logger.debug("Trying to find element by searching application directly", metadata: [
+                    "id": "\(identifier)",
+                    "application": "\(applicationTitle)"
+                ])
+                
+                // Get windows and search through them
+                if let axElement = try await searchApplicationForElement(applicationElement, matchingId: identifier) {
+                    // Cache the element with current timestamp
+                    elementCache[identifier] = (axElement, Date())
+                    return axElement
+                }
+            }
+        }
+        
         // Use AXUIElementCopyElementAtPosition to get the element at the position
         var foundElement: AXUIElement?
         let error = AXUIElementCopyElementAtPosition(
@@ -566,8 +585,8 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
             &foundElement
         )
         
-        if error != .success {
-            logger.error("Failed to get element at position", metadata: [
+        if error != .success || foundElement == nil {
+            logger.warning("Failed to get element at position, trying direct application search", metadata: [
                 "id": "\(identifier)",
                 "x": "\(position.x)",
                 "y": "\(position.y)",
@@ -585,9 +604,30 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
                 
                 // Get windows and search through them
                 if let axElement = try await searchApplicationForElement(applicationElement, matchingId: identifier) {
-                    // Cache the element with current timestamp
-                    elementCache[identifier] = (axElement, Date())
-                    return axElement
+                    // Verify the element has the expected role and is pressable
+                    var isInteractable = false
+                    
+                    // Check role
+                    var roleValue: CFTypeRef?
+                    if AXUIElementCopyAttributeValue(axElement, "AXRole" as CFString, &roleValue) == .success,
+                       let roleString = roleValue as? String,
+                       roleString == uiElement.role {
+                        isInteractable = true
+                    }
+                    
+                    // Check actions
+                    var actionNames: CFArray?
+                    if AXUIElementCopyActionNames(axElement, &actionNames) == .success,
+                       let actions = actionNames as? [String],
+                       actions.contains(AXAttribute.Action.press) {
+                        isInteractable = true
+                    }
+                    
+                    if isInteractable {
+                        // Cache the element with current timestamp
+                        elementCache[identifier] = (axElement, Date())
+                        return axElement
+                    }
                 }
             }
             
@@ -632,6 +672,19 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
                 "id": "\(identifier)",
                 "error": "\(roleError.rawValue)"
             ])
+        }
+        
+        // Check if the element supports AXPress action
+        var actionNames: CFArray?
+        let actionResult = AXUIElementCopyActionNames(axElement, &actionNames)
+        
+        if actionResult == .success, let actions = actionNames as? [String] {
+            if !actions.contains(AXAttribute.Action.press) {
+                logger.warning("Element does not support AXPress action", metadata: [
+                    "id": "\(identifier)",
+                    "availableActions": "\(actions.joined(separator: ", "))"
+                ])
+            }
         }
         
         // Cache the element with current timestamp
@@ -790,6 +843,184 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
         
         logger.warning("Element not found in any location", metadata: ["id": "\(identifier)"])
         return nil
+    }
+    
+    /// Find an interactable UI element by identifier with valid frame and clickable properties
+    private func findInteractableUIElement(identifier: String) async throws -> UIElement? {
+        logger.debug("Searching for interactable UI element", metadata: ["id": "\(identifier)"])
+        
+        // First, get all possible matches for the identifier
+        var possibleMatches: [UIElement] = []
+        
+        // Try to find all matches in the focused application
+        do {
+            let focusedApp = try await accessibilityService.getFocusedApplicationUIElement(
+                recursive: true,
+                maxDepth: 25
+            )
+            
+            // Collect all possible matches
+            await collectElementsById(focusedApp, id: identifier, into: &possibleMatches)
+        } catch {
+            logger.warning("Failed to search focused app: \(error.localizedDescription)")
+        }
+        
+        // If we didn't find any matches in the focused app, try system-wide
+        if possibleMatches.isEmpty {
+            do {
+                let systemElement = try await accessibilityService.getSystemUIElement(
+                    recursive: true,
+                    maxDepth: 25
+                )
+                
+                // Collect all possible matches
+                await collectElementsById(systemElement, id: identifier, into: &possibleMatches)
+            } catch {
+                logger.warning("Failed to search system element: \(error.localizedDescription)")
+            }
+        }
+        
+        // If we still don't have any matches, return nil
+        if possibleMatches.isEmpty {
+            logger.warning("No matches found for element", metadata: ["id": "\(identifier)"])
+            return nil
+        }
+        
+        logger.debug("Found \(possibleMatches.count) potential matches for element", metadata: ["id": "\(identifier)"])
+        
+        // Sort matches by priority:
+        // 1. Elements with non-zero frames
+        // 2. Elements that are considered clickable
+        // 3. Elements with expected role (button, etc.)
+        // 4. Elements from the expected application
+        
+        possibleMatches.sort { (a, b) in
+            // First priority: valid frame
+            let aHasValidFrame = a.frame.size.width > 0 && a.frame.size.height > 0
+            let bHasValidFrame = b.frame.size.width > 0 && b.frame.size.height > 0
+            
+            if aHasValidFrame && !bHasValidFrame {
+                return true
+            } else if !aHasValidFrame && bHasValidFrame {
+                return false
+            }
+            
+            // Second priority: clickable status
+            if a.isClickable && !b.isClickable {
+                return true
+            } else if !a.isClickable && b.isClickable {
+                return false
+            }
+            
+            // Third priority: button-like role
+            let aIsButton = a.role == AXAttribute.Role.button || 
+                           a.role == AXAttribute.Role.checkbox || 
+                           a.role == AXAttribute.Role.radioButton || 
+                           a.role == AXAttribute.Role.menuItem
+            
+            let bIsButton = b.role == AXAttribute.Role.button ||
+                           b.role == AXAttribute.Role.checkbox ||
+                           b.role == AXAttribute.Role.radioButton ||
+                           b.role == AXAttribute.Role.menuItem
+            
+            if aIsButton && !bIsButton {
+                return true
+            } else if !aIsButton && bIsButton {
+                return false
+            }
+            
+            // Fourth priority: enabled status
+            if a.isEnabled && !b.isEnabled {
+                return true
+            } else if !a.isEnabled && b.isEnabled {
+                return false
+            }
+            
+            // Fallback to default ordering
+            return true
+        }
+        
+        // Find the first element with a valid frame
+        for element in possibleMatches {
+            if element.frame.size.width > 0 && element.frame.size.height > 0 {
+                logger.debug("Selected best match for element", metadata: [
+                    "id": "\(identifier)",
+                    "role": "\(element.role)",
+                    "frame": "{\(element.frame.origin.x), \(element.frame.origin.y), \(element.frame.size.width), \(element.frame.size.height)}",
+                    "clickable": "\(element.isClickable)",
+                    "enabled": "\(element.isEnabled)"
+                ])
+                return element
+            }
+        }
+        
+        // If no element has a valid frame, return the first match as a fallback
+        if let firstMatch = possibleMatches.first {
+            logger.warning("No elements with valid frames found, using fallback", metadata: [
+                "id": "\(identifier)",
+                "role": "\(firstMatch.role)",
+                "frame": "{\(firstMatch.frame.origin.x), \(firstMatch.frame.origin.y), \(firstMatch.frame.size.width), \(firstMatch.frame.size.height)}"
+            ])
+            return firstMatch
+        }
+        
+        return nil
+    }
+    
+    /// Collect all elements matching an ID into the provided array
+    private func collectElementsById(_ root: UIElement, id: String, into matches: inout [UIElement]) async {
+        // Check if this element matches the ID
+        if isMatchingElement(root, id: id) {
+            matches.append(root)
+        }
+        
+        // Search children
+        for child in root.children {
+            await collectElementsById(child, id: id, into: &matches)
+        }
+    }
+    
+    /// Check if an element matches the specified ID
+    private func isMatchingElement(_ element: UIElement, id: String) -> Bool {
+        // Exact match
+        if element.identifier == id {
+            return true
+        }
+        
+        // Handle structured ID format
+        if id.hasPrefix("ui:") && element.identifier.hasPrefix("ui:") {
+            let idParts = id.split(separator: ":")
+            let elementIdParts = element.identifier.split(separator: ":")
+            
+            if idParts.count >= 3 && elementIdParts.count >= 3 {
+                // Match by descriptive part
+                if idParts[1] == elementIdParts[1] {
+                    return true
+                }
+                
+                // Match by hash part
+                if idParts.count > 2 && elementIdParts.count > 2 && idParts[2] == elementIdParts[2] {
+                    return true
+                }
+            }
+        }
+        
+        // For button-like elements, match by title or description
+        if element.role == AXAttribute.Role.button || 
+           element.role == AXAttribute.Role.menuItem || 
+           element.role == AXAttribute.Role.checkbox || 
+           element.role == AXAttribute.Role.radioButton {
+            
+            if let title = element.title, title == id {
+                return true
+            }
+            
+            if let desc = element.elementDescription, desc == id {
+                return true
+            }
+        }
+        
+        return false
     }
     
     /// Recursively find an element by ID
