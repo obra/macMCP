@@ -437,3 +437,70 @@ A: We need to start working toward full coverage for the API. Then we can work t
 - Should we implement this incrementally or as a complete replacement?
 
 A: We should build it out to the point where it can completely replace the existing tests.
+
+## Implementation Lessons and Guidance
+
+The following section contains insights from the initial implementation of this framework to help future engineers working on it:
+
+### Key Technical Considerations
+
+1. **Swift Concurrency and Thread Safety**: 
+   - All driver classes must conform to `@unchecked Sendable` to work with XCTest async teardown
+   - Use `addTeardownBlock` instead of `defer { Task { ... } }` for cleanup operations
+   - Be cautious with capturing `self` in async contexts
+
+2. **UIInteractionService Extensions**:
+   - The `UIInteractionService` requires extensions for key modifiers (Command, Option, etc.)
+   - Implement type-safe wrappers like `enum KeyModifier` for clarity
+   - Add convenience methods like `typeText(text:)` without requiring element identifiers
+
+3. **ElementCriteria Implementation**:
+   - Pattern matching for elements requires careful consideration of nil values
+   - Consider implementing fuzzy matching for more reliable element identification
+   - Use namespaces to avoid conflicts with similar types (e.g., `ApplicationDrivers.ElementCriteria`)
+
+4. **Tool Invocation Patterns**:
+   - Use specialized methods for each tool type rather than generic invocation
+   - Parse tool results immediately to provide type-safe access to data
+   - Handle errors with detailed context for easier debugging
+
+5. **Testing Environment Requirements**:
+   - Tests require accessibility permissions to be granted
+   - Some UI elements may not be found consistently across macOS versions
+   - Consider environment variables to control which tests run (e.g., `RUN_INTERACTIVE_TESTS`)
+
+### Troubleshooting Common Issues
+
+1. **Element Not Found Issues**:
+   - When UI elements can't be found, implement deeper searching with recursion
+   - Add detailed logging of element properties to help diagnose identification issues
+   - Consider multiple identification strategies (role, title, identifier, or position)
+
+2. **Reliability Improvements**:
+   - Add retry logic for unreliable operations
+   - Implement adaptive waiting based on application responsiveness
+   - Use fuzzy matching for element identification where exact matches fail
+
+3. **Button Interaction Problems**:
+   - Some buttons may require alternative interaction methods (e.g., keyboard shortcuts)
+   - Verify if an element supports the AXPress action before attempting it
+   - Consider position-based clicking as a fallback for problematic elements
+
+### Expansion Recommendations
+
+1. **Additional Verifiers**:
+   - Implement ScreenshotVerifier with image comparison capabilities
+   - Create InteractionVerifier to validate UI state changes after interactions
+   - Consider adding result-specific verifiers for specialized tools
+
+2. **Cross-Application Testing**:
+   - Implement data transfer tests between applications
+   - Create workflows that involve multiple applications
+   - Test application launching and focusing thoroughly
+
+3. **Performance Considerations**:
+   - Add benchmarking capabilities to measure tool performance
+   - Implement caching strategies for expensive operations
+   - Consider parallel execution for independent tests
+
+This guidance should help future engineers understand the nuances of the framework and make more informed implementation decisions.
