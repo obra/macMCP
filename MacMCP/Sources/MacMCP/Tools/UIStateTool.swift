@@ -132,6 +132,9 @@ public struct UIStateTool: @unchecked Sendable {
                     value: element.value,
                     elementDescription: element.elementDescription,
                     frame: element.frame,
+                    normalizedFrame: element.normalizedFrame,
+                    viewportFrame: element.viewportFrame,
+                    frameSource: element.frameSource,
                     parent: element.parent,
                     children: filteredChildren,
                     attributes: element.attributes,
@@ -160,62 +163,132 @@ public struct UIStateTool: @unchecked Sendable {
         return result
     }
     
-    /// Check if an element has valid coordinates
+    /// Check if an element has valid coordinates and should be included in the UI hierarchy
     /// - Parameter element: The element to check
-    /// - Returns: True if the element has valid coordinates
+    /// - Returns: True if the element has valid coordinates and should be included
     private func hasValidCoordinates(_ element: UIElement) -> Bool {
-        // TEMPORARY: Special case for debugging Calculator app - always include buttons to diagnose
+        // For debugging, log calculator buttons to help with testing
         if element.role == "AXButton" && (element.attributes["application"] as? String)?.contains("Calculator") == true {
             // Log the button details to diagnose why we're not seeing them
+            let frameType = element.frameSource.rawValue
+            let hasNormalized = element.normalizedFrame != nil ? "yes" : "no"
+            let hasViewport = element.viewportFrame != nil ? "yes" : "no"
+            
             logger.debug("FOUND CALCULATOR BUTTON", metadata: [
                 "id": .string(element.identifier),
                 "description": .string(element.elementDescription ?? "nil"),
                 "frame": .string("{\(element.frame.origin.x), \(element.frame.origin.y), \(element.frame.size.width), \(element.frame.size.height)}"),
+                "frameSource": .string(frameType),
+                "normalizedFrame": .string(hasNormalized),
+                "viewportFrame": .string(hasViewport),
                 "clickable": .string("\(element.isClickable)"),
-                "actions": .string("\(element.actions)")
+                "actions": .string("\(element.actions)"),
+                "visible": .string("\(element.isVisible)")
             ])
+            
+            // Always include calculator buttons to aid in debugging
             return true
         }
         
+        // If element is explicitly hidden according to accessibility attribute
+        // and doesn't have children, filter it out
+        let hasExplicitHiddenFlag = (element.attributes["hidden"] as? Bool) == true ||
+                                   (element.attributes["visible"] as? Bool) == false
+                                   
+        if hasExplicitHiddenFlag && element.children.isEmpty {
+            logger.debug("Filtering out explicitly hidden element", metadata: [
+                "id": .string(element.identifier),
+                "role": .string(element.role)
+            ])
+            return false
+        }
+        
         // For root elements like Application or Window, always include them regardless of frame
+        // These are essential for navigation and context
         if element.role == "AXApplication" || element.role == "AXWindow" || element.role == "AXMenuBar" {
             return true
         }
         
-        // For containers that might have valid children, be lenient
-        if element.role == "AXGroup" || element.role == "AXSplitGroup" || element.children.count > 0 {
+        // For containers with children, include them as they provide structure
+        // even if the container itself has invalid coordinates
+        if (element.role == "AXGroup" || element.role == "AXSplitGroup" || 
+            element.role.contains("AXScroll") || element.role.contains("AXTab")) && 
+            !element.children.isEmpty {
             return true
         }
         
-        // Actual valid frame checking - just to log which ones would get filtered
-        if element.role == "AXButton" || 
-           element.role == "AXMenuItem" || 
-           element.role == "AXCheckBox" || 
-           element.role == "AXRadioButton" {
-            
-            let hasNonZeroPosition = element.frame.origin.x != 0 || element.frame.origin.y != 0
-            let hasNonZeroSize = element.frame.size.width > 0 && element.frame.size.height > 0
-            let valid = hasNonZeroPosition && hasNonZeroSize
-            
-            if !valid {
-                logger.debug("INVALID INTERACTIVE ELEMENT", metadata: [
-                    "id": .string(element.identifier),
-                    "role": .string(element.role),
-                    "frame": .string("{\(element.frame.origin.x), \(element.frame.origin.y), \(element.frame.size.width), \(element.frame.size.height)}"),
-                    "application": .string(element.attributes["application"] as? String ?? "unknown")
-                ])
+        // Using our enhanced isVisible check that combines attribute and frame information
+        let isElementVisible = element.isVisible
+        
+        // Special handling for interactive elements - these are important to include
+        // even if their frame information is less reliable
+        let isInteractiveElement = element.role == "AXButton" || 
+                                  element.role == "AXMenuItem" || 
+                                  element.role == "AXCheckBox" || 
+                                  element.role == "AXRadioButton" ||
+                                  element.role == "AXTextField" ||
+                                  element.role == "AXLink" ||
+                                  element.isClickable
+        
+        // Evaluate frame validity
+        let hasZeroFrame = element.frame.size.width <= 0 || element.frame.size.height <= 0
+        let hasZeroPosition = element.frame.origin.x == 0 && element.frame.origin.y == 0
+        let hasZeroRect = hasZeroFrame && hasZeroPosition
+        
+        // For interactive elements, use more permissive criteria
+        if isInteractiveElement {
+            // Include interactive elements with any valid frame information
+            if !hasZeroRect {
+                return true
             }
             
-            // For now, don't actually filter interactive elements
-            return true
-        }
-        
-        // For other elements, check if it's completely invalid
-        if element.frame.origin.x == 0 && element.frame.origin.y == 0 && 
-           element.frame.size.width == 0 && element.frame.size.height == 0 {
+            // Include interactive elements with alternative positioning information
+            if element.normalizedFrame != nil || element.viewportFrame != nil {
+                logger.debug("Including interactive element with alternative position info", metadata: [
+                    "id": .string(element.identifier),
+                    "role": .string(element.role),
+                    "frameSource": .string(element.frameSource.rawValue)
+                ])
+                return true
+            }
+            
+            // For elements with non-direct frames, still include them if they have actions
+            if element.frameSource != .direct && element.frameSource != .unavailable && !element.actions.isEmpty {
+                return true
+            }
+            
+            // Log interactive elements we're filtering out
+            logger.debug("Filtering out invisible interactive element", metadata: [
+                "id": .string(element.identifier),
+                "role": .string(element.role),
+                "frame": .string("{\(element.frame.origin.x), \(element.frame.origin.y), \(element.frame.size.width), \(element.frame.size.height)}"),
+                "visible": .string("\(isElementVisible)"),
+                "frameSource": .string(element.frameSource.rawValue)
+            ])
+            
+            // Filter out truly invisible interactive elements
             return false
         }
         
+        // For non-interactive elements, be more strict about visibility
+        if !isElementVisible {
+            logger.debug("Filtering out invisible non-interactive element", metadata: [
+                "id": .string(element.identifier),
+                "role": .string(element.role)
+            ])
+            return false
+        }
+        
+        // Check for valid position and size
+        if hasZeroRect && element.frameSource == .direct {
+            logger.debug("Filtering out element with zero rect", metadata: [
+                "id": .string(element.identifier),
+                "role": .string(element.role)
+            ])
+            return false
+        }
+        
+        // Include elements that have passed all visibility checks
         return true
     }
     

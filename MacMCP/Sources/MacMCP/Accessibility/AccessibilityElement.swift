@@ -62,60 +62,28 @@ public class AccessibilityElement {
             description = nil
         }
         
-        // Get frame with robust error handling
+        // Get the frame information with robust error handling
         let frame: CGRect
-        do {
-            // First try using AXPosition and AXSize directly which is more reliable
-            var origin = CGPoint.zero
-            var size = CGSize.zero
-            var hasValidPosition = false
-            var hasValidSize = false
-            
-            // Get position
-            if let positionValue = try getAttribute(axElement, attribute: AXAttribute.position) {
-                // Check for both NSValue and AXValue types since different macOS versions return different types
-                if let nsValue = positionValue as? NSValue {
-                    origin = nsValue.pointValue
-                    hasValidPosition = true
-                } else if CFGetTypeID(positionValue as CFTypeRef) == AXValueGetTypeID() {
-                    // It's an AXValue, extract the CGPoint
-                    AXValueGetValue(positionValue as! AXValue, .cgPoint, &origin)
-                    hasValidPosition = true
-                }
-            }
-            
-            // Get size
-            if let sizeValue = try getAttribute(axElement, attribute: AXAttribute.size) {
-                // Check for both NSValue and AXValue types
-                if let nsValue = sizeValue as? NSValue {
-                    size = nsValue.sizeValue
-                    hasValidSize = true
-                } else if CFGetTypeID(sizeValue as CFTypeRef) == AXValueGetTypeID() {
-                    // It's an AXValue, extract the CGSize
-                    AXValueGetValue(sizeValue as! AXValue, .cgSize, &size)
-                    hasValidSize = true
-                }
-            }
-            
-            if hasValidPosition && hasValidSize {
-                frame = CGRect(origin: origin, size: size)
-                
-                // Log frame for debugging if this is a Calculator button
-                if (title == "7" || title == "2") && role == AXAttribute.Role.button {
-                    NSLog("FOUND CALCULATOR BUTTON \(title ?? "unknown"): Frame = \(frame)")
-                }
-            } 
-            // Fallback to AXFrame if position and size aren't available separately
-            else if let axFrame = try getAttribute(axElement, attribute: AXAttribute.frame) as? NSValue {
-                frame = axFrame.rectValue
-            } else {
-                // No valid frame information found
-                frame = .zero
-            }
-        } catch {
-            NSLog("WARNING: Failed to get frame: \(error.localizedDescription)")
-            frame = .zero
+        let frameSource: FrameSource
+        var normalizedFrame: CGRect? = nil
+        var viewportFrame: CGRect? = nil
+
+        // We need a preliminary frame for fingerprinting
+        var tempFrame: CGRect = .zero
+        // Try to get basic frame info for identifiers
+        if let positionValue = try? getAttribute(axElement, attribute: AXAttribute.position) as? NSValue,
+           let sizeValue = try? getAttribute(axElement, attribute: AXAttribute.size) as? NSValue {
+            tempFrame = CGRect(origin: positionValue.pointValue, size: sizeValue.sizeValue)
+        } else if let axFrame = try? getAttribute(axElement, attribute: AXAttribute.frame) as? NSValue {
+            tempFrame = axFrame.rectValue
         }
+        
+        // Get the frame information with all the enhanced detections
+        (frame, frameSource, normalizedFrame, viewportFrame) = getFrameInformation(
+            axElement: axElement,
+            role: role,
+            title: title
+        )
         
         // Get additional attributes - continue even if we encounter errors
         var attributes: [String: Any] = [:]
@@ -167,11 +135,11 @@ public class AccessibilityElement {
             }
             
             // Include position for spatial uniqueness (helpful for grids of similar elements)
-            let positionPart = "pos-\(Int(frame.origin.x))-\(Int(frame.origin.y))"
+            let positionPart = "pos-\(Int(tempFrame.origin.x))-\(Int(tempFrame.origin.y))"
             fingerprintParts.append(positionPart)
             
             // Include size information for additional uniqueness
-            let sizePart = "size-\(Int(frame.size.width))-\(Int(frame.size.height))"
+            let sizePart = "size-\(Int(tempFrame.size.width))-\(Int(tempFrame.size.height))"
             fingerprintParts.append(sizePart)
             
             // Format the element's descriptive information (used for human readability)
@@ -240,6 +208,8 @@ public class AccessibilityElement {
             identifier = "ui:\(role):\(shortUUID)"
         }
         
+        // Now that we have an identifier, we'll use the frame-related variables that are already defined
+
         // Get available actions with robust error handling
         let actions: [String]
         do {
@@ -265,6 +235,9 @@ public class AccessibilityElement {
             value: value, 
             elementDescription: description,
             frame: frame,
+            normalizedFrame: normalizedFrame,
+            viewportFrame: viewportFrame,
+            frameSource: frameSource,
             parent: parent,
             attributes: attributes,
             actions: actions
@@ -321,6 +294,19 @@ public class AccessibilityElement {
                                 let isEnabled = (try? getAttribute(axChild, attribute: "AXEnabled") as? Bool) ?? true
                                 let isHidden = (try? getAttribute(axChild, attribute: "AXHidden") as? Bool) ?? false
                                 
+                                // Check frame dimensions - elements with zero size are likely not visible
+                                let frame: CGRect
+                                if let positionValue = try? getAttribute(axChild, attribute: AXAttribute.position) as? NSValue,
+                                   let sizeValue = try? getAttribute(axChild, attribute: AXAttribute.size) as? NSValue {
+                                    frame = CGRect(origin: positionValue.pointValue, size: sizeValue.sizeValue)
+                                } else if let axFrame = try? getAttribute(axChild, attribute: AXAttribute.frame) as? NSValue {
+                                    frame = axFrame.rectValue
+                                } else {
+                                    frame = .zero
+                                }
+                                
+                                let hasZeroSize = frame.size.width <= 0 || frame.size.height <= 0
+                                
                                 // For menus, also check if they're actually open
                                 let isMenuElement = childRole == "AXMenu" || childRole == "AXMenuBarItem"
                                 let isExpanded = isMenuElement ? 
@@ -328,8 +314,16 @@ public class AccessibilityElement {
                                 let isMenuOpened = isMenuElement ? 
                                     (try? getAttribute(axChild, attribute: "AXMenuOpened") as? Bool) ?? false : true
                                 
+                                // Special case for interactive elements - don't filter them out based on zero size
+                                let isInteractiveElement = childRole == "AXButton" || 
+                                                          childRole == "AXMenuItem" || 
+                                                          childRole == "AXCheckBox" || 
+                                                          childRole == "AXRadioButton" ||
+                                                          childRole == "AXTextField" ||
+                                                          childRole == "AXLink"
+                                
                                 // If element isn't visible or available, don't traverse its children
-                                let isAvailable = isVisible && isEnabled && !isHidden
+                                let isAvailable = isVisible && isEnabled && !isHidden && (!hasZeroSize || isInteractiveElement)
                                 let isMenuAvailable = !isMenuElement || (isMenuElement && (isExpanded || isMenuOpened))
                                 
                                 if (!isAvailable || !isMenuAvailable) {
@@ -382,6 +376,9 @@ public class AccessibilityElement {
             value: value,
             elementDescription: description,
             frame: frame,
+            normalizedFrame: normalizedFrame,
+            viewportFrame: viewportFrame,
+            frameSource: frameSource,
             parent: parent,
             children: children,
             attributes: attributes,
@@ -632,11 +629,219 @@ public class AccessibilityElement {
             value: nil,
             elementDescription: nil,
             frame: frame,
+            normalizedFrame: nil,
+            viewportFrame: nil,
+            frameSource: frame == .zero ? .unavailable : .attribute,
             parent: parent,
             children: [], // Empty children - don't traverse
             attributes: [:],
             actions: []
         )
+    }
+    
+    /// Get frame information for an accessibility element with multiple detection methods
+    /// - Parameters:
+    ///   - axElement: The accessibility element
+    ///   - role: The role of the element
+    ///   - title: The title of the element (if available)
+    /// - Returns: A tuple containing (frame, source, normalizedFrame, viewportFrame)
+    private static func getFrameInformation(
+        axElement: AXUIElement,
+        role: String,
+        title: String?
+    ) -> (CGRect, FrameSource, CGRect?, CGRect?) {
+        // Initialize with default values
+        var frame: CGRect = .zero
+        var frameSource: FrameSource = .unavailable
+        var normalizedFrame: CGRect? = nil
+        var viewportFrame: CGRect? = nil
+        
+        // Method 1: Try to get position and size directly (most reliable)
+        if let positionValue = try? getAttribute(axElement, attribute: AXAttribute.position) as? NSValue,
+           let sizeValue = try? getAttribute(axElement, attribute: AXAttribute.size) as? NSValue {
+            
+            frame = CGRect(origin: positionValue.pointValue, size: sizeValue.sizeValue)
+            frameSource = .direct
+        }
+        // Method 2: Try to get frame as a single value
+        else if let axFrame = try? getAttribute(axElement, attribute: AXAttribute.frame) as? NSValue {
+            frame = axFrame.rectValue
+            frameSource = .attribute
+        }
+        
+        // Method 3: For elements in scrollable containers, try to get viewport information
+        // This is especially useful for elements in scroll views, web content, etc.
+        if role == "AXScrollArea" || role == AXAttribute.Role.webArea || role.contains("AXScroll") {
+            // Try to get visible area
+            if let visibleArea = try? getAttribute(axElement, attribute: AXAttribute.visibleArea) as? NSValue {
+                viewportFrame = visibleArea.rectValue
+                
+                // If we don't have a frame yet, use the visible area
+                if frameSource == .unavailable {
+                    frame = viewportFrame!
+                    frameSource = .viewport
+                }
+            }
+        }
+        
+        // If we still don't have valid frame information, try parent-based calculations
+        if frameSource == .unavailable || (frame.origin.x == 0 && frame.origin.y == 0 && 
+                                          frame.size.width == 0 && frame.size.height == 0) {
+            
+            // Get parent element, if available
+            if let parentElementObj = try? getAttribute(axElement, attribute: AXAttribute.parent) {
+                // Make sure this is an AXUIElement
+                if CFGetTypeID(parentElementObj as CFTypeRef) == AXUIElementGetTypeID() {
+                    let parentElement = parentElementObj as! AXUIElement
+                    
+                    // Get parent frame information
+                    var parentFrame: CGRect = .zero
+                    var hasParentFrame = false
+                    
+                    // Try to get parent position and size
+                    if let parentPosition = try? getAttribute(parentElement, attribute: AXAttribute.position) as? NSValue,
+                       let parentSize = try? getAttribute(parentElement, attribute: AXAttribute.size) as? NSValue {
+                        parentFrame = CGRect(origin: parentPosition.pointValue, size: parentSize.sizeValue)
+                        hasParentFrame = true
+                    }
+                    // Try to get parent frame as a single value
+                    else if let parentFrameValue = try? getAttribute(parentElement, attribute: AXAttribute.frame) as? NSValue {
+                        parentFrame = parentFrameValue.rectValue
+                        hasParentFrame = true
+                    }
+                    
+                    if hasParentFrame && !parentFrame.isEmpty {
+                        // Calculate a relative position within parent based on index among siblings
+                        // This is a rough guess - better than nothing
+                        if let siblings = try? getAttribute(parentElement, attribute: AXAttribute.children) as? [AXUIElement] {
+                            var index: CGFloat = 0
+                            let totalSiblings = CGFloat(siblings.count)
+                            
+                            // Find index of this element among siblings
+                            for (i, sibling) in siblings.enumerated() {
+                                if CFEqual(sibling, axElement) {
+                                    index = CGFloat(i)
+                                    break
+                                }
+                            }
+                            
+                            if totalSiblings > 0 {
+                                // Divide parent into grid of cells and place this element in appropriate cell
+                                // This is very rough but better than zero coordinates
+                                let cellWidth = parentFrame.width / min(4, totalSiblings)
+                                let cellHeight = parentFrame.height / min(4, totalSiblings)
+                                let colIndex = floor(index.truncatingRemainder(dividingBy: 4))
+                                let rowIndex = floor(index / 4)
+                                
+                                let cellX = parentFrame.origin.x + (colIndex * cellWidth)
+                                let cellY = parentFrame.origin.y + (rowIndex * cellHeight)
+                                
+                                frame = CGRect(x: cellX, y: cellY, width: cellWidth, height: cellHeight)
+                                frameSource = .calculated
+                                
+                                // Store the normalized position (0.0-1.0 within parent bounds)
+                                normalizedFrame = CGRect(
+                                    x: colIndex / min(4, totalSiblings),
+                                    y: rowIndex / min(4, totalSiblings),
+                                    width: 1.0 / min(4, totalSiblings),
+                                    height: 1.0 / min(4, totalSiblings)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // If we have a valid frame but no normalized coordinates, calculate them
+        if frameSource != .unavailable && normalizedFrame == nil {
+            // Try to get parent element to calculate normalized coordinates
+            if let parentElementObj = try? getAttribute(axElement, attribute: AXAttribute.parent) {
+                // Make sure this is an AXUIElement
+                if CFGetTypeID(parentElementObj as CFTypeRef) == AXUIElementGetTypeID() {
+                    let parentElement = parentElementObj as! AXUIElement
+                    
+                    // Get parent frame information
+                    var parentFrame: CGRect = .zero
+                    var hasParentFrame = false
+                    
+                    // Try to get parent position and size
+                    if let parentPosition = try? getAttribute(parentElement, attribute: AXAttribute.position) as? NSValue,
+                       let parentSize = try? getAttribute(parentElement, attribute: AXAttribute.size) as? NSValue {
+                        parentFrame = CGRect(origin: parentPosition.pointValue, size: parentSize.sizeValue)
+                        hasParentFrame = true
+                    }
+                    // Try to get parent frame as a single value
+                    else if let parentFrameValue = try? getAttribute(parentElement, attribute: AXAttribute.frame) as? NSValue {
+                        parentFrame = parentFrameValue.rectValue
+                        hasParentFrame = true
+                    }
+                    
+                    if hasParentFrame && !parentFrame.isEmpty {
+                        // Calculate normalized coordinates relative to parent
+                        // This helps position elements when parent coordinates change
+                        let normX = (frame.origin.x - parentFrame.origin.x) / parentFrame.width
+                        let normY = (frame.origin.y - parentFrame.origin.y) / parentFrame.height
+                        let normWidth = frame.width / parentFrame.width
+                        let normHeight = frame.height / parentFrame.height
+                        
+                        normalizedFrame = CGRect(x: normX, y: normY, width: normWidth, height: normHeight)
+                    }
+                }
+            }
+        }
+        
+        // Special handling for menu items - sometimes they don't report proper coordinates
+        if role == AXAttribute.Role.menuItem {
+            // For menu items without valid frames, see if we can derive position from parent menu
+            if frameSource == .unavailable || frame.isEmpty {
+                if let parentElementObj = try? getAttribute(axElement, attribute: AXAttribute.parent) {
+                    if CFGetTypeID(parentElementObj as CFTypeRef) == AXUIElementGetTypeID() {
+                        let parentElement = parentElementObj as! AXUIElement
+                        
+                        // Get parent role to confirm it's a menu
+                        if let parentRole = try? getAttribute(parentElement, attribute: AXAttribute.role) as? String,
+                           parentRole == AXAttribute.Role.menu {
+                            // Get parent frame
+                            if let parentFrame = try? getAttribute(parentElement, attribute: AXAttribute.frame) as? NSValue {
+                                // Get all menu items and find this item's index
+                                if let menuItems = try? getAttribute(parentElement, attribute: AXAttribute.children) as? [AXUIElement] {
+                                    // Find our position in the menu
+                                    for (index, item) in menuItems.enumerated() {
+                                        if CFEqual(item, axElement) {
+                                            // Calculate position based on index
+                                            // Standard menu item height is around 22-24 points
+                                            let menuRect = parentFrame.rectValue
+                                            let itemHeight: CGFloat = 24.0
+                                            let estimatedY = menuRect.origin.y + CGFloat(index) * itemHeight
+                                            
+                                            frame = CGRect(
+                                                x: menuRect.origin.x,
+                                                y: estimatedY,
+                                                width: menuRect.width,
+                                                height: itemHeight
+                                            )
+                                            frameSource = .inferred
+                                            
+                                            // Create normalized coordinates
+                                            normalizedFrame = CGRect(
+                                                x: 0,
+                                                y: CGFloat(index) / CGFloat(menuItems.count),
+                                                width: 1.0,
+                                                height: 1.0 / CGFloat(menuItems.count)
+                                            )
+                                            break
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        return (frame, frameSource, normalizedFrame, viewportFrame)
     }
     
     /// Get an attribute from an AXUIElement

@@ -24,6 +24,24 @@ public enum AXAttribute {
     public static let actionDescription = "AXActionDescription"
     public static let help = "AXHelp"
     public static let actions = "AXActions"
+    public static let visibleCharacterRange = "AXVisibleCharacterRange"
+    public static let visibleCells = "AXVisibleCells"
+    public static let visibleRows = "AXVisibleRows"
+    public static let visibleColumns = "AXVisibleColumns"
+    public static let horizontalScrollBar = "AXHorizontalScrollBar"
+    public static let verticalScrollBar = "AXVerticalScrollBar"
+    public static let horizontalUnitDescription = "AXHorizontalUnitDescription"
+    public static let verticalUnitDescription = "AXVerticalUnitDescription"
+    public static let maximumValue = "AXMaximumValue"
+    public static let minimumValue = "AXMinimumValue"
+    
+    // Additional position related constants
+    public static let visibleArea = "AXVisibleArea" // Visible area of a scrollable view
+    public static let contents = "AXContents" // Contents of a container
+    public static let topLevelUIElement = "AXTopLevelUIElement" // Top level element (window)
+    public static let firstVisibleRow = "AXFirstVisibleRow" // First visible row in a table
+    public static let lastVisibleRow = "AXLastVisibleRow" // Last visible row in a table
+    public static let visibleRange = "AXVisibleRange" // Visible range in a document
     
     // Common AX roles
     public enum Role {
@@ -60,6 +78,30 @@ public enum AXAttribute {
     }
 }
 
+/// Source of frame coordinate information
+public enum FrameSource: String, Codable {
+    /// Frame information came directly from AXPosition and AXSize attributes
+    case direct = "direct"
+    
+    /// Frame information came from the AXFrame attribute
+    case attribute = "attribute"
+    
+    /// Frame information was calculated based on parent frame and relative position
+    case calculated = "calculated"
+    
+    /// Frame information was inferred from other elements (e.g., siblings)
+    case inferred = "inferred"
+    
+    /// Frame information was derived from a viewport's visible area
+    case viewport = "viewport"
+    
+    /// Frame information was estimated or approximated
+    case estimated = "estimated"
+    
+    /// No valid frame information available
+    case unavailable = "unavailable"
+}
+
 /// Represents a UI element in the accessibility hierarchy
 @objc public class UIElement: NSObject, Identifiable, @unchecked Sendable {
     /// Unique identifier for the element
@@ -79,6 +121,15 @@ public enum AXAttribute {
     
     /// The frame of the element in screen coordinates
     public let frame: CGRect
+    
+    /// Normalized frame information relative to parent element (percentages)
+    public let normalizedFrame: CGRect?
+    
+    /// Viewport-relative coordinates (if the element is in a scrollable container)
+    public let viewportFrame: CGRect?
+    
+    /// Frame derivation method (how the frame was determined)
+    public let frameSource: FrameSource
     
     /// The parent element (if any)
     public weak var parent: UIElement?
@@ -147,8 +198,38 @@ public enum AXAttribute {
     }
     
     /// Whether the element is visible
+    /// This combines explicit visibility attribute with frame-based checks
     public var isVisible: Bool {
-        return (attributes["visible"] as? Bool) ?? true
+        // Check explicit visibility attribute
+        let hasVisibilityAttribute = (attributes["visible"] as? Bool) ?? true
+        
+        // Element explicitly marked as not visible
+        if !hasVisibilityAttribute {
+            return false
+        }
+        
+        // Check if element has zero or negative size - considered not visible
+        let hasZeroSize = frame.size.width <= 0 || frame.size.height <= 0
+        
+        // Check if element is positioned outside screen bounds (rough approximation)
+        // Assumes a standard large desktop size (this is just a safety check)
+        let isOffScreen = frame.origin.x < -10000 || frame.origin.y < -10000 || 
+                         frame.origin.x > 10000 || frame.origin.y > 10000
+        
+        // Special case: if it has a frameSource that's derived, it might be calculated
+        // or estimated, so trust the frame less
+        let isDerivedFrame = frameSource != .direct && frameSource != .attribute
+        
+        // Special case: if it has a viewportFrame, it could be in a scrollable area
+        let hasViewportPos = viewportFrame != nil
+        
+        // Element is considered visible if:
+        // 1. It has visibility attribute set to true AND 
+        // 2. Either:
+        //    a. It has non-zero size and is on-screen, OR
+        //    b. It has a derived frame (calculated/estimated), OR
+        //    c. It has viewport position (might be scrolled out of view)
+        return hasVisibilityAttribute && (!hasZeroSize && !isOffScreen || isDerivedFrame || hasViewportPos)
     }
     
     /// Whether the element is enabled
@@ -174,6 +255,9 @@ public enum AXAttribute {
     ///   - value: The current value (optional)
     ///   - description: A description (optional)
     ///   - frame: The element's frame in screen coordinates
+    ///   - normalizedFrame: The frame coordinates normalized relative to parent (optional)
+    ///   - viewportFrame: The frame coordinates relative to a scrollable viewport (optional)
+    ///   - frameSource: The method used to determine the frame
     ///   - parent: The parent element (optional)
     ///   - children: Child elements (default is empty)
     ///   - attributes: Additional attributes (default is empty)
@@ -185,6 +269,9 @@ public enum AXAttribute {
         value: String? = nil,
         elementDescription: String? = nil,
         frame: CGRect,
+        normalizedFrame: CGRect? = nil,
+        viewportFrame: CGRect? = nil,
+        frameSource: FrameSource = .direct,
         parent: UIElement? = nil,
         children: [UIElement] = [],
         attributes: [String: Any] = [:],
@@ -196,6 +283,9 @@ public enum AXAttribute {
         self.value = value
         self.elementDescription = elementDescription
         self.frame = frame
+        self.normalizedFrame = normalizedFrame
+        self.viewportFrame = viewportFrame
+        self.frameSource = frameSource
         self.parent = parent
         self.children = children
         self.attributes = attributes
@@ -223,13 +313,34 @@ public enum AXAttribute {
             json["description"] = elementDescription
         }
         
-        // Add frame
+        // Add frame information
         json["frame"] = [
             "x": frame.origin.x,
             "y": frame.origin.y,
             "width": frame.size.width,
-            "height": frame.size.height
+            "height": frame.size.height,
+            "source": frameSource.rawValue
         ]
+        
+        // Add normalized frame if available
+        if let normalizedFrame = normalizedFrame {
+            json["normalizedFrame"] = [
+                "x": normalizedFrame.origin.x,
+                "y": normalizedFrame.origin.y,
+                "width": normalizedFrame.size.width,
+                "height": normalizedFrame.size.height
+            ]
+        }
+        
+        // Add viewport frame if available
+        if let viewportFrame = viewportFrame {
+            json["viewportFrame"] = [
+                "x": viewportFrame.origin.x,
+                "y": viewportFrame.origin.y,
+                "width": viewportFrame.size.width,
+                "height": viewportFrame.size.height
+            ]
+        }
         
         // Add capability flags
         json["capabilities"] = [
