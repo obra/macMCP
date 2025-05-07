@@ -8,6 +8,11 @@
 - ✅ Implement TestLogHandler for capturing log messages during tests
 - ✅ Develop UI state verification for test results
 - ✅ Create element criteria matching for test verification
+- ✅ Implement ScreenshotVerifier for verifying screenshot properties
+- ✅ Add tests for screenshot verification functionality (basic and advanced tests)
+- ✅ Extend ToolInvoker with support for all MacMCP tools
+- ✅ Create standalone element testing framework (with example button test)
+- ✅ Discover bug in element identification with zero frame coordinates
 
 ## High Priority Tasks
 - ⬜ Implement multiple app detection strategies (bundle ID, name, partial matching)
@@ -20,8 +25,8 @@
 - ⬜ Support identifying elements by visible text
 - ⬜ Enhance menu navigation with retry logic and robust discovery
 - ⬜ Improve window management with caching and multiple lookup methods
-- ⬜ Implement ScreenshotVerifier and InteractionVerifier for testing framework
-- ⬜ Extend ToolInvoker with support for all MacMCP tools
+- ⬜ Fix bug with elements reporting zero frame coordinates (affects clickability)
+- ⬜ Implement InteractionVerifier for testing framework
 
 ## Medium Priority Tasks
 - ⬜ Implement an intelligent element cache with fingerprinting
@@ -55,11 +60,13 @@
 - ⬜ Develop debugging utilities (UI hierarchy explorer, element inspector)
 
 ## Testing Framework Next Steps
-- ⬜ Implement ScreenshotVerifier for validating screenshots
+- ✅ Implement ScreenshotVerifier for validating screenshots
 - ⬜ Implement InteractionVerifier for validating UI interactions
-- ⬜ Add support for more tools in ToolInvoker
+- ✅ Add support for all tools in ToolInvoker
 - ⬜ Create comprehensive test suite using the new framework
 - ⬜ Fix warning messages in driver implementations
-- ⬜ Improve calculator button detection for more reliable tests
+- ⬜ Improve calculator button detection for more reliable tests (fix zero-frame bug)
 - ⬜ Add detailed documentation for testing framework components
 - ⬜ Migrate existing E2E tests to use the new framework
+- ⬜ Fix element-level screenshot testing to properly handle element identification
+- ⬜ Add more robust methods to verify button coordinates and presence
