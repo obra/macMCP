@@ -68,6 +68,15 @@ public actor ApplicationService: ApplicationServiceProtocol {
     /// Cache lifetime in seconds
     private let cacheLifetime: TimeInterval = 30
     
+    /// Active application state observers
+    private var applicationObservers: [String: @Sendable (ApplicationStateChange) async -> Void] = [:]
+    
+    /// Notification center for observing application notifications
+    private let notificationCenter = NSWorkspace.shared.notificationCenter
+    
+    /// Whether we've set up the notification observers
+    private var observersConfigured = false
+    
     /// Known system applications and their bundle IDs
     private let knownSystemApps: [String: String] = [
         "calculator": "com.apple.calculator",
@@ -94,6 +103,11 @@ public actor ApplicationService: ApplicationServiceProtocol {
         self.logger = logger
         
         // Initial cache population will happen on first use
+        
+        // Start task to configure application observers
+        Task {
+            await configureApplicationObservers()
+        }
     }
     
     /// Refresh the application cache
@@ -649,12 +663,13 @@ public actor ApplicationService: ApplicationServiceProtocol {
             ])
             
             // Verify the application is properly initialized
-            try await verifyApplicationLaunch(runningApplication, timeout: verificationTimeout)
+            let verified = try await verifyApplicationLaunch(runningApplication, timeout: verificationTimeout)
             
             logger.info("Application opened and verified successfully", metadata: [
                 "bundleIdentifier": "\(bundleIdentifier)",
                 "applicationName": "\(runningApplication.localizedName ?? "Unknown")",
-                "processIdentifier": "\(runningApplication.processIdentifier)"
+                "processIdentifier": "\(runningApplication.processIdentifier)",
+                "verified": "\(verified)"
             ])
             
             return true
@@ -1016,5 +1031,611 @@ public actor ApplicationService: ApplicationServiceProtocol {
         ])
         
         return runningApps
+    }
+    
+    /// Set up application state change notification observers
+    private func configureApplicationObservers() {
+        // Skip if already configured
+        guard !observersConfigured else {
+            return
+        }
+        
+        logger.debug("Configuring application state observers")
+        
+        // Observe application launch notifications
+        notificationCenter.addObserver(
+            forName: NSWorkspace.didLaunchApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let self = self else { return }
+            
+            // Extract relevant data from notification
+            guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+                  let bundleId = app.bundleIdentifier,
+                  !bundleId.isEmpty else {
+                return
+            }
+            
+            // Create a copy of app data to pass to the actor
+            let appData = (
+                bundleId: bundleId,
+                name: app.localizedName ?? "",
+                processId: app.processIdentifier,
+                isActive: app.isActive,
+                isFinishedLaunching: app.isFinishedLaunching,
+                url: app.bundleURL
+            )
+            
+            // Call the actor method from a detached task
+            Task.detached {
+                await self.handleApplicationLaunch(appData)
+            }
+        }
+        
+        // Observe application termination notifications
+        notificationCenter.addObserver(
+            forName: NSWorkspace.didTerminateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let self = self else { return }
+            
+            // Extract relevant data from notification
+            guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+                  let bundleId = app.bundleIdentifier,
+                  !bundleId.isEmpty else {
+                return
+            }
+            
+            // Create a copy of app data to pass to the actor
+            let appData = (
+                bundleId: bundleId,
+                name: app.localizedName ?? "",
+                processId: app.processIdentifier,
+                isActive: app.isActive,
+                isFinishedLaunching: app.isFinishedLaunching,
+                url: app.bundleURL
+            )
+            
+            // Call the actor method from a detached task
+            Task.detached {
+                await self.handleApplicationTermination(appData)
+            }
+        }
+        
+        // Observe application activation notifications
+        notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let self = self else { return }
+            
+            // Extract relevant data from notification
+            guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+                  let bundleId = app.bundleIdentifier,
+                  !bundleId.isEmpty else {
+                return
+            }
+            
+            // Create a copy of app data to pass to the actor
+            let appData = (
+                bundleId: bundleId,
+                name: app.localizedName ?? "",
+                processId: app.processIdentifier,
+                isActive: app.isActive,
+                isFinishedLaunching: app.isFinishedLaunching,
+                url: app.bundleURL
+            )
+            
+            // Call the actor method from a detached task for activation
+            Task.detached {
+                await self.handleApplicationActivation(appData)
+            }
+            
+            // When a new app is activated, the previous app is deactivated
+            // Find the previously active app and send a deactivation notification
+            Task.detached {
+                await self.handlePreviousApplicationDeactivation(exceptApp: bundleId)
+            }
+        }
+        
+        // Observe application hiding notifications
+        notificationCenter.addObserver(
+            forName: NSWorkspace.didHideApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let self = self else { return }
+            
+            // Extract relevant data from notification
+            guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+                  let bundleId = app.bundleIdentifier,
+                  !bundleId.isEmpty else {
+                return
+            }
+            
+            // Create a copy of app data to pass to the actor
+            let appData = (
+                bundleId: bundleId,
+                name: app.localizedName ?? "",
+                processId: app.processIdentifier,
+                isActive: app.isActive,
+                isFinishedLaunching: app.isFinishedLaunching,
+                url: app.bundleURL
+            )
+            
+            // Call the actor method from a detached task
+            Task.detached {
+                await self.handleApplicationHiding(appData)
+            }
+        }
+        
+        // Observe application unhiding notifications
+        notificationCenter.addObserver(
+            forName: NSWorkspace.didUnhideApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let self = self else { return }
+            
+            // Extract relevant data from notification
+            guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+                  let bundleId = app.bundleIdentifier,
+                  !bundleId.isEmpty else {
+                return
+            }
+            
+            // Create a copy of app data to pass to the actor
+            let appData = (
+                bundleId: bundleId,
+                name: app.localizedName ?? "",
+                processId: app.processIdentifier,
+                isActive: app.isActive,
+                isFinishedLaunching: app.isFinishedLaunching,
+                url: app.bundleURL
+            )
+            
+            // Call the actor method from a detached task
+            Task.detached {
+                await self.handleApplicationUnhiding(appData)
+            }
+        }
+        
+        observersConfigured = true
+        logger.debug("Application state observers configured")
+    }
+    
+    
+        /// Handle application launch event
+    /// - Parameter appData: Tuple containing application data extracted from the notification
+    private func handleApplicationLaunch(_ appData: (bundleId: String, name: String, processId: Int32, isActive: Bool, isFinishedLaunching: Bool, url: URL?)) {
+        logger.debug("Handling application launch", metadata: [
+            "bundleId": "\(appData.bundleId)",
+            "name": "\(appData.name)",
+            "processId": "\(appData.processId)"
+        ])
+        
+        // Find the actual running application to get real data
+        let runningApplications = NSWorkspace.shared.runningApplications
+        if let app = runningApplications.first(where: { $0.processIdentifier == appData.processId }) {
+            // Update cache with real application data
+            updateCacheForRunningApp(app)
+        } else {
+            // If we can't find the app (rare), use the URL to create application info
+            if let url = appData.url {
+                let appInfo = ApplicationInfo(url: url, bundleId: appData.bundleId)
+                appCache[appData.bundleId] = appInfo
+                nameToAppCache[appData.name.lowercased()] = appInfo
+            }
+        }
+        
+        // Create application state info for the notification
+        let stateInfo = ApplicationStateInfo(
+            bundleIdentifier: appData.bundleId,
+            name: appData.name,
+            isRunning: true,
+            processId: appData.processId,
+            isActive: appData.isActive,
+            isFinishedLaunching: appData.isFinishedLaunching,
+            url: appData.url
+        )
+        
+        // Create state change notification
+        let stateChange = ApplicationStateChange(
+            type: .launched,
+            application: stateInfo
+        )
+        
+        // Notify all observers
+        Task {
+            for (observerId, handler) in applicationObservers {
+                await handler(stateChange)
+            }
+        }
+    }
+    
+    /// Handle application termination event
+    /// - Parameter appData: Tuple containing application data extracted from the notification
+    private func handleApplicationTermination(_ appData: (bundleId: String, name: String, processId: Int32, isActive: Bool, isFinishedLaunching: Bool, url: URL?)) {
+        logger.debug("Handling application termination", metadata: [
+            "bundleId": "\(appData.bundleId)",
+            "name": "\(appData.name)",
+            "processId": "\(appData.processId)"
+        ])
+        
+        // Get existing application info from cache if available
+        if var existingAppInfo = appCache[appData.bundleId] {
+            // Update to mark as not running
+            existingAppInfo.processId = nil
+            appCache[appData.bundleId] = existingAppInfo
+        }
+        
+        // Create application state info for the notification
+        let stateInfo = ApplicationStateInfo(
+            bundleIdentifier: appData.bundleId,
+            name: appData.name,
+            isRunning: false,
+            processId: nil,  // Set to nil because the app is terminated
+            isActive: false, // Terminated app can't be active
+            isFinishedLaunching: false, // Terminated app isn't launched
+            url: appData.url
+        )
+        
+        // Create state change notification
+        let stateChange = ApplicationStateChange(
+            type: .terminated,
+            application: stateInfo
+        )
+        
+        // Notify all observers
+        Task {
+            for (observerId, handler) in applicationObservers {
+                await handler(stateChange)
+            }
+        }
+    }
+    
+    /// Handle application activation event
+    /// - Parameter appData: Tuple containing application data extracted from the notification
+    private func handleApplicationActivation(_ appData: (bundleId: String, name: String, processId: Int32, isActive: Bool, isFinishedLaunching: Bool, url: URL?)) {
+        logger.debug("Handling application activation", metadata: [
+            "bundleId": "\(appData.bundleId)",
+            "name": "\(appData.name)",
+            "processId": "\(appData.processId)"
+        ])
+        
+        // Find the actual running application to get real data
+        let runningApplications = NSWorkspace.shared.runningApplications
+        if let app = runningApplications.first(where: { $0.processIdentifier == appData.processId }) {
+            // Update cache with real application data
+            updateCacheForRunningApp(app)
+        } else {
+            // If we can't find the app (rare), use the URL to create application info
+            if let url = appData.url {
+                let appInfo = ApplicationInfo(url: url, bundleId: appData.bundleId)
+                appCache[appData.bundleId] = appInfo
+                nameToAppCache[appData.name.lowercased()] = appInfo
+            }
+        }
+        
+        // Create application state info for the notification
+        let stateInfo = ApplicationStateInfo(
+            bundleIdentifier: appData.bundleId,
+            name: appData.name,
+            isRunning: true,
+            processId: appData.processId,
+            isActive: true, // It's being activated
+            isFinishedLaunching: appData.isFinishedLaunching,
+            url: appData.url
+        )
+        
+        // Create state change notification
+        let stateChange = ApplicationStateChange(
+            type: .activated,
+            application: stateInfo
+        )
+        
+        // Notify all observers
+        Task {
+            for (observerId, handler) in applicationObservers {
+                await handler(stateChange)
+            }
+        }
+    }
+    
+    /// Handle application hiding event
+    /// - Parameter appData: Tuple containing application data extracted from the notification
+    private func handleApplicationHiding(_ appData: (bundleId: String, name: String, processId: Int32, isActive: Bool, isFinishedLaunching: Bool, url: URL?)) {
+        logger.debug("Handling application hiding", metadata: [
+            "bundleId": "\(appData.bundleId)",
+            "name": "\(appData.name)",
+            "processId": "\(appData.processId)"
+        ])
+        
+        // Find the actual running application to get real data
+        let runningApplications = NSWorkspace.shared.runningApplications
+        if let app = runningApplications.first(where: { $0.processIdentifier == appData.processId }) {
+            // Update cache with real application data
+            updateCacheForRunningApp(app)
+        } else {
+            // If we can't find the app (rare), use the URL to create application info
+            if let url = appData.url {
+                let appInfo = ApplicationInfo(url: url, bundleId: appData.bundleId)
+                appCache[appData.bundleId] = appInfo
+                nameToAppCache[appData.name.lowercased()] = appInfo
+            }
+        }
+        
+        // Create application state info for the notification
+        let stateInfo = ApplicationStateInfo(
+            bundleIdentifier: appData.bundleId,
+            name: appData.name,
+            isRunning: true,
+            processId: appData.processId,
+            isActive: false, // Hidden app can't be active
+            isFinishedLaunching: appData.isFinishedLaunching,
+            url: appData.url
+        )
+        
+        // Create state change notification
+        let stateChange = ApplicationStateChange(
+            type: .hidden,
+            application: stateInfo
+        )
+        
+        // Notify all observers
+        Task {
+            for (observerId, handler) in applicationObservers {
+                await handler(stateChange)
+            }
+        }
+    }
+    
+    /// Handle application unhiding event
+    /// - Parameter appData: Tuple containing application data extracted from the notification
+    private func handleApplicationUnhiding(_ appData: (bundleId: String, name: String, processId: Int32, isActive: Bool, isFinishedLaunching: Bool, url: URL?)) {
+        logger.debug("Handling application unhiding", metadata: [
+            "bundleId": "\(appData.bundleId)",
+            "name": "\(appData.name)",
+            "processId": "\(appData.processId)"
+        ])
+        
+        // Find the actual running application to get real data
+        let runningApplications = NSWorkspace.shared.runningApplications
+        if let app = runningApplications.first(where: { $0.processIdentifier == appData.processId }) {
+            // Update cache with real application data
+            updateCacheForRunningApp(app)
+        } else {
+            // If we can't find the app (rare), use the URL to create application info
+            if let url = appData.url {
+                let appInfo = ApplicationInfo(url: url, bundleId: appData.bundleId)
+                appCache[appData.bundleId] = appInfo
+                nameToAppCache[appData.name.lowercased()] = appInfo
+            }
+        }
+        
+        // Create application state info for the notification
+        let stateInfo = ApplicationStateInfo(
+            bundleIdentifier: appData.bundleId,
+            name: appData.name,
+            isRunning: true,
+            processId: appData.processId,
+            isActive: appData.isActive,
+            isFinishedLaunching: appData.isFinishedLaunching,
+            url: appData.url
+        )
+        
+        // Create state change notification
+        let stateChange = ApplicationStateChange(
+            type: .unhidden,
+            application: stateInfo
+        )
+        
+        // Notify all observers
+        Task {
+            for (observerId, handler) in applicationObservers {
+                await handler(stateChange)
+            }
+        }
+    }
+    
+    /// Handle application deactivation event
+    /// - Parameter appData: Tuple containing application data extracted from the notification
+    private func handleApplicationDeactivation(_ appData: (bundleId: String, name: String, processId: Int32, isActive: Bool, isFinishedLaunching: Bool, url: URL?)) {
+        logger.debug("Handling application deactivation", metadata: [
+            "bundleId": "\(appData.bundleId)",
+            "name": "\(appData.name)",
+            "processId": "\(appData.processId)"
+        ])
+        
+        // Find the actual running application to get real data
+        let runningApplications = NSWorkspace.shared.runningApplications
+        if let app = runningApplications.first(where: { $0.processIdentifier == appData.processId }) {
+            // Update cache with real application data
+            updateCacheForRunningApp(app)
+        } else {
+            // If we can't find the app (rare), use the URL to create application info
+            if let url = appData.url {
+                let appInfo = ApplicationInfo(url: url, bundleId: appData.bundleId)
+                appCache[appData.bundleId] = appInfo
+                nameToAppCache[appData.name.lowercased()] = appInfo
+            }
+        }
+        
+        // Create application state info for the notification
+        let stateInfo = ApplicationStateInfo(
+            bundleIdentifier: appData.bundleId,
+            name: appData.name,
+            isRunning: true,
+            processId: appData.processId,
+            isActive: false, // It's being deactivated
+            isFinishedLaunching: appData.isFinishedLaunching,
+            url: appData.url
+        )
+        
+        // Create state change notification
+        let stateChange = ApplicationStateChange(
+            type: .deactivated,
+            application: stateInfo
+        )
+        
+        // Notify all observers
+        Task {
+            for (observerId, handler) in applicationObservers {
+                await handler(stateChange)
+            }
+        }
+    }
+    
+    /// Find the previously active application and send deactivation notification
+    /// - Parameter exceptApp: The bundle ID of the app to exclude (usually the newly activated app)
+    private func handlePreviousApplicationDeactivation(exceptApp: String) async {
+        logger.debug("Finding previously active application for deactivation notification")
+        
+        // First, get all running applications that might have been active
+        let runningApps = NSWorkspace.shared.runningApplications
+        
+        // Look for applications that are no longer active but might have been
+        for app in runningApps where app.activationPolicy == .regular {
+            // Skip the app that was just activated
+            guard let bundleId = app.bundleIdentifier, 
+                  !bundleId.isEmpty,
+                  bundleId != exceptApp else {
+                continue
+            }
+            
+            // If the app is not currently active but is running, assume it was deactivated
+            if !app.isActive {
+                logger.debug("Found previously active application", metadata: [
+                    "bundleId": "\(bundleId)",
+                    "name": "\(app.localizedName ?? "")"
+                ])
+                
+                // Create app data tuple to pass to the deactivation handler
+                let appData = (
+                    bundleId: bundleId,
+                    name: app.localizedName ?? "",
+                    processId: app.processIdentifier,
+                    isActive: false, // It's now inactive
+                    isFinishedLaunching: app.isFinishedLaunching,
+                    url: app.bundleURL
+                )
+                
+                // Handle the deactivation
+                handleApplicationDeactivation(appData)
+                
+                // Only deactivate one app (the most recently active one)
+                break
+            }
+        }
+    }
+    
+    /// Start observing application state changes.
+    /// - Parameter notificationHandler: The handler to call when applications launch or terminate
+    /// - Returns: A unique identifier for this observation that can be used to stop it
+    /// - Throws: MacMCPErrorInfo if the observation could not be started
+    public func startObservingApplications(notificationHandler: @escaping @Sendable (ApplicationStateChange) async -> Void) async throws -> String {
+        // Configure observers if needed
+        configureApplicationObservers()
+        
+        // Generate a unique identifier for this observer
+        let observerId = UUID().uuidString
+        
+        // Store the handler
+        applicationObservers[observerId] = notificationHandler
+        
+        logger.info("Started observing application state changes", metadata: [
+            "observerId": "\(observerId)",
+            "activeObservers": "\(applicationObservers.count)"
+        ])
+        
+        return observerId
+    }
+    
+    /// Stop observing application state changes.
+    /// - Parameter observerId: The identifier of the observation to stop
+    /// - Throws: MacMCPErrorInfo if the observation could not be stopped
+    public func stopObservingApplications(observerId: String) async throws {
+        // Remove the observer
+        if applicationObservers.removeValue(forKey: observerId) != nil {
+            logger.info("Stopped observing application state changes", metadata: [
+                "observerId": "\(observerId)",
+                "activeObservers": "\(applicationObservers.count)"
+            ])
+        } else {
+            logger.warning("Observer not found", metadata: [
+                "observerId": "\(observerId)"
+            ])
+            
+            throw NSError(
+                domain: "com.macos.mcp.applicationService",
+                code: 404,
+                userInfo: [NSLocalizedDescriptionKey: "Observer ID not found: \(observerId)"]
+            )
+        }
+    }
+    
+    /// Check if an application is running.
+    /// - Parameter bundleIdentifier: The bundle identifier of the application to check
+    /// - Returns: True if the application is running, false otherwise
+    /// - Throws: MacMCPErrorInfo if the check fails
+    public func isApplicationRunning(bundleIdentifier: String) async throws -> Bool {
+        // Check if it's in our cache
+        if let appInfo = await findApplicationByBundleID(bundleIdentifier) {
+            return appInfo.isRunning
+        }
+        
+        // Check directly with NSRunningApplication as a fallback
+        let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier)
+        return !runningApps.isEmpty
+    }
+    
+    /// Get information about a running application.
+    /// - Parameter bundleIdentifier: The bundle identifier of the application
+    /// - Returns: Application information, or nil if the application is not running
+    /// - Throws: MacMCPErrorInfo if the information could not be retrieved
+    public func getApplicationInfo(bundleIdentifier: String) async throws -> ApplicationStateInfo? {
+        // Check if it's in our cache
+        if let appInfo = await findApplicationByBundleID(bundleIdentifier) {
+            if appInfo.isRunning {
+                // Find the application in the system to get the most up-to-date information
+                if let pid = appInfo.processId, 
+                   let app = NSRunningApplication(processIdentifier: pid) {
+                    // Return detailed information
+                    return ApplicationStateInfo(
+                        bundleIdentifier: bundleIdentifier,
+                        name: app.localizedName ?? appInfo.name,
+                        isRunning: true,
+                        processId: app.processIdentifier,
+                        isActive: app.isActive,
+                        isFinishedLaunching: app.isFinishedLaunching,
+                        url: app.bundleURL ?? appInfo.url
+                    )
+                }
+            }
+        }
+        
+        // Check directly with NSRunningApplication as a fallback
+        let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier)
+        if let app = runningApps.first {
+            // Update our cache
+            updateCacheForRunningApp(app)
+            
+            // Return detailed information
+            return ApplicationStateInfo(
+                bundleIdentifier: bundleIdentifier,
+                name: app.localizedName ?? "",
+                isRunning: true,
+                processId: app.processIdentifier,
+                isActive: app.isActive,
+                isFinishedLaunching: app.isFinishedLaunching,
+                url: app.bundleURL
+            )
+        }
+        
+        // Application is not running
+        return nil
     }
 }
