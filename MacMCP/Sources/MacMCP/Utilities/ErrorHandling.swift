@@ -155,32 +155,8 @@ public struct MacMCPErrorInfo: Swift.Error, LocalizedError, Sendable {
     
     /// Convert to MCP error for protocol communication
     public var asMCPError: MCPError {
-        // For client-facing errors, we want to use standard error types when possible
-        switch category {
-        case .permissions:
-            return .invalidRequest("Permission denied: \(message)")
-            
-        case .parsing:
-            return .parseError(message)
-            
-        case .element:
-            return .invalidParams("Element error: \(message)")
-            
-        case .interaction:
-            return .invalidParams("Interaction error: \(message)")
-            
-        default:
-            // Use internal error for other categories
-            let context = self.context
-                .map { "\($0.key): \($0.value)" }
-                .joined(separator: ", ")
-            
-            let detail = context.isEmpty
-                ? message
-                : "\(message) (\(context))"
-            
-            return .internalError(detail)
-        }
+        // Use the new MCPError.from helper
+        return MCPError.from(self)
     }
 }
 
@@ -192,7 +168,7 @@ public func createPermissionError(
 ) -> MacMCPErrorInfo {
     return MacMCPErrorInfo(
         category: .permissions,
-        code: 1001,
+        code: MacMCPErrorCode.permissionDenied,
         message: message,
         context: context,
         underlyingError: underlyingError
@@ -207,7 +183,37 @@ public func createElementError(
 ) -> MacMCPErrorInfo {
     return MacMCPErrorInfo(
         category: .element,
-        code: 2001,
+        code: MacMCPErrorCode.elementNotFound,
+        message: message,
+        context: context,
+        underlyingError: underlyingError
+    )
+}
+
+/// Create a standard element not interactive error
+public func createElementNotInteractiveError(
+    message: String,
+    context: [String: String] = [:],
+    underlyingError: Swift.Error? = nil
+) -> MacMCPErrorInfo {
+    return MacMCPErrorInfo(
+        category: .element,
+        code: MacMCPErrorCode.elementNotInteractive,
+        message: message,
+        context: context,
+        underlyingError: underlyingError
+    )
+}
+
+/// Create a standard element zero coordinates error
+public func createZeroCoordinatesError(
+    message: String,
+    context: [String: String] = [:],
+    underlyingError: Swift.Error? = nil
+) -> MacMCPErrorInfo {
+    return MacMCPErrorInfo(
+        category: .element,
+        code: MacMCPErrorCode.zeroCoordinatesElement,
         message: message,
         context: context,
         underlyingError: underlyingError
@@ -222,7 +228,22 @@ public func createInteractionError(
 ) -> MacMCPErrorInfo {
     return MacMCPErrorInfo(
         category: .interaction,
-        code: 3001,
+        code: MacMCPErrorCode.actionFailed,
+        message: message,
+        context: context,
+        underlyingError: underlyingError
+    )
+}
+
+/// Create a standard action not supported error
+public func createActionNotSupportedError(
+    message: String,
+    context: [String: String] = [:],
+    underlyingError: Swift.Error? = nil
+) -> MacMCPErrorInfo {
+    return MacMCPErrorInfo(
+        category: .interaction,
+        code: MacMCPErrorCode.actionNotSupported,
         message: message,
         context: context,
         underlyingError: underlyingError
@@ -237,7 +258,7 @@ public func createScreenshotError(
 ) -> MacMCPErrorInfo {
     return MacMCPErrorInfo(
         category: .screenshot,
-        code: 4001,
+        code: MacMCPErrorCode.screenshotFailed,
         message: message,
         context: context,
         underlyingError: underlyingError
@@ -252,7 +273,7 @@ public func createApplicationError(
 ) -> MacMCPErrorInfo {
     return MacMCPErrorInfo(
         category: .application,
-        code: 5001,
+        code: MacMCPErrorCode.applicationError,
         message: message,
         context: context,
         underlyingError: underlyingError
@@ -267,7 +288,7 @@ public func createApplicationLaunchError(
 ) -> MacMCPErrorInfo {
     return MacMCPErrorInfo(
         category: .applicationLaunch,
-        code: 5101,
+        code: MacMCPErrorCode.applicationLaunchFailed,
         message: message,
         context: context,
         underlyingError: underlyingError
@@ -282,7 +303,37 @@ public func createApplicationNotFoundError(
 ) -> MacMCPErrorInfo {
     return MacMCPErrorInfo(
         category: .applicationNotFound,
-        code: 5201,
+        code: MacMCPErrorCode.applicationNotFound,
+        message: message,
+        context: context,
+        underlyingError: underlyingError
+    )
+}
+
+/// Create an application not running error
+public func createApplicationNotRunningError(
+    message: String,
+    context: [String: String] = [:],
+    underlyingError: Swift.Error? = nil
+) -> MacMCPErrorInfo {
+    return MacMCPErrorInfo(
+        category: .applicationNotFound,
+        code: MacMCPErrorCode.applicationNotRunning,
+        message: message,
+        context: context,
+        underlyingError: underlyingError
+    )
+}
+
+/// Create an operation timeout error
+public func createTimeoutError(
+    message: String,
+    context: [String: String] = [:],
+    underlyingError: Swift.Error? = nil
+) -> MacMCPErrorInfo {
+    return MacMCPErrorInfo(
+        category: .timeout,
+        code: MacMCPErrorCode.operationTimeout,
         message: message,
         context: context,
         underlyingError: underlyingError

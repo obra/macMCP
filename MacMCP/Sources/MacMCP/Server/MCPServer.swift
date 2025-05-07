@@ -246,16 +246,9 @@ public actor MCPServer {
             } catch let error as MCPError {
                 // Rethrow MCP errors for proper handling by the server framework
                 throw error
-            } catch let error as MacMCPErrorInfo {
-                // Convert our custom error to an MCP error
-                throw MCPError.invalidRequest(
-                    "Tool error: \(error.message) (Category: \(error.category.rawValue))"
-                )
             } catch {
-                // Convert generic errors to MCP errors
-                throw MCPError.invalidRequest(
-                    "Tool error: \(error.localizedDescription)"
-                )
+                // Convert any error to MCPError using the standard conversion
+                throw error.asMCPError
             }
         }
         
