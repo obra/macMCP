@@ -295,6 +295,155 @@ public actor ApplicationService: ApplicationServiceProtocol {
         }
     }
     
+    /// Validate an application before launch
+    /// - Parameters:
+    ///   - bundleIdentifier: The bundle identifier of the application to validate
+    ///   - url: Optional known URL for the application
+    /// - Returns: ApplicationInfo with validated application details
+    /// - Throws: MacMCPErrorInfo if the application validation fails
+    private func validateApplication(bundleIdentifier: String, url: URL? = nil) async throws -> ApplicationInfo {
+        logger.debug("Validating application", metadata: [
+            "bundleIdentifier": "\(bundleIdentifier)",
+            "providedURL": "\(url?.path ?? "none")"
+        ])
+        
+        // First check if the application is already running
+        if let appInfo = await findApplicationByBundleID(bundleIdentifier), appInfo.isRunning {
+            logger.debug("Application is already running", metadata: [
+                "bundleIdentifier": "\(bundleIdentifier)",
+                "applicationName": "\(appInfo.name)",
+                "processId": "\(appInfo.processId ?? 0)"
+            ])
+            
+            return appInfo
+        }
+        
+        // If we have a specific URL provided, verify it
+        if let url = url {
+            // Check if the URL exists and is an application
+            if !FileManager.default.fileExists(atPath: url.path) {
+                logger.error("Application URL does not exist", metadata: [
+                    "bundleIdentifier": "\(bundleIdentifier)",
+                    "url": "\(url.path)"
+                ])
+                
+                throw createApplicationNotFoundError(
+                    message: "Application at path '\(url.path)' does not exist",
+                    context: [
+                        "bundleIdentifier": bundleIdentifier,
+                        "applicationPath": url.path
+                    ]
+                )
+            }
+            
+            // Check if the URL points to a valid application bundle
+            if url.pathExtension.lowercased() != "app" {
+                logger.error("URL is not an application bundle", metadata: [
+                    "bundleIdentifier": "\(bundleIdentifier)",
+                    "url": "\(url.path)"
+                ])
+                
+                throw createApplicationNotFoundError(
+                    message: "Path '\(url.path)' is not a valid application bundle (.app)",
+                    context: [
+                        "bundleIdentifier": bundleIdentifier,
+                        "applicationPath": url.path
+                    ]
+                )
+            }
+            
+            // Try to load the bundle to verify it's a valid application
+            guard let bundle = Bundle(url: url) else {
+                logger.error("Failed to load application bundle", metadata: [
+                    "bundleIdentifier": "\(bundleIdentifier)",
+                    "url": "\(url.path)"
+                ])
+                
+                throw createApplicationNotFoundError(
+                    message: "Failed to load application bundle at '\(url.path)'",
+                    context: [
+                        "bundleIdentifier": bundleIdentifier,
+                        "applicationPath": url.path
+                    ]
+                )
+            }
+            
+            // Verify the bundle identifier matches (if specified)
+            if !bundleIdentifier.isEmpty {
+                let bundleId = bundle.bundleIdentifier ?? ""
+                
+                // If the provided bundle ID and the actual bundle ID don't match
+                // (ignoring case), then this is likely not the right application
+                if !bundleIdentifier.lowercased().contains(bundleId.lowercased()) &&
+                   !bundleId.lowercased().contains(bundleIdentifier.lowercased()) {
+                    logger.warning("Bundle identifier mismatch", metadata: [
+                        "providedBundleId": "\(bundleIdentifier)",
+                        "actualBundleId": "\(bundleId)",
+                        "url": "\(url.path)"
+                    ])
+                    
+                    // Allow it to continue, but log the warning
+                }
+            }
+            
+            // Create app info
+            let appInfo = ApplicationInfo(url: url, bundleId: bundleIdentifier)
+            
+            // Update the cache
+            if !appInfo.bundleIdentifier.isEmpty {
+                appCache[appInfo.bundleIdentifier] = appInfo
+                nameToAppCache[appInfo.name.lowercased()] = appInfo
+            }
+            
+            return appInfo
+        }
+        
+        // Look up the application in our cache
+        if let appInfo = await findApplicationByBundleID(bundleIdentifier) {
+            // Verify the application path still exists
+            if !FileManager.default.fileExists(atPath: appInfo.url.path) {
+                logger.warning("Cached application path no longer exists", metadata: [
+                    "bundleIdentifier": "\(bundleIdentifier)",
+                    "url": "\(appInfo.url.path)"
+                ])
+                
+                // Remove from cache and try one more lookup
+                appCache.removeValue(forKey: bundleIdentifier)
+                
+                // Force a cache refresh
+                lastCacheRefresh = .distantPast
+                if let newAppInfo = await findApplicationByBundleID(bundleIdentifier) {
+                    return newAppInfo
+                }
+                
+                // Fall through to the not found error
+            } else {
+                return appInfo
+            }
+        }
+        
+        // One last attempt with NSWorkspace
+        if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier) {
+            // Create application info and add to cache
+            let appInfo = ApplicationInfo(url: url, bundleId: bundleIdentifier)
+            appCache[bundleIdentifier] = appInfo
+            nameToAppCache[appInfo.name.lowercased()] = appInfo
+            return appInfo
+        }
+        
+        logger.error("Application not found", metadata: [
+            "bundleIdentifier": "\(bundleIdentifier)"
+        ])
+        
+        throw createApplicationNotFoundError(
+            message: "Application with bundle identifier '\(bundleIdentifier)' not found",
+            context: [
+                "bundleIdentifier": bundleIdentifier,
+                "searchMethods": "Cache, NSWorkspace, File System"
+            ]
+        )
+    }
+    
     /// Opens an application by its bundle identifier.
     /// - Parameters:
     ///   - bundleIdentifier: The bundle identifier of the application to open (e.g., "com.apple.Safari")
@@ -309,8 +458,11 @@ public actor ApplicationService: ApplicationServiceProtocol {
             "hideOthers": "\(hideOthers ?? false)"
         ])
         
-        // First check if the application is already running
-        if let appInfo = await findApplicationByBundleID(bundleIdentifier), appInfo.isRunning {
+        // Validate the application first
+        let appInfo = try await validateApplication(bundleIdentifier: bundleIdentifier)
+        
+        // If the application is already running, activate it
+        if appInfo.isRunning {
             logger.info("Application is already running, activating", metadata: [
                 "bundleIdentifier": "\(bundleIdentifier)",
                 "applicationName": "\(appInfo.name)",
@@ -319,34 +471,6 @@ public actor ApplicationService: ApplicationServiceProtocol {
             
             // Activate the running application
             return try await activateApplication(bundleIdentifier: bundleIdentifier)
-        }
-        
-        // Look up the application in our cache
-        guard let appInfo = await findApplicationByBundleID(bundleIdentifier) else {
-            // One last attempt with NSWorkspace
-            if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier) {
-                // Found it with NSWorkspace, add to cache
-                let appInfo = ApplicationInfo(url: url, bundleId: bundleIdentifier)
-                appCache[bundleIdentifier] = appInfo
-                nameToAppCache[appInfo.name.lowercased()] = appInfo
-                
-                // Continue with this URL
-                return try await launchApplication(
-                    url: url,
-                    bundleIdentifier: bundleIdentifier,
-                    arguments: arguments,
-                    hideOthers: hideOthers
-                )
-            }
-            
-            logger.error("Application not found", metadata: [
-                "bundleIdentifier": "\(bundleIdentifier)"
-            ])
-            
-            throw createApplicationNotFoundError(
-                message: "Application with bundle identifier '\(bundleIdentifier)' not found",
-                context: ["bundleIdentifier": bundleIdentifier]
-            )
         }
         
         // Launch the application using its URL
@@ -419,6 +543,179 @@ public actor ApplicationService: ApplicationServiceProtocol {
         }
     }
     
+    /// Validates and resolves an application by name
+    /// - Parameter name: The name of the application to validate
+    /// - Returns: ApplicationInfo with validated application details
+    /// - Throws: MacMCPErrorInfo if the application cannot be found
+    private func validateApplicationByName(_ name: String) async throws -> ApplicationInfo {
+        logger.debug("Validating application by name", metadata: [
+            "name": "\(name)"
+        ])
+        
+        // First check if there's a known system app with this name
+        let lowerName = name.lowercased()
+        if let bundleId = knownSystemApps[lowerName] {
+            logger.debug("Found known system app", metadata: [
+                "name": "\(name)",
+                "bundleId": "\(bundleId)"
+            ])
+            
+            // Try to validate by bundle ID
+            return try await validateApplication(bundleIdentifier: bundleId)
+        }
+        
+        // Try to find the application by name in our cache
+        if let appInfo = await findApplicationByName(name) {
+            // Verify the app still exists at the path
+            if !FileManager.default.fileExists(atPath: appInfo.url.path) {
+                logger.warning("Cached application path no longer exists", metadata: [
+                    "name": "\(name)",
+                    "url": "\(appInfo.url.path)"
+                ])
+                
+                // Clear from name cache
+                nameToAppCache.removeValue(forKey: lowerName)
+                
+                // Force a cache refresh
+                lastCacheRefresh = .distantPast
+                
+                // Try again with a refreshed cache
+                if let refreshedAppInfo = await findApplicationByName(name) {
+                    return refreshedAppInfo
+                }
+                
+                // Continue to fallback methods if not found
+            } else {
+                return appInfo
+            }
+        }
+        
+        // As a last resort, try the older method of searching for the app directly
+        
+        // Look for exact path in Applications directory
+        let exactAppPath = "/Applications/\(name).app"
+        if FileManager.default.fileExists(atPath: exactAppPath) {
+            let url = URL(fileURLWithPath: exactAppPath)
+            
+            // Create app info and run full validation on the URL
+            let appInfo = ApplicationInfo(url: url)
+            return try await validateApplication(
+                bundleIdentifier: appInfo.bundleIdentifier,
+                url: url
+            )
+        }
+        
+        // Search in the Applications directory
+        var foundMatch: URL? = nil
+        let appDir = URL(fileURLWithPath: "/Applications")
+        
+        do {
+            let appFiles = try FileManager.default.contentsOfDirectory(
+                at: appDir,
+                includingPropertiesForKeys: nil,
+                options: [.skipsHiddenFiles]
+            ).filter { url in
+                return url.pathExtension.lowercased() == "app"
+            }
+            
+            // Look for exact, prefix, and substring matches in order of preference
+            foundMatch = appFiles.first { url in
+                let filename = url.deletingPathExtension().lastPathComponent
+                return filename.lowercased() == lowerName
+            }
+            
+            if foundMatch == nil {
+                foundMatch = appFiles.first { url in
+                    let filename = url.deletingPathExtension().lastPathComponent
+                    return filename.lowercased().hasPrefix(lowerName)
+                }
+            }
+            
+            if foundMatch == nil {
+                foundMatch = appFiles.first { url in
+                    let filename = url.deletingPathExtension().lastPathComponent
+                    return filename.lowercased().contains(lowerName)
+                }
+            }
+            
+            if let matchURL = foundMatch {
+                // Create app info and run full validation on the URL
+                let appInfo = ApplicationInfo(url: matchURL)
+                return try await validateApplication(
+                    bundleIdentifier: appInfo.bundleIdentifier,
+                    url: matchURL
+                )
+            }
+        } catch {
+            logger.warning("Failed to search Applications directory", metadata: [
+                "error": "\(error.localizedDescription)"
+            ])
+            // Continue to try other methods
+        }
+        
+        // Try system directories as well
+        for systemPath in [
+            "/System/Applications",
+            "/System/Library/CoreServices",
+            "/Applications/Utilities"
+        ] {
+            do {
+                let systemAppDir = URL(fileURLWithPath: systemPath)
+                let systemAppFiles = try FileManager.default.contentsOfDirectory(
+                    at: systemAppDir,
+                    includingPropertiesForKeys: nil,
+                    options: [.skipsHiddenFiles]
+                ).filter { url in
+                    return url.pathExtension.lowercased() == "app"
+                }
+                
+                // Look for matches in order of preference
+                foundMatch = systemAppFiles.first { url in
+                    let filename = url.deletingPathExtension().lastPathComponent
+                    return filename.lowercased() == lowerName
+                }
+                
+                if foundMatch == nil {
+                    foundMatch = systemAppFiles.first { url in
+                        let filename = url.deletingPathExtension().lastPathComponent
+                        return filename.lowercased().hasPrefix(lowerName)
+                    }
+                }
+                
+                if foundMatch == nil {
+                    foundMatch = systemAppFiles.first { url in
+                        let filename = url.deletingPathExtension().lastPathComponent
+                        return filename.lowercased().contains(lowerName)
+                    }
+                }
+                
+                if let matchURL = foundMatch {
+                    // Create app info and run full validation
+                    let appInfo = ApplicationInfo(url: matchURL)
+                    return try await validateApplication(
+                        bundleIdentifier: appInfo.bundleIdentifier,
+                        url: matchURL
+                    )
+                }
+            } catch {
+                // Just continue to the next directory
+            }
+        }
+        
+        // If we get here, we failed to find the application
+        logger.error("Application not found by name", metadata: [
+            "name": "\(name)"
+        ])
+        
+        throw createApplicationNotFoundError(
+            message: "Application with name '\(name)' not found",
+            context: [
+                "applicationName": name,
+                "searchAttempts": "Cache, Known System Apps, System Directories, Applications Directory"
+            ]
+        )
+    }
+    
     /// Opens an application by its name.
     /// - Parameters:
     ///   - name: The name of the application to open (e.g., "Safari")
@@ -433,163 +730,30 @@ public actor ApplicationService: ApplicationServiceProtocol {
             "hideOthers": "\(hideOthers ?? false)"
         ])
         
-        // First check if there's a known system app with this name
-        let lowerName = name.lowercased()
-        if let bundleId = knownSystemApps[lowerName] {
-            logger.debug("Found known system app", metadata: [
+        // Validate the application first
+        let appInfo = try await validateApplicationByName(name)
+        
+        // If the application is already running, activate it
+        if appInfo.isRunning {
+            logger.info("Application is already running, activating", metadata: [
                 "name": "\(name)",
-                "bundleId": "\(bundleId)"
+                "actualName": "\(appInfo.name)",
+                "bundleId": "\(appInfo.bundleIdentifier)",
+                "processId": "\(appInfo.processId ?? 0)"
             ])
             
-            // Try to open by bundle ID
-            return try await openApplication(
-                bundleIdentifier: bundleId,
-                arguments: arguments,
-                hideOthers: hideOthers
-            )
-        }
-        
-        // Try to find the application by name in our cache
-        if let appInfo = await findApplicationByName(name) {
-            if appInfo.isRunning {
-                logger.info("Found running application with name", metadata: [
-                    "name": "\(name)",
-                    "actualName": "\(appInfo.name)",
-                    "bundleId": "\(appInfo.bundleIdentifier)",
-                    "processId": "\(appInfo.processId ?? 0)"
-                ])
-                
-                // If it has a bundle ID, activate it
-                if !appInfo.bundleIdentifier.isEmpty {
-                    return try await activateApplication(bundleIdentifier: appInfo.bundleIdentifier)
-                }
-                
-                // Otherwise, we'll launch it below
-            }
-            
-            // Launch by URL
-            return try await launchApplication(
-                url: appInfo.url,
-                bundleIdentifier: appInfo.bundleIdentifier,
-                arguments: arguments,
-                hideOthers: hideOthers
-            )
-        }
-        
-        // As a last resort, try the older method of searching for the app directly
-        
-        // Look for exact path in Applications directory
-        let exactAppPath = "/Applications/\(name).app"
-        if FileManager.default.fileExists(atPath: exactAppPath) {
-            let url = URL(fileURLWithPath: exactAppPath)
-            
-            // Try to create app info and cache it
-            let appInfo = ApplicationInfo(url: url)
+            // If it has a bundle ID, activate it
             if !appInfo.bundleIdentifier.isEmpty {
-                appCache[appInfo.bundleIdentifier] = appInfo
-                nameToAppCache[lowerName] = appInfo
+                return try await activateApplication(bundleIdentifier: appInfo.bundleIdentifier)
             }
-            
-            // Launch by URL
-            return try await launchApplication(
-                url: url,
-                bundleIdentifier: appInfo.bundleIdentifier,
-                arguments: arguments,
-                hideOthers: hideOthers
-            )
         }
         
-        // Search in the Applications directory
-        let appDir = URL(fileURLWithPath: "/Applications")
-        do {
-            let appFiles = try FileManager.default.contentsOfDirectory(
-                at: appDir,
-                includingPropertiesForKeys: nil,
-                options: [.skipsHiddenFiles]
-            ).filter { url in
-                return url.pathExtension.lowercased() == "app"
-            }
-            
-            // Look for exact, prefix, and substring matches
-            if let exactMatch = appFiles.first(where: { url in
-                let filename = url.deletingPathExtension().lastPathComponent
-                return filename.lowercased() == lowerName
-            }) {
-                // Try to create app info and cache it
-                let appInfo = ApplicationInfo(url: exactMatch)
-                if !appInfo.bundleIdentifier.isEmpty {
-                    appCache[appInfo.bundleIdentifier] = appInfo
-                    nameToAppCache[lowerName] = appInfo
-                }
-                
-                // Launch by URL
-                return try await launchApplication(
-                    url: exactMatch,
-                    bundleIdentifier: appInfo.bundleIdentifier,
-                    arguments: arguments,
-                    hideOthers: hideOthers
-                )
-            }
-            
-            // Try prefix match
-            if let prefixMatch = appFiles.first(where: { url in
-                let filename = url.deletingPathExtension().lastPathComponent
-                return filename.lowercased().hasPrefix(lowerName)
-            }) {
-                // Try to create app info and cache it
-                let appInfo = ApplicationInfo(url: prefixMatch)
-                if !appInfo.bundleIdentifier.isEmpty {
-                    appCache[appInfo.bundleIdentifier] = appInfo
-                    nameToAppCache[lowerName] = appInfo
-                }
-                
-                // Launch by URL
-                return try await launchApplication(
-                    url: prefixMatch,
-                    bundleIdentifier: appInfo.bundleIdentifier,
-                    arguments: arguments,
-                    hideOthers: hideOthers
-                )
-            }
-            
-            // Try substring match
-            if let substringMatch = appFiles.first(where: { url in
-                let filename = url.deletingPathExtension().lastPathComponent
-                return filename.lowercased().contains(lowerName)
-            }) {
-                // Try to create app info and cache it
-                let appInfo = ApplicationInfo(url: substringMatch)
-                if !appInfo.bundleIdentifier.isEmpty {
-                    appCache[appInfo.bundleIdentifier] = appInfo
-                    nameToAppCache[lowerName] = appInfo
-                }
-                
-                // Launch by URL
-                return try await launchApplication(
-                    url: substringMatch,
-                    bundleIdentifier: appInfo.bundleIdentifier,
-                    arguments: arguments,
-                    hideOthers: hideOthers
-                )
-            }
-        } catch {
-            logger.warning("Failed to search Applications directory", metadata: [
-                "error": "\(error.localizedDescription)"
-            ])
-            // Continue to try other methods
-        }
-        
-        // If we get here, we failed to find the application
-        logger.error("Application not found by name", metadata: [
-            "name": "\(name)"
-        ])
-        
-        throw createApplicationNotFoundError(
-            message: "Application with name '\(name)' not found",
-            context: [
-                "applicationName": name,
-                "searchAttempts": "Cache, Known System Apps, Exact Path, Applications Directory"
-            ]
+        // Launch by URL
+        return try await launchApplication(
+            url: appInfo.url,
+            bundleIdentifier: appInfo.bundleIdentifier,
+            arguments: arguments,
+            hideOthers: hideOthers
         )
     }
     
