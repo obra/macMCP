@@ -2,56 +2,64 @@
 // ABOUTME: It validates that MacMCP can correctly retrieve UI state information from real applications.
 
 import XCTest
-import Testing
 import Foundation
+import MCP
 @testable import MacMCP
 
-@Suite("Calculator UI State Inspection E2E Tests")
-struct UIStateInspectionE2ETests {
+final class UIStateInspectionE2ETests: XCTestCase {
     // The Calculator app instance used for testing
-    static var calculator: CalculatorApp?
+    @MainActor static var calculator: CalculatorApp?
     
     // The UI state tool for inspection
-    static var uiStateTool: UIStateTool?
+    @MainActor static var uiStateTool: UIStateTool?
     
     // Setup - runs before all tests in the suite
-    @TestSuiteSetup
-    static func setupCalculator() async throws {
-        // Create a Calculator app instance
-        calculator = CalculatorApp()
+    override class func setUp() {
+        super.setUp()
         
-        // Launch the Calculator app
-        _ = try await calculator?.launch()
-        
-        // Make sure the Calculator app is running
-        guard calculator?.isRunning() == true else {
-            XCTFail("Failed to launch Calculator app")
-            return
+        // Launch the Calculator app in a task
+        Task { @MainActor in
+            do {
+                // Create the Calculator app and UI state tool
+                calculator = CalculatorApp()
+                let accessibilityService = AccessibilityService()
+                uiStateTool = UIStateTool(accessibilityService: accessibilityService)
+                
+                // Launch the Calculator app
+                _ = try await calculator?.launch()
+                
+                // Brief pause to ensure UI is fully loaded
+                try await Task.sleep(for: .milliseconds(500))
+            } catch {
+                XCTFail("Failed to set up Calculator app: \(error)")
+            }
         }
-        
-        // Create the UI state tool
-        let accessibilityService = AccessibilityService()
-        uiStateTool = UIStateTool(accessibilityService: accessibilityService)
-        
-        // Brief pause to ensure UI is fully loaded
-        try await Task.sleep(for: .milliseconds(500))
     }
     
     // Teardown - runs after all tests in the suite
-    @TestSuiteTeardown
-    static func closeCalculator() async throws {
+    override class func tearDown() {
         // Terminate the Calculator app
-        _ = try await calculator?.terminate()
-        calculator = nil
-        uiStateTool = nil
+        Task { @MainActor in
+            do {
+                _ = try await calculator?.terminate()
+                calculator = nil
+                uiStateTool = nil
+            } catch {
+                print("Error during teardown: \(error)")
+            }
+        }
+        
+        super.tearDown()
     }
     
     // MARK: - Test Cases
     
-    @Test("Get Calculator UI state with application scope")
+    // Get Calculator UI state with application scope
+    @MainActor
     func testGetCalculatorUIState() async throws {
-        try XCTSkipIf(Self.calculator == nil || Self.uiStateTool == nil, 
-                    "Calculator app or UI state tool not available")
+        guard let _ = Self.calculator, let uiStateTool = Self.uiStateTool else {
+            throw XCTSkip("Calculator app or UI state tool not available")
+        }
         
         // Create input params with application scope
         let input: [String: Value] = [
@@ -60,7 +68,7 @@ struct UIStateInspectionE2ETests {
         ]
         
         // Call the tool handler
-        let result = try await Self.uiStateTool!.handler(input)
+        let result = try await uiStateTool.handler(input)
         
         // Verify the result
         XCTAssertEqual(result.count, 1, "Expected 1 result item")
@@ -89,10 +97,12 @@ struct UIStateInspectionE2ETests {
         }
     }
     
-    @Test("Find Calculator display element")
+    // Find Calculator display element
+    @MainActor
     func testFindCalculatorDisplayElement() async throws {
-        try XCTSkipIf(Self.calculator == nil || Self.uiStateTool == nil, 
-                    "Calculator app or UI state tool not available")
+        guard let _ = Self.calculator, let uiStateTool = Self.uiStateTool else {
+            throw XCTSkip("Calculator app or UI state tool not available")
+        }
         
         // Create input params with filter to find text elements
         let input: [String: Value] = [
@@ -105,7 +115,7 @@ struct UIStateInspectionE2ETests {
         ]
         
         // Call the tool handler
-        let result = try await Self.uiStateTool!.handler(input)
+        let result = try await uiStateTool.handler(input)
         
         // Verify the result
         XCTAssertEqual(result.count, 1, "Expected 1 result item")
@@ -121,19 +131,21 @@ struct UIStateInspectionE2ETests {
         }
     }
     
-    @Test("Get element at Calculator button position")
+    // Get element at Calculator button position
+    @MainActor
     func testGetElementAtButtonPosition() async throws {
-        try XCTSkipIf(Self.calculator == nil || Self.uiStateTool == nil, 
-                    "Calculator app or UI state tool not available")
+        guard let calculator = Self.calculator, let uiStateTool = Self.uiStateTool else {
+            throw XCTSkip("Calculator app or UI state tool not available")
+        }
         
         // Get the main window to find its position
-        guard let window = try await Self.calculator?.getMainWindow() else {
+        guard let window = try await calculator.getMainWindow() else {
             XCTFail("Failed to get Calculator main window")
             return
         }
         
         // Try to get position of a button (e.g., "5" button)
-        guard let buttonFive = try await Self.calculator?.getButton(identifier: "5") else {
+        guard let buttonFive = try await calculator.getButton(identifier: "5") else {
             XCTFail("Failed to find '5' button in Calculator")
             return
         }
@@ -150,7 +162,7 @@ struct UIStateInspectionE2ETests {
         ]
         
         // Call the tool handler
-        let result = try await Self.uiStateTool!.handler(input)
+        let result = try await uiStateTool.handler(input)
         
         // Verify the result
         XCTAssertEqual(result.count, 1, "Expected 1 result item")
@@ -172,10 +184,12 @@ struct UIStateInspectionE2ETests {
         }
     }
     
-    @Test("Get UI hierarchy depth")
+    // Get UI hierarchy depth
+    @MainActor
     func testGetUIHierarchyDepth() async throws {
-        try XCTSkipIf(Self.calculator == nil || Self.uiStateTool == nil, 
-                    "Calculator app or UI state tool not available")
+        guard let _ = Self.calculator, let uiStateTool = Self.uiStateTool else {
+            throw XCTSkip("Calculator app or UI state tool not available")
+        }
         
         // Get Calculator UI with different depths
         let depths = [1, 2, 3]
@@ -189,7 +203,7 @@ struct UIStateInspectionE2ETests {
             ]
             
             // Call the tool handler
-            let result = try await Self.uiStateTool!.handler(input)
+            let result = try await uiStateTool.handler(input)
             
             // Verify the result
             XCTAssertEqual(result.count, 1, "Expected 1 result item")

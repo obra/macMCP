@@ -2,57 +2,65 @@
 // ABOUTME: It validates that MacMCP can correctly capture screenshots of UI elements in real applications.
 
 import XCTest
-import Testing
 import Foundation
+import MCP
 @testable import MacMCP
 
-@Suite("Calculator Screenshot E2E Tests")
-struct ScreenshotE2ETests {
+final class ScreenshotE2ETests: XCTestCase {
     // The Calculator app instance used for testing
-    static var calculator: CalculatorApp?
+    @MainActor static var calculator: CalculatorApp?
     
     // The screenshot tool for capturing images
-    static var screenshotTool: ScreenshotTool?
+    @MainActor static var screenshotTool: ScreenshotTool?
     
     // Setup - runs before all tests in the suite
-    @TestSuiteSetup
-    static func setupCalculator() async throws {
-        // Create a Calculator app instance
-        calculator = CalculatorApp()
+    override class func setUp() {
+        super.setUp()
         
-        // Launch the Calculator app
-        _ = try await calculator?.launch()
-        
-        // Make sure the Calculator app is running
-        guard calculator?.isRunning() == true else {
-            XCTFail("Failed to launch Calculator app")
-            return
+        // Launch the Calculator app in a task
+        Task { @MainActor in
+            do {
+                // Create the Calculator app and screenshot tool
+                calculator = CalculatorApp()
+                let accessibilityService = AccessibilityService()
+                let screenshotService = ScreenshotService(accessibilityService: accessibilityService)
+                screenshotTool = ScreenshotTool(screenshotService: screenshotService)
+                
+                // Launch the Calculator app
+                _ = try await calculator?.launch()
+                
+                // Brief pause to ensure UI is fully loaded
+                try await Task.sleep(for: .milliseconds(500))
+            } catch {
+                XCTFail("Failed to set up Calculator app: \(error)")
+            }
         }
-        
-        // Create the screenshot tool
-        let accessibilityService = AccessibilityService()
-        let screenshotService = ScreenshotService(accessibilityService: accessibilityService)
-        screenshotTool = ScreenshotTool(screenshotService: screenshotService)
-        
-        // Brief pause to ensure UI is fully loaded
-        try await Task.sleep(for: .milliseconds(500))
     }
     
     // Teardown - runs after all tests in the suite
-    @TestSuiteTeardown
-    static func closeCalculator() async throws {
+    override class func tearDown() {
         // Terminate the Calculator app
-        _ = try await calculator?.terminate()
-        calculator = nil
-        screenshotTool = nil
+        Task { @MainActor in
+            do {
+                _ = try await calculator?.terminate()
+                calculator = nil
+                screenshotTool = nil
+            } catch {
+                print("Error during teardown: \(error)")
+            }
+        }
+        
+        super.tearDown()
     }
     
     // MARK: - Test Cases
     
-    @Test("Capture full screen screenshot")
+    // Capture full screen screenshot
+    @MainActor
     func testCaptureFullScreenScreenshot() async throws {
-        try XCTSkipIf(Self.calculator == nil || Self.screenshotTool == nil, 
-                    "Calculator app or screenshot tool not available")
+        guard let _ = Self.calculator, let screenshotTool = Self.screenshotTool else {
+            throw XCTSkip("Calculator app or screenshot tool not available")
+        }
         
         // Create input for capturing full screen
         let input: [String: Value] = [
@@ -60,7 +68,7 @@ struct ScreenshotE2ETests {
         ]
         
         // Call the tool handler
-        let result = try await Self.screenshotTool!.handler(input)
+        let result = try await screenshotTool.handler(input)
         
         // Verify the result
         XCTAssertEqual(result.count, 1, "Expected 1 result item")
@@ -92,10 +100,12 @@ struct ScreenshotE2ETests {
         }
     }
     
-    @Test("Capture window screenshot")
+    // Capture window screenshot
+    @MainActor
     func testCaptureWindowScreenshot() async throws {
-        try XCTSkipIf(Self.calculator == nil || Self.screenshotTool == nil, 
-                    "Calculator app or screenshot tool not available")
+        guard let _ = Self.calculator, let screenshotTool = Self.screenshotTool else {
+            throw XCTSkip("Calculator app or screenshot tool not available")
+        }
         
         // Create input for capturing Calculator window
         let input: [String: Value] = [
@@ -104,7 +114,7 @@ struct ScreenshotE2ETests {
         ]
         
         // Call the tool handler
-        let result = try await Self.screenshotTool!.handler(input)
+        let result = try await screenshotTool.handler(input)
         
         // Verify the result
         XCTAssertEqual(result.count, 1, "Expected 1 result item")
@@ -142,13 +152,15 @@ struct ScreenshotE2ETests {
         }
     }
     
-    @Test("Capture area screenshot")
+    // Capture area screenshot
+    @MainActor
     func testCaptureAreaScreenshot() async throws {
-        try XCTSkipIf(Self.calculator == nil || Self.screenshotTool == nil, 
-                    "Calculator app or screenshot tool not available")
+        guard let calculator = Self.calculator, let screenshotTool = Self.screenshotTool else {
+            throw XCTSkip("Calculator app or screenshot tool not available")
+        }
         
         // Get the main window to find its position
-        guard let window = try await Self.calculator?.getMainWindow() else {
+        guard let window = try await calculator.getMainWindow() else {
             XCTFail("Failed to get Calculator main window")
             return
         }
@@ -169,7 +181,7 @@ struct ScreenshotE2ETests {
         ]
         
         // Call the tool handler
-        let result = try await Self.screenshotTool!.handler(input)
+        let result = try await screenshotTool.handler(input)
         
         // Verify the result
         XCTAssertEqual(result.count, 1, "Expected 1 result item")
@@ -194,9 +206,9 @@ struct ScreenshotE2ETests {
                    let heightStr = metadata["height"], let resultHeight = Int(heightStr) {
                     
                     // Allow some flexibility in dimensions due to screen scaling
-                    XCTAssertEqual(resultWidth, width, accuracy: Double(width) * 0.2, 
+                    XCTAssertEqual(resultWidth, width, accuracy: width / 5, 
                                  "Screenshot width should approximately match requested width")
-                    XCTAssertEqual(resultHeight, height, accuracy: Double(height) * 0.2, 
+                    XCTAssertEqual(resultHeight, height, accuracy: height / 5, 
                                  "Screenshot height should approximately match requested height")
                 }
             }
@@ -205,13 +217,15 @@ struct ScreenshotE2ETests {
         }
     }
     
-    @Test("Capture button element screenshot")
+    // Capture button element screenshot
+    @MainActor
     func testCaptureButtonElementScreenshot() async throws {
-        try XCTSkipIf(Self.calculator == nil || Self.screenshotTool == nil, 
-                    "Calculator app or screenshot tool not available")
+        guard let calculator = Self.calculator, let screenshotTool = Self.screenshotTool else {
+            throw XCTSkip("Calculator app or screenshot tool not available")
+        }
         
         // Try to get the "5" button element
-        guard let buttonFive = try await Self.calculator?.getButton(identifier: "5") else {
+        guard let buttonFive = try await calculator.getButton(identifier: "5") else {
             XCTFail("Failed to find '5' button in Calculator")
             return
         }
@@ -223,7 +237,7 @@ struct ScreenshotE2ETests {
         ]
         
         // Call the tool handler
-        let result = try await Self.screenshotTool!.handler(input)
+        let result = try await screenshotTool.handler(input)
         
         // Verify the result
         XCTAssertEqual(result.count, 1, "Expected 1 result item")

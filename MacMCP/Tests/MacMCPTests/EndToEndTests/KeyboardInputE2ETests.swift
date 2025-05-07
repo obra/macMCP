@@ -2,55 +2,61 @@
 // ABOUTME: It validates that MacMCP can correctly send keyboard input to real applications.
 
 import XCTest
-import Testing
 import Foundation
+import MCP
 @testable import MacMCP
 
-@Suite("Calculator Keyboard Input E2E Tests")
-struct KeyboardInputE2ETests {
+final class KeyboardInputE2ETests: XCTestCase {
     // The Calculator app instance used for testing
-    static var calculator: CalculatorApp?
+    @MainActor static var calculator: CalculatorApp?
     
     // The UI interaction tool for keyboard input
-    static var interactionTool: UIInteractionTool?
+    @MainActor static var interactionTool: UIInteractionTool?
     
     // Setup - runs before all tests in the suite
-    @TestSuiteSetup
-    static func setupCalculator() async throws {
-        // Create a Calculator app instance
-        calculator = CalculatorApp()
+    override class func setUp() {
+        super.setUp()
         
-        // Launch the Calculator app
-        _ = try await calculator?.launch()
-        
-        // Make sure the Calculator app is running
-        guard calculator?.isRunning() == true else {
-            XCTFail("Failed to launch Calculator app")
-            return
+        // Launch the Calculator app in a task
+        Task { @MainActor in
+            do {
+                // Create the Calculator app and UI interaction tool
+                calculator = CalculatorApp()
+                let accessibilityService = AccessibilityService()
+                let interactionService = UIInteractionService(accessibilityService: accessibilityService)
+                interactionTool = UIInteractionTool(
+                    interactionService: interactionService, 
+                    accessibilityService: accessibilityService
+                )
+                
+                // Launch the Calculator app
+                _ = try await calculator?.launch()
+                
+                // Brief pause to ensure UI is fully loaded
+                try await Task.sleep(for: .milliseconds(500))
+                
+                // Clear the calculator (press AC/C button)
+                _ = try await calculator?.pressButton(identifier: CalculatorElements.clear)
+            } catch {
+                XCTFail("Failed to set up Calculator app: \(error)")
+            }
         }
-        
-        // Create the UI interaction tool
-        let accessibilityService = AccessibilityService()
-        let interactionService = UIInteractionService(accessibilityService: accessibilityService)
-        interactionTool = UIInteractionTool(
-            interactionService: interactionService, 
-            accessibilityService: accessibilityService
-        )
-        
-        // Brief pause to ensure UI is fully loaded
-        try await Task.sleep(for: .milliseconds(500))
-        
-        // Clear the calculator (press AC/C button)
-        _ = try await calculator?.pressButton(identifier: CalculatorElements.clear)
     }
     
     // Teardown - runs after all tests in the suite
-    @TestSuiteTeardown
-    static func closeCalculator() async throws {
+    override class func tearDown() {
         // Terminate the Calculator app
-        _ = try await calculator?.terminate()
-        calculator = nil
-        interactionTool = nil
+        Task { @MainActor in
+            do {
+                _ = try await calculator?.terminate()
+                calculator = nil
+                interactionTool = nil
+            } catch {
+                print("Error during teardown: \(error)")
+            }
+        }
+        
+        super.tearDown()
     }
     
     // MARK: - Helpers
@@ -58,6 +64,7 @@ struct KeyboardInputE2ETests {
     /// Press calculator keys using keyboard shortcut key codes
     /// - Parameter keyCode: The key code to press
     /// - Returns: True if successful
+    @MainActor
     static func pressKey(_ keyCode: Int) async throws -> Bool {
         guard let tool = interactionTool else {
             return false
@@ -80,13 +87,15 @@ struct KeyboardInputE2ETests {
     
     // MARK: - Test Cases
     
-    @Test("Type number keys using keyboard")
+    // Type number keys using keyboard
+    @MainActor
     func testTypeNumbersUsingKeyboard() async throws {
-        try XCTSkipIf(Self.calculator == nil || Self.interactionTool == nil, 
-                    "Calculator app or interaction tool not available")
+        guard let calculator = Self.calculator, let _ = Self.interactionTool else {
+            throw XCTSkip("Calculator app or interaction tool not available")
+        }
         
         // Clear the calculator first (press the AC/C button)
-        _ = try await Self.calculator?.pressButton(identifier: CalculatorElements.clear)
+        _ = try await calculator.pressButton(identifier: CalculatorElements.clear)
         
         // Wait for the UI to update
         try await Task.sleep(for: .milliseconds(200))
@@ -101,7 +110,7 @@ struct KeyboardInputE2ETests {
         _ = try await Self.pressKey(numberKeyCodes[3]) // 3
         
         // Get the result
-        let displayValue = try await Self.calculator?.getDisplayValue()
+        let displayValue = try await calculator.getDisplayValue()
         
         // Verify that the expected digits are in the display
         // Note: We allow for some flexibility as keyboard events can be unreliable in tests
@@ -119,13 +128,15 @@ struct KeyboardInputE2ETests {
                      "Display should contain at least one of the entered digits")
     }
     
-    @Test("Perform calculation using keyboard")
+    // Perform calculation using keyboard
+    @MainActor
     func testCalculationUsingKeyboard() async throws {
-        try XCTSkipIf(Self.calculator == nil || Self.interactionTool == nil, 
-                    "Calculator app or interaction tool not available")
+        guard let calculator = Self.calculator, let _ = Self.interactionTool else {
+            throw XCTSkip("Calculator app or interaction tool not available")
+        }
         
         // Clear the calculator first (press the AC/C button)
-        _ = try await Self.calculator?.pressButton(identifier: CalculatorElements.clear)
+        _ = try await calculator.pressButton(identifier: CalculatorElements.clear)
         
         // Wait for the UI to update
         try await Task.sleep(for: .milliseconds(200))
@@ -143,7 +154,7 @@ struct KeyboardInputE2ETests {
         _ = try await Self.pressKey(keyEquals)
         
         // Get the result
-        let displayValue = try await Self.calculator?.getDisplayValue()
+        let displayValue = try await calculator.getDisplayValue()
         
         // Verify that the result is correct
         // Note: We're being flexible here because keyboard events can be unreliable in tests
@@ -160,13 +171,15 @@ struct KeyboardInputE2ETests {
                      "Display should contain expected result or input digits")
     }
     
-    @Test("Type into display element")
+    // Type into display element
+    @MainActor
     func testTypeIntoDisplayElement() async throws {
-        try XCTSkipIf(Self.calculator == nil || Self.interactionTool == nil, 
-                    "Calculator app or interaction tool not available")
+        guard let calculator = Self.calculator, let interactionTool = Self.interactionTool else {
+            throw XCTSkip("Calculator app or interaction tool not available")
+        }
         
         // Get the display element
-        guard let displayElement = try await Self.calculator?.getDisplayElement() else {
+        guard let displayElement = try await calculator.getDisplayElement() else {
             XCTFail("Could not get Calculator display element")
             return
         }
@@ -183,13 +196,13 @@ struct KeyboardInputE2ETests {
         
         // Call the tool handler
         do {
-            let _ = try await Self.interactionTool!.handler(input)
+            let _ = try await interactionTool.handler(input)
             
             // Wait for UI to update
             try await Task.sleep(for: .milliseconds(200))
             
             // Get the display value
-            let displayValue = try await Self.calculator?.getDisplayValue()
+            let displayValue = try await calculator.getDisplayValue()
             
             // This might not work as expected since Calculator display might not accept
             // direct text input, so we're just checking if the display has any value
@@ -206,13 +219,15 @@ struct KeyboardInputE2ETests {
         }
     }
     
-    @Test("Use keyboard for operations")
+    // Use keyboard for operations
+    @MainActor
     func testKeyboardOperations() async throws {
-        try XCTSkipIf(Self.calculator == nil || Self.interactionTool == nil, 
-                    "Calculator app or interaction tool not available")
+        guard let calculator = Self.calculator else {
+            throw XCTSkip("Calculator app or interaction tool not available")
+        }
         
         // Clear the calculator
-        _ = try await Self.calculator?.pressButton(identifier: CalculatorElements.clear)
+        _ = try await calculator.pressButton(identifier: CalculatorElements.clear)
         
         // Key codes for various operations
         let keyC = 8  // C key (for Clear)
@@ -231,7 +246,7 @@ struct KeyboardInputE2ETests {
         _ = try await Self.pressKey(keyEquals)
         
         // Get the result
-        let displayValue = try await Self.calculator?.getDisplayValue()
+        let displayValue = try await calculator.getDisplayValue()
         
         // Verify the result (being flexible)
         guard let display = displayValue else {
