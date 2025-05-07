@@ -1,0 +1,42 @@
+**/.claude/settings.local.json
+
+# Swift build artifacts
+.build/
+.swiftpm/
+xcuserdata/
+*.xcworkspace/
+DerivedData/
+Package.resolved
+
+# MacOS system files
+.DS_Store
+*.swp
+.mcp-task-log.swp
+
+# Temporary files and debug scripts
+tmp/
+*_test.swift
+*_test.sh
+*calculator_*.swift
+*calculator_*.txt
+accessibility_inspector.swift
+debug_*.swift
+*_calculator_test.swift
+claude_logs_analysis.md
+element_detection_fix_summary.md
+element_traversal_enhancements.md
+fix_ui_element_interaction.swift
+macos-mcp-plan.md
+mcp-macos-wrapper.sh
+mcp.txt
+mcp_engineering_plan.md
+mcp_issues_analysis.md
+run_*.sh
+simple_*.sh
+stdin_*.swift
+test_*.swift
+type-conversion-fix.md
+
+# External resources
+CDL/
+swift-sdk/
