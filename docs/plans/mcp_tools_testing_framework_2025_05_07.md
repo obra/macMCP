@@ -27,7 +27,7 @@ This framework enables direct testing of MacMCP tools against real applications 
 ### Key Components
 
 1. **ToolTestHarness**: A base class that provides common functionality for testing MCP tools
-2. **ApplicationWrappers**: Lightweight wrappers for specific applications to be used in tests
+2. **ApplicationDrivers**: Lightweight drivers for specific applications to be used in tests
 3. **TestVerifiers**: Components that verify the outputs from tool operations
 4. **ToolInvoker**: Direct invoker of tool implementations without going through protocol
 
@@ -42,11 +42,11 @@ MacMCP/Tests/
       - UIStateVerifier.swift
       - ScreenshotVerifier.swift
       - InteractionVerifier.swift
-    - ApplicationWrappers/
-      - TestApplicationWrapper.swift
-      - CalculatorWrapper.swift
-      - TextEditWrapper.swift
-      - SafariWrapper.swift
+    - ApplicationDrivers/
+      - TestApplicationDriver.swift
+      - CalculatorDriver.swift
+      - TextEditDriver.swift
+      - SafariDriver.swift
 ```
 
 ## Implementation Details
@@ -63,50 +63,53 @@ class ToolTestHarness {
     let interactionService: UIInteractionService
     
     // Logger that can be inspected in tests
-    let testLogger: TestLogger
+    let logger: Logger
+    let testHandler: TestLogHandler
     
     init() {
-        testLogger = TestLogger()
-        accessibilityService = AccessibilityService(logger: testLogger)
-        applicationService = ApplicationService(logger: testLogger)
+        // Create test logger that captures log messages
+        let (logger, handler) = Logger.testLogger(label: "test.harness")
+        self.logger = logger
+        self.testHandler = handler
+        
+        // Initialize services
+        accessibilityService = AccessibilityService(logger: logger)
+        applicationService = ApplicationService(logger: logger)
         screenshotService = ScreenshotService(
             accessibilityService: accessibilityService,
-            logger: testLogger
+            logger: logger
         )
         interactionService = UIInteractionService(
             accessibilityService: accessibilityService,
-            logger: testLogger
+            logger: logger
         )
     }
     
-    /// Creates a freshly initialized test instance of any MCP tool
-    func createToolInstance<T: MCPTool>(toolType: T.Type) -> T {
-        return T.init(
+    /// Creates UI state tool
+    func createUIStateTool() -> UIStateTool {
+        return UIStateTool(
             accessibilityService: accessibilityService,
-            applicationService: applicationService,
-            screenshotService: screenshotService,
-            interactionService: interactionService,
-            logger: testLogger
+            logger: logger
         )
     }
     
-    /// Launches a test application and returns the appropriate wrapper
-    func launchTestApplication(_ appType: TestApplicationType) -> TestApplicationWrapper {
+    /// Creates application driver
+    func createApplicationDriver(_ appType: TestApplicationType) -> TestApplicationDriver {
         switch appType {
         case .calculator:
-            return CalculatorWrapper(
+            return CalculatorDriver(
                 applicationService: applicationService,
                 accessibilityService: accessibilityService,
                 interactionService: interactionService
             )
         case .textEdit:
-            return TextEditWrapper(
+            return TextEditDriver(
                 applicationService: applicationService,
                 accessibilityService: accessibilityService,
                 interactionService: interactionService
             )
         case .safari:
-            return SafariWrapper(
+            return SafariDriver(
                 applicationService: applicationService,
                 accessibilityService: accessibilityService,
                 interactionService: interactionService
@@ -121,9 +124,9 @@ class ToolTestHarness {
 ```swift
 /// Direct invoker for MCP tools without going through protocol
 class ToolInvoker {
-    /// Invokes a tool with the given parameters
-    static func invoke<T: MCPTool>(
-        tool: T,
+    /// Invokes a UI state tool with the given parameters
+    static func invoke(
+        tool: UIStateTool,
         parameters: [String: Value]
     ) async throws -> ToolResult {
         // Direct invocation of the tool's handler
@@ -154,18 +157,18 @@ class ToolInvoker {
         }
         
         let result = try await invoke(tool: tool, parameters: params)
-        return UIStateResult(rawContent: result.content)
+        return try UIStateResult(rawContent: result.content)
     }
     
     // Additional helper methods for other tools...
 }
 ```
 
-### TestApplicationWrapper
+### TestApplicationDriver
 
 ```swift
-/// Base protocol for application wrappers used in tests
-protocol TestApplicationWrapper {
+/// Base protocol for application drivers used in tests
+protocol TestApplicationDriver {
     var bundleIdentifier: String { get }
     var applicationService: ApplicationService { get }
     var accessibilityService: AccessibilityService { get }
@@ -190,20 +193,23 @@ protocol TestApplicationWrapper {
     func waitForElement(matching criteria: ElementCriteria, timeout: TimeInterval) async throws -> UIElement?
 }
 
-// Base implementation of TestApplicationWrapper
-class BaseApplicationWrapper: TestApplicationWrapper {
+// Base implementation of TestApplicationDriver
+class BaseApplicationDriver: TestApplicationDriver {
     let bundleIdentifier: String
     let applicationService: ApplicationService
     let accessibilityService: AccessibilityService
     let interactionService: UIInteractionService
+    let appName: String
     
     init(
         bundleIdentifier: String,
+        appName: String,
         applicationService: ApplicationService,
         accessibilityService: AccessibilityService,
         interactionService: UIInteractionService
     ) {
         self.bundleIdentifier = bundleIdentifier
+        self.appName = appName
         self.applicationService = applicationService
         self.accessibilityService = accessibilityService
         self.interactionService = interactionService
@@ -214,11 +220,20 @@ class BaseApplicationWrapper: TestApplicationWrapper {
 }
 ```
 
-### Application-Specific Wrapper Example
+### Application-Specific Driver Example
 
 ```swift
-/// Wrapper for the Calculator app used in tests
-class CalculatorWrapper: BaseApplicationWrapper {
+/// Driver for the Calculator app used in tests
+class CalculatorDriver: BaseApplicationDriver {
+    /// Calculator button identifiers
+    enum Button {
+        static let zero = "0"
+        static let one = "1"
+        // ... more buttons
+        static let equals = "="
+        static let allClear = "AC"
+    }
+    
     init(
         applicationService: ApplicationService,
         accessibilityService: AccessibilityService,
@@ -226,6 +241,7 @@ class CalculatorWrapper: BaseApplicationWrapper {
     ) {
         super.init(
             bundleIdentifier: "com.apple.calculator",
+            appName: "Calculator",
             applicationService: applicationService,
             accessibilityService: accessibilityService,
             interactionService: interactionService
@@ -240,9 +256,7 @@ class CalculatorWrapper: BaseApplicationWrapper {
         
         // Find the display element
         for child in window.children {
-            if child.role == "AXStaticText" && 
-               (child.identifier.contains("Display") || 
-                (child.frame.origin.y < 100 && child.frame.origin.x < 100)) {
+            if child.role == "AXStaticText" {
                 return child.value
             }
         }
@@ -250,32 +264,38 @@ class CalculatorWrapper: BaseApplicationWrapper {
         return nil
     }
     
-    /// Press a calculator button by identifier
-    func pressButton(identifier: String) async throws -> Bool {
-        try await interactionService.clickElement(identifier: identifier)
+    /// Press a calculator button
+    func pressButton(_ button: String) async throws -> Bool {
+        guard let window = try await getMainWindow() else {
+            return false
+        }
+        
+        // Find and click the button
+        // ...
+        
         return true
     }
     
     /// Perform a calculation
     func calculate(num1: String, operation: String, num2: String) async throws -> String? {
         // Clear first
-        _ = try await pressButton(identifier: "AC")
+        try await pressButton(Button.allClear)
         
         // Enter first number
         for digit in num1 {
-            _ = try await pressButton(identifier: String(digit))
+            try await pressButton(String(digit))
         }
         
         // Press operation
-        _ = try await pressButton(identifier: operation)
+        try await pressButton(operation)
         
         // Enter second number
         for digit in num2 {
-            _ = try await pressButton(identifier: String(digit))
+            try await pressButton(String(digit))
         }
         
         // Press equals
-        _ = try await pressButton(identifier: "=")
+        try await pressButton(Button.equals)
         
         // Get result
         return try await getDisplayValue()
@@ -327,15 +347,15 @@ func testUIStateTool() async throws {
     // Create test harness
     let testHarness = ToolTestHarness()
     
-    // Launch calculator app
-    let calculator = testHarness.launchTestApplication(.calculator)
+    // Create calculator driver
+    let calculator = testHarness.createApplicationDriver(.calculator)
     try await calculator.launch()
     
     // Wait for app to load
     try await Task.sleep(for: .milliseconds(1000))
     
     // Create UI state tool
-    let uiStateTool = testHarness.createToolInstance(toolType: UIStateTool.self)
+    let uiStateTool = testHarness.createUIStateTool()
     
     // Get UI state directly
     let result = try await ToolInvoker.getUIState(
@@ -352,9 +372,11 @@ func testUIStateTool() async throws {
     )
     XCTAssertTrue(hasEqualsButton, "Calculator should have equals button")
     
-    // Perform calculation using calculator wrapper
-    let calcResult = try await calculator.calculate(num1: "5", operation: "+", num2: "3")
-    XCTAssertEqual(calcResult, "8", "5 + 3 should equal 8")
+    // Perform calculation using calculator driver
+    if let calculatorDriver = calculator as? CalculatorDriver {
+        let calcResult = try await calculatorDriver.calculate(num1: "5", operation: "+", num2: "3")
+        XCTAssertEqual(calcResult, "8", "5 + 3 should equal 8")
+    }
     
     // Clean up
     try await calculator.terminate()
@@ -365,17 +387,17 @@ func testUIStateTool() async throws {
 
 1. **Direct Tool Testing**: Tests interact directly with tool implementations, without MCP protocol overhead
 2. **Real Application Testing**: All tests use real macOS applications
-3. **Reusable Components**: Application wrappers and verifiers can be shared across tests
+3. **Reusable Components**: Application drivers and verifiers can be shared across tests
 4. **Fast Iteration**: Direct tool testing allows faster iteration during development
 5. **Structured Approach**: Clear separation of concerns makes tests easier to write and maintain
 6. **Comprehensive Testing**: Can test both individual tools and their integration with services
-7. **Reliable Tests**: By testing against real applications with structured wrappers, tests are more robust
-8. **Debugging Visibility**: TestLogger allows inspection of logs during test execution
+7. **Reliable Tests**: By testing against real applications with structured drivers, tests are more robust
+8. **Debugging Visibility**: TestLogHandler allows inspection of logs during test execution
 
 ## Implementation Plan
 
 1. Create the base test harness framework
-2. Implement wrappers for common test applications
+2. Implement drivers for common test applications
 3. Create tool invokers for all MCP tools
 4. Add verifiers for tool outputs
 5. Refactor existing tests to use the new framework
