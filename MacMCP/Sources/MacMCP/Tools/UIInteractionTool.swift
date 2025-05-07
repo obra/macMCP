@@ -146,12 +146,18 @@ public struct UIInteractionTool {
     /// - Returns: The tool result content
     private func processRequest(_ params: [String: Value]?) async throws -> [Tool.Content] {
         guard let params = params else {
-            throw MCPError.invalidParams("Parameters are required")
+            throw createInteractionError(
+                message: "Parameters are required",
+                context: ["toolName": name]
+            ).asMCPError
         }
         
         // Get the action
         guard let actionValue = params["action"]?.stringValue else {
-            throw MCPError.invalidParams("Action is required")
+            throw createInteractionError(
+                message: "Action is required",
+                context: ["toolName": name]
+            ).asMCPError
         }
         
         // Process based on action type
@@ -171,9 +177,14 @@ public struct UIInteractionTool {
         case "scroll":
             return try await handleScroll(params)
         default:
-            throw MCPError.invalidParams(
-                "Invalid action: \(actionValue). Must be one of: click, double_click, right_click, type, press_key, drag, scroll"
-            )
+            throw createInteractionError(
+                message: "Invalid action: \(actionValue). Must be one of: click, double_click, right_click, type, press_key, drag, scroll",
+                context: [
+                    "toolName": name,
+                    "providedAction": actionValue,
+                    "validActions": "click, double_click, right_click, type, press_key, drag, scroll"
+                ]
+            ).asMCPError
         }
     }
     
@@ -191,13 +202,27 @@ public struct UIInteractionTool {
             return [.text("Successfully clicked at position (\(x), \(y))")]
         }
         
-        throw MCPError.invalidParams("Click action requires either elementId or x,y coordinates")
+        throw createInteractionError(
+            message: "Click action requires either elementId or x,y coordinates",
+            context: [
+                "toolName": name,
+                "action": "click",
+                "providedParams": "\(params.keys.joined(separator: ", "))"
+            ]
+        ).asMCPError
     }
     
     /// Handle double click action
     private func handleDoubleClick(_ params: [String: Value]) async throws -> [Tool.Content] {
         guard let elementId = params["elementId"]?.stringValue else {
-            throw MCPError.invalidParams("Double click action requires elementId")
+            throw createInteractionError(
+                message: "Double click action requires elementId",
+                context: [
+                    "toolName": name,
+                    "action": "double_click",
+                    "providedParams": "\(params.keys.joined(separator: ", "))"
+                ]
+            ).asMCPError
         }
         
         try await interactionService.doubleClickElement(identifier: elementId)
@@ -207,7 +232,14 @@ public struct UIInteractionTool {
     /// Handle right click action
     private func handleRightClick(_ params: [String: Value]) async throws -> [Tool.Content] {
         guard let elementId = params["elementId"]?.stringValue else {
-            throw MCPError.invalidParams("Right click action requires elementId")
+            throw createInteractionError(
+                message: "Right click action requires elementId",
+                context: [
+                    "toolName": name,
+                    "action": "right_click",
+                    "providedParams": "\(params.keys.joined(separator: ", "))"
+                ]
+            ).asMCPError
         }
         
         try await interactionService.rightClickElement(identifier: elementId)
@@ -217,11 +249,26 @@ public struct UIInteractionTool {
     /// Handle type action
     private func handleType(_ params: [String: Value]) async throws -> [Tool.Content] {
         guard let elementId = params["elementId"]?.stringValue else {
-            throw MCPError.invalidParams("Type action requires elementId")
+            throw createInteractionError(
+                message: "Type action requires elementId",
+                context: [
+                    "toolName": name,
+                    "action": "type",
+                    "providedParams": "\(params.keys.joined(separator: ", "))"
+                ]
+            ).asMCPError
         }
         
         guard let text = params["text"]?.stringValue else {
-            throw MCPError.invalidParams("Type action requires text")
+            throw createInteractionError(
+                message: "Type action requires text",
+                context: [
+                    "toolName": name,
+                    "action": "type",
+                    "elementId": elementId,
+                    "providedParams": "\(params.keys.joined(separator: ", "))"
+                ]
+            ).asMCPError
         }
         
         try await interactionService.typeText(elementIdentifier: elementId, text: text)
@@ -231,7 +278,14 @@ public struct UIInteractionTool {
     /// Handle press key action
     private func handlePressKey(_ params: [String: Value]) async throws -> [Tool.Content] {
         guard let keyCode = params["keyCode"]?.intValue else {
-            throw MCPError.invalidParams("Press key action requires keyCode")
+            throw createInteractionError(
+                message: "Press key action requires keyCode",
+                context: [
+                    "toolName": name,
+                    "action": "press_key",
+                    "providedParams": "\(params.keys.joined(separator: ", "))"
+                ]
+            ).asMCPError
         }
         
         try await interactionService.pressKey(keyCode: keyCode)
@@ -241,11 +295,26 @@ public struct UIInteractionTool {
     /// Handle drag action
     private func handleDrag(_ params: [String: Value]) async throws -> [Tool.Content] {
         guard let sourceElementId = params["elementId"]?.stringValue else {
-            throw MCPError.invalidParams("Drag action requires elementId (source)")
+            throw createInteractionError(
+                message: "Drag action requires elementId (source)",
+                context: [
+                    "toolName": name,
+                    "action": "drag",
+                    "providedParams": "\(params.keys.joined(separator: ", "))"
+                ]
+            ).asMCPError
         }
         
         guard let targetElementId = params["targetElementId"]?.stringValue else {
-            throw MCPError.invalidParams("Drag action requires targetElementId")
+            throw createInteractionError(
+                message: "Drag action requires targetElementId",
+                context: [
+                    "toolName": name,
+                    "action": "drag",
+                    "sourceElementId": sourceElementId,
+                    "providedParams": "\(params.keys.joined(separator: ", "))"
+                ]
+            ).asMCPError
         }
         
         try await interactionService.dragElement(
@@ -258,16 +327,41 @@ public struct UIInteractionTool {
     /// Handle scroll action
     private func handleScroll(_ params: [String: Value]) async throws -> [Tool.Content] {
         guard let elementId = params["elementId"]?.stringValue else {
-            throw MCPError.invalidParams("Scroll action requires elementId")
+            throw createInteractionError(
+                message: "Scroll action requires elementId",
+                context: [
+                    "toolName": name,
+                    "action": "scroll",
+                    "providedParams": "\(params.keys.joined(separator: ", "))"
+                ]
+            ).asMCPError
         }
         
         guard let directionString = params["direction"]?.stringValue,
               let direction = ScrollDirection(rawValue: directionString) else {
-            throw MCPError.invalidParams("Scroll action requires valid direction (up, down, left, right)")
+            throw createInteractionError(
+                message: "Scroll action requires valid direction (up, down, left, right)",
+                context: [
+                    "toolName": name,
+                    "action": "scroll",
+                    "elementId": elementId,
+                    "providedDirection": params["direction"]?.stringValue ?? "nil",
+                    "validDirections": "up, down, left, right"
+                ]
+            ).asMCPError
         }
         
         guard let amount = params["amount"]?.doubleValue, amount >= 0.0, amount <= 1.0 else {
-            throw MCPError.invalidParams("Scroll action requires amount between 0.0 and 1.0")
+            throw createInteractionError(
+                message: "Scroll action requires amount between 0.0 and 1.0",
+                context: [
+                    "toolName": name,
+                    "action": "scroll",
+                    "elementId": elementId,
+                    "direction": directionString,
+                    "providedAmount": params["amount"]?.doubleValue != nil ? "\(params["amount"]!.doubleValue!)" : "nil"
+                ]
+            ).asMCPError
         }
         
         try await interactionService.scrollElement(

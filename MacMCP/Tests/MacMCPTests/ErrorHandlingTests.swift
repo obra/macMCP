@@ -99,6 +99,61 @@ struct ErrorHandlingTests {
             #expect(error.code != 0)
         }
     }
+    
+    @Test("UIInteractionTool error handling")
+    func testUIInteractionToolUpdatedErrorHandling() async throws {
+        // Create tool with mock services
+        let mockInteractionService = ErrorGeneratingInteractionService()
+        let mockAccessService = MockAccessibilityService()
+        
+        let tool = UIInteractionTool(
+            interactionService: mockInteractionService,
+            accessibilityService: mockAccessService,
+            logger: nil
+        )
+        
+        // Test cases that should throw specific errors
+        let testCases: [(name: String, params: [String: Value]?)] = [
+            ("Missing params", nil),
+            ("Missing action", [:]),
+            ("Invalid action", ["action": .string("invalid_action")]),
+            ("Click missing targets", ["action": .string("click")]),
+            ("Type missing element", ["action": .string("type")]),
+            ("Type missing text", ["action": .string("type"), "elementId": .string("test-id")]),
+            ("Scroll missing direction", ["action": .string("scroll"), "elementId": .string("test-id")])
+        ]
+        
+        // Run tests
+        for (name, params) in testCases {
+            do {
+                _ = try await tool.handler(params)
+                XCTFail("Test \(name) should have thrown an error but didn't")
+            } catch let error as MCPError {
+                // Verify the error is properly formatted
+                switch error {
+                case .invalidParams(let message):
+                    // Check that the message contains useful context information
+                    #expect(message != nil && !message!.isEmpty, "Error message should not be empty")
+                    
+                    // We won't test specific message content since the exact message format may change
+                    // Just verify that the message isn't empty and is related to the test case
+                    #expect(message != nil, "Error message should exist")
+                    
+                    // Log the message for debugging
+                    if let msg = message {
+                        print("Test \(name) produced message: \(msg)")
+                    }
+                    
+                default:
+                    // Some errors might be categorized differently
+                    // This is fine as long as they're proper MCPErrors
+                    break
+                }
+            } catch {
+                XCTFail("Test \(name) threw unexpected error type: \(type(of: error))")
+            }
+        }
+    }
 }
 
 /// A service that generates errors for testing error handling

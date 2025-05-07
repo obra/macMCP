@@ -116,12 +116,21 @@ public struct ScreenshotTool {
     /// - Returns: The tool result content
     private func processRequest(_ params: [String: Value]?) async throws -> [Tool.Content] {
         guard let params = params else {
-            throw MCPError.invalidParams("Parameters are required")
+            throw createScreenshotError(
+                message: "Parameters are required",
+                context: ["toolName": name]
+            ).asMCPError
         }
         
         // Get the region
         guard let regionValue = params["region"]?.stringValue else {
-            throw MCPError.invalidParams("Region is required")
+            throw createScreenshotError(
+                message: "Region is required",
+                context: [
+                    "toolName": name,
+                    "providedParams": "\(params.keys.joined(separator: ", "))"
+                ]
+            ).asMCPError
         }
         
         let result: ScreenshotResult
@@ -139,9 +148,18 @@ public struct ScreenshotTool {
                 let width = params["width"]?.intValue,
                 let height = params["height"]?.intValue
             else {
-                throw MCPError.invalidParams(
-                    "Area screenshots require x, y, width, and height parameters"
-                )
+                throw createScreenshotError(
+                    message: "Area screenshots require x, y, width, and height parameters",
+                    context: [
+                        "toolName": name,
+                        "region": regionValue,
+                        "providedParams": "\(params.keys.joined(separator: ", "))",
+                        "x": params["x"]?.intValue != nil ? "\(params["x"]!.intValue!)" : "missing",
+                        "y": params["y"]?.intValue != nil ? "\(params["y"]!.intValue!)" : "missing",
+                        "width": params["width"]?.intValue != nil ? "\(params["width"]!.intValue!)" : "missing",
+                        "height": params["height"]?.intValue != nil ? "\(params["height"]!.intValue!)" : "missing"
+                    ]
+                ).asMCPError
             }
             
             result = try await screenshotService.captureArea(
@@ -154,9 +172,14 @@ public struct ScreenshotTool {
         case "window":
             // Extract required bundle ID
             guard let bundleId = params["bundleId"]?.stringValue else {
-                throw MCPError.invalidParams(
-                    "Window screenshots require a bundleId parameter"
-                )
+                throw createScreenshotError(
+                    message: "Window screenshots require a bundleId parameter",
+                    context: [
+                        "toolName": name,
+                        "region": regionValue,
+                        "providedParams": "\(params.keys.joined(separator: ", "))"
+                    ]
+                ).asMCPError
             }
             
             result = try await screenshotService.captureWindow(
@@ -166,9 +189,14 @@ public struct ScreenshotTool {
         case "element":
             // Extract required element ID
             guard let elementId = params["elementId"]?.stringValue else {
-                throw MCPError.invalidParams(
-                    "Element screenshots require an elementId parameter"
-                )
+                throw createScreenshotError(
+                    message: "Element screenshots require an elementId parameter",
+                    context: [
+                        "toolName": name,
+                        "region": regionValue,
+                        "providedParams": "\(params.keys.joined(separator: ", "))"
+                    ]
+                ).asMCPError
             }
             
             result = try await screenshotService.captureElement(
@@ -176,9 +204,14 @@ public struct ScreenshotTool {
             )
             
         default:
-            throw MCPError.invalidParams(
-                "Invalid region: \(regionValue). Must be one of: full, area, window, element"
-            )
+            throw createScreenshotError(
+                message: "Invalid region: \(regionValue). Must be one of: full, area, window, element",
+                context: [
+                    "toolName": name,
+                    "providedRegion": regionValue,
+                    "validRegions": "full, area, window, element"
+                ]
+            ).asMCPError
         }
         
         // Convert to base64 string
