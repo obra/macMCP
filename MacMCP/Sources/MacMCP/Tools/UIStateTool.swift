@@ -114,6 +114,7 @@ public struct UIStateTool: @unchecked Sendable {
     /// - Returns: Filtered elements with valid frames
     private func filterValidElements(_ elements: [UIElement]) -> [UIElement] {
         var result: [UIElement] = []
+        var filteredCount = 0
         
         for element in elements {
             // Check if this element has a valid frame
@@ -138,8 +139,22 @@ public struct UIStateTool: @unchecked Sendable {
                 )
                 
                 result.append(filteredElement)
+            } else {
+                // Log the filtered element
+                filteredCount += 1
+                logger.debug("Filtered out element", metadata: [
+                    "id": .string(element.identifier),
+                    "role": .string(element.role),
+                    "frame": .string("{\(element.frame.origin.x), \(element.frame.origin.y), \(element.frame.size.width), \(element.frame.size.height)}"),
+                    "childCount": .string("\(element.children.count)"),
+                    "title": .string(element.title ?? "nil"),
+                    "description": .string(element.elementDescription ?? "nil")
+                ])
             }
-            // If frame is invalid, skip this element entirely
+        }
+        
+        if filteredCount > 0 {
+            logger.debug("Filtered \(filteredCount) elements in this branch")
         }
         
         return result
@@ -149,11 +164,59 @@ public struct UIStateTool: @unchecked Sendable {
     /// - Parameter element: The element to check
     /// - Returns: True if the element has valid coordinates
     private func hasValidCoordinates(_ element: UIElement) -> Bool {
-        // Element must have non-zero frame size and position
-        let hasNonZeroPosition = element.frame.origin.x != 0 || element.frame.origin.y != 0
-        let hasNonZeroSize = element.frame.size.width > 0 && element.frame.size.height > 0
+        // TEMPORARY: Special case for debugging Calculator app - always include buttons to diagnose
+        if element.role == "AXButton" && (element.attributes["application"] as? String)?.contains("Calculator") == true {
+            // Log the button details to diagnose why we're not seeing them
+            logger.debug("FOUND CALCULATOR BUTTON", metadata: [
+                "id": .string(element.identifier),
+                "description": .string(element.elementDescription ?? "nil"),
+                "frame": .string("{\(element.frame.origin.x), \(element.frame.origin.y), \(element.frame.size.width), \(element.frame.size.height)}"),
+                "clickable": .string("\(element.isClickable)"),
+                "actions": .string("\(element.actions)")
+            ])
+            return true
+        }
         
-        return hasNonZeroPosition && hasNonZeroSize
+        // For root elements like Application or Window, always include them regardless of frame
+        if element.role == "AXApplication" || element.role == "AXWindow" || element.role == "AXMenuBar" {
+            return true
+        }
+        
+        // For containers that might have valid children, be lenient
+        if element.role == "AXGroup" || element.role == "AXSplitGroup" || element.children.count > 0 {
+            return true
+        }
+        
+        // Actual valid frame checking - just to log which ones would get filtered
+        if element.role == "AXButton" || 
+           element.role == "AXMenuItem" || 
+           element.role == "AXCheckBox" || 
+           element.role == "AXRadioButton" {
+            
+            let hasNonZeroPosition = element.frame.origin.x != 0 || element.frame.origin.y != 0
+            let hasNonZeroSize = element.frame.size.width > 0 && element.frame.size.height > 0
+            let valid = hasNonZeroPosition && hasNonZeroSize
+            
+            if !valid {
+                logger.debug("INVALID INTERACTIVE ELEMENT", metadata: [
+                    "id": .string(element.identifier),
+                    "role": .string(element.role),
+                    "frame": .string("{\(element.frame.origin.x), \(element.frame.origin.y), \(element.frame.size.width), \(element.frame.size.height)}"),
+                    "application": .string(element.attributes["application"] as? String ?? "unknown")
+                ])
+            }
+            
+            // For now, don't actually filter interactive elements
+            return true
+        }
+        
+        // For other elements, check if it's completely invalid
+        if element.frame.origin.x == 0 && element.frame.origin.y == 0 && 
+           element.frame.size.width == 0 && element.frame.size.height == 0 {
+            return false
+        }
+        
+        return true
     }
     
     /// Process a UI state request
@@ -289,10 +352,19 @@ public struct UIStateTool: @unchecked Sendable {
             throw MCPError.invalidParams("Invalid scope: \(scopeValue)")
         }
         
+        // Debug log the source elements before filtering
+        for element in elements {
+            logger.debug("Source element before filtering", metadata: [
+                "id": .string(element.identifier),
+                "role": .string(element.role),
+                "frame": .string("{\(element.frame.origin.x), \(element.frame.origin.y), \(element.frame.size.width), \(element.frame.size.height)}")
+            ])
+        }
+        
         // Filter out elements with zero coordinates or invalid frames
         let filteredElements = filterValidElements(elements)
         
-        logger.debug("Filtered \(elements.count - filteredElements.count) elements with invalid frames")
+        logger.debug("Filtered \(elements.count - filteredElements.count) elements with invalid frames out of \(elements.count) total")
         
         // Convert elements to JSON
         let encoder = JSONEncoder()
