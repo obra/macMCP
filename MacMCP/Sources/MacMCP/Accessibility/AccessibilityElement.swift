@@ -65,22 +65,55 @@ public class AccessibilityElement {
         // Get frame with robust error handling
         let frame: CGRect
         do {
-            if let axFrame = try getAttribute(axElement, attribute: AXAttribute.frame) as? NSValue {
-                frame = axFrame.rectValue
-            } else {
-                // Try position and size separately
-                do {
-                    if let position = try getAttribute(axElement, attribute: AXAttribute.position) as? NSValue,
-                       let size = try getAttribute(axElement, attribute: AXAttribute.size) as? NSValue {
-                        frame = CGRect(origin: position.pointValue, size: size.sizeValue)
-                    } else {
-                        frame = .zero
-                    }
-                } catch {
-                    frame = .zero
+            // First try using AXPosition and AXSize directly which is more reliable
+            var origin = CGPoint.zero
+            var size = CGSize.zero
+            var hasValidPosition = false
+            var hasValidSize = false
+            
+            // Get position
+            if let positionValue = try getAttribute(axElement, attribute: AXAttribute.position) {
+                // Check for both NSValue and AXValue types since different macOS versions return different types
+                if let nsValue = positionValue as? NSValue {
+                    origin = nsValue.pointValue
+                    hasValidPosition = true
+                } else if CFGetTypeID(positionValue as CFTypeRef) == AXValueGetTypeID() {
+                    // It's an AXValue, extract the CGPoint
+                    AXValueGetValue(positionValue as! AXValue, .cgPoint, &origin)
+                    hasValidPosition = true
                 }
             }
+            
+            // Get size
+            if let sizeValue = try getAttribute(axElement, attribute: AXAttribute.size) {
+                // Check for both NSValue and AXValue types
+                if let nsValue = sizeValue as? NSValue {
+                    size = nsValue.sizeValue
+                    hasValidSize = true
+                } else if CFGetTypeID(sizeValue as CFTypeRef) == AXValueGetTypeID() {
+                    // It's an AXValue, extract the CGSize
+                    AXValueGetValue(sizeValue as! AXValue, .cgSize, &size)
+                    hasValidSize = true
+                }
+            }
+            
+            if hasValidPosition && hasValidSize {
+                frame = CGRect(origin: origin, size: size)
+                
+                // Log frame for debugging if this is a Calculator button
+                if (title == "7" || title == "2") && role == AXAttribute.Role.button {
+                    NSLog("FOUND CALCULATOR BUTTON \(title ?? "unknown"): Frame = \(frame)")
+                }
+            } 
+            // Fallback to AXFrame if position and size aren't available separately
+            else if let axFrame = try getAttribute(axElement, attribute: AXAttribute.frame) as? NSValue {
+                frame = axFrame.rectValue
+            } else {
+                // No valid frame information found
+                frame = .zero
+            }
         } catch {
+            NSLog("WARNING: Failed to get frame: \(error.localizedDescription)")
             frame = .zero
         }
         
