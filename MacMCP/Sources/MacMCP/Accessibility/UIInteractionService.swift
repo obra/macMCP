@@ -550,30 +550,22 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
             "y": "\(position.y)"
         ])
         
-        // Verify the position is valid
+        // Verify the position is valid - we MUST have valid coordinates
         if position.x <= 0 || position.y <= 0 {
-            logger.warning("Element position appears invalid, will try alternative lookup methods", metadata: [
+            logger.error("Element has invalid position (zero coordinates). Cannot use this element.", metadata: [
                 "id": "\(identifier)",
                 "x": "\(position.x)",
-                "y": "\(position.y)"
+                "y": "\(position.y)",
+                "width": "\(uiElement.frame.size.width)",
+                "height": "\(uiElement.frame.size.height)",
+                "role": "\(uiElement.role)"
             ])
             
-            // Try direct application searching first before failing
-            if let applicationTitle = uiElement.attributes["application"] as? String,
-               let applicationElement = try? await findApplicationByTitle(applicationTitle) {
-                
-                logger.debug("Trying to find element by searching application directly", metadata: [
-                    "id": "\(identifier)",
-                    "application": "\(applicationTitle)"
-                ])
-                
-                // Get windows and search through them
-                if let axElement = try await searchApplicationForElement(applicationElement, matchingId: identifier) {
-                    // Cache the element with current timestamp
-                    elementCache[identifier] = (axElement, Date())
-                    return axElement
-                }
-            }
+            // Reject elements with zero coordinates
+            throw createError(
+                "Element \(identifier) has invalid position (x=\(position.x), y=\(position.y)).",
+                code: 2010
+            )
         }
         
         // Use AXUIElementCopyElementAtPosition to get the element at the position
@@ -604,7 +596,47 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
                 
                 // Get windows and search through them
                 if let axElement = try await searchApplicationForElement(applicationElement, matchingId: identifier) {
-                    // Verify the element has the expected role and is pressable
+                    // Before using this element, verify it has BOTH a valid frame AND is interactable
+                    
+                    // 1. Check for valid frame
+                    var validFrame = false
+                    var positionValue: CFTypeRef?
+                    var sizeValue: CFTypeRef?
+                    
+                    if AXUIElementCopyAttributeValue(axElement, "AXPosition" as CFString, &positionValue) == .success,
+                       AXUIElementCopyAttributeValue(axElement, "AXSize" as CFString, &sizeValue) == .success {
+                        
+                        // Extract position and size values
+                        var point = CGPoint.zero
+                        var size = CGSize.zero
+                        
+                        if let posValue = positionValue as? AXValue,
+                           let sizeVal = sizeValue as? AXValue,
+                           AXValueGetValue(posValue, .cgPoint, &point),
+                           AXValueGetValue(sizeVal, .cgSize, &size) {
+                            
+                            // Check if position and size are valid
+                            if (point.x > 0 || point.y > 0) && size.width > 0 && size.height > 0 {
+                                validFrame = true
+                                
+                                // Log the valid frame we found
+                                logger.debug("Found element with valid frame via application search", metadata: [
+                                    "id": "\(identifier)",
+                                    "x": "\(point.x)",
+                                    "y": "\(point.y)",
+                                    "width": "\(size.width)",
+                                    "height": "\(size.height)"
+                                ])
+                            }
+                        }
+                    }
+                    
+                    if !validFrame {
+                        logger.warning("Element found via application search has invalid frame", metadata: ["id": "\(identifier)"])
+                        continue // Try next search method
+                    }
+                    
+                    // 2. Check if the element is interactable
                     var isInteractable = false
                     
                     // Check role
@@ -623,11 +655,15 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
                         isInteractable = true
                     }
                     
-                    if isInteractable {
-                        // Cache the element with current timestamp
-                        elementCache[identifier] = (axElement, Date())
-                        return axElement
+                    if !isInteractable {
+                        logger.warning("Element found via application search is not interactable", metadata: ["id": "\(identifier)"])
+                        continue // Try next search method
                     }
+                    
+                    // If we got here, this is a good element to use
+                    logger.debug("Using element found via application search", metadata: ["id": "\(identifier)"])
+                    elementCache[identifier] = (axElement, Date())
+                    return axElement
                 }
             }
             
@@ -880,39 +916,52 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
             }
         }
         
-        // If we still don't have any matches, return nil
-        if possibleMatches.isEmpty {
-            logger.warning("No matches found for element", metadata: ["id": "\(identifier)"])
+        // Filter out elements with zero coordinates or zero-sized frames
+        let validMatches = possibleMatches.filter { element in
+            // Never include elements with zero coordinates or zero-sized frames
+            let hasValidPosition = element.frame.origin.x != 0 || element.frame.origin.y != 0
+            let hasValidSize = element.frame.size.width > 0 && element.frame.size.height > 0
+            
+            return hasValidPosition && hasValidSize
+        }
+        
+        // Log the filtering results
+        logger.debug("Found \(possibleMatches.count) total matches, \(validMatches.count) have valid frames", 
+                    metadata: ["id": "\(identifier)"])
+        
+        // If we don't have any valid matches after filtering, return nil
+        if validMatches.isEmpty {
+            logger.warning("No valid matches found for element (all have zero coordinates or frames)", 
+                          metadata: ["id": "\(identifier)"])
+            
+            // Additional debug info about the invalid matches
+            for (index, element) in possibleMatches.prefix(5).enumerated() {
+                logger.debug("Invalid match \(index+1)", metadata: [
+                    "id": "\(element.identifier)",
+                    "role": "\(element.role)",
+                    "frame": "{\(element.frame.origin.x), \(element.frame.origin.y), \(element.frame.size.width), \(element.frame.size.height)}",
+                    "clickable": "\(element.isClickable)",
+                    "enabled": "\(element.isEnabled)"
+                ])
+            }
+            
             return nil
         }
         
-        logger.debug("Found \(possibleMatches.count) potential matches for element", metadata: ["id": "\(identifier)"])
+        // Sort valid matches by priority:
+        // 1. Elements that are considered clickable
+        // 2. Elements with expected role (button, etc.)
+        // 3. Elements from the expected application
         
-        // Sort matches by priority:
-        // 1. Elements with non-zero frames
-        // 2. Elements that are considered clickable
-        // 3. Elements with expected role (button, etc.)
-        // 4. Elements from the expected application
-        
-        possibleMatches.sort { (a, b) in
-            // First priority: valid frame
-            let aHasValidFrame = a.frame.size.width > 0 && a.frame.size.height > 0
-            let bHasValidFrame = b.frame.size.width > 0 && b.frame.size.height > 0
-            
-            if aHasValidFrame && !bHasValidFrame {
-                return true
-            } else if !aHasValidFrame && bHasValidFrame {
-                return false
-            }
-            
-            // Second priority: clickable status
+        let sortedMatches = validMatches.sorted { (a, b) in
+            // First priority: clickable status
             if a.isClickable && !b.isClickable {
                 return true
             } else if !a.isClickable && b.isClickable {
                 return false
             }
             
-            // Third priority: button-like role
+            // Second priority: button-like role
             let aIsButton = a.role == AXAttribute.Role.button || 
                            a.role == AXAttribute.Role.checkbox || 
                            a.role == AXAttribute.Role.radioButton || 
@@ -929,39 +978,30 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
                 return false
             }
             
-            // Fourth priority: enabled status
+            // Third priority: enabled status
             if a.isEnabled && !b.isEnabled {
                 return true
             } else if !a.isEnabled && b.isEnabled {
                 return false
             }
             
-            // Fallback to default ordering
-            return true
+            // Fourth priority: frame size (larger frames might be more visible/significant)
+            let aFrameArea = a.frame.size.width * a.frame.size.height
+            let bFrameArea = b.frame.size.width * b.frame.size.height
+            
+            return aFrameArea > bFrameArea
         }
         
-        // Find the first element with a valid frame
-        for element in possibleMatches {
-            if element.frame.size.width > 0 && element.frame.size.height > 0 {
-                logger.debug("Selected best match for element", metadata: [
-                    "id": "\(identifier)",
-                    "role": "\(element.role)",
-                    "frame": "{\(element.frame.origin.x), \(element.frame.origin.y), \(element.frame.size.width), \(element.frame.size.height)}",
-                    "clickable": "\(element.isClickable)",
-                    "enabled": "\(element.isEnabled)"
-                ])
-                return element
-            }
-        }
-        
-        // If no element has a valid frame, return the first match as a fallback
-        if let firstMatch = possibleMatches.first {
-            logger.warning("No elements with valid frames found, using fallback", metadata: [
+        // Return the best match (first element after sorting)
+        if let bestMatch = sortedMatches.first {
+            logger.debug("Selected best match for element", metadata: [
                 "id": "\(identifier)",
-                "role": "\(firstMatch.role)",
-                "frame": "{\(firstMatch.frame.origin.x), \(firstMatch.frame.origin.y), \(firstMatch.frame.size.width), \(firstMatch.frame.size.height)}"
+                "role": "\(bestMatch.role)",
+                "frame": "{\(bestMatch.frame.origin.x), \(bestMatch.frame.origin.y), \(bestMatch.frame.size.width), \(bestMatch.frame.size.height)}",
+                "clickable": "\(bestMatch.isClickable)",
+                "enabled": "\(bestMatch.isEnabled)"
             ])
-            return firstMatch
+            return bestMatch
         }
         
         return nil
