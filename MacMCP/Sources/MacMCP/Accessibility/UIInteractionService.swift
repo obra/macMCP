@@ -62,11 +62,19 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
                 elementContext["application"] = app
             }
             
-            logger.debug("UIElement details", metadata: elementContext)
+            // Convert String dictionary to Logger.Metadata
+            var elementMetadata: Logger.Metadata = [:]
+            for (key, value) in elementContext {
+                elementMetadata[key] = .string(value)
+            }
+            logger.debug("UIElement details", metadata: elementMetadata)
         }
         
         // Log detailed AXUIElement information before interaction
         do {
+            // Try to get an attribute that might throw
+            _ = try AccessibilityElement.getAttribute(axElement, attribute: "AXRole")
+            
             // Start with basic attributes
             let attributes = [
                 "AXRole", "AXActions", "AXEnabled", "AXFocused", "AXFrame", 
@@ -127,7 +135,12 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
             }
             
             // Log all the attributes we found
-            logger.debug("AXUIElement attributes", metadata: attributeValues)
+            // Convert attribute values to Logger.Metadata
+            var attributesMetadata: Logger.Metadata = [:]
+            for (key, value) in attributeValues {
+                attributesMetadata[key] = .string(value)
+            }
+            logger.debug("AXUIElement attributes", metadata: attributesMetadata)
             
             // Get available actions if possible
             var actions: CFTypeRef?
@@ -135,31 +148,31 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
             
             if actionsResult == .success, let actionsList = actions as? [String] {
                 logger.debug("Available actions", metadata: [
-                    "id": "\(identifier)",
-                    "actions": "\(actionsList.joined(separator: ", "))"
+                    "id": .string(identifier),
+                    "actions": .string(actionsList.joined(separator: ", "))
                 ])
             }
         } catch {
             logger.warning("Error retrieving element details", metadata: [
-                "id": "\(identifier)",
-                "error": "\(error.localizedDescription)"
+                "id": .string(identifier),
+                "error": .string(error.localizedDescription)
             ])
         }
         
         // Try to perform the click action
         do {
             try performAction(axElement, action: AXAttribute.Action.press)
-            logger.debug("AXPress succeeded", metadata: ["id": "\(identifier)"])
+            logger.debug("AXPress succeeded", metadata: ["id": .string(identifier)])
         } catch {
             // Get detailed error info
             let nsError = error as NSError
             
             logger.error("AXPress failed", metadata: [
-                "id": "\(identifier)",
-                "error": "\(error.localizedDescription)",
-                "domain": "\(nsError.domain)",
-                "code": "\(nsError.code)",
-                "userInfo": "\(nsError.userInfo)"
+                "id": .string(identifier),
+                "error": .string(error.localizedDescription),
+                "domain": .string(nsError.domain),
+                "code": .string("\(nsError.code)"),
+                "userInfo": .string("\(nsError.userInfo)")
             ])
             
             // Create a more informative error with context and suggestions
@@ -1053,9 +1066,9 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
         if error != .success {
             // Log details about the error
             logger.error("Accessibility action failed", metadata: [
-                "action": "\(action)",
-                "error": "\(error.rawValue)",
-                "errorName": getAXErrorName(error)
+                "action": .string(action),
+                "error": .string("\(error.rawValue)"),
+                "errorName": .string(getAXErrorName(error))
             ])
             
             // Create a specific error based on error code
