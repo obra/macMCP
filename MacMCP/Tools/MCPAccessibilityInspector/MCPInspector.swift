@@ -5,6 +5,11 @@ import Foundation
 import Logging
 import Cocoa
 import MCP
+#if canImport(System)
+import System
+#else
+@preconcurrency import SystemPackage
+#endif
 
 // Configure a logger for the inspector
 private let inspectorLogger = Logger(label: "com.anthropic.mac-mcp.mcp-inspector")
@@ -99,13 +104,16 @@ class MCPInspector {
         
         // Process the UI state
         do {
-            // UI state is returned as a [Tool.Content] array with a text (JSON string) value
-            guard let jsonString = uiState.content.first?.textValue else {
+            // UI state is returned as a [Tool.Content] array with text content
+            guard let firstContent = uiState.content.first, 
+                  case let .text(jsonString) = firstContent else {
                 throw InspectionError.unexpectedError("Invalid response format from MCP: missing text content")
             }
             
             // Convert the JSON string to data
-            let jsonData = jsonString.data(using: .utf8)!
+            guard let jsonData = jsonString.data(using: .utf8) else {
+                throw InspectionError.unexpectedError("Failed to convert JSON string to data")
+            }
             
             // Parse the JSON into an array of dictionaries
             let jsonArray = try JSONSerialization.jsonObject(with: jsonData) as? [[String: Any]]
@@ -189,16 +197,45 @@ class MCPInspector {
         }
     }
     
-    /// Cleanup resources
+    /// Cleanup resources - call this method explicitly before deallocation
+    func cleanup() async {
+        // Disconnect the client
+        await mcpClient?.disconnect()
+        
+        // Terminate the process
+        process?.terminate()
+        process = nil
+    }
+    
+    /// Synchronous version of cleanup for use with synchronous code
+    func cleanupSync() {
+        // Create a task to handle the async cleanup
+        let task = Task {
+            await cleanup()
+        }
+        
+        // Wait for the task to complete (this is not ideal, but necessary for synchronous contexts)
+        // In real applications, we should prefer the async version
+        while !task.isCancelled && !task.isCompleted {
+            Thread.sleep(forTimeInterval: 0.01)  // Short sleep to avoid busy waiting
+        }
+    }
+    
+    /// Deinit - automatically trigger cleanup
     deinit {
-        // Stop the MCP server on cleanup
-        Task {
-            // Disconnect the client
-            await mcpClient?.disconnect()
+        // Weakly capture self to avoid deinit retention
+        let client = mcpClient
+        let proc = process
+        
+        // Create a detached task for cleanup that doesn't reference self
+        Task.detached {
+            // Disconnect the client if it exists
+            if let client = client {
+                await client.disconnect()
+            }
             
-            // Terminate the process
-            process?.terminate()
-            process = nil
+            // Terminate the process if it exists
+            proc?.terminate()
         }
     }
 }

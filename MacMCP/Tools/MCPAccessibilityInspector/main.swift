@@ -222,13 +222,24 @@ struct MCPAccessibilityInspector: ParsableCommand {
             
             logger.info("Inspection completed successfully")
             print("Inspection completed successfully")
+            
+            // Explicitly clean up MCP resources
+            print("Cleaning up MCP resources...")
+            inspector.cleanupSync()
+            print("MCP resources cleaned up")
         } catch let error as InspectionError {
             logger.error("Inspection failed: \(error.description)")
             print("Inspection error: \(error.description)")
+            
+            // Clean up even on error
+            inspector.cleanupSync()
             throw ExitCode.failure
         } catch {
             logger.error("Unexpected error: \(error.localizedDescription)")
             print("Unexpected error: \(error.localizedDescription)")
+            
+            // Clean up even on error
+            inspector.cleanupSync()
             throw ExitCode.failure
         }
     }
