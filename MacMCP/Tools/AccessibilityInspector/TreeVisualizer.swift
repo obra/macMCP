@@ -152,6 +152,26 @@ class TreeVisualizer {
                     if isSelected != valueAsBool {
                         return false
                     }
+                case "component-types":
+                    // Handle multiple component types with OR logic (include if it matches any)
+                    let types = value.lowercased().split(separator: ",").map { String($0.trimmingCharacters(in: .whitespaces)) }
+                    var matchesAny = false
+                    
+                    for componentType in types {
+                        if isElementOfComponentType(element, type: componentType) {
+                            matchesAny = true
+                            break
+                        }
+                    }
+                    
+                    if !matchesAny {
+                        return false
+                    }
+                case "component-type":
+                    // Handle single component type
+                    if !isElementOfComponentType(element, type: value.lowercased()) {
+                        return false
+                    }
                 default:
                     // Check if filter key is an attribute
                     if let attrValue = element.attributes[key] {
@@ -168,6 +188,84 @@ class TreeVisualizer {
                 }
             }
             return true
+        }
+    }
+    
+    /// Checks if an element matches a specific component type
+    /// - Parameters:
+    ///   - element: The element to check
+    ///   - type: The component type to match ("menu", "window-controls", or "window-contents")
+    /// - Returns: Whether the element is of the specified component type
+    private func isElementOfComponentType(_ element: UIElementNode, type: String) -> Bool {
+        switch type {
+        case "menu", "menus":
+            // Check if element is menu-related
+            let menuRoles = ["AXMenuBar", "AXMenu", "AXMenuItem", "AXMenuBarItem"]
+            return menuRoles.contains(element.role)
+            
+        case "window-control", "window-controls":
+            // Check if element is a window control
+            let controlRoles = ["AXToolbar", "AXButton", "AXSlider", "AXScrollBar"]
+            let controlSubroles = ["AXCloseButton", "AXMinimizeButton", "AXZoomButton", 
+                                 "AXToolbarButton", "AXFullScreenButton"]
+            
+            // Check if it's a control by role
+            if controlRoles.contains(element.role) {
+                // Accept certain roles regardless of position (like toolbars)
+                if ["AXToolbar"].contains(element.role) {
+                    return true
+                }
+                
+                // For other controls, check if they're in the window chrome area
+                // This is a heuristic - window controls are usually at the top of the window
+                if let frame = element.frame, frame.origin.y < 50 {
+                    return true
+                }
+                
+                // Otherwise, it's not a window control
+                return false
+            }
+            
+            // Check if it's a control by subrole
+            if let subrole = element.subrole, controlSubroles.contains(subrole) {
+                return true
+            }
+            
+            // Not a window control
+            return false
+            
+        case "window-content", "window-contents":
+            // Check if element is window content (not menu or control)
+            let menuRoles = ["AXMenuBar", "AXMenu", "AXMenuItem", "AXMenuBarItem"]
+            let controlRoles = ["AXToolbar"]
+            let controlSubroles = ["AXCloseButton", "AXMinimizeButton", "AXZoomButton", 
+                                 "AXToolbarButton", "AXFullScreenButton"]
+            
+            // Exclude menu elements
+            if menuRoles.contains(element.role) {
+                return false
+            }
+            
+            // Exclude control elements by role
+            if controlRoles.contains(element.role) {
+                return false
+            }
+            
+            // Exclude control elements by subrole
+            if let subrole = element.subrole, controlSubroles.contains(subrole) {
+                return false
+            }
+            
+            // Exclude buttons in the window chrome area
+            if element.role == "AXButton", let frame = element.frame, frame.origin.y < 50 {
+                return false
+            }
+            
+            // Include everything else
+            return true
+            
+        default:
+            return false
         }
     }
     

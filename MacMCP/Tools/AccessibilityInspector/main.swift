@@ -44,7 +44,16 @@ struct AccessibilityInspector: ParsableCommand {
     @Flag(name: [.customLong("hide-disabled")], help: "Hide disabled elements")
     var hideDisabled: Bool = false
     
-    @Flag(name: [.customLong("verbose")], help: "Show all available element data")
+    @Flag(name: [.customLong("show-menus")], help: "Only show menu-related elements (menu bar, menus, menu items)")
+    var showMenus: Bool = false
+    
+    @Flag(name: [.customLong("show-window-controls")], help: "Only show window control elements (close, minimize, zoom buttons, toolbars, etc.)")
+    var showWindowControls: Bool = false
+    
+    @Flag(name: [.customLong("show-window-contents")], help: "Only show window content elements (excluding menus and controls)")
+    var showWindowContents: Bool = false
+    
+    @Flag(name: [.customLong("verbose")], help: "Show even more detailed diagnostics (currently all data is shown by default)")
     var verbose: Bool = false
     
     func run() throws {
@@ -79,8 +88,8 @@ struct AccessibilityInspector: ParsableCommand {
             
             // Create visualizer options
             var visualizerOptions = TreeVisualizer.Options()
-            visualizerOptions.showDetails = verbose
-            visualizerOptions.showAllAttributes = verbose
+            visualizerOptions.showDetails = true // Always show details
+            visualizerOptions.showAllAttributes = true // Always show all attributes
             
             // Initialize visualizer
             let visualizer = TreeVisualizer(options: visualizerOptions)
@@ -92,6 +101,37 @@ struct AccessibilityInspector: ParsableCommand {
             }
             if hideDisabled {
                 combinedFilters["enabled"] = "yes"
+            }
+            
+            // Handle UI component focus flags
+            let viewTypeFlags = [showMenus, showWindowControls, showWindowContents]
+            if viewTypeFlags.contains(true) {
+                // If only one type is specified, use a direct component-type filter
+                let flagsOn = viewTypeFlags.filter { $0 }.count
+                if flagsOn == 1 {
+                    if showMenus {
+                        // Include menu-related elements: menu bar, menus, menu items
+                        combinedFilters["component-type"] = "menu"
+                    } else if showWindowControls {
+                        // Include window control elements: close/minimize/zoom buttons, toolbars, etc.
+                        combinedFilters["component-type"] = "window-controls"
+                    } else if showWindowContents {
+                        // Include main window content elements
+                        combinedFilters["component-type"] = "window-contents"
+                    }
+                } else {
+                    // If multiple component types are requested, create a custom description
+                    // to explain what's being shown
+                    var typesShown = [String]()
+                    if showMenus { typesShown.append("menus") }
+                    if showWindowControls { typesShown.append("window controls") }
+                    if showWindowContents { typesShown.append("window contents") }
+                    
+                    logger.info("Showing multiple component types: \(typesShown.joined(separator: ", "))")
+                    
+                    // Use multiple filter keys with OR logic between them
+                    combinedFilters["component-types"] = typesShown.joined(separator: ",")
+                }
             }
             
             // Generate the visualization

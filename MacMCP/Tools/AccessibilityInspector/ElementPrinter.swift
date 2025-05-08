@@ -43,7 +43,7 @@ class ElementPrinter {
     /// - Parameter element: The element to format
     /// - Parameter showColor: Whether to use color in the output
     /// - Returns: A formatted string representation of the element
-    func formatElement(_ element: UIElementNode, showColor: Bool = true, showAllData: Bool = false) -> String {
+    func formatElement(_ element: UIElementNode, showColor: Bool = true, showAllData: Bool = true) -> String {
         var output = ""
         
         // Add header with node index and role
@@ -55,11 +55,7 @@ class ElementPrinter {
             output += "\(headerText)\n"
         }
         
-        // Add standard properties
-        if let title = element.title {
-            output += "   Title: \(title)\n"
-        }
-        
+        // SECTION 1: Basic identification and geometry
         if let identifier = element.identifier {
             output += "   Identifier: \(identifier)\n"
         }
@@ -68,25 +64,43 @@ class ElementPrinter {
             output += "   Frame: (x:\(Int(frame.origin.x)), y:\(Int(frame.origin.y)), w:\(Int(frame.size.width)), h:\(Int(frame.size.height)))\n"
         }
         
-        output += "   Role: \(element.role)\n"
-        
-        if let roleDescription = element.role_description {
-            output += "   Role Description: \(roleDescription)\n"
+        if let description = element.description, !description.isEmpty {
+            output += "   Description: \(description)\n"
         }
+        
+        // SECTION 2: State as compact boolean list
+        var stateTokens = [String]()
+        
+        // Basic state
+        stateTokens.append(element.isEnabled ? "Enabled" : "Disabled")
+        stateTokens.append(element.isVisible ? "Visible" : "Invisible")
+        stateTokens.append(element.isClickable ? "Clickable" : "Not clickable")
+        stateTokens.append(element.focused ? "Focused" : "Unfocused")
+        stateTokens.append(element.selected ? "Selected" : "Unselected")
+        
+        // Optional state
+        if let expanded = element.expanded {
+            stateTokens.append(expanded ? "Expanded" : "Collapsed")
+        }
+        
+        if let required = element.required {
+            stateTokens.append(required ? "Required" : "Optional")
+        }
+        
+        output += "   State: " + stateTokens.joined(separator: ", ") + "\n"
+        
+        // SECTION 3: Role details
+        output += "   Role: \(element.role)"
+        if let roleDescription = element.role_description {
+            output += " (\(roleDescription))"
+        }
+        output += "\n"
         
         if let subrole = element.subrole {
             output += "   Subrole: \(subrole)\n"
         }
         
-        if let description = element.description, !description.isEmpty {
-            output += "   Description: \(description)\n"
-        }
-        
-        if let help = element.help, !help.isEmpty {
-            output += "   Help: \(help)\n"
-        }
-        
-        // Add value information
+        // SECTION 4: Content/value information
         if let value = element.value {
             let valueString = formatValue(value)
             if !valueString.isEmpty {
@@ -106,63 +120,64 @@ class ElementPrinter {
             output += "   Label: \(label)\n"
         }
         
-        // Add state information
-        output += "   Enabled: \(element.isEnabled ? "Yes" : "No")\n"
-        output += "   Visible: \(element.isVisible ? "Yes" : "No")\n"
-        
-        if element.isClickable {
-            output += "   Clickable: Yes\n"
+        if let help = element.help, !help.isEmpty {
+            output += "   Help: \(help)\n"
         }
         
-        output += "   Focused: \(element.focused ? "Yes" : "No")\n"
-        output += "   Selected: \(element.selected ? "Yes" : "No")\n"
-        
-        if let expanded = element.expanded {
-            output += "   Expanded: \(expanded ? "Yes" : "No")\n"
-        }
-        
-        if let required = element.required {
-            output += "   Required: \(required ? "Yes" : "No")\n"
-        }
-        
-        // Add relationship information
-        output += "   Children Count: \(element.childrenCount)\n"
-        
+        // SECTION 5: Relationships as compact list
+        var relationshipTokens = [String]()
+        relationshipTokens.append("Children: \(element.childrenCount)")
         if element.hasParent {
-            output += "   Has Parent: Yes\n"
+            relationshipTokens.append("Has Parent")
         }
-        
         if element.hasWindow {
-            output += "   Has Window: Yes\n"
+            relationshipTokens.append("Has Window")
         }
-        
         if element.hasTopLevelUIElement {
-            output += "   Has Top Level UI Element: Yes\n"
+            relationshipTokens.append("Has Top UI Element")
         }
         
-        // Add actions if available
+        output += "   Relationships: " + relationshipTokens.joined(separator: ", ") + "\n"
+        
+        // SECTION 6: Actions
         if !element.actions.isEmpty {
             output += "   Actions: \(element.actions.joined(separator: ", "))\n"
         }
         
-        // Add parameterized attributes if available and requested
-        if showAllData && !element.parameterizedAttributes.isEmpty {
+        // SECTION 7: Parameterized attributes
+        if !element.parameterizedAttributes.isEmpty {
             output += "   Parameterized Attributes: \(element.parameterizedAttributes.joined(separator: ", "))\n"
         }
         
-        // Add all attributes if requested
-        if showAllData {
-            output += "\n   All Attributes:\n"
-            let sortedKeys = element.attributes.keys.sorted()
-            
-            for key in sortedKeys {
-                if let value = element.attributes[key] {
-                    let valueString = formatValue(value)
-                    if !valueString.isEmpty {
-                        output += "      \(key): \(valueString)\n"
-                    }
+        // SECTION 8: All raw attributes (excluding already displayed ones)
+        output += "\n   Additional Attributes:\n"
+        
+        // Create a set of attribute keys to exclude (since they're shown above)
+        let excludedAttributes = Set([
+            "AXRole", "AXRoleDescription", "AXSubrole", 
+            "AXTitle", "AXDescription", "AXValue", "AXValueDescription",
+            "AXHelp", "AXLabel", "AXPlaceholderValue",  
+            "AXEnabled", "AXFocused", "AXSelected", "AXExpanded", "AXRequired",
+            "AXParent", "AXWindow", "AXTopLevelUIElement", "AXChildren",
+            "AXPosition", "AXSize", "AXFrame", "AXIdentifier"
+        ])
+        
+        // Filter and display the remaining attributes
+        let sortedKeys = element.attributes.keys.sorted()
+        var displayedAttributes = false
+        
+        for key in sortedKeys {
+            if !excludedAttributes.contains(key), let value = element.attributes[key] {
+                let valueString = formatValue(value)
+                if !valueString.isEmpty {
+                    output += "      \(key): \(valueString)\n"
+                    displayedAttributes = true
                 }
             }
+        }
+        
+        if !displayedAttributes {
+            output += "      No additional attributes\n"
         }
         
         return output
