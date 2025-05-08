@@ -14,8 +14,10 @@ public enum ScrollDirection: String, Codable, Sendable {
 /// Protocol for UI interaction services
 public protocol UIInteractionServiceProtocol {
     /// Click on a UI element by its identifier
-    /// - Parameter identifier: The UI element identifier
-    func clickElement(identifier: String) async throws
+    /// - Parameters:
+    ///   - identifier: The UI element identifier
+    ///   - appBundleId: Optional bundle ID of the application containing the element
+    func clickElement(identifier: String, appBundleId: String?) async throws
     
     /// Click at a specific screen position
     /// - Parameter position: The screen position to click

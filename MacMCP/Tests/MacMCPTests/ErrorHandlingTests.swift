@@ -158,7 +158,7 @@ struct ErrorHandlingTests {
 
 /// A service that generates errors for testing error handling
 class ErrorGeneratingInteractionService: UIInteractionServiceProtocol {
-    func clickElement(identifier: String) async throws {
+    func clickElement(identifier: String, appBundleId: String?) async throws {
         throw NSError(
             domain: "com.macos.mcp.test",
             code: 1000,

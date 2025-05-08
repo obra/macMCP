@@ -35,16 +35,21 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
     }
     
     /// Click on a UI element by its identifier
-    /// - Parameter identifier: The UI element identifier
-    public func clickElement(identifier: String) async throws {
-        logger.debug("Clicking element", metadata: ["id": "\(identifier)"])
+    /// - Parameters:
+    ///   - identifier: The UI element identifier
+    ///   - appBundleId: Optional bundle ID of the application containing the element
+    public func clickElement(identifier: String, appBundleId: String? = nil) async throws {
+        logger.debug("Clicking element", metadata: [
+            "id": "\(identifier)",
+            "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil"
+        ])
         
         // Get the AXUIElement for the identifier
-        let axElement = try await getAXUIElement(for: identifier)
+        let axElement = try await getAXUIElement(for: identifier, appBundleId: appBundleId)
         
         // Get the matching UIElement for diagnostics
         var elementContext: [String: String] = [:]
-        if let uiElement = try? await findUIElement(identifier: identifier) {
+        if let uiElement = try? await findUIElement(identifier: identifier, appBundleId: appBundleId) {
             elementContext = [
                 "role": uiElement.role,
                 "frame": "\(uiElement.frame)",
@@ -481,20 +486,27 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
     // MARK: - Helper Methods
     
     /// Get the AXUIElement for an element identifier
-    private func getAXUIElement(for identifier: String) async throws -> AXUIElement {
+    /// - Parameters:
+    ///   - identifier: The UI element identifier
+    ///   - appBundleId: Optional bundle ID of the application containing the element
+    private func getAXUIElement(for identifier: String, appBundleId: String? = nil) async throws -> AXUIElement {
         // Clean old entries from cache if it's getting too large
         cleanCache()
         
+        // Generate cache key - include app bundle ID if provided
+        let cacheKey = appBundleId != nil ? "\(appBundleId!):\(identifier)" : identifier
+        
         // Check the cache first
-        if let (element, timestamp) = elementCache[identifier] {
+        if let (element, timestamp) = elementCache[cacheKey] {
             // Check if the cached element is too old
             let now = Date()
             if now.timeIntervalSince(timestamp) > cacheMaxAge {
                 logger.debug("Cached element is too old, removing from cache", metadata: [
                     "id": "\(identifier)",
+                    "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil",
                     "age": "\(now.timeIntervalSince(timestamp))"
                 ])
-                elementCache.removeValue(forKey: identifier)
+                elementCache.removeValue(forKey: cacheKey)
             } 
             // Verify the cached element is still valid before returning
             else if AccessibilityPermissions.isAccessibilityEnabled() {
@@ -505,22 +517,28 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
                 if error != .invalidUIElement {
                     // Element appears to be valid, refresh its timestamp and return it
                     logger.debug("Using cached element", metadata: ["id": "\(identifier)"])
-                    elementCache[identifier] = (element, Date())
+                    elementCache[cacheKey] = (element, Date())
                     return element
                 } else {
                     // Element is no longer valid, remove from cache
                     logger.debug("Cached element is no longer valid, removing from cache", metadata: ["id": "\(identifier)"])
-                    elementCache.removeValue(forKey: identifier)
+                    elementCache.removeValue(forKey: cacheKey)
                 }
             }
         }
         
         // Log what we're doing
-        logger.debug("Looking up UI element by identifier", metadata: ["id": "\(identifier)"])
+        logger.debug("Looking up UI element by identifier", metadata: [
+            "id": "\(identifier)",
+            "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil"
+        ])
         
         // Try to find the element in the UI hierarchy - specifically looking for elements with valid frames
-        guard let uiElement = try await findInteractableUIElement(identifier: identifier) else {
-            logger.error("Element not found in UI hierarchy", metadata: ["id": "\(identifier)"])
+        guard let uiElement = try await findInteractableUIElement(identifier: identifier, appBundleId: appBundleId) else {
+            logger.error("Element not found in UI hierarchy", metadata: [
+                "id": "\(identifier)",
+                "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil"
+            ])
             throw createError("Element not found: \(identifier)", code: 2000)
         }
         
@@ -847,10 +865,39 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
     }
     
     /// Find a UI element by identifier
-    private func findUIElement(identifier: String) async throws -> UIElement? {
-        logger.debug("Searching for UI element", metadata: ["id": "\(identifier)"])
+    /// - Parameters:
+    ///   - identifier: The UI element identifier
+    ///   - appBundleId: Optional bundle ID of the application containing the element
+    private func findUIElement(identifier: String, appBundleId: String? = nil) async throws -> UIElement? {
+        logger.debug("Searching for UI element", metadata: [
+            "id": "\(identifier)",
+            "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil"
+        ])
         
         // Try multiple search strategies for more robust element finding
+        
+        // Strategy 0 (if app bundle ID provided): Search directly in the specified application
+        if let bundleId = appBundleId {
+            do {
+                logger.debug("Strategy 0: Searching in specific application", metadata: ["bundleId": "\(bundleId)"])
+                let appElement = try await accessibilityService.getApplicationUIElement(
+                    bundleIdentifier: bundleId,
+                    recursive: true,
+                    maxDepth: 25
+                )
+                
+                if let element = await findElementById(appElement, id: identifier) {
+                    logger.debug("Found element in specified app", metadata: [
+                        "id": "\(identifier)", 
+                        "bundleId": "\(bundleId)"
+                    ])
+                    return element
+                }
+            } catch {
+                // If this fails, continue to the next strategy
+                logger.warning("Strategy 0 (specified app) failed: \(error.localizedDescription)")
+            }
+        }
         
         // Strategy 1: Search the focused application first (most likely to contain the element)
         do {
@@ -891,26 +938,55 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
     }
     
     /// Find an interactable UI element by identifier with valid frame and clickable properties
-    private func findInteractableUIElement(identifier: String) async throws -> UIElement? {
-        logger.debug("Searching for interactable UI element", metadata: ["id": "\(identifier)"])
+    /// - Parameters:
+    ///   - identifier: The UI element identifier
+    ///   - appBundleId: Optional bundle ID of the application containing the element
+    private func findInteractableUIElement(identifier: String, appBundleId: String? = nil) async throws -> UIElement? {
+        logger.debug("Searching for interactable UI element", metadata: [
+            "id": "\(identifier)",
+            "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil"
+        ])
         
         // First, get all possible matches for the identifier
         var possibleMatches: [UIElement] = []
         
-        // Try to find all matches in the focused application
-        do {
-            let focusedApp = try await accessibilityService.getFocusedApplicationUIElement(
-                recursive: true,
-                maxDepth: 25
-            )
-            
-            // Collect all possible matches
-            await collectElementsById(focusedApp, id: identifier, into: &possibleMatches)
-        } catch {
-            logger.warning("Failed to search focused app: \(error.localizedDescription)")
+        // If we have a specific app bundle ID, search within that application first
+        if let bundleId = appBundleId {
+            do {
+                logger.debug("Searching within specific application", metadata: ["bundleId": "\(bundleId)"])
+                let appElement = try await accessibilityService.getApplicationUIElement(
+                    bundleIdentifier: bundleId,
+                    recursive: true,
+                    maxDepth: 25
+                )
+                
+                // Collect all possible matches
+                await collectElementsById(appElement, id: identifier, into: &possibleMatches)
+                
+                if !possibleMatches.isEmpty {
+                    logger.debug("Found \(possibleMatches.count) matches in application", metadata: ["bundleId": "\(bundleId)"])
+                }
+            } catch {
+                logger.warning("Failed to search application: \(error.localizedDescription)", metadata: ["bundleId": "\(bundleId)"])
+            }
         }
         
-        // If we didn't find any matches in the focused app, try system-wide
+        // If we still don't have matches or no app bundle ID was provided, try the focused application
+        if possibleMatches.isEmpty {
+            do {
+                let focusedApp = try await accessibilityService.getFocusedApplicationUIElement(
+                    recursive: true,
+                    maxDepth: 25
+                )
+                
+                // Collect all possible matches
+                await collectElementsById(focusedApp, id: identifier, into: &possibleMatches)
+            } catch {
+                logger.warning("Failed to search focused app: \(error.localizedDescription)")
+            }
+        }
+        
+        // If we still didn't find any matches, try system-wide
         if possibleMatches.isEmpty {
             do {
                 let systemElement = try await accessibilityService.getSystemUIElement(

@@ -51,7 +51,7 @@ class MenuMockUIInteractionService: UIInteractionServiceProtocol {
     var lastTypedText: String?
     var lastPressedKey: Int?
     
-    func clickElement(identifier: String) async throws {
+    func clickElement(identifier: String, appBundleId: String?) async throws {
         lastClickedElementId = identifier
     }
     

@@ -111,7 +111,7 @@ class MockUIInteractionService: UIInteractionServiceProtocol {
     var lastTypedElementId: String?
     var lastTypedText: String?
     
-    func clickElement(identifier: String) async throws {
+    func clickElement(identifier: String, appBundleId: String?) async throws {
         lastClickedElementId = identifier
     }
     

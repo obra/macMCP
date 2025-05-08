@@ -293,7 +293,7 @@ public struct MenuNavigationTool: @unchecked Sendable {
         }
         
         // First, click the menu bar item to open the menu
-        try await interactionService.clickElement(identifier: foundMenuBarItem!.identifier)
+        try await interactionService.clickElement(identifier: foundMenuBarItem!.identifier, appBundleId: nil)
         
         // Brief pause to allow menu to open
         try await Task.sleep(for: .milliseconds(300))
@@ -313,7 +313,7 @@ public struct MenuNavigationTool: @unchecked Sendable {
                         for menuItem in childMenu.children {
                             if menuItem.title == component || menuItem.elementDescription == component {
                                 // Found the target menu item, click it
-                                try await interactionService.clickElement(identifier: menuItem.identifier)
+                                try await interactionService.clickElement(identifier: menuItem.identifier, appBundleId: nil)
                                 found = true
                                 break
                             }
@@ -336,7 +336,7 @@ public struct MenuNavigationTool: @unchecked Sendable {
                                 currentMenuItem = menuItem
                                 
                                 // Click it to open the submenu
-                                try await interactionService.clickElement(identifier: menuItem.identifier)
+                                try await interactionService.clickElement(identifier: menuItem.identifier, appBundleId: nil)
                                 
                                 // Brief pause to allow submenu to open
                                 try await Task.sleep(for: .milliseconds(300))
@@ -357,7 +357,7 @@ public struct MenuNavigationTool: @unchecked Sendable {
                 // If we didn't find the menu item, cancel the menu navigation by clicking elsewhere
                 // Try to click on the application window to dismiss the menu
                 if let window = appElement.children.first(where: { $0.role == AXAttribute.Role.window }) {
-                    try await interactionService.clickElement(identifier: window.identifier)
+                    try await interactionService.clickElement(identifier: window.identifier, appBundleId: nil)
                 }
                 
                 throw MCPError.internalError("Could not find menu item: \(component) in path: \(menuPath)")

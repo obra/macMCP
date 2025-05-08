@@ -564,11 +564,6 @@ extension CalculatorApp {
                 }
                 
                 // Print every button regardless of depth
-                if element.role == "AXButton" || element.role.contains("Button") {
-                    print("\(indent)BUTTON FOUND: role=\(element.role), id=\(element.identifier), " +
-                          "title=\(element.title ?? "nil"), value=\(element.value ?? "nil"), " +
-                          "description=\(element.elementDescription ?? "nil"), frame=\(element.frame)")
-                }
                 // Print detailed info only at higher levels
                 else if depth < 2 {
                     print("\(indent)Examining: role=\(element.role), id=\(element.identifier)")

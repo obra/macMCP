@@ -114,13 +114,97 @@ final class BasicArithmeticE2ETests: XCTestCase {
         print("---------------------------------------------")
         print("SCANNING CALCULATOR UI FOR ALL ELEMENTS")
         print("---------------------------------------------")
+        
+        // First get the main window to see what's available
+        if let window = try await calculator.getMainWindow() {
+            print("MAIN WINDOW: Found with \(window.children.count) children")
+            dumpElementAndChildren(window, prefix: "", depth: 0, maxDepth: 10)
+        } else {
+            print("MAIN WINDOW: Not found")
+        }
+        
         try await calculator.scanForButtons()
+        
+        // Also try to get all raw button elements from the app for complete visibility
+        if let app = try? await calculator.accessibilityService.getApplicationUIElement(
+            bundleIdentifier: CalculatorApp.bundleId,
+            recursive: true,
+            maxDepth: 20
+        ) {
+            print("\n---------------------------------------------")
+            print("RAW BUTTON ELEMENTS FROM APPLICATION")
+            print("---------------------------------------------")
+            dumpAllButtonElements(app)
+        }
+        
         print("---------------------------------------------")
         print("SCAN COMPLETE")
         print("---------------------------------------------")
         
         // Skip further tests - this test is just for scanning
         XCTAssertTrue(true, "Scanner test completed")
+    }
+    
+    // Helper function to dump all elements
+    private func dumpElementAndChildren(_ element: UIElement, prefix: String, depth: Int, maxDepth: Int) {
+        guard depth <= maxDepth else { return }
+        
+        let padding = String(repeating: "  ", count: depth)
+        print("\(padding)[\(depth)] \(element.role): \(element.identifier)")
+        print("\(padding)   Title: \(element.title ?? "nil")")
+        print("\(padding)   Value: \(element.value ?? "nil")")
+        print("\(padding)   Desc: \(element.elementDescription ?? "nil")")
+        print("\(padding)   Frame: \(element.frame)")
+        print("\(padding)   Children: \(element.children.count)")
+        
+        if depth < maxDepth {
+            for child in element.children {
+                dumpElementAndChildren(child, prefix: prefix + "  ", depth: depth + 1, maxDepth: maxDepth)
+            }
+        }
+    }
+    
+    // Helper function to dump all button elements
+    private func dumpAllButtonElements(_ element: UIElement) {
+        // First dump all buttons at the root level
+        var buttonCount = 0
+        
+        func findAndDumpButtons(_ element: UIElement, depth: Int = 0, path: String = "root") {
+            // If this is a button, dump its details
+            if element.role.contains("Button") || element.role == "AXButton" {
+                buttonCount += 1
+                let padding = String(repeating: "  ", count: depth)
+                print("\(padding)BUTTON #\(buttonCount): \(element.role)")
+                print("\(padding)   Path: \(path)")
+                print("\(padding)   ID: \(element.identifier)")
+                
+                // Extract components if available
+                let components = element.identifier.split(separator: ":")
+                if components.count >= 2 {
+                    print("\(padding)   Component[0]: \(components[0])")
+                    print("\(padding)   Component[1]: \(components[1])")
+                    if components.count >= 3 {
+                        print("\(padding)   Component[2]: \(components[2])")
+                    }
+                }
+                
+                print("\(padding)   Title: \(element.title ?? "nil")")
+                print("\(padding)   Value: \(element.value ?? "nil")")
+                print("\(padding)   Description: \(element.elementDescription ?? "nil")")
+                print("\(padding)   Frame: \(element.frame)")
+                print("\(padding)   Actions: \(element.actions.joined(separator: ", "))")
+                print("") // Empty line for separation
+            }
+            
+            // Recursively search children
+            for (i, child) in element.children.enumerated() {
+                let childPath = "\(path)/\(i):\(child.role)"
+                findAndDumpButtons(child, depth: depth + 1, path: childPath)
+            }
+        }
+        
+        findAndDumpButtons(element)
+        print("Total buttons found: \(buttonCount)")
     }
     
     // Addition operation

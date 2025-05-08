@@ -290,14 +290,14 @@ class CalculatorApp: @unchecked Sendable {
     /// Get the main window of the Calculator app
     /// - Returns: The UI element representing the main window
     func getMainWindow() async throws -> UIElement? {
-        print("Getting Calculator main window with improved discovery")
+        print("Getting Calculator main window")
         
         // First check if process is running
         if getProcessId() == nil {
             // Process is not running - launch it
             print("Calculator process not found, launching...")
             _ = try await launch()
-            try await Task.sleep(for: .milliseconds(1000)) // Wait after launch
+            try await Task.sleep(for: .milliseconds(2000)) // Longer wait after launch
             
             // Check if launch was successful
             if getProcessId() == nil {
@@ -308,54 +308,94 @@ class CalculatorApp: @unchecked Sendable {
         }
         
         // Process is now running, get the window
-        print("Calculator process is running, looking for main window...")
+        print("Accessing Calculator via process ID")
         
         do {
-            // Get the application element with deep traversal to ensure we find everything
-            let appElement = try await accessibilityService.getApplicationUIElement(
-                bundleIdentifier: CalculatorApp.bundleId,
-                recursive: true,
-                maxDepth: 15 // Use deeper traversal to ensure we find all elements
-            )
-            
-            // Find the main window (typically the first window)
-            for child in appElement.children {
-                if child.role == "AXWindow" {
-                    print("Successfully found Calculator window")
-                    return child
-                }
+            // First, try to activate the Calculator app to bring it to front
+            if let app = application {
+                print("Activating Calculator application")
+                #if swift(>=5.9) && os(macOS) && canImport(AppKit)
+                _ = app.activate()
+                #else
+                _ = app.activate(options: .activateIgnoringOtherApps)
+                #endif
+                try await Task.sleep(for: .milliseconds(500))
+            } else {
+                print("No application reference available")
             }
             
-            // If no window was found in direct children, search deeper in the hierarchy
-            print("No window found in direct children, searching deeper...")
+            // Try multiple approaches to find the window
             
-            // Recursive function to find window at any level
-            func findWindowRecursively(in element: UIElement, depth: Int = 0) -> UIElement? {
-                // Limit recursion depth for safety
-                guard depth < 5 else { return nil }
+            // Approach 1: Direct application element lookup with minimal recursion
+            print("Trying direct application element lookup...")
+            if let pid = getProcessId() {
+                print("Using process ID: \(pid)")
+            }
+            
+            // Try multiple times with increasing maxDepth
+            for attempt in 1...3 {
+                let maxDepth = attempt * 5 // Increase depth with each attempt
+                print("Attempt \(attempt) with maxDepth \(maxDepth)")
                 
-                // Check if this is a window
-                if element.role == "AXWindow" {
-                    return element
-                }
+                let appElement = try await accessibilityService.getApplicationUIElement(
+                    bundleIdentifier: CalculatorApp.bundleId,
+                    recursive: true,
+                    maxDepth: maxDepth 
+                )
                 
-                // Search children
-                for child in element.children {
-                    if let window = findWindowRecursively(in: child, depth: depth + 1) {
-                        return window
+                // Check direct children first
+                for child in appElement.children {
+                    if child.role == "AXWindow" {
+                        print("Successfully found Calculator window in direct children")
+                        return child
                     }
                 }
                 
-                return nil
+                // Recursive search with clear logging
+                func findWindowRecursively(in element: UIElement, depth: Int = 0, path: String = "root") -> UIElement? {
+                    // Limit recursion depth
+                    guard depth < maxDepth else { return nil }
+                    
+                    // Check if this is a window
+                    if element.role == "AXWindow" {
+                        print("Found window at path: \(path)")
+                        return element
+                    }
+                    
+                    // Search children
+                    for (i, child) in element.children.enumerated() {
+                        let childPath = "\(path)/\(i):\(child.role)"
+                        if let window = findWindowRecursively(in: child, depth: depth + 1, path: childPath) {
+                            return window
+                        }
+                    }
+                    
+                    return nil
+                }
+                
+                // Try the recursive search
+                if let window = findWindowRecursively(in: appElement) {
+                    print("Found Calculator window via search at depth \(maxDepth)")
+                    return window
+                }
+                
+                // Small delay before next attempt
+                try await Task.sleep(for: .milliseconds(300))
             }
             
-            // Try the recursive search
-            if let window = findWindowRecursively(in: appElement) {
-                print("Found Calculator window via deep search")
-                return window
+            // Last resort: look for any UI element we can use
+            print("WARNING: Could not find standard Calculator window, looking for any usable UI element...")
+            let lastResortElement = try await accessibilityService.getApplicationUIElement(
+                bundleIdentifier: CalculatorApp.bundleId,
+                recursive: false
+            )
+            
+            if !lastResortElement.children.isEmpty {
+                print("Using application element itself as fallback")
+                return lastResortElement
             }
             
-            print("No Calculator window found after deep search")
+            print("No Calculator window found after all attempts")
             return nil
         } catch {
             print("Error getting application element: \(error)")

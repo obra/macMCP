@@ -223,7 +223,7 @@ public class AccessibilityElement {
         let currentPath = path.isEmpty ? role : "\(path)/\(role)"
         
         // Log at all depths for better debugging visibility
-        NSLog("Converting element at depth \(depth): \(currentPath) - \(identifier)")
+        // NSLog("Converting element at depth \(depth): \(currentPath) - \(identifier)")
         
         // Create the element first (without children)
         let element = UIElement(
@@ -289,11 +289,6 @@ public class AccessibilityElement {
                                 let visibilityAttr = try? getAttribute(axChild, attribute: "AXVisible")
                                 let isVisible = (visibilityAttr as? Bool) ?? true
                                 
-                                // Debug log for SplitGroup visibility issues
-                                if childRole == "AXSplitGroup" {
-                                    NSLog("AXSplitGroup visibility check: role=\(childRole), AXVisible=\(visibilityAttr as? Bool ?? true)")
-                                }
-                                
                                 let isEnabled = (try? getAttribute(axChild, attribute: "AXEnabled") as? Bool) ?? true
                                 let isHidden = (try? getAttribute(axChild, attribute: "AXHidden") as? Bool) ?? false
                                 
@@ -354,7 +349,7 @@ public class AccessibilityElement {
                                 if (!isAvailable || !isMenuAvailable) {
                                     // Only log skips at higher depths to reduce noise
                                     if depth < 3 {
-                                        NSLog("SKIPPING invisible element: \(childRole)")
+                                      //  NSLog("SKIPPING invisible element: \(childRole)")
                                     }
                                     
                                     // Create a stub element without children

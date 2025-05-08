@@ -80,6 +80,10 @@ public struct UIInteractionTool {
                     "type": .string("string"),
                     "description": .string("The ID of the UI element to interact with")
                 ]),
+                "appBundleId": .object([
+                    "type": .string("string"),
+                    "description": .string("Optional bundle ID of the application containing the element (helps with finding elements in specific apps)")
+                ]),
                 "x": .object([
                     "type": .string("number"),
                     "description": .string("X coordinate for positional actions (required for position-based clicking)")
@@ -192,8 +196,13 @@ public struct UIInteractionTool {
     private func handleClick(_ params: [String: Value]) async throws -> [Tool.Content] {
         // Element ID click
         if let elementId = params["elementId"]?.stringValue {
-            try await interactionService.clickElement(identifier: elementId)
-            return [.text("Successfully clicked element with ID: \(elementId)")]
+            // Check if app bundle ID is provided
+            let appBundleId = params["appBundleId"]?.stringValue
+            
+            try await interactionService.clickElement(identifier: elementId, appBundleId: appBundleId)
+            
+            let bundleIdInfo = appBundleId != nil ? " in app \(appBundleId!)" : ""
+            return [.text("Successfully clicked element with ID: \(elementId)\(bundleIdInfo)")]
         }
         
         // Position click
@@ -223,6 +232,18 @@ public struct UIInteractionTool {
                     "providedParams": "\(params.keys.joined(separator: ", "))"
                 ]
             ).asMCPError
+        }
+        
+        // Check if app bundle ID is provided
+        let appBundleId = params["appBundleId"]?.stringValue
+        
+        if let appId = appBundleId {
+            // If we update doubleClickElement in the future to support appBundleId, use this
+            // try await interactionService.doubleClickElement(identifier: elementId, appBundleId: appId)
+            
+            // For now, we can't pass the bundle ID to doubleClickElement
+            logger.warning("appBundleId parameter is provided but not yet supported for double_click action", 
+                    metadata: ["elementId": "\(elementId)", "appBundleId": "\(appId)"])
         }
         
         try await interactionService.doubleClickElement(identifier: elementId)
