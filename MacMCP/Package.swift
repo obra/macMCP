@@ -10,7 +10,8 @@ let package = Package(
     ],
     products: [
         .executable(name: "MacMCP", targets: ["MacMCP"]),
-        .executable(name: "ax-inspector", targets: ["AccessibilityInspector"])
+        .executable(name: "ax-inspector", targets: ["AccessibilityInspector"]),
+        .executable(name: "mcp-ax-inspector", targets: ["MCPAccessibilityInspector"])
     ],
     dependencies: [
         .package(path: "../swift-sdk"),
@@ -34,6 +35,15 @@ let package = Package(
                 .product(name: "Logging", package: "swift-log")
             ],
             path: "Tools/AccessibilityInspector"),
+        .executableTarget(
+            name: "MCPAccessibilityInspector",
+            dependencies: [
+                .target(name: "MacMCP"),
+                .product(name: "MCP", package: "swift-sdk"),
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "Logging", package: "swift-log")
+            ],
+            path: "Tools/MCPAccessibilityInspector"),
         .testTarget(
             name: "MacMCPTests",
             dependencies: ["MacMCP"])
