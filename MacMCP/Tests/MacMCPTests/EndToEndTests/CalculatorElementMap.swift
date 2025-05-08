@@ -10,8 +10,8 @@ enum CalculatorElements {
     /// Represents the main Calculator display element
     static let display = "Display"
     
-    /// Represents the clear button (AC/C)
-    static let clear = "AC"
+    /// Represents the clear button (All Clear/C)
+    static let clear = "AllClear"
     
     /// Represents digit buttons (0-9)
     struct Digits {
@@ -167,13 +167,15 @@ extension CalculatorApp {
                     let isMatch = element.identifier.contains(identifier) ||
                                   element.title?.contains(identifier) == true ||
                                   element.value?.contains(identifier) == true ||
+                                  element.elementDescription?.contains(identifier) == true ||
                                   element.description.contains(identifier)
                     
                     let prefix = isMatch ? "POTENTIAL MATCH: " : ""
                     let buttonDetails = "\(prefix)Button: role=\(element.role), id=\(element.identifier), " +
                                        "title=\(element.title ?? "nil"), " +
                                        "value=\(element.value ?? "nil"), " +
-                                       "description=\(element.description)"
+                                       "description=\(element.description), " +
+                                       "elementDescription=\(element.elementDescription ?? "nil")"
                     
                     // Only print detailed info if it's a potential match to reduce log noise
                     if isMatch {
@@ -187,8 +189,17 @@ extension CalculatorApp {
                         // Check for exact matches in different button properties
                         if element.identifier == identifier ||
                            element.title == identifier ||
-                           element.value == identifier {
+                           element.value == identifier ||
+                           element.elementDescription == identifier {
                             print("FOUND EXACT MATCH")
+                            return element
+                        }
+                        
+                        // For special identifiers (like AllClear, Clear), be lenient with description matches
+                        if identifier.count > 1 && 
+                           (element.elementDescription?.contains(identifier) == true ||
+                            identifier.contains(element.elementDescription ?? "")) {
+                            print("FOUND MATCH BY DESCRIPTION")
                             return element
                         }
                         
@@ -196,6 +207,7 @@ extension CalculatorApp {
                         if identifier.count == 1 &&
                            (element.title?.contains(identifier) == true ||
                             element.value?.contains(identifier) == true ||
+                            element.elementDescription?.contains(identifier) == true ||
                             element.identifier.contains(identifier)) {
                             print("FOUND MATCH FOR DIGIT OR OPERATOR")
                             return element
@@ -206,6 +218,7 @@ extension CalculatorApp {
                         if specialOperations.contains(identifier) &&
                            (element.title?.contains(identifier) == true ||
                             element.value?.contains(identifier) == true ||
+                            element.elementDescription?.contains(identifier) == true ||
                             element.description.contains(identifier)) {
                             print("FOUND MATCH FOR SPECIAL OPERATION")
                             return element
@@ -331,14 +344,24 @@ extension CalculatorApp {
         
         // Clear the calculator - try multiple button identifiers that might work
         print("Attempting to clear calculator")
+        
+        // Try all known identifiers for clear button
         var clearSuccess = try await pressButton(identifier: CalculatorElements.clear)
+        if !clearSuccess {
+            print("Failed to clear with AllClear, trying alternative 'AC' button")
+            clearSuccess = try await pressButton(identifier: "AC")
+        }
         if !clearSuccess {
             print("Failed to clear with AC, trying alternative 'C' button")
             clearSuccess = try await pressButton(identifier: "C")
         }
         if !clearSuccess {
-            print("Failed to clear with C, trying CE button")
-            clearSuccess = try await pressButton(identifier: "CE")
+            print("Failed to clear with C, trying alternative 'All Clear' using description")
+            clearSuccess = try await pressButton(identifier: "All Clear")
+        }
+        if !clearSuccess {
+            print("Failed to clear with All Clear, trying Clear button")
+            clearSuccess = try await pressButton(identifier: "Clear")
         }
         if !clearSuccess {
             print("FAILED: Could not clear calculator with any clear button")
