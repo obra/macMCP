@@ -40,3 +40,6 @@ type-conversion-fix.md
 # External resources
 CDL/
 swift-sdk/
+# Ignore HTTP archive logs
+http-logs/
+**/http-logs/
