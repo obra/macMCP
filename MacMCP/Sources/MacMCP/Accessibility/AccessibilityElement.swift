@@ -967,22 +967,19 @@ public class AccessibilityElement {
     private static func getActionNames(for element: AXUIElement) throws -> [String] {
         // Use try-catch to handle any errors gracefully
         do {
-            // First try the normal attribute method
-            if let actionNames = try getAttribute(element, attribute: AXAttribute.actions) as? [String],
-               !actionNames.isEmpty {
-                return actionNames
-            }
-            
-            // If that fails or returns empty, use direct API call
+            // Always use direct API call as it's more reliable
             var actionNamesRef: CFArray?
             let result = AXUIElementCopyActionNames(element, &actionNamesRef)
             
             if result == .success, let actions = actionNamesRef as? [String] {
-                // Log when using direct API finds actions that getAttribute didn't
-                if !actions.isEmpty {
-                    NSLog("Direct AXUIElementCopyActionNames found actions that getAttribute missed: \(actions.joined(separator: ", "))")
-                }
                 return actions
+            }
+            
+            // Fallback to attribute method only if direct API call fails
+            if let actionNames = try? getAttribute(element, attribute: AXAttribute.actions) as? [String],
+               !actionNames.isEmpty {
+                NSLog("Fallback to getAttribute for actions succeeded where AXUIElementCopyActionNames failed")
+                return actionNames
             }
             
             // If we get here, no actions were found by either method
