@@ -54,10 +54,7 @@ public class CalculatorDriver: BaseApplicationDriver, @unchecked Sendable {
     /// Get the display value shown on the calculator
     /// - Returns: The current display value or nil if not found
     public func getDisplayValue() async throws -> String? {
-        print("DEBUG: Getting calculator display value")
-        
         guard let window = try await getMainWindow() else {
-            print("DEBUG: Could not get calculator window")
             return nil
         }
         
@@ -68,18 +65,14 @@ public class CalculatorDriver: BaseApplicationDriver, @unchecked Sendable {
         // Function to gather all ScrollAreas which might contain the display
         func findScrollAreas(in element: UIElement, depth: Int = 0) {
             if element.role == "AXScrollArea" {
-                print("DEBUG: Found ScrollArea at depth \(depth), children: \(element.children.count)")
                 scrollAreas.append(element)
             }
             
             // Also check for any StaticText that might be the display
             if element.role == "AXStaticText" && element.value != nil {
-                print("DEBUG: Found StaticText with value: \(element.value ?? "nil")")
-                
                 // If the value can be converted to a number, this is likely the display
-                if let valueStr = String(describing: element.value),
-                   let _ = Double(valueStr.replacingOccurrences(of: "[^0-9.-]", with: "", options: .regularExpression)) {
-                    print("DEBUG: Found numeric display value: \(valueStr)")
+                let valueStr = String(describing: element.value!)
+                if let _ = Double(valueStr.replacingOccurrences(of: "[^0-9.-]", with: "", options: .regularExpression)) {
                     displayElement = element
                 }
             }
@@ -96,7 +89,6 @@ public class CalculatorDriver: BaseApplicationDriver, @unchecked Sendable {
         // If we already found a display element with a numeric value, return it
         if let display = displayElement, let value = display.value {
             let strValue = String(describing: value)
-            print("DEBUG: Returning numeric display value: \(strValue)")
             
             // Clean up any non-numeric characters
             let cleanValue = strValue.replacingOccurrences(of: "[^0-9.-]", with: "", options: .regularExpression)
@@ -105,7 +97,6 @@ public class CalculatorDriver: BaseApplicationDriver, @unchecked Sendable {
         
         // If we found ScrollAreas, check them for StaticText children
         if !scrollAreas.isEmpty {
-            print("DEBUG: Found \(scrollAreas.count) ScrollAreas")
             
             // Sort ScrollAreas by position - display is typically at the top
             let sortedAreas = scrollAreas.sorted { $0.frame.origin.y < $1.frame.origin.y }
@@ -117,7 +108,6 @@ public class CalculatorDriver: BaseApplicationDriver, @unchecked Sendable {
                 // Check for StaticText child in the result area
                 for child in resultArea.children {
                     if child.role == "AXStaticText", let value = child.value {
-                        print("DEBUG: Found display value in second ScrollArea: \(value)")
                         let strValue = String(describing: value)
                         
                         // Clean up any non-numeric characters
@@ -131,7 +121,6 @@ public class CalculatorDriver: BaseApplicationDriver, @unchecked Sendable {
             for area in sortedAreas {
                 for child in area.children {
                     if child.role == "AXStaticText", let value = child.value {
-                        print("DEBUG: Found display value in ScrollArea: \(value)")
                         let strValue = String(describing: value)
                         
                         // Clean up any non-numeric characters
@@ -158,7 +147,6 @@ public class CalculatorDriver: BaseApplicationDriver, @unchecked Sendable {
         }
         
         if let staticText = findStaticText(in: window), let value = staticText.value {
-            print("DEBUG: Fallback - found StaticText with value: \(value)")
             let strValue = String(describing: value)
             
             // Clean up any non-numeric characters
@@ -166,7 +154,6 @@ public class CalculatorDriver: BaseApplicationDriver, @unchecked Sendable {
             return cleanValue.isEmpty ? strValue : cleanValue
         }
         
-        print("DEBUG: Could not find calculator display value")
         return nil
     }
     
@@ -174,8 +161,6 @@ public class CalculatorDriver: BaseApplicationDriver, @unchecked Sendable {
     /// - Parameter button: The button to press
     /// - Returns: True if the button was pressed successfully
     public func pressButton(_ button: String) async throws -> Bool {
-        print("DEBUG: CalculatorDriver.pressButton('\(button)') - Starting")
-        
         // Find the button element
         guard let window = try await getMainWindow() else {
             throw NSError(
@@ -185,40 +170,13 @@ public class CalculatorDriver: BaseApplicationDriver, @unchecked Sendable {
             )
         }
         
-        // Debug: Print all buttons found in the calculator
-        print("DEBUG: Searching for button '\(button)'")
-        print("DEBUG: Available buttons in calculator window:")
-        
-        func logAllButtons(in element: UIElement, depth: Int = 0) {
-            let indent = String(repeating: "  ", count: depth)
-            if element.role == "AXButton" {
-                print("\(indent)Button: title='\(element.title ?? "nil")' id='\(element.identifier)' frame={\(element.frame.origin.x), \(element.frame.origin.y), \(element.frame.size.width), \(element.frame.size.height)} frameSource=\(element.frameSource.rawValue)")
-            }
-            
-            for child in element.children {
-                logAllButtons(in: child, depth: depth + 1)
-            }
-        }
-        
-        // Log all buttons
-        logAllButtons(in: window)
-        
         // Look for the button in the window
         var buttonElement: UIElement?
         
         // Depth-first search for the button
         func findButton(in element: UIElement) -> UIElement? {
             // Check if this element is the button
-            if element.role == "AXButton" {
-                // Debug log match attempts
-                print("DEBUG: Checking button: title='\(element.title ?? "nil")' id='\(element.identifier)'")
-                
-                // Debug raw strings to understand matching issues
-                print("DEBUG: Button string to match: '\(button)'")
-                print("DEBUG: Checking element: '\(element.identifier)'")
-                print("DEBUG: Element title: '\(element.title ?? "nil")'")
-                print("DEBUG: Element description: '\(element.elementDescription ?? "nil")'")
-                
+            if element.role == "AXButton" {                
                 // Various matching strategies
                 var matches = [String: Bool]()
                 
@@ -236,14 +194,8 @@ public class CalculatorDriver: BaseApplicationDriver, @unchecked Sendable {
                 // 4. Description contains match for numeric buttons
                 matches["descriptionContains"] = element.elementDescription?.contains(button) == true
                 
-                // Log all match results
-                for (type, result) in matches {
-                    print("DEBUG:   - \(type) match: \(result)")
-                }
-                
                 // An element matches if ANY of these conditions are true
                 if matches.values.contains(true) {
-                    print("DEBUG: FOUND MATCH for '\(button)': \(element.identifier)")
                     return element
                 }
             }
@@ -268,11 +220,7 @@ public class CalculatorDriver: BaseApplicationDriver, @unchecked Sendable {
             )
         }
         
-        print("DEBUG: Clicking button with identifier: \(element.identifier)")
-        print("DEBUG: Button frame: {\(element.frame.origin.x), \(element.frame.origin.y), \(element.frame.size.width), \(element.frame.size.height)} source=\(element.frameSource.rawValue)")
-        print("DEBUG: Button isClickable: \(element.isClickable)")
-        print("DEBUG: Button isEnabled: \(element.isEnabled)")
-        print("DEBUG: Button isVisible: \(element.isVisible)")
+        // Add a small delay before interacting with the button
         
         // Add a small delay to ensure UI is ready
         try await Task.sleep(for: .milliseconds(500))
@@ -290,23 +238,23 @@ public class CalculatorDriver: BaseApplicationDriver, @unchecked Sendable {
     /// - Returns: The result of the calculation
     public func calculate(num1: String, operation: String, num2: String) async throws -> String? {
         // Clear first
-        try await pressButton(Button.allClear)
+        let _ = try await pressButton(Button.allClear)
         
         // Enter first number
         for digit in num1 {
-            try await pressButton(String(digit))
+            let _ = try await pressButton(String(digit))
         }
         
         // Press operation
-        try await pressButton(operation)
+        let _ = try await pressButton(operation)
         
         // Enter second number
         for digit in num2 {
-            try await pressButton(String(digit))
+            let _ = try await pressButton(String(digit))
         }
         
         // Press equals
-        try await pressButton(Button.equals)
+        let _ = try await pressButton(Button.equals)
         
         // Get result
         return try await getDisplayValue()
