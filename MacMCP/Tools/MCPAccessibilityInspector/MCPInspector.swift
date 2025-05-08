@@ -16,18 +16,53 @@ class MCPInspector {
     private let maxDepth: Int
     private var elementIndex = 0
     
-    // MCP client for communicating with the MCP server
-    private var mcpClient: MCPClient?
+    // Official MCP client for communicating with the MCP server
+    private var mcpClient: Client?
+    private var transport: StdioTransport?
+    private var process: Process?
     
     init(appId: String?, pid: Int?, maxDepth: Int, mcpPath: String? = nil) {
         self.appId = appId
         self.pid = pid
         self.maxDepth = maxDepth
         
-        // Create the MCP client with the correct path
+        // Set up MCP path
         let serverPath = mcpPath ?? "./MacMCP"  // Default to local directory if not specified
         print("Using MCP server at: \(serverPath)")
-        self.mcpClient = MCPClient(serverPath: serverPath)
+        
+        // Create a process for the MCP server
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: serverPath)
+        process.arguments = ["--debug"]  // Use debug mode for extra logging
+        
+        // Set up pipes for stdin/stdout
+        let inPipe = Pipe()
+        let outPipe = Pipe()
+        let errPipe = Pipe()
+        
+        process.standardInput = inPipe
+        process.standardOutput = outPipe
+        process.standardError = errPipe
+        
+        // Store process for later use
+        self.process = process
+        
+        // Set up error pipe reader to monitor MCP server output
+        Task {
+            for try await line in errPipe.fileHandleForReading.bytes.lines {
+                print("MCP server stderr: \(line)")
+            }
+        }
+        
+        // Create client
+        self.mcpClient = Client(name: "MCPAXInspector", version: "1.0.0")
+        
+        // Create stdio transport using the pipes
+        self.transport = StdioTransport(
+            input: FileDescriptor(rawValue: outPipe.fileHandleForReading.fileDescriptor),
+            output: FileDescriptor(rawValue: inPipe.fileHandleForWriting.fileDescriptor),
+            logger: inspectorLogger
+        )
     }
     
     /// Inspects the application and returns the root UI element node
@@ -60,13 +95,21 @@ class MCPInspector {
         }
         
         // Use MCP's UIStateTool to get UI information
-        let jsonData = try await fetchUIStateData(bundleIdentifier: bundleIdentifier, maxDepth: maxDepth)
+        let uiState = try await fetchUIStateData(bundleIdentifier: bundleIdentifier, maxDepth: maxDepth)
         
-        // Process JSON data
+        // Process the UI state
         do {
-            // Parse JSON response
-            guard let jsonArray = jsonData as? [[String: Any]],
-                  let rootJson = jsonArray.first else {
+            // UI state is returned as a [Tool.Content] array with a text (JSON string) value
+            guard let jsonString = uiState.content.first?.textValue else {
+                throw InspectionError.unexpectedError("Invalid response format from MCP: missing text content")
+            }
+            
+            // Convert the JSON string to data
+            let jsonData = jsonString.data(using: .utf8)!
+            
+            // Parse the JSON into an array of dictionaries
+            let jsonArray = try JSONSerialization.jsonObject(with: jsonData) as? [[String: Any]]
+            guard let rootJson = jsonArray?.first else {
                 throw InspectionError.unexpectedError("Invalid JSON response from MCP")
             }
             
@@ -88,39 +131,57 @@ class MCPInspector {
     
     /// Start the MCP server if it's not already running
     private func startMCPIfNeeded() async throws {
-        guard let mcpClient = self.mcpClient else {
-            throw InspectionError.unexpectedError("MCP client not initialized")
+        guard let process = self.process, let transport = self.transport, let mcpClient = self.mcpClient else {
+            throw InspectionError.unexpectedError("MCP client not initialized properly")
         }
         
-        // Start the MCP server process
-        try mcpClient.startServer()
-        
-        // Small delay to let the server initialize
-        try await Task.sleep(for: .milliseconds(500))
+        // Start the MCP server process if not already running
+        if !process.isRunning {
+            print("Starting MCP server process...")
+            try process.run()
+            
+            // Connect the transport to the server
+            try await transport.connect()
+            
+            // Connect the client to the transport
+            try await mcpClient.connect(transport: transport)
+            
+            // Initialize the client
+            print("Initializing MCP client...")
+            _ = try await mcpClient.initialize()
+            
+            // Test connectivity with ping
+            try await mcpClient.ping()
+            print("Successfully connected to MCP server")
+        }
     }
     
     /// Fetches UI state data from MCP UIStateTool
-    private func fetchUIStateData(bundleIdentifier: String, maxDepth: Int) async throws -> Any {
+    private func fetchUIStateData(bundleIdentifier: String, maxDepth: Int) async throws -> CallTool.Result {
         guard let mcpClient = self.mcpClient else {
             throw InspectionError.unexpectedError("MCP client not initialized")
         }
         
         // Create the request parameters for the UIStateTool
-        let params: [String: Any] = [
-            "scope": "application",
-            "bundleId": bundleIdentifier,
-            "maxDepth": maxDepth
+        let arguments: [String: Value] = [
+            "scope": .string("application"),
+            "bundleId": .string(bundleIdentifier),
+            "maxDepth": .int(maxDepth)
         ]
         
         // Send request to the MCP server
         do {
             print("Sending UI state request to MCP for: \(bundleIdentifier)")
-            let response = try await mcpClient.sendRequest(
-                toolName: "macos_ui_state",
-                params: params
+            let (content, isError) = try await mcpClient.callTool(
+                name: "macos_ui_state",
+                arguments: arguments
             )
             
-            return response
+            if let isError = isError, isError {
+                throw InspectionError.unexpectedError("Error from MCP tool: \(content)")
+            }
+            
+            return CallTool.Result(content: content)
         } catch {
             inspectorLogger.error("Failed to fetch UI state data: \(error.localizedDescription)")
             print("ERROR: Detailed UI state error: \(error)")
@@ -131,7 +192,14 @@ class MCPInspector {
     /// Cleanup resources
     deinit {
         // Stop the MCP server on cleanup
-        mcpClient?.stopServer()
+        Task {
+            // Disconnect the client
+            await mcpClient?.disconnect()
+            
+            // Terminate the process
+            process?.terminate()
+            process = nil
+        }
     }
 }
 
