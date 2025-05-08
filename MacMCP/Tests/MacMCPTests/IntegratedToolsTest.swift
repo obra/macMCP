@@ -48,10 +48,10 @@ final class IntegratedToolsTest: XCTestCase {
         try await super.tearDown()
     }
     
-    /// Skip tests that require interactive UI in CI environment
+    /// Skip tests that require interactive UI if explicitly disabled
     private func skipIfCI() throws {
-        if ProcessInfo.processInfo.environment["CI"] == "true" {
-            throw XCTSkip("Skipping interactive UI test in CI environment")
+        if ProcessInfo.processInfo.environment["SKIP_INTERACTIVE_TESTS"] == "true" {
+            throw XCTSkip("Skipping interactive UI test because SKIP_INTERACTIVE_TESTS is set")
         }
     }
     

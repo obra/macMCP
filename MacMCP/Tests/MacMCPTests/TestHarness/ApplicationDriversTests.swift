@@ -80,9 +80,9 @@ final class ApplicationDriversTests: XCTestCase {
     }
     
     func testTextEditDriver() async throws {
-        // Skip this test if running in a CI environment or without user interaction
-        let runInteractiveTests = ProcessInfo.processInfo.environment["RUN_INTERACTIVE_TESTS"] == "true"
-        guard runInteractiveTests else {
+        // Skip this test if explicitly disabled
+        let skipInteractiveTests = ProcessInfo.processInfo.environment["SKIP_INTERACTIVE_TESTS"] == "true"
+        guard !skipInteractiveTests else {
             throw XCTSkip("Skipping interactive test that requires user environment")
         }
         
@@ -112,9 +112,9 @@ final class ApplicationDriversTests: XCTestCase {
     }
     
     func testSafariDriver() async throws {
-        // Skip this test if running in a CI environment or without internet connection
-        let runNetworkTests = ProcessInfo.processInfo.environment["RUN_NETWORK_TESTS"] == "true"
-        guard runNetworkTests else {
+        // Skip this test if explicitly disabled
+        let skipNetworkTests = ProcessInfo.processInfo.environment["SKIP_NETWORK_TESTS"] == "true"
+        guard !skipNetworkTests else {
             throw XCTSkip("Skipping network test that requires internet connection")
         }
         
@@ -155,9 +155,9 @@ final class ApplicationDriversTests: XCTestCase {
     }
     
     func testMultipleDriversSequentially() async throws {
-        // Skip if not running interactive tests
-        let runInteractiveTests = ProcessInfo.processInfo.environment["RUN_INTERACTIVE_TESTS"] == "true"
-        guard runInteractiveTests else {
+        // Skip if explicitly disabled
+        let skipInteractiveTests = ProcessInfo.processInfo.environment["SKIP_INTERACTIVE_TESTS"] == "true"
+        guard !skipInteractiveTests else {
             throw XCTSkip("Skipping interactive test that requires user environment")
         }
         
