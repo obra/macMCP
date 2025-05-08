@@ -13,6 +13,10 @@
 - ✅ Extend ToolInvoker with support for all MacMCP tools
 - ✅ Create standalone element testing framework (with example button test)
 - ✅ Discover bug in element identification with zero frame coordinates
+- ✅ Fix bug with elements reporting zero frame coordinates (affects clickability)
+- ✅ Improve calculator button detection for more reliable tests
+- ✅ Enhance element traversal for deeply nested UI elements
+- ✅ Fix compiler warnings in test drivers and accessibility elements
 
 ## High Priority Tasks
 - ⬜ Implement multiple app detection strategies (bundle ID, name, partial matching)
@@ -25,7 +29,7 @@
 - ⬜ Support identifying elements by visible text
 - ⬜ Enhance menu navigation with retry logic and robust discovery
 - ⬜ Improve window management with caching and multiple lookup methods
-- ⬜ Fix bug with elements reporting zero frame coordinates (affects clickability)
+- ✅ Fix bug with elements reporting zero frame coordinates (affects clickability)
 - ⬜ Implement InteractionVerifier for testing framework
 
 ## Medium Priority Tasks
@@ -64,8 +68,8 @@
 - ⬜ Implement InteractionVerifier for validating UI interactions
 - ✅ Add support for all tools in ToolInvoker
 - ⬜ Create comprehensive test suite using the new framework
-- ⬜ Fix warning messages in driver implementations
-- ⬜ Improve calculator button detection for more reliable tests (fix zero-frame bug)
+- ✅ Fix warning messages in driver implementations
+- ✅ Improve calculator button detection for more reliable tests (fix zero-frame bug)
 - ⬜ Add detailed documentation for testing framework components
 - ⬜ Migrate existing E2E tests to use the new framework
 - ⬜ Fix element-level screenshot testing to properly handle element identification
