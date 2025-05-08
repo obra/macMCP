@@ -22,8 +22,22 @@ else if CommandLine.arguments.count <= 1 {
     // Configure logging to stderr only (never stdout)
     let logger = Logger(label: "mcp.macos") { label in
         var handler = StreamLogHandler.standardError(label: label)
-        // Always use debug level logging for direct mode to help diagnose issues
-        handler.logLevel = .debug
+        
+        // Check for test environment
+        let isTestEnvironment = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+        
+        // Check for environment variable to override log level
+        if let logLevelEnv = ProcessInfo.processInfo.environment["MCP_LOG_LEVEL"],
+           let specifiedLevel = Logger.Level(rawValue: logLevelEnv.lowercased()) {
+            handler.logLevel = specifiedLevel
+        } else if isTestEnvironment {
+            // Default to warning level for tests to reduce noise
+            handler.logLevel = .warning
+        } else {
+            // Default to debug level logging for normal operation
+            handler.logLevel = .debug
+        }
+        
         return handler
     }
     
@@ -88,7 +102,20 @@ struct MacMCPCommand: ParsableCommand {
     
     mutating func run() async throws {
         // Configure logging
-        let logLevel: Logger.Level = debug ? .debug : .info
+        var logLevel: Logger.Level = debug ? .debug : .info
+        
+        // Check for test environment
+        let isTestEnvironment = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+        
+        // Check for environment variable to override log level
+        if let logLevelEnv = ProcessInfo.processInfo.environment["MCP_LOG_LEVEL"],
+           let specifiedLevel = Logger.Level(rawValue: logLevelEnv.lowercased()) {
+            logLevel = specifiedLevel
+        } else if isTestEnvironment {
+            // Default to warning level for tests to reduce noise
+            logLevel = .warning
+        }
+        
         let logger = Logger(label: "mcp.macos") { label in
             var handler = StreamLogHandler.standardError(label: label)
             handler.logLevel = logLevel

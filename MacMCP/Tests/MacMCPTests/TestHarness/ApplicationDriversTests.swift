@@ -15,8 +15,8 @@ final class ApplicationDriversTests: XCTestCase {
     override func setUp() async throws {
         try await super.setUp()
         
-        // Create a test logger for capturing logs
-        let (logger, handler) = Logger.testLogger(label: "com.mac.mcp.test.drivers")
+        // Create a test logger for capturing logs - use warning level to reduce noise
+        let (logger, handler) = Logger.testLogger(label: "com.mac.mcp.test.drivers", level: .warning)
         
         // Create the test harness
         toolTestHarness = ToolTestHarness(logger: logger, testHandler: handler)

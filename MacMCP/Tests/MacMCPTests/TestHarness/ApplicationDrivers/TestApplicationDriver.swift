@@ -128,14 +128,11 @@ open class BaseApplicationDriver: TestApplicationDriver, @unchecked Sendable {
     open func launch() async throws -> Bool {
         // Check if app is already running
         if isRunning() {
-            print("\(appName) already running, terminating first...")
             try await terminate()
             
             // Brief pause after termination
             try await Task.sleep(for: .milliseconds(1000))
         }
-        
-        print("Launching \(appName)...")
         
         // Launch the app
         return try await applicationService.openApplication(

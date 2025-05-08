@@ -101,7 +101,8 @@ public struct TestLogHandler: LogHandler, @unchecked Sendable {
     }
     
     /// Create a new test logger with optional label and log level
-    public init(label: String, level: Logger.Level = .trace) {
+    /// Default level is .warning to keep test output clean
+    public init(label: String, level: Logger.Level = .warning) {
         self.label = label
         self.logLevel = level
     }
@@ -129,8 +130,11 @@ public struct TestLogHandler: LogHandler, @unchecked Sendable {
         
         store.add(entry)
         
-        // Print to console for debugging during tests
-        print("[\(level)] \(message)")
+        // Only print warnings and errors to console during tests
+        // This keeps the test output clean while still showing important messages
+        if level >= .warning {
+            print("[\(level)] \(message)")
+        }
     }
     
     /// Reset the logger by clearing all entries
@@ -200,7 +204,8 @@ public struct TestLogHandler: LogHandler, @unchecked Sendable {
 /// Extension to create a Logger with a TestLogHandler
 extension Logger {
     /// Create a test logger that captures log messages
-    public static func testLogger(label: String, level: Logger.Level = .trace) -> (Logger, TestLogHandler) {
+    /// Default level is .warning to keep test output clean
+    public static func testLogger(label: String, level: Logger.Level = .warning) -> (Logger, TestLogHandler) {
         let testHandler = TestLogHandler(label: label, level: level)
         let logger = Logger(label: label) { _ in testHandler }
         return (logger, testHandler)
