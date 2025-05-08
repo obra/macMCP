@@ -222,10 +222,8 @@ public class AccessibilityElement {
         // Build the hierarchical path for debugging
         let currentPath = path.isEmpty ? role : "\(path)/\(role)"
         
-        // Only log elements at key depths to reduce log spam
-        if depth <= 3 || (depth >= 5 && depth <= 6) {
-            NSLog("Converting element at depth \(depth): \(currentPath) - \(identifier)")
-        }
+        // Log at all depths for better debugging visibility
+        NSLog("Converting element at depth \(depth): \(currentPath) - \(identifier)")
         
         // Create the element first (without children)
         let element = UIElement(
@@ -247,27 +245,25 @@ public class AccessibilityElement {
         var children: [UIElement] = []
         
         // Always continue if below the minimum traversal depth (ensures critical controls aren't missed)
-        let minimumTraversalDepth = 10
+        // Increased to 30 to better find deeply nested elements like those in ScrollAreas
+        let minimumTraversalDepth = 30
         let shouldTraverse = recursive && (depth < minimumTraversalDepth || depth < maxDepth)
         
         if shouldTraverse {
             do {
                 if let axChildren = try getAttribute(axElement, attribute: AXAttribute.children) as? [AXUIElement] {
                     // Prioritize containers with higher depth limits
-                    let isLikelyContainer = isControlContainer(role)
                     let isMenuElement = isMenuElement(role)
                     
                     // Use different depth limits based on element type:
                     // - Containers get full depth
-                    // - Menus get very shallow depth
-                    // - Others get reduced depth
+                    // - Menus get shallow depth but still adequate
+                    // - Most elements get full depth now for completeness
                     let adjustedMaxDepth: Int
                     if isMenuElement {
-                        adjustedMaxDepth = min(3, maxDepth) // Very shallow for menus
-                    } else if isLikelyContainer {
-                        adjustedMaxDepth = maxDepth // Full depth for containers
+                        adjustedMaxDepth = min(5, maxDepth) // Allow deeper menu traversal
                     } else {
-                        adjustedMaxDepth = maxDepth - 5 // Reduced for other elements
+                        adjustedMaxDepth = maxDepth // Full depth for most elements
                     }
                     
                     // Sort children to prioritize likely interactive elements and containers
@@ -329,16 +325,25 @@ public class AccessibilityElement {
                                                           childRole == "AXTextField" ||
                                                           childRole == "AXLink"
                                 
-                                // Identify important container elements
+                                // Identify important container and content elements
                                 let isImportantContainer = childRole == "AXSplitGroup" ||
-                                                        childRole == "AXGroup"
+                                                        childRole == "AXGroup" ||
+                                                        childRole == "AXScrollArea"
                                 
-                                // For important containers, we want to be less strict about frame size checks,
-                                // but still respect explicit disabled/hidden attributes
+                                // Identify elements that might contain important text/values
+                                let isValueElement = childRole == "AXStaticText" || 
+                                                   childRole == "AXTextField" ||
+                                                   childRole == "AXTextArea"
+                                
+                                // For important containers and value-containing elements, we want to be less strict about 
+                                // frame size checks, but still respect explicit disabled/hidden attributes
                                 let isAvailable: Bool
                                 if isImportantContainer {
                                     // For containers: don't filter based on zero size, but respect enabled/hidden state
-                                    isAvailable = isVisible && isEnabled && !isHidden
+                                    isAvailable = isVisible && !isHidden
+                                } else if isValueElement {
+                                    // For text elements: similarly don't filter on size or enabled state
+                                    isAvailable = isVisible && !isHidden
                                 } else {
                                     // For other elements: use the normal stringent checks
                                     isAvailable = isVisible && isEnabled && !isHidden && (!hasZeroSize || isInteractiveElement)
@@ -559,8 +564,13 @@ public class AccessibilityElement {
             "AXList",
             "AXOutline",
             "AXGrid",
-            "AXScrollArea",
-            "AXLayoutArea"
+            "AXScrollArea",  // Critical for calculator display
+            "AXLayoutArea",
+            "AXColumn",
+            "AXRow",
+            "AXTable",
+            "AXDisclosureTriangle",
+            "AXSplitter"
         ]
         
         return containerRoles.contains(role)
@@ -618,6 +628,17 @@ public class AccessibilityElement {
             "AXMenuItem",
             "AXMenuButton"
         ]
+        
+        // Never skip traversal of important roles that might contain meaningful content
+        let neverSkipRoles = [
+            "AXScrollArea",
+            "AXStaticText",
+            "AXTextField"
+        ]
+        
+        if neverSkipRoles.contains(role) {
+            return false
+        }
         
         return skipRoles.contains(role)
     }
@@ -965,29 +986,23 @@ public class AccessibilityElement {
     
     /// Get the available action names for an element
     private static func getActionNames(for element: AXUIElement) throws -> [String] {
-        // Use try-catch to handle any errors gracefully
-        do {
-            // Always use direct API call as it's more reliable
-            var actionNamesRef: CFArray?
-            let result = AXUIElementCopyActionNames(element, &actionNamesRef)
-            
-            if result == .success, let actions = actionNamesRef as? [String] {
-                return actions
-            }
-            
-            // Fallback to attribute method only if direct API call fails
-            if let actionNames = try? getAttribute(element, attribute: AXAttribute.actions) as? [String],
-               !actionNames.isEmpty {
-                NSLog("Fallback to getAttribute for actions succeeded where AXUIElementCopyActionNames failed")
-                return actionNames
-            }
-            
-            // If we get here, no actions were found by either method
-            return []
-        } catch {
-            NSLog("WARNING: Failed to get action names: \(error.localizedDescription)")
-            return []
+        // Always use direct API call as it's more reliable
+        var actionNamesRef: CFArray?
+        let result = AXUIElementCopyActionNames(element, &actionNamesRef)
+        
+        if result == .success, let actions = actionNamesRef as? [String] {
+            return actions
         }
+        
+        // Fallback to attribute method only if direct API call fails
+        if let actionNames = try? getAttribute(element, attribute: AXAttribute.actions) as? [String],
+           !actionNames.isEmpty {
+            NSLog("Fallback to getAttribute for actions succeeded where AXUIElementCopyActionNames failed")
+            return actionNames
+        }
+        
+        // If we get here, no actions were found by either method
+        return []
     }
     
     /// Perform an action on an element
