@@ -9,7 +9,8 @@ let package = Package(
         .macOS(.v13)
     ],
     products: [
-        .executable(name: "MacMCP", targets: ["MacMCP"])
+        .executable(name: "MacMCP", targets: ["MacMCP"]),
+        .executable(name: "ax-inspector", targets: ["AccessibilityInspector"])
     ],
     dependencies: [
         .package(path: "../swift-sdk"),
@@ -26,6 +27,13 @@ let package = Package(
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .product(name: "Logging", package: "swift-log")
             ]),
+        .executableTarget(
+            name: "AccessibilityInspector",
+            dependencies: [
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "Logging", package: "swift-log")
+            ],
+            path: "Tools/AccessibilityInspector"),
         .testTarget(
             name: "MacMCPTests",
             dependencies: ["MacMCP"])
