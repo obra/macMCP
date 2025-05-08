@@ -98,96 +98,165 @@ class TreeVisualizer {
         }
         
         return elements.filter { element in
+            // Special case: Always include application elements regardless of visible/enabled state
+            if element.role == "AXApplication" {
+                // For application elements, only apply filters other than visible/enabled
+                for (key, value) in withFilters {
+                    let keyLower = key.lowercased()
+                    
+                    // Skip enabled/visible filters for application elements
+                    if keyLower == "enabled" || keyLower == "visible" {
+                        continue
+                    }
+                    
+                    // Handle component type filters
+                    if keyLower == "component-type" {
+                        if !isElementOfComponentType(element, type: value.lowercased()) {
+                            return false
+                        }
+                    } else if keyLower == "component-types" {
+                        let types = value.lowercased().split(separator: ",").map { String($0.trimmingCharacters(in: .whitespaces)) }
+                        var matchesAny = false
+                        for componentType in types {
+                            if isElementOfComponentType(element, type: componentType) {
+                                matchesAny = true
+                                break
+                            }
+                        }
+                        if !matchesAny {
+                            return false
+                        }
+                    }
+                    // Handle all other filters
+                    else if !applyStandardFilter(element, key: keyLower, value: value) {
+                        return false
+                    }
+                }
+                return true
+            }
+            
+            // Special case: Always include top-level windows regardless of enabled state
+            if element.role == "AXWindow" {
+                // For window elements, only apply filters other than enabled
+                for (key, value) in withFilters {
+                    let keyLower = key.lowercased()
+                    
+                    // Skip enabled filters for window elements
+                    if keyLower == "enabled" {
+                        continue
+                    }
+                    
+                    // Handle component type filters
+                    if keyLower == "component-type" {
+                        if !isElementOfComponentType(element, type: value.lowercased()) {
+                            return false
+                        }
+                    } else if keyLower == "component-types" {
+                        let types = value.lowercased().split(separator: ",").map { String($0.trimmingCharacters(in: .whitespaces)) }
+                        var matchesAny = false
+                        for componentType in types {
+                            if isElementOfComponentType(element, type: componentType) {
+                                matchesAny = true
+                                break
+                            }
+                        }
+                        if !matchesAny {
+                            return false
+                        }
+                    }
+                    // Handle all other filters
+                    else if !applyStandardFilter(element, key: keyLower, value: value) {
+                        return false
+                    }
+                }
+                return true
+            }
+            
+            // For regular elements, apply all filters
             for (key, value) in withFilters {
-                switch key.lowercased() {
-                case "role":
-                    if !element.role.lowercased().contains(value.lowercased()) {
+                let keyLower = key.lowercased()
+                
+                // Handle component type filters
+                if keyLower == "component-type" {
+                    if !isElementOfComponentType(element, type: value.lowercased()) {
                         return false
                     }
-                case "subrole":
-                    if let subrole = element.subrole, !subrole.lowercased().contains(value.lowercased()) {
-                        return false
-                    } else if element.subrole == nil {
-                        return false
-                    }
-                case "title":
-                    if let title = element.title, !title.lowercased().contains(value.lowercased()) {
-                        return false
-                    } else if element.title == nil {
-                        return false
-                    }
-                case "id", "identifier":
-                    if let identifier = element.identifier, !identifier.lowercased().contains(value.lowercased()) {
-                        return false
-                    } else if element.identifier == nil {
-                        return false
-                    }
-                case "enabled":
-                    let isEnabled = element.isEnabled
-                    let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
-                    if isEnabled != valueAsBool {
-                        return false
-                    }
-                case "clickable":
-                    let isClickable = element.isClickable
-                    let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
-                    if isClickable != valueAsBool {
-                        return false
-                    }
-                case "visible":
-                    let isVisible = element.isVisible
-                    let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
-                    if isVisible != valueAsBool {
-                        return false
-                    }
-                case "focused":
-                    let isFocused = element.focused
-                    let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
-                    if isFocused != valueAsBool {
-                        return false
-                    }
-                case "selected":
-                    let isSelected = element.selected
-                    let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
-                    if isSelected != valueAsBool {
-                        return false
-                    }
-                case "component-types":
-                    // Handle multiple component types with OR logic (include if it matches any)
+                } else if keyLower == "component-types" {
                     let types = value.lowercased().split(separator: ",").map { String($0.trimmingCharacters(in: .whitespaces)) }
                     var matchesAny = false
-                    
                     for componentType in types {
                         if isElementOfComponentType(element, type: componentType) {
                             matchesAny = true
                             break
                         }
                     }
-                    
                     if !matchesAny {
                         return false
                     }
-                case "component-type":
-                    // Handle single component type
-                    if !isElementOfComponentType(element, type: value.lowercased()) {
-                        return false
-                    }
-                default:
-                    // Check if filter key is an attribute
-                    if let attrValue = element.attributes[key] {
-                        if let stringValue = attrValue as? String, !stringValue.lowercased().contains(value.lowercased()) {
-                            return false
-                        } else if let numberValue = attrValue as? NSNumber, !numberValue.stringValue.contains(value) {
-                            return false
-                        } else if !(attrValue is String) && !(attrValue is NSNumber) {
-                            return false // Non-string/number attributes are filtered out if specified
-                        }
-                    } else {
-                        return false // Attribute doesn't exist
-                    }
+                }
+                // Handle all other filters
+                else if !applyStandardFilter(element, key: keyLower, value: value) {
+                    return false
                 }
             }
+            
             return true
+        }
+    }
+    
+    /// Helper function to apply a standard filter (non-component type)
+    private func applyStandardFilter(_ element: UIElementNode, key: String, value: String) -> Bool {
+        switch key {
+        case "role":
+            return element.role.lowercased().contains(value.lowercased())
+        case "subrole":
+            if let subrole = element.subrole {
+                return subrole.lowercased().contains(value.lowercased())
+            }
+            return false
+        case "title":
+            if let title = element.title {
+                return title.lowercased().contains(value.lowercased())
+            }
+            return false
+        case "id", "identifier":
+            if let identifier = element.identifier {
+                return identifier.lowercased().contains(value.lowercased())
+            }
+            return false
+        case "enabled":
+            let isEnabled = element.isEnabled
+            let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
+            return isEnabled == valueAsBool
+        case "clickable":
+            let isClickable = element.isClickable
+            let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
+            return isClickable == valueAsBool
+        case "visible":
+            let isVisible = element.isVisible
+            let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
+            return isVisible == valueAsBool
+        case "focused":
+            let isFocused = element.focused
+            let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
+            return isFocused == valueAsBool
+        case "selected":
+            let isSelected = element.selected
+            let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
+            return isSelected == valueAsBool
+        default:
+            // Check if filter key is an attribute
+            if let attrValue = element.attributes[key] {
+                if let stringValue = attrValue as? String, !stringValue.lowercased().contains(value.lowercased()) {
+                    return false
+                } else if let numberValue = attrValue as? NSNumber, !numberValue.stringValue.contains(value) {
+                    return false
+                } else if !(attrValue is String) && !(attrValue is NSNumber) {
+                    return false // Non-string/number attributes are filtered out if specified
+                }
+                return true
+            }
+            return false
         }
     }
     
