@@ -504,3 +504,79 @@ The following section contains insights from the initial implementation of this 
    - Consider parallel execution for independent tests
 
 This guidance should help future engineers understand the nuances of the framework and make more informed implementation decisions.
+
+## Test Suite Audit (May 8, 2025)
+
+An audit of the existing test suite was conducted to identify low-value and redundant tests. The goal is to focus development efforts on high-value tests that provide meaningful validation of the MacMCP functionality.
+
+### Low-Value Tests
+
+#### 1. UIStateToolTests.swift
+**Issue:** Uses mock objects (`MockAccessibilityService`) rather than real accessibility components. Only verifies parameter handling and basic functionality.
+**Recommendation:** Replace with integration tests using real `AccessibilityService` to test against actual applications, similar to `StandaloneDirectToolTest.swift`.
+
+#### 2. ActionLoggingTests.swift
+**Issue:** Tests mock implementations (`LogService` and `ActionLogTool`) rather than the actual logging system.
+**Recommendation:** Replace with integration tests that use the real `ActionLogger` and verify logs are correctly generated during actual UI interactions.
+
+#### 3. AccessibilityTests.swift
+**Issue:** Most tests are skipped or perform trivial validations due to permission requirements.
+**Recommendation:** Replace with properly configured end-to-end tests with accessibility permissions granted before running, using the framework in `StandaloneDirectToolTest.swift`.
+
+#### 4. ScreenshotToolTests.swift
+**Issue:** Uses `MockScreenshotService` that returns synthetic images rather than capturing real screenshots.
+**Recommendation:** Replace with integration tests using the real `ScreenshotService` to verify actual screenshot functionality, similar to `ScreenshotE2ETests.swift`.
+
+#### 5. MenuInteractionTests.swift
+**Issue:** Mostly skeleton tests with `XCTAssertTrue(true)` placeholders. Uses mocks without substantive validation.
+**Recommendation:** Replace with real end-to-end tests that verify menu navigation in actual applications, similar to `BasicArithmeticE2ETests.swift`.
+
+#### 6. UIInteractionToolTests.swift
+**Issue:** Most substantive tests are skipped and redirected to E2E tests. Only tests initialization and basic error cases.
+**Recommendation:** Either consolidate with existing E2E tests or convert to true unit tests with more comprehensive mock verification.
+
+### Redundant Tests
+
+#### 1. UIInteractionToolTests.swift
+**Issue:** Redundant with end-to-end tests (`BasicArithmeticE2ETests.swift` and `KeyboardInputE2ETests.swift`).
+**Recommendation:** Remove or repurpose to test edge cases not covered by E2E tests.
+
+#### 2. UIStateToolTests.swift
+**Issue:** Redundant with `UIStateInspectionE2ETests.swift` which provides more thorough testing with real applications.
+**Recommendation:** Remove or convert to unit tests focused on parameter validation not covered in E2E tests.
+
+### High-Value Tests
+
+#### 1. StandaloneDirectToolTest.swift
+This provides an excellent framework for direct tool testing without protocol layer overhead. It uses real applications and real system components.
+
+#### 2. End-to-End Tests
+All of the E2E tests are highly valuable:
+- `BasicArithmeticE2ETests.swift`
+- `KeyboardInputE2ETests.swift`
+- `ScreenshotE2ETests.swift`
+- `UIStateInspectionE2ETests.swift`
+
+These tests interact with real applications and validate actual functionality.
+
+#### 3. Core Model Tests
+`UIElementTests.swift` provides valuable validation of the core data model.
+
+#### 4. Error Handling Tests
+`ErrorHandlingTests.swift` provides comprehensive error handling validation.
+
+### Recommendations
+
+1. **Eliminate Mock-Heavy Tests**: Remove or replace tests that primarily use mocks when testing core functionality that should be tested with real components.
+
+2. **Standardize on E2E Testing**: The E2E testing approach (with Calculator app) is the most valuable. Standardize more tests to follow this pattern.
+
+3. **Use `StandaloneDirectToolTest.swift` as a Template**: This file demonstrates a good approach for direct tool testing and could be expanded for more comprehensive testing.
+
+4. **Improve Documentation**: In the surviving tests, improve documentation to clearly explain what each test is validating and why.
+
+5. **Prioritize Test Reliability**: Ensure tests that interact with real system components have proper safeguards and permission checking to avoid test failures due to environmental issues.
+
+6. **Focus on Untested Areas**: After removing redundant tests, focus on adding tests for untested or undertested areas of the codebase.
+
+Based on this audit, we've already removed the worthless `ServerTests.swift` and its dependency `MockTransport.swift` which provided no real value as they only tested mocked functionality rather than real server behavior.
