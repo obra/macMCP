@@ -559,7 +559,7 @@ public class AccessibilityElement {
             "AXList",
             "AXOutline",
             "AXGrid",
-            "AXScrollArea",  // Critical for calculator display
+            "AXScrollArea",
             "AXLayoutArea",
             "AXColumn",
             "AXRow",

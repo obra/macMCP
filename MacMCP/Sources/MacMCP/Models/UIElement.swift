@@ -151,7 +151,7 @@ public enum FrameSource: String, Codable {
         if actions.contains(AXAttribute.Action.press) {
             return true
         }
-        
+       /* 
         // For Calculator and other apps that might not correctly report actions,
         // consider button-like elements as clickable even without explicit actions
         if role == AXAttribute.Role.button || 
@@ -165,7 +165,7 @@ public enum FrameSource: String, Codable {
             }
             return true
         }
-        
+       */ 
         return false
     }
     
