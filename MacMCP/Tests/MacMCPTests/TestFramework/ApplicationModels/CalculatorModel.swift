@@ -136,7 +136,9 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
         ) {
             print("✅ DEBUG: getDisplayElement - Found static text by direct ID")
             return element
-        }
+        } else {
+            print("❌ DEBUG: getDisplayElement - Failed to get text by direct ID");
+	}
         
         // Look for the scroll area with description "Input"
         let scrollAreaCriteria = UIElementCriteria(
@@ -148,7 +150,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
             matching: scrollAreaCriteria,
             scope: "application",
             bundleId: bundleId,
-            maxDepth: 10
+            maxDepth: 20 
         ) {
             print("✅ DEBUG: getDisplayElement - Found scroll area with description 'Input'")
             
@@ -159,10 +161,11 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
             
             // Otherwise return the scroll area itself
             return scrollArea
-        }
+        } else {
         
-        print("❌ DEBUG: getDisplayElement - Failed to find any display element")
-        return nil
+        	print("❌ DEBUG: getDisplayElement - Failed to find any display element")
+        	return nil
+	}
     }
     
     /// Get the current value shown in the Calculator display
@@ -170,37 +173,21 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
     public func getDisplayValue() async throws -> String? {
         print("🔍 DEBUG: getDisplayValue - Trying to read calculator display")
 
-        // APPROACH 1: Search for static text elements directly - most reliable
-        let staticTextCriteria = UIElementCriteria(role: "AXStaticText")
 
-        let textElements = try await toolChain.findElements(
-            matching: staticTextCriteria,
+        // First, do a broader search to see all scroll areas
+        let allScrollAreas = try await toolChain.findElements(
+            matching: UIElementCriteria(role: "AXScrollArea"),
             scope: "application",
             bundleId: bundleId,
             maxDepth: 10
         )
 
-        if !textElements.isEmpty {
-            print("✅ DEBUG: getDisplayValue - Found \(textElements.count) static text elements")
-
-            // Try each text element found
-            for (i, element) in textElements.enumerated() {
-                print("   - Text element #\(i): id=\(element.identifier)")
-
-                if let value = element.value {
-                    let stringValue = String(describing: value)
-                    print("✅ DEBUG: getDisplayValue - Found value in text element #\(i): \(stringValue)")
-
-                    // Clean up the string - remove invisible characters and whitespace
-                    let cleanValue = stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
-                                              .replacingOccurrences(of: "‎", with: "") // Remove invisible character
-
-                    return cleanValue
-                }
-            }
+        print("📊 DEBUG: getDisplayValue - Found \(allScrollAreas.count) total scroll areas")
+        for (i, area) in allScrollAreas.enumerated() {
+            print("   - ScrollArea #\(i): id=\(area.identifier), desc=\(area.elementDescription ?? "nil")")
         }
 
-        // APPROACH 2: Search for AXScrollArea with description "Input"
+        // Now try the specific criteria
         let scrollAreaCriteria = UIElementCriteria(
             role: "AXScrollArea",
             description: "Input"
@@ -210,7 +197,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
             matching: scrollAreaCriteria,
             scope: "application",
             bundleId: bundleId,
-            maxDepth: 10
+            maxDepth: 15
         ) {
             print("✅ DEBUG: getDisplayValue - Found AXScrollArea with description 'Input'")
             print("   - ScrollArea ID: \(scrollArea.identifier)")
@@ -220,6 +207,9 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
             if !scrollArea.children.isEmpty {
                 for (i, child) in scrollArea.children.enumerated() {
                     print("   - Child #\(i): role=\(child.role), id=\(child.identifier)")
+                    print("   - Child #\(i) value: \(child.value ?? "nil")")
+                    print("   - Child #\(i) title: \(child.title ?? "nil")")
+                    print("   - Child #\(i) description: \(child.elementDescription ?? "nil")")
 
                     if let value = child.value {
                         let stringValue = String(describing: value)
@@ -233,22 +223,18 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
                     }
                 }
             }
-        }
 
-        // APPROACH 3: Use the direct accessibilityService to search more comprehensively
-        print("🔄 DEBUG: getDisplayValue - Trying to find display using direct accessibility service")
+            // Even if we don't find a value in the children, try getting the value from the scroll area itself
+            if let areaValue = scrollArea.value {
+                let stringValue = String(describing: areaValue)
+                print("✅ DEBUG: getDisplayValue - Found value in scroll area itself: \(stringValue)")
 
-        let appElement = try await toolChain.accessibilityService.getApplicationUIElement(
-            bundleIdentifier: bundleId,
-            recursive: true,
-            maxDepth: 15
-        )
+                // Clean up the string - remove invisible characters and whitespace
+                let cleanValue = stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+                                          .replacingOccurrences(of: "‎", with: "") // Remove invisible character
 
-        // Using a helper function to recursively search for text values in the hierarchy
-        let displayValue = findDisplayValueInElement(appElement)
-        if let value = displayValue {
-            print("✅ DEBUG: getDisplayValue - Found value using direct accessibility search: \(value)")
-            return value
+                return cleanValue
+            }
         }
 
         print("❌ DEBUG: getDisplayValue - Failed to find any display value")
