@@ -212,7 +212,20 @@ public final class ToolChain: @unchecked Sendable {
             params["x"] = .double(Double(position.x))
             params["y"] = .double(Double(position.y))
         }
-        
+
+        // Add filter criteria to UI state tool if applicable
+        if criteria.role != nil {
+            if params["filter"] == nil {
+                params["filter"] = .object([:])
+            }
+
+            if case var .object(filterObj) = params["filter"] {
+                filterObj["role"] = .string(criteria.role!)
+                params["filter"] = .object(filterObj)
+            }
+        }
+
+
         // Call the UI state tool
         let result = try await uiStateTool.handler(params)
         
@@ -229,9 +242,12 @@ public final class ToolChain: @unchecked Sendable {
                 let element = try parseUIElement(from: elementJson)
                 elements.append(element)
             }
-            
-            // Filter elements by criteria
-            return elements.filter { criteria.matches($0) }
+
+
+            // Filter elements by criteria and log count
+            let matchingElements = elements.filter { criteria.matches($0) }
+
+            return matchingElements
         }
         
         return []
@@ -391,32 +407,43 @@ public final class ToolChain: @unchecked Sendable {
                 userInfo: [NSLocalizedDescriptionKey: "Missing role in UI element JSON"]
             )
         }
-        
+
         // Extract optional fields
         let title = json["title"] as? String
-        let value = json["value"] as? String
+        let value = json["value"]
+        let stringValue: String? = value as? String ?? {
+            if let value = value {
+                return String(describing: value)
+            }
+            return nil
+        }()
         let description = json["description"] as? String
-        
+
+
         // Extract frame
         var frame = CGRect.zero
-        if let frameDict = json["frame"] as? [String: Any],
-           let x = frameDict["x"] as? CGFloat,
-           let y = frameDict["y"] as? CGFloat,
-           let width = frameDict["width"] as? CGFloat,
-           let height = frameDict["height"] as? CGFloat {
+        if let frameDict = json["frame"] as? [String: Any] {
+            // Try to get values with different types
+            let x = (frameDict["x"] as? CGFloat) ?? CGFloat(frameDict["x"] as? Double ?? 0)
+            let y = (frameDict["y"] as? CGFloat) ?? CGFloat(frameDict["y"] as? Double ?? 0)
+            let width = (frameDict["width"] as? CGFloat) ?? CGFloat(frameDict["width"] as? Double ?? 0)
+            let height = (frameDict["height"] as? CGFloat) ?? CGFloat(frameDict["height"] as? Double ?? 0)
+
             frame = CGRect(x: x, y: y, width: width, height: height)
         }
-        
+
         // Extract normalized frame
         var normalizedFrame: CGRect? = nil
-        if let normFrameDict = json["normalizedFrame"] as? [String: Any],
-           let x = normFrameDict["x"] as? CGFloat,
-           let y = normFrameDict["y"] as? CGFloat,
-           let width = normFrameDict["width"] as? CGFloat,
-           let height = normFrameDict["height"] as? CGFloat {
+        if let normFrameDict = json["normalizedFrame"] as? [String: Any] {
+            // Try to get values with different types
+            let x = (normFrameDict["x"] as? CGFloat) ?? CGFloat(normFrameDict["x"] as? Double ?? 0)
+            let y = (normFrameDict["y"] as? CGFloat) ?? CGFloat(normFrameDict["y"] as? Double ?? 0)
+            let width = (normFrameDict["width"] as? CGFloat) ?? CGFloat(normFrameDict["width"] as? Double ?? 0)
+            let height = (normFrameDict["height"] as? CGFloat) ?? CGFloat(normFrameDict["height"] as? Double ?? 0)
+
             normalizedFrame = CGRect(x: x, y: y, width: width, height: height)
         }
-        
+
         // Extract children
         var children: [UIElement] = []
         if let childrenJson = json["children"] as? [[String: Any]] {
@@ -425,25 +452,25 @@ public final class ToolChain: @unchecked Sendable {
                 children.append(child)
             }
         }
-        
+
         // Extract attributes
         var attributes: [String: Any] = [:]
         if let attributesDict = json["attributes"] as? [String: Any] {
             attributes = attributesDict
         }
-        
+
         // Extract actions
         var actions: [String] = []
         if let actionsArray = json["actions"] as? [String] {
             actions = actionsArray
         }
-        
+
         // Create and return the UI element
         return UIElement(
             identifier: identifier,
             role: role,
             title: title,
-            value: value,
+            value: stringValue,
             elementDescription: description,
             frame: frame,
             normalizedFrame: normalizedFrame,
