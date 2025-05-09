@@ -66,33 +66,31 @@ final class BasicArithmeticTest: XCTestCase {
     
     /// Test simple direct UI inspection of Calculator
     func testUIInspection() async throws {
-        
         // Force terminate any existing Calculator instances
         NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.calculator").forEach { $0.forceTerminate() }
         try await Task.sleep(for: .milliseconds(1000))
-        
+
         // Launch calculator directly
         let workspace = NSWorkspace.shared
         let calculatorURL = workspace.urlForApplication(withBundleIdentifier: "com.apple.calculator")
         XCTAssertNotNil(calculatorURL, "Calculator application should be available")
-        
+
         if let url = calculatorURL {
-            let app = try workspace.launchApplication(at: url, options: .default, configuration: [:])
-            
+            _ = try workspace.launchApplication(at: url, options: .default, configuration: [:])
+
             try await Task.sleep(for: .milliseconds(3000))
-            
+
             // Verify that Calculator is running
             let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.calculator")
             XCTAssertFalse(runningApps.isEmpty, "Calculator should be running")
-            
+
             // Get application element
-            let appElement = try await toolChain.accessibilityService.getApplicationUIElement(
+            _ = try await toolChain.accessibilityService.getApplicationUIElement(
                 bundleIdentifier: "com.apple.calculator",
                 recursive: true,
                 maxDepth: 3
             )
-            
-            
+
             // Look for window elements
             let windows = try await toolChain.findElements(
                 matching: UIElementCriteria(role: "AXWindow"),
@@ -100,14 +98,10 @@ final class BasicArithmeticTest: XCTestCase {
                 bundleId: "com.apple.calculator",
                 maxDepth: 5
             )
-            
-            if !windows.isEmpty {
-                let window = windows[0]
-            }
-            
+
             // Simple assertion - should have found at least one window
             XCTAssertFalse(windows.isEmpty, "Should find at least one window")
-            
+
             // Look for buttons
             let buttons = try await toolChain.findElements(
                 matching: UIElementCriteria(role: "AXButton"),
@@ -115,42 +109,40 @@ final class BasicArithmeticTest: XCTestCase {
                 bundleId: "com.apple.calculator",
                 maxDepth: 10
             )
-            
+
             // Simple assertion - should have found buttons
             XCTAssertFalse(buttons.isEmpty, "Should find at least one button")
-            
+
             // Look for static text elements that might contain the display value
-            let textElements = try await toolChain.findElements(
+            _ = try await toolChain.findElements(
                 matching: UIElementCriteria(role: "AXStaticText"),
                 scope: "application",
                 bundleId: "com.apple.calculator",
                 maxDepth: 10
             )
-            
-            let scrollAreas = try await toolChain.findElements(
+
+            _ = try await toolChain.findElements(
                 matching: UIElementCriteria(role: "AXScrollArea"),
                 scope: "application",
                 bundleId: "com.apple.calculator",
                 maxDepth: 10
             )
-            
-            
+
             // Test a simple interaction with the calculator
             // Try to press a digit with a keyboard shortcut
-            let keyResult = try await toolChain.pressKey(keyCode: 18) // 1 key
-            
+            _ = try await toolChain.pressKey(keyCode: 18) // 1 key
+
             // Wait for UI to update
             try await Task.sleep(for: .milliseconds(1000))
-            
+
             // Check text elements again to see if display updated
-            let updatedTextElements = try await toolChain.findElements(
+            _ = try await toolChain.findElements(
                 matching: UIElementCriteria(role: "AXStaticText"),
                 scope: "application",
                 bundleId: "com.apple.calculator",
                 maxDepth: 10
             )
-            
-            
+
             // Clean up
             NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.calculator").forEach { $0.forceTerminate() }
         }
