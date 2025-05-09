@@ -128,7 +128,6 @@ public struct UIInteractionTool {
     
     /// Tool handler function
     public let handler: @Sendable ([String: Value]?) async throws -> [Tool.Content] = { params in
-        print("🚀 DEBUG: UIInteractionTool.handler started with params: \(params?.description ?? "nil")")
         
         // Create services on demand to ensure we're in the right context
         let handlerLogger = Logger(label: "mcp.tool.ui_interact")
@@ -153,11 +152,6 @@ public struct UIInteractionTool {
             let elementId = params["elementId"]?.stringValue ?? "none"
             let appBundleId = params["appBundleId"]?.stringValue ?? "none"
             
-            print("🔍 DEBUG: UIInteractionTool.handler parameters:")
-            print("   - Action: \(action)")
-            print("   - Element ID: \(elementId)")
-            print("   - App Bundle ID: \(appBundleId)")
-            
             if action == "click" {
                 if let x = params["x"]?.doubleValue, let y = params["y"]?.doubleValue {
                     print("   - Position: (\(x), \(y))")
@@ -166,14 +160,7 @@ public struct UIInteractionTool {
         }
         
         do {
-            print("➡️ DEBUG: UIInteractionTool.handler forwarding to processRequest")
             let result = try await tool.processRequest(params)
-            print("✅ DEBUG: UIInteractionTool.handler completed successfully")
-            
-            // Log the result for debugging
-            if let content = result.first, case .text(let text) = content {
-                print("📊 DEBUG: UIInteractionTool.handler result: \(text)")
-            }
             
             return result
         } catch {
@@ -235,20 +222,14 @@ public struct UIInteractionTool {
     
     /// Handle click action
     private func handleClick(_ params: [String: Value]) async throws -> [Tool.Content] {
-        print("🔍 DEBUG: handleClick - Starting click operation")
         
         // Element ID click
         if let elementId = params["elementId"]?.stringValue {
             // Check if app bundle ID is provided
             let appBundleId = params["appBundleId"]?.stringValue
             
-            print("🖱️ DEBUG: handleClick - Clicking element by ID")
-            print("   - Element ID: \(elementId)")
-            print("   - App Bundle ID: \(appBundleId ?? "nil")")
-            
             // Before clicking, try to look up the element to verify it exists
             do {
-                print("🔎 DEBUG: handleClick - Validating element exists before clicking")
                 // Use the accessibility service to search for the element
                 var foundElement: UIElement? = nil
                 
@@ -271,16 +252,6 @@ public struct UIInteractionTool {
                 }
                 
                 if let element = foundElement {
-                    print("✅ DEBUG: handleClick - Element found before click operation:")
-                    print("   - Role: \(element.role)")
-                    print("   - Frame: (\(element.frame.origin.x), \(element.frame.origin.y), \(element.frame.size.width), \(element.frame.size.height))")
-                    print("   - Identifier: \(element.identifier)")
-                    print("   - Title: \(element.title ?? "nil")")
-                    print("   - Description: \(element.elementDescription ?? "nil")")
-                    print("   - Clickable: \(element.isClickable)")
-                    print("   - Enabled: \(element.isEnabled)")
-                    print("   - Visible: \(element.isVisible)")
-                    print("   - Actions: \(element.actions.joined(separator: ", "))")
                 } else {
                     print("⚠️ DEBUG: handleClick - WARNING: Element NOT found before click operation. This may fail.")
                 }
@@ -290,11 +261,9 @@ public struct UIInteractionTool {
             }
             
             do {
-                print("🖱️ DEBUG: handleClick - Forwarding to interactionService.clickElement")
                 try await interactionService.clickElement(identifier: elementId, appBundleId: appBundleId)
                 
                 let bundleIdInfo = appBundleId != nil ? " in app \(appBundleId!)" : ""
-                print("✅ DEBUG: handleClick - Click operation reported success")
                 return [.text("Successfully clicked element with ID: \(elementId)\(bundleIdInfo)")]
             } catch {
                 print("❌ DEBUG: handleClick - Click operation failed: \(error.localizedDescription)")
@@ -307,11 +276,9 @@ public struct UIInteractionTool {
         
         // Position click
         if let x = params["x"]?.intValue, let y = params["y"]?.intValue {
-            print("🖱️ DEBUG: handleClick - Clicking at position (\(x), \(y))")
             
             do {
                 try await interactionService.clickAtPosition(position: CGPoint(x: x, y: y))
-                print("✅ DEBUG: handleClick - Position click operation reported success")
                 return [.text("Successfully clicked at position (\(x), \(y))")]
             } catch {
                 print("❌ DEBUG: handleClick - Position click operation failed: \(error.localizedDescription)")

@@ -39,9 +39,6 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
     ///   - identifier: The UI element identifier
     ///   - appBundleId: Optional bundle ID of the application containing the element
     public func clickElement(identifier: String, appBundleId: String? = nil) async throws {
-        print("🖱️ DEBUG: UIInteractionService.clickElement - Starting click operation")
-        print("   - Element ID: \(identifier)")
-        print("   - App Bundle ID: \(appBundleId ?? "nil")")
         
         logger.debug("Clicking element", metadata: [
             "id": "\(identifier)",
@@ -57,15 +54,6 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
                 "title": uiElement.title ?? "nil",
                 "description": uiElement.elementDescription ?? "nil"
             ]
-            
-            print("🔍 DEBUG: UIInteractionService.clickElement - Found matching UIElement:")
-            print("   - Role: \(uiElement.role)")
-            print("   - Frame: (\(uiElement.frame.origin.x), \(uiElement.frame.origin.y), \(uiElement.frame.size.width), \(uiElement.frame.size.height))")
-            print("   - Title: \(uiElement.title ?? "nil")")
-            print("   - Description: \(uiElement.elementDescription ?? "nil")")
-            print("   - Clickable: \(uiElement.isClickable)")
-            print("   - Enabled: \(uiElement.isEnabled)")
-            print("   - Actions: \(uiElement.actions.joined(separator: ", "))")
             
             // Additional diagnostics for elements that might be problematic
             if !uiElement.isEnabled {
@@ -83,13 +71,11 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
             // Log children count if any
             if !uiElement.children.isEmpty {
                 elementContext["childrenCount"] = "\(uiElement.children.count)"
-                print("   - Children count: \(uiElement.children.count)")
             }
             
             // Log parent application if available
             if let app = uiElement.attributes["application"] as? String {
                 elementContext["application"] = app
-                print("   - Application: \(app)")
             }
             
             // Convert String dictionary to Logger.Metadata
@@ -102,11 +88,9 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
             print("⚠️ DEBUG: UIInteractionService.clickElement - WARNING: Could not find UIElement for diagnostics")
         }
         
-        print("🔄 DEBUG: UIInteractionService.clickElement - Getting AXUIElement for ID: \(identifier)")
         
         // Get the AXUIElement for the identifier
         let axElement = try await getAXUIElement(for: identifier, appBundleId: appBundleId)
-        print("✅ DEBUG: UIInteractionService.clickElement - Successfully retrieved AXUIElement")
         
         // Log detailed AXUIElement information before interaction
         do {
@@ -1437,13 +1421,11 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
     
     /// Perform an accessibility action on an element
     private func performAction(_ element: AXUIElement, action: String) throws {
-        print("🔄 DEBUG: UIInteractionService.performAction - Starting action: \(action)")
         
         // Get available actions first to check if the action is supported
         var actionNames: CFArray?
         let actionsResult = AXUIElementCopyActionNames(element, &actionNames)
         
-        print("   - Actions result code: \(actionsResult.rawValue) (\(getAXErrorName(actionsResult)))")
         
         logger.debug("Performing accessibility action", metadata: [
             "action": "\(action)",
@@ -1457,11 +1439,8 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
             actionSupported = actionsList.contains(action)
             
             // Detailed logging of available actions
-            print("   - Available actions: \(actionsList.joined(separator: ", "))")
-            print("   - Action \(action) supported: \(actionSupported ? "YES" : "NO")")
             
             if !actionSupported {
-                print("⚠️ DEBUG: UIInteractionService.performAction - WARNING: Action not supported by element")
                 logger.warning("Action not supported by element", metadata: [
                     "action": "\(action)",
                     "availableActions": "\(actionsList.joined(separator: ", "))"
@@ -1475,7 +1454,6 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
         var role: CFTypeRef?
         let roleResult = AXUIElementCopyAttributeValue(element, "AXRole" as CFString, &role)
         if roleResult == .success {
-            print("   - Element role: \(role as? String ?? "unknown")")
             logger.debug("Element role", metadata: [
                 "role": "\(role as? String ?? "unknown")"
             ])
@@ -1488,7 +1466,6 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
         let enabledResult = AXUIElementCopyAttributeValue(element, "AXEnabled" as CFString, &enabled)
         if enabledResult == .success {
             let isEnabled = enabled as? Bool ?? false
-            print("   - Element enabled: \(isEnabled)")
             
             if !isEnabled {
                 print("⚠️ DEBUG: UIInteractionService.performAction - WARNING: Element is disabled, action may fail")
@@ -1496,7 +1473,6 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
         }
         
         // Set a longer timeout for the action
-        print("   - Setting messaging timeout to 1.0 seconds")
         let timeoutResult = AXUIElementSetMessagingTimeout(element, 1.0) // 1 second timeout
         if timeoutResult != .success {
             print("⚠️ DEBUG: UIInteractionService.performAction - WARNING: Failed to set messaging timeout")
@@ -1506,13 +1482,10 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
         }
         
         // Perform the action
-        print("🖱️ DEBUG: UIInteractionService.performAction - Executing \(action) now...")
         let error = AXUIElementPerformAction(element, action as CFString)
         
         if error == .success {
-            print("✅ DEBUG: UIInteractionService.performAction - Action \(action) succeeded!")
         } else {
-            print("❌ DEBUG: UIInteractionService.performAction - Action \(action) FAILED with error: \(error.rawValue) (\(getAXErrorName(error)))")
             
             // Log details about the error
             logger.error("Accessibility action failed", metadata: [

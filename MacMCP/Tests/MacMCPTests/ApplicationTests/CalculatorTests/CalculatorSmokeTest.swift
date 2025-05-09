@@ -14,14 +14,12 @@ final class CalculatorSmokeTest: XCTestCase {
     private var calculator: CalculatorModel!
     
     override func setUp() async throws {
-        print("==== Setting up Calculator smoke test ====")
         // Create the test components
         toolChain = ToolChain()
         calculator = CalculatorModel(toolChain: toolChain)
         
         // Make sure no calculator instances are running at the start
         NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.calculator").forEach { app in
-            print("Force terminating pre-existing Calculator instance: \(app.processIdentifier)")
             _ = app.forceTerminate()
         }
         
@@ -30,7 +28,6 @@ final class CalculatorSmokeTest: XCTestCase {
     
     /// Test the most basic calculator interaction: press a button and read display
     func testBasicButtonPressAndDisplayRead() async throws {
-        print("\n==== testBasicButtonPressAndDisplayRead: Starting basic smoke test ====")
         
         // Launch calculator
         let launchSuccess = try await calculator.launch()
@@ -44,21 +41,17 @@ final class CalculatorSmokeTest: XCTestCase {
         XCTAssertTrue(isRunning, "Calculator should be running after launch")
         
         // Clear the calculator using ESC key
-        print("Clearing calculator with ESC key...")
         let clearSuccess = try await toolChain.pressKey(keyCode: 53) // ESC key
         XCTAssertTrue(clearSuccess, "Calculator should clear successfully")
         try await Task.sleep(for: .milliseconds(500))
         
         // Press the '5' button
-        print("Pressing button '5'...")
         let buttonSuccess = try await calculator.pressButtonViaAccessibility("5")
         XCTAssertTrue(buttonSuccess, "Should be able to press the '5' button")
         try await Task.sleep(for: .milliseconds(500))
         
         // Read the display value - this is the key part we're testing
-        print("Reading display value...")
         let displayValue = try await calculator.getDisplayValue()
-        print("Display value: \(String(describing: displayValue))")
         
         // Verify the display shows "5"
         XCTAssertNotNil(displayValue, "Should be able to read the display value")
@@ -69,7 +62,6 @@ final class CalculatorSmokeTest: XCTestCase {
         
         // Clean up
         try await calculator.terminate()
-        print("==== Basic smoke test complete ====")
     }
     
     override func tearDown() async throws {
