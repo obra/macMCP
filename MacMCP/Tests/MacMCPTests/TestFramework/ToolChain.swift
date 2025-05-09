@@ -5,9 +5,10 @@ import Foundation
 import Logging
 import MCP
 @testable import MacMCP
+import AppKit
 
 /// Class that provides access to all MCP tools with a unified interface
-public class ToolChain {
+public final class ToolChain: @unchecked Sendable {
     // MARK: - Properties
     
     /// Logger for the tool chain
@@ -157,8 +158,27 @@ public class ToolChain {
     /// - Parameter bundleId: Bundle identifier of the application to terminate
     /// - Returns: True if the application was successfully terminated
     public func terminateApp(bundleId: String) async throws -> Bool {
-        // Use the application service directly for termination
-        return try await applicationService.terminateApplication(bundleIdentifier: bundleId)
+        // Use a workaround to terminate the application using NSRunningApplication
+        let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId)
+        
+        guard !runningApps.isEmpty else {
+            // No running instances found
+            return true
+        }
+        
+        // Terminate all running instances
+        var allTerminated = true
+        for app in runningApps {
+            let terminated = app.terminate()
+            allTerminated = allTerminated && terminated
+        }
+        
+        // Wait for termination to complete
+        if !allTerminated {
+            try await Task.sleep(for: .milliseconds(3000))
+        }
+        
+        return NSRunningApplication.runningApplications(withBundleIdentifier: bundleId).isEmpty
     }
     
     // MARK: - UI State Operations

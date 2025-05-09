@@ -128,7 +128,12 @@ public struct UIInteractionTool {
     
     /// Tool handler function
     public let handler: @Sendable ([String: Value]?) async throws -> [Tool.Content] = { params in
+        print("🚀 DEBUG: UIInteractionTool.handler started with params: \(params?.description ?? "nil")")
+        
         // Create services on demand to ensure we're in the right context
+        let handlerLogger = Logger(label: "mcp.tool.ui_interact")
+        handlerLogger.info("Creating services for UIInteractionTool")
+        
         let accessibilityService = AccessibilityService(
             logger: Logger(label: "mcp.tool.ui_interact.accessibility")
         )
@@ -139,10 +144,46 @@ public struct UIInteractionTool {
         let tool = UIInteractionTool(
             interactionService: interactionService,
             accessibilityService: accessibilityService,
-            logger: Logger(label: "mcp.tool.ui_interact")
+            logger: handlerLogger
         )
         
-        return try await tool.processRequest(params)
+        // Extract and log the key parameters for debugging
+        if let params = params {
+            let action = params["action"]?.stringValue ?? "unknown"
+            let elementId = params["elementId"]?.stringValue ?? "none"
+            let appBundleId = params["appBundleId"]?.stringValue ?? "none"
+            
+            print("🔍 DEBUG: UIInteractionTool.handler parameters:")
+            print("   - Action: \(action)")
+            print("   - Element ID: \(elementId)")
+            print("   - App Bundle ID: \(appBundleId)")
+            
+            if action == "click" {
+                if let x = params["x"]?.doubleValue, let y = params["y"]?.doubleValue {
+                    print("   - Position: (\(x), \(y))")
+                }
+            }
+        }
+        
+        do {
+            print("➡️ DEBUG: UIInteractionTool.handler forwarding to processRequest")
+            let result = try await tool.processRequest(params)
+            print("✅ DEBUG: UIInteractionTool.handler completed successfully")
+            
+            // Log the result for debugging
+            if let content = result.first, case .text(let text) = content {
+                print("📊 DEBUG: UIInteractionTool.handler result: \(text)")
+            }
+            
+            return result
+        } catch {
+            print("❌ DEBUG: UIInteractionTool.handler error: \(error.localizedDescription)")
+            let nsError = error as NSError
+            print("   - Error domain: \(nsError.domain)")
+            print("   - Error code: \(nsError.code)")
+            print("   - Error info: \(nsError.userInfo)")
+            throw error
+        }
     }
     
     /// Process a UI interaction request
@@ -194,23 +235,91 @@ public struct UIInteractionTool {
     
     /// Handle click action
     private func handleClick(_ params: [String: Value]) async throws -> [Tool.Content] {
+        print("🔍 DEBUG: handleClick - Starting click operation")
+        
         // Element ID click
         if let elementId = params["elementId"]?.stringValue {
             // Check if app bundle ID is provided
             let appBundleId = params["appBundleId"]?.stringValue
             
-            try await interactionService.clickElement(identifier: elementId, appBundleId: appBundleId)
+            print("🖱️ DEBUG: handleClick - Clicking element by ID")
+            print("   - Element ID: \(elementId)")
+            print("   - App Bundle ID: \(appBundleId ?? "nil")")
             
-            let bundleIdInfo = appBundleId != nil ? " in app \(appBundleId!)" : ""
-            return [.text("Successfully clicked element with ID: \(elementId)\(bundleIdInfo)")]
+            // Before clicking, try to look up the element to verify it exists
+            do {
+                print("🔎 DEBUG: handleClick - Validating element exists before clicking")
+                // Use the accessibility service to search for the element
+                var foundElement: UIElement? = nil
+                
+                if let bundleId = appBundleId {
+                    print("   - Searching in application with bundle ID: \(bundleId)")
+                    // Try finding in specific app first
+                    foundElement = try await accessibilityService.findElement(
+                        identifier: elementId,
+                        in: bundleId
+                    )
+                }
+                
+                if foundElement == nil {
+                    print("   - Element not found in specified app, searching system-wide")
+                    // Fall back to system-wide search
+                    foundElement = try await accessibilityService.findElement(
+                        identifier: elementId,
+                        in: nil
+                    )
+                }
+                
+                if let element = foundElement {
+                    print("✅ DEBUG: handleClick - Element found before click operation:")
+                    print("   - Role: \(element.role)")
+                    print("   - Frame: (\(element.frame.origin.x), \(element.frame.origin.y), \(element.frame.size.width), \(element.frame.size.height))")
+                    print("   - Identifier: \(element.identifier)")
+                    print("   - Title: \(element.title ?? "nil")")
+                    print("   - Description: \(element.elementDescription ?? "nil")")
+                    print("   - Clickable: \(element.isClickable)")
+                    print("   - Enabled: \(element.isEnabled)")
+                    print("   - Visible: \(element.isVisible)")
+                    print("   - Actions: \(element.actions.joined(separator: ", "))")
+                } else {
+                    print("⚠️ DEBUG: handleClick - WARNING: Element NOT found before click operation. This may fail.")
+                }
+            } catch {
+                print("⚠️ DEBUG: handleClick - Error validating element: \(error.localizedDescription)")
+                print("   - Will still attempt click operation...")
+            }
+            
+            do {
+                print("🖱️ DEBUG: handleClick - Forwarding to interactionService.clickElement")
+                try await interactionService.clickElement(identifier: elementId, appBundleId: appBundleId)
+                
+                let bundleIdInfo = appBundleId != nil ? " in app \(appBundleId!)" : ""
+                print("✅ DEBUG: handleClick - Click operation reported success")
+                return [.text("Successfully clicked element with ID: \(elementId)\(bundleIdInfo)")]
+            } catch {
+                print("❌ DEBUG: handleClick - Click operation failed: \(error.localizedDescription)")
+                let nsError = error as NSError
+                print("   - Error domain: \(nsError.domain)")
+                print("   - Error code: \(nsError.code)")
+                throw error
+            }
         }
         
         // Position click
         if let x = params["x"]?.intValue, let y = params["y"]?.intValue {
-            try await interactionService.clickAtPosition(position: CGPoint(x: x, y: y))
-            return [.text("Successfully clicked at position (\(x), \(y))")]
+            print("🖱️ DEBUG: handleClick - Clicking at position (\(x), \(y))")
+            
+            do {
+                try await interactionService.clickAtPosition(position: CGPoint(x: x, y: y))
+                print("✅ DEBUG: handleClick - Position click operation reported success")
+                return [.text("Successfully clicked at position (\(x), \(y))")]
+            } catch {
+                print("❌ DEBUG: handleClick - Position click operation failed: \(error.localizedDescription)")
+                throw error
+            }
         }
         
+        print("❌ DEBUG: handleClick - Missing required parameters (elementId or x,y coordinates)")
         throw createInteractionError(
             message: "Click action requires either elementId or x,y coordinates",
             context: [

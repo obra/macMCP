@@ -70,13 +70,6 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
             )
         }
         
-        // Log some useful information for debugging
-        logger.info("Found application", metadata: [
-            "bundleId": "\(bundleIdentifier)", 
-            "pid": "\(app.processIdentifier)",
-            "isFinishedLaunching": "\(app.isFinishedLaunching)",
-            "isActive": "\(app.isActive)"
-        ])
         
         // Small delay to ensure app is ready for accessibility
         if !app.isFinishedLaunching {
@@ -307,4 +300,175 @@ public enum UIElementScope: Sendable {
     case focusedApplication
     /// A specific application by bundle identifier
     case application(bundleIdentifier: String)
+}
+
+extension AccessibilityService {
+    /// Find a UI element by identifier
+    /// - Parameters:
+    ///   - identifier: The element identifier to search for
+    ///   - bundleId: Optional bundle ID of the app to search in
+    /// - Returns: The matching UIElement if found, nil otherwise
+    public func findElement(identifier: String, in bundleId: String? = nil) async throws -> UIElement? {
+        print("🔍 DEBUG: AccessibilityService.findElement - Searching for element with ID: \(identifier)")
+        
+        // This is similar to UIInteractionService.findUIElement but with more logging
+        var foundElement: UIElement? = nil
+        
+        // Strategy 1: Try to find in specified app if provided
+        if let bundleId = bundleId {
+            print("   - Searching in application with bundle ID: \(bundleId)")
+            do {
+                let appElement = try await getApplicationUIElement(
+                    bundleIdentifier: bundleId,
+                    recursive: true,
+                    maxDepth: 25
+                )
+                
+                // Look for the element with the exact ID first
+                foundElement = searchForElementWithId(appElement, identifier: identifier, exact: true)
+                
+                if foundElement != nil {
+                    print("   - Found element with exact ID match in specified app")
+                } else {
+                    // Try partial ID matching
+                    print("   - No exact match found, trying partial ID matching in app")
+                    foundElement = searchForElementWithId(appElement, identifier: identifier, exact: false)
+                    
+                    if foundElement != nil {
+                        print("   - Found element with partial ID match in specified app")
+                    }
+                }
+            } catch {
+                print("   - Error accessing app: \(error.localizedDescription)")
+            }
+        }
+        
+        // Strategy 2: If not found in specified app or no app ID provided, check focused app
+        if foundElement == nil {
+            print("   - Searching in focused application")
+            do {
+                let focusedApp = try await getFocusedApplicationUIElement(
+                    recursive: true,
+                    maxDepth: 25
+                )
+                
+                // Look for exact match first
+                foundElement = searchForElementWithId(focusedApp, identifier: identifier, exact: true)
+                
+                if foundElement != nil {
+                    print("   - Found element with exact ID match in focused app")
+                } else {
+                    // Try partial matching
+                    print("   - No exact match found, trying partial ID matching in focused app")
+                    foundElement = searchForElementWithId(focusedApp, identifier: identifier, exact: false)
+                    
+                    if foundElement != nil {
+                        print("   - Found element with partial ID match in focused app")
+                    }
+                }
+            } catch {
+                print("   - Error accessing focused app: \(error.localizedDescription)")
+            }
+        }
+        
+        // Strategy 3: As last resort, try system-wide search
+        if foundElement == nil {
+            print("   - Searching system-wide (this may be slow)")
+            do {
+                let systemElement = try await getSystemUIElement(
+                    recursive: true,
+                    maxDepth: 25
+                )
+                
+                // Look for exact match first
+                foundElement = searchForElementWithId(systemElement, identifier: identifier, exact: true)
+                
+                if foundElement != nil {
+                    print("   - Found element with exact ID match in system-wide search")
+                } else {
+                    // Try partial matching but limit depth to prevent too much searching
+                    print("   - No exact match found, trying partial ID matching system-wide")
+                    foundElement = searchForElementWithId(systemElement, identifier: identifier, exact: false, maxDepth: 10)
+                    
+                    if foundElement != nil {
+                        print("   - Found element with partial ID match in system-wide search")
+                    }
+                }
+            } catch {
+                print("   - Error in system-wide search: \(error.localizedDescription)")
+            }
+        }
+        
+        if let element = foundElement {
+            print("✅ DEBUG: AccessibilityService.findElement - Element found:")
+            print("   - Role: \(element.role)")
+            print("   - Identifier: \(element.identifier)")
+            print("   - Frame: (\(element.frame.origin.x), \(element.frame.origin.y), \(element.frame.size.width), \(element.frame.size.height))")
+        } else {
+            print("❌ DEBUG: AccessibilityService.findElement - Element not found with ID: \(identifier)")
+        }
+        
+        return foundElement
+    }
+    
+    /// Search for an element with a specific ID in a hierarchy
+    private func searchForElementWithId(_ element: UIElement, identifier: String, exact: Bool, maxDepth: Int = 25, currentDepth: Int = 0) -> UIElement? {
+        // Check depth limit
+        if currentDepth > maxDepth {
+            return nil
+        }
+        
+        // Check if this element matches
+        if exact {
+            // Exact match
+            if element.identifier == identifier {
+                return element
+            }
+        } else {
+            // Partial match - check for structured IDs first
+            if identifier.hasPrefix("ui:") && element.identifier.hasPrefix("ui:") {
+                let idParts = identifier.split(separator: ":")
+                let elementIdParts = element.identifier.split(separator: ":")
+                
+                if idParts.count >= 2 && elementIdParts.count >= 2 {
+                    // Match by descriptive part
+                    if idParts[1] == elementIdParts[1] {
+                        return element
+                    }
+                    
+                    // Match by hash part if available
+                    if idParts.count > 2 && elementIdParts.count > 2 && idParts[2] == elementIdParts[2] {
+                        return element
+                    }
+                }
+            }
+            
+            // For button-like elements, check title and description
+            if element.role == "AXButton" || element.role == "AXMenuItem" || 
+               element.role == "AXCheckBox" || element.role == "AXRadioButton" {
+                
+                if let title = element.title, title == identifier {
+                    return element
+                }
+                
+                if let desc = element.elementDescription, desc == identifier {
+                    return element
+                }
+            }
+            
+            // Check for ID contains match if the ID is substantial enough
+            if element.identifier.contains(identifier) && identifier.count > 3 {
+                return element
+            }
+        }
+        
+        // Search through children
+        for child in element.children {
+            if let found = searchForElementWithId(child, identifier: identifier, exact: exact, maxDepth: maxDepth, currentDepth: currentDepth + 1) {
+                return found
+            }
+        }
+        
+        return nil
+    }
 }

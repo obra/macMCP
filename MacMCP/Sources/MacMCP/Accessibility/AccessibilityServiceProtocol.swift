@@ -39,4 +39,10 @@ public protocol AccessibilityServiceProtocol: Sendable {
         recursive: Bool,
         maxDepth: Int
     ) async throws -> [UIElement]
+    
+    /// Find a UI element by identifier
+    func findElement(
+        identifier: String,
+        in bundleId: String?
+    ) async throws -> UIElement?
 }

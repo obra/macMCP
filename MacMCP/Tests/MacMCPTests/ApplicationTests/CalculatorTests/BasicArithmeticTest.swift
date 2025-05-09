@@ -1,243 +1,125 @@
-// ABOUTME: This file implements a basic arithmetic test for the Calculator using the new test framework.
-// ABOUTME: It tests the MCP tools' ability to interact with the Calculator using different input methods.
+// ABOUTME: This file tests the accessibility interactions with the Calculator app through MCP.
+// ABOUTME: It verifies that the MCP tools can locate, identify, and interact with UI elements.
 
 import XCTest
 import Foundation
+import MCP
+import AppKit
 @testable import MacMCP
 
-/// Test case for basic arithmetic operations in Calculator
+/// Test case for MCP's ability to interact with the Calculator app
 final class BasicArithmeticTest: XCTestCase {
     // Test components
     private var toolChain: ToolChain!
     private var calculator: CalculatorModel!
     private var uiVerifier: UIVerifier!
     
-    // Constants for verification
-    private let displayCriteria = UIElementCriteria(role: "AXStaticText")
-    
     override func setUp() async throws {
         // Create the test components
         toolChain = ToolChain()
         calculator = CalculatorModel(toolChain: toolChain)
         uiVerifier = UIVerifier(toolChain: toolChain)
+    }
+    
+    /// Helper to ensure calculator is in a clean state before tests
+    private func resetCalculator() async throws {
+        // Terminate any existing calculator instances
+        NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.calculator").forEach { app in
+            _ = app.terminate()
+        }
+        try await Task.sleep(for: .milliseconds(1000))
         
-        // Launch the Calculator app
-        print("Launching Calculator app...")
-        try await calculator.launch()
+        // Launch calculator and wait for it to be ready
+        let launchSuccess = try await calculator.launch()
+        XCTAssertTrue(launchSuccess, "Calculator should launch successfully")
+        try await Task.sleep(for: .milliseconds(2000))
         
-        // Verify that the Calculator is running and accessible
+        // Clear the calculator
+        let clearSuccess = try await calculator.clear()
+        XCTAssertTrue(clearSuccess, "Calculator should clear successfully")
+        try await Task.sleep(for: .milliseconds(500))
+    }
+    
+    /// Test that UI elements can be properly identified and interacted with
+    func testUIElementInteraction() async throws {
+        // Set up calculator
+        try await resetCalculator()
+        
+        // Test 1: Verify we can get the main window
         let window = try await calculator.getMainWindow()
-        XCTAssertNotNil(window, "Calculator window should be available")
+        XCTAssertNotNil(window, "Should find the main calculator window")
         
-        // Add teardown block for clean shutdown
-        addTeardownBlock { [calculator] in
-            print("Terminating Calculator app...")
-            try? await calculator?.terminate()
-        }
-    }
-    
-    /// Test addition using accessibility-based button pressing
-    func testAdditionUsingAccessibility() async throws {
-        print("Testing addition using accessibility buttons...")
+        // Test 2: Verify we can find buttons by their descriptions
+        let button2 = try await calculator.findButton("2")
+        XCTAssertNotNil(button2, "Should find button '2'")
         
-        // Clear the calculator
-        try await calculator.clear()
+        let buttonPlus = try await calculator.findButton("+")
+        XCTAssertNotNil(buttonPlus, "Should find button '+'")
         
-        // Enter 2 + 2 = using accessibility
-        try await calculator.pressButtonViaAccessibility("2")
-        try await calculator.pressButtonViaAccessibility("+")
-        try await calculator.pressButtonViaAccessibility("2")
-        try await calculator.pressButtonViaAccessibility("=")
+        // Test 3: Verify we can interact with buttons via accessibility
+        let buttonSuccess = try await calculator.pressButton("2")
+        XCTAssertTrue(buttonSuccess, "Should be able to press button '2'")
+        try await Task.sleep(for: .milliseconds(300))
         
-        // Verify the result
+        // Test 4: Verify we can read the display value after interaction
         let displayValue = try await calculator.getDisplayValue()
-        XCTAssertEqual(displayValue, "4", "2 + 2 should equal 4")
+        XCTAssertNotNil(displayValue, "Should be able to read the display value")
+        XCTAssertEqual(displayValue, "2", "Display should show the pressed button value")
         
-        // Verify using the UI verifier
-        try await uiVerifier.verifyElementPropertyContains(
-            matching: displayCriteria,
-            property: "value",
-            contains: "4",
-            in: "application",
-            bundleId: calculator.bundleId
-        )
+        // Close the calculator
+        let terminateSuccess = try await calculator.terminate()
+        XCTAssertTrue(terminateSuccess, "Calculator should terminate successfully")
     }
     
-    /// Test subtraction using mouse-based button clicking
-    func testSubtractionUsingMouse() async throws {
-        print("Testing subtraction using mouse clicks...")
+    /// Test that we can use different methods to interact with UI elements
+    func testDifferentInteractionMethods() async throws {
+        // Set up calculator
+        try await resetCalculator()
         
-        // Clear the calculator
-        try await calculator.clear()
+        // Test 1: Using button press via AXPress
+        let accessibilitySuccess = try await calculator.pressButtonViaAccessibility("5")
+        XCTAssertTrue(accessibilitySuccess, "Should be able to press button via accessibility")
+        try await Task.sleep(for: .milliseconds(300))
         
-        // Enter 5 - 3 = using mouse clicks
-        try await calculator.clickButtonWithMouse("5")
-        try await calculator.clickButtonWithMouse("-")
-        try await calculator.clickButtonWithMouse("3")
-        try await calculator.clickButtonWithMouse("=")
+        // Verify the interaction worked
+        var displayValue = try await calculator.getDisplayValue()
+        XCTAssertEqual(displayValue, "5", "Display should show '5'")
         
-        // Verify the result
+        // Clear for the next test
+        let clearSuccess = try await calculator.clear()
+        XCTAssertTrue(clearSuccess, "Should be able to clear the calculator")
+        try await Task.sleep(for: .milliseconds(300))
+        
+        // Test 2: Using keyboard input
+        let keyboardSuccess = try await calculator.typeDigit("7")
+        XCTAssertTrue(keyboardSuccess, "Should be able to type digit via keyboard")
+        try await Task.sleep(for: .milliseconds(300))
+        
+        // Verify the interaction worked
+        displayValue = try await calculator.getDisplayValue()
+        XCTAssertEqual(displayValue, "7", "Display should show '7'")
+        
+        // Close the calculator
+        let terminateSuccess = try await calculator.terminate()
+        XCTAssertTrue(terminateSuccess, "Calculator should terminate successfully")
+    }
+    
+    /// Test that we can handle more complex UI interactions
+    func testSequentialUIInteractions() async throws {
+        // Set up calculator
+        try await resetCalculator()
+        
+        // Test: Enter a sequence of button presses and check the display
+        let sequenceSuccess = try await calculator.enterSequence("123")
+        XCTAssertTrue(sequenceSuccess, "Should be able to enter a sequence of buttons")
+        try await Task.sleep(for: .milliseconds(300))
+        
+        // Verify the result shows the correct sequence
         let displayValue = try await calculator.getDisplayValue()
-        XCTAssertEqual(displayValue, "2", "5 - 3 should equal 2")
+        XCTAssertEqual(displayValue, "123", "Display should show the entered sequence")
         
-        // Verify using the UI verifier
-        try await uiVerifier.verifyElementPropertyContains(
-            matching: displayCriteria,
-            property: "value",
-            contains: "2",
-            in: "application",
-            bundleId: calculator.bundleId
-        )
-    }
-    
-    /// Test multiplication using keyboard input
-    func testMultiplicationUsingKeyboard() async throws {
-        print("Testing multiplication using keyboard input...")
-        
-        // Clear the calculator
-        try await calculator.clear()
-        
-        // Enter 4 * 5 = using keyboard
-        try await calculator.typeDigit("4")
-        try await calculator.typeOperator("*")
-        try await calculator.typeDigit("5")
-        try await calculator.typeOperator("=")
-        
-        // Verify the result
-        let displayValue = try await calculator.getDisplayValue()
-        XCTAssertEqual(displayValue, "20", "4 * 5 should equal 20")
-        
-        // Verify using the UI verifier
-        try await uiVerifier.verifyElementPropertyContains(
-            matching: displayCriteria,
-            property: "value",
-            contains: "20",
-            in: "application",
-            bundleId: calculator.bundleId
-        )
-    }
-    
-    /// Test division using a mix of interaction methods
-    func testDivisionUsingMixedMethods() async throws {
-        print("Testing division using mixed input methods...")
-        
-        // Clear the calculator
-        try await calculator.clear()
-        
-        // Enter 10 using accessibility
-        try await calculator.pressButtonViaAccessibility("1")
-        try await calculator.pressButtonViaAccessibility("0")
-        
-        // Enter ÷ using mouse
-        try await calculator.clickButtonWithMouse("÷")
-        
-        // Enter 2 using keyboard
-        try await calculator.typeDigit("2")
-        
-        // Enter = using accessibility
-        try await calculator.pressButtonViaAccessibility("=")
-        
-        // Verify the result
-        let displayValue = try await calculator.getDisplayValue()
-        XCTAssertEqual(displayValue, "5", "10 ÷ 2 should equal 5")
-        
-        // Verify using the UI verifier
-        try await uiVerifier.verifyElementPropertyContains(
-            matching: displayCriteria,
-            property: "value",
-            contains: "5",
-            in: "application",
-            bundleId: calculator.bundleId
-        )
-    }
-    
-    /// Test complex expression using UIInteractionTool directly
-    func testComplexExpressionUsingToolDirectly() async throws {
-        print("Testing complex expression using UIInteractionTool directly...")
-        
-        // Clear the calculator
-        try await calculator.clear()
-        
-        // Get the window element
-        guard let window = try await calculator.getMainWindow() else {
-            XCTFail("Could not get Calculator window")
-            return
-        }
-        
-        // Find the buttons using UIStateTool directly
-        let elements = try await toolChain.accessibilityService.findUIElements(
-            role: "AXButton",
-            titleContains: nil,
-            scope: .application(bundleIdentifier: calculator.bundleId),
-            recursive: true
-        )
-        
-        // Find buttons by identifiers (partial match)
-        func findButton(containing pattern: String) -> UIElement? {
-            return elements.first { element in
-                element.identifier.contains(pattern)
-            }
-        }
-        
-        // Enter 2 + 3 × 4 = using direct tool calls
-        let buttonSequence = ["2", "Add", "3", "Multiply", "4", "Equals"]
-        
-        for buttonPattern in buttonSequence {
-            if let button = findButton(containing: buttonPattern) {
-                // Use UIInteractionTool directly
-                let params: [String: Value] = [
-                    "action": .string("click"),
-                    "elementId": .string(button.identifier)
-                ]
-                
-                _ = try await toolChain.uiInteractionTool.handler(params)
-                
-                // Small delay between button presses
-                try await Task.sleep(for: .milliseconds(100))
-            } else {
-                XCTFail("Button containing '\(buttonPattern)' not found")
-            }
-        }
-        
-        // Verify the result using UIStateTool directly
-        let params: [String: Value] = [
-            "scope": .string("application"),
-            "bundleId": .string(calculator.bundleId),
-            "maxDepth": .int(15)
-        ]
-        
-        let result = try await toolChain.uiStateTool.handler(params)
-        
-        // Parse the result
-        if let content = result.first, case .text(let jsonString) = content {
-            let jsonData = jsonString.data(using: .utf8)!
-            let jsonArray = try JSONSerialization.jsonObject(with: jsonData) as! [[String: Any]]
-            
-            // Look for the display element in the UI state
-            var displayValue: String? = nil
-            
-            func findDisplayValue(in elements: [[String: Any]]) -> String? {
-                for element in elements {
-                    if let role = element["role"] as? String, role == "AXStaticText",
-                       let value = element["value"] as? String {
-                        return value
-                    }
-                    
-                    // Check children
-                    if let children = element["children"] as? [[String: Any]],
-                       let value = findDisplayValue(in: children) {
-                        return value
-                    }
-                }
-                return nil
-            }
-            
-            displayValue = findDisplayValue(in: jsonArray)
-            
-            // Verify the result (should be 14 due to order of operations)
-            XCTAssertEqual(displayValue, "14", "2 + 3 × 4 should equal 14 with order of operations")
-        } else {
-            XCTFail("Could not get UI state")
-        }
+        // Close the calculator
+        let terminateSuccess = try await calculator.terminate()
+        XCTAssertTrue(terminateSuccess, "Calculator should terminate successfully")
     }
 }

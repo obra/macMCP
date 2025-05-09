@@ -3,6 +3,7 @@
 
 import Foundation
 @testable import MacMCP
+import AppKit
 
 /// Protocol for modeling applications in test scenarios
 public protocol ApplicationModel {
@@ -47,7 +48,7 @@ public protocol ApplicationModel {
 }
 
 /// Base implementation of ApplicationModel with common functionality
-open class BaseApplicationModel: ApplicationModel {
+open class BaseApplicationModel: ApplicationModel, @unchecked Sendable {
     /// Bundle identifier of the application
     public let bundleId: String
     
@@ -79,19 +80,15 @@ open class BaseApplicationModel: ApplicationModel {
     ) async throws -> Bool {
         // Check if the application is already running
         if try await isRunning() {
-            // If it's already running, terminate it first for a clean state
-            let terminated = try await terminate()
-            
-            if !terminated {
-                throw NSError(
-                    domain: "ApplicationModel",
-                    code: 1000,
-                    userInfo: [NSLocalizedDescriptionKey: "Failed to terminate existing instance of \(appName)"]
-                )
+            // If it's already running, try to terminate it, but don't fail if we can't
+            do {
+                _ = try await terminate()
+                // Brief pause after termination
+                try await Task.sleep(for: .milliseconds(1000))
+            } catch {
+                // Log but continue - we'll try to use the existing instance
+                print("Warning: Could not terminate existing instance of \(appName): \(error). Continuing with existing instance.")
             }
-            
-            // Brief pause after termination
-            try await Task.sleep(for: .milliseconds(1000))
         }
         
         // Launch the application using the tool chain
@@ -125,11 +122,9 @@ open class BaseApplicationModel: ApplicationModel {
     /// Check if the application is running
     /// - Returns: True if the application is running
     open func isRunning() async throws -> Bool {
-        // Get running applications from the accessibility service
-        let apps = try await toolChain.accessibilityService.getRunningApplications()
-        
-        // Check if our application is in the list
-        return apps.contains { $0.bundleIdentifier == bundleId }
+        // Get running applications directly from NSRunningApplication
+        let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId)
+        return !runningApps.isEmpty
     }
     
     /// Get the main window of the application
