@@ -8,27 +8,27 @@ import CoreGraphics
 /// Criteria for matching UI elements in tests
 public struct UIElementCriteria {
     // Basic properties to match
-    private let role: String?
-    private let title: String?
-    private let identifier: String?
-    private let value: String?
-    private let description: String?
-    
+    public let role: String?
+    public let title: String?
+    public let identifier: String?
+    public let value: String?
+    public let description: String?
+
     // Content matching options
-    private let titleContains: String?
-    private let identifierContains: String?
-    private let valueContains: String?
-    private let descriptionContains: String?
-    
+    public let titleContains: String?
+    public let identifierContains: String?
+    public let valueContains: String?
+    public let descriptionContains: String?
+
     // Capability requirements
-    private let isClickable: Bool?
-    private let isEditable: Bool?
-    private let isVisible: Bool?
-    private let isEnabled: Bool?
-    
+    public let isClickable: Bool?
+    public let isEditable: Bool?
+    public let isVisible: Bool?
+    public let isEnabled: Bool?
+
     // Position criteria
-    private let position: CGPoint?
-    private let area: CGRect?
+    public let position: CGPoint?
+    public let area: CGRect?
     
     /// Create new element criteria
     /// - Parameters:

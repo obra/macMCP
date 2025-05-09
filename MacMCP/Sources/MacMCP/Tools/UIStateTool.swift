@@ -167,26 +167,26 @@ public struct UIStateTool: @unchecked Sendable {
     /// - Parameter element: The element to check
     /// - Returns: True if the element has valid coordinates and should be included
     private func hasValidCoordinates(_ element: UIElement) -> Bool {
-        // For debugging, log calculator buttons to help with testing
-        if element.role == "AXButton" && (element.attributes["application"] as? String)?.contains("Calculator") == true {
-            // Log the button details to diagnose why we're not seeing them
-            let frameType = element.frameSource.rawValue
-            let hasNormalized = element.normalizedFrame != nil ? "yes" : "no"
-            let hasViewport = element.viewportFrame != nil ? "yes" : "no"
-            
-            logger.debug("FOUND CALCULATOR BUTTON", metadata: [
+        // General case for container elements that may contain valuable information
+        // Containers with descriptions or with children are important UI structures
+        // that should be included regardless of their frame validity
+        let isContainer = element.role.contains("AXScroll") ||
+                         element.role.contains("Group") ||
+                         element.role.contains("View") ||
+                         element.role.contains("Cell")
+        let hasDescription = element.elementDescription != nil && !element.elementDescription!.isEmpty
+        let hasChildren = !element.children.isEmpty
+
+        if isContainer && (hasDescription || hasChildren) {
+            logger.debug("Including container element with description or children", metadata: [
                 "id": .string(element.identifier),
+                "role": .string(element.role),
                 "description": .string(element.elementDescription ?? "nil"),
                 "frame": .string("{\(element.frame.origin.x), \(element.frame.origin.y), \(element.frame.size.width), \(element.frame.size.height)}"),
-                "frameSource": .string(frameType),
-                "normalizedFrame": .string(hasNormalized),
-                "viewportFrame": .string(hasViewport),
-                "clickable": .string("\(element.isClickable)"),
-                "actions": .string("\(element.actions)"),
-                "visible": .string("\(element.isVisible)")
+                "frameSource": .string(element.frameSource.rawValue),
+                "childCount": .string("\(element.children.count)")
             ])
-            
-            // Always include calculator buttons to aid in debugging
+
             return true
         }
         
