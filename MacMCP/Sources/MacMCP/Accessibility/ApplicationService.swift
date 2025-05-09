@@ -604,13 +604,13 @@ public actor ApplicationService: ApplicationServiceProtocol {
         }
         
         if !hasWindows {
-            logger.warning("No visible windows detected for application", metadata: [
+            logger.debug("No visible windows detected for application", metadata: [
                 "bundleIdentifier": "\(application.bundleIdentifier ?? "unknown")",
                 "applicationName": "\(application.localizedName ?? "Unknown")",
                 "timeout": "\(timeout)"
             ])
-            
-            // Don't fail - some apps are legitimately windowless
+
+            // Don't fail - some apps are legitimately windowless or windows may not be immediately visible to accessibility APIs
         } else {
             logger.debug("Application has visible windows")
         }
