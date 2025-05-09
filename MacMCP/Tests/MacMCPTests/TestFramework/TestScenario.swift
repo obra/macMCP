@@ -118,34 +118,44 @@ open class ScenarioTestCase: XCTestCase {
     /// Setup that runs before the test
     override open func setUp() async throws {
         try await super.setUp()
-        
+
+        // Skip setup when running the base class - only run in subclasses
+        guard type(of: self) != ScenarioTestCase.self else {
+            return
+        }
+
         // Get the scenario to test
         guard let scenario = scenario else {
             XCTFail("No test scenario provided")
             return
         }
-        
+
         // Run the scenario setup
         try await scenario.setup()
     }
     
     /// Teardown that runs after the test
     override open func tearDown() async throws {
-        // Run the scenario teardown if we have a scenario
-        if let scenario = scenario {
+        // Skip teardown when running the base class - only run in subclasses
+        if type(of: self) != ScenarioTestCase.self, let scenario = scenario {
             try await scenario.teardown()
         }
-        
+
         try await super.tearDown()
     }
     
     /// Run the test scenario
     open func testScenario() async throws {
+        // Skip this test when running the base class - only run in subclasses
+        guard type(of: self) != ScenarioTestCase.self else {
+            return
+        }
+
         guard let scenario = scenario else {
             XCTFail("No test scenario provided")
             return
         }
-        
+
         try await scenario.run()
     }
 }
