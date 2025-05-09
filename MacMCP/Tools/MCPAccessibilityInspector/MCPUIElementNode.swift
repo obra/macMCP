@@ -51,7 +51,15 @@ class MCPUIElementNode {
         }
         
         // Additional text properties
-        self.description = jsonElement["elementDescription"] as? String
+        // Try to get description from multiple possible fields
+        if let desc = jsonElement["elementDescription"] as? String {
+            self.description = desc
+        } else if let desc = jsonElement["description"] as? String {
+            self.description = desc
+        } else {
+            self.description = nil
+        }
+        
         self.value = jsonElement["value"]
         self.valueDescription = jsonElement["valueDescription"] as? String
         
@@ -79,7 +87,10 @@ class MCPUIElementNode {
         }
         
         // Set computed properties
-        self.isEnabled = jsonElement["enabled"] as? Bool ?? false
+        // Consider an element enabled if it's directly marked as enabled OR it's clickable
+        let directEnabled = jsonElement["enabled"] as? Bool ?? false
+        let indirectEnabled = !self.actions.isEmpty || (jsonElement["clickable"] as? Bool ?? false)
+        self.isEnabled = directEnabled || indirectEnabled
         self.isClickable = jsonElement["clickable"] as? Bool ?? false || self.actions.contains("AXPress")
         
         // Determine if element is visible

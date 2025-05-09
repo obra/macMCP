@@ -38,7 +38,7 @@ class MCPInspector {
         // Create a process for the MCP server
         let process = Process()
         process.executableURL = URL(fileURLWithPath: serverPath)
-        process.arguments = ["--debug"]  // Use debug mode for extra logging
+        process.arguments = []  // No arguments, just run in standard mode
         
         // Set up pipes for stdin/stdout
         let inPipe = Pipe()
@@ -209,16 +209,29 @@ class MCPInspector {
     
     /// Synchronous version of cleanup for use with synchronous code
     func cleanupSync() {
-        // Create a task to handle the async cleanup
-        let task = Task {
-            await cleanup()
+        // Save references locally to avoid capturing self in Task
+        let client = mcpClient
+        let proc = process
+        
+        // Create a semaphore to wait for task completion
+        let semaphore = DispatchSemaphore(value: 0)
+        
+        // Create a task to handle the async cleanup with @Sendable to avoid capture issues
+        Task { @Sendable in
+            // Disconnect the client if it exists
+            if let client = client {
+                await client.disconnect()
+            }
+            
+            // Signal semaphore when done
+            semaphore.signal()
         }
         
-        // Wait for the task to complete (this is not ideal, but necessary for synchronous contexts)
-        // In real applications, we should prefer the async version
-        while !task.isCancelled && !task.isCompleted {
-            Thread.sleep(forTimeInterval: 0.01)  // Short sleep to avoid busy waiting
-        }
+        // Wait for the semaphore with a timeout (5 seconds)
+        _ = semaphore.wait(timeout: .now() + 5.0)
+        
+        // Terminate the process synchronously after client disconnect
+        proc?.terminate()
     }
     
     /// Deinit - automatically trigger cleanup

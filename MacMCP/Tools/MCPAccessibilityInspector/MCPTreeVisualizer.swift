@@ -219,6 +219,12 @@ class MCPTreeVisualizer {
                 return title.lowercased().contains(value.lowercased())
             }
             return false
+        case "description":
+            // Search in all possible description fields
+            if let desc = element.description, desc.lowercased().contains(value.lowercased()) {
+                return true
+            }
+            return false
         case "id", "identifier":
             return element.identifier.lowercased().contains(value.lowercased())
         case "enabled":

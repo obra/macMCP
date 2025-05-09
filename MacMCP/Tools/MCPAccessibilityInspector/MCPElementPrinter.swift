@@ -46,8 +46,25 @@ class MCPElementPrinter {
     func formatElement(_ element: MCPUIElementNode, showColor: Bool = true, showAllData: Bool = true) -> String {
         var output = ""
         
-        // Add header with node index and role
-        let headerText = "[\(element.index)] \(element.role): \(element.title ?? "Untitled")"
+        // Create a more informative header for interactive elements
+        let headerText: String
+        
+        // For elements that typically have meaningful descriptions (buttons, etc.)
+        if element.role == "AXButton" || element.role == "AXCheckBox" || element.role == "AXMenuItem" {
+            if let description = element.description, !description.isEmpty {
+                // If the element has a description, show it in the header
+                headerText = "[\(element.index)] \(element.role): \(description)"
+            } else if let title = element.title, !title.isEmpty {
+                // Fall back to title if available
+                headerText = "[\(element.index)] \(element.role): \(title)"
+            } else {
+                // Last resort
+                headerText = "[\(element.index)] \(element.role): Untitled"
+            }
+        } else {
+            // For other elements, use the standard header format
+            headerText = "[\(element.index)] \(element.role): \(element.title ?? "Untitled")"
+        }
         if showColor {
             let color = MCPElementPrinter.roleColors[element.role] ?? .white
             output += "\(color.rawValue)\(headerText)\(TerminalColor.reset.rawValue)\n"
@@ -125,8 +142,6 @@ class MCPElementPrinter {
         }
         
         // SECTION 7: All raw attributes (excluding already displayed ones)
-        output += "\n   Additional Attributes:\n"
-        
         // Create a set of attribute keys to exclude (since they're shown above)
         let excludedAttributes = Set([
             "AXRole", "AXRoleDescription", "AXSubrole", 
@@ -134,25 +149,32 @@ class MCPElementPrinter {
             "AXHelp", "AXLabel", "AXPlaceholderValue",  
             "AXEnabled", "AXFocused", "AXSelected", "AXExpanded", "AXRequired",
             "AXParent", "AXWindow", "AXTopLevelUIElement", "AXChildren",
-            "AXPosition", "AXSize", "AXFrame", "AXIdentifier"
+            "AXPosition", "AXSize", "AXFrame", "AXIdentifier",
+            // Additional commonly redundant attributes
+            "application", // Remove application attribute which is added to all elements
+            "enabled", // Already shown in state section
+            "focused", // Already shown in state section
+            "selected", // Already shown in state section
+            "clickable", // Already shown in state section
+            "visible" // Already shown in state section
         ])
         
-        // Filter and display the remaining attributes
-        let sortedKeys = element.attributes.keys.sorted()
-        var displayedAttributes = false
-        
-        for key in sortedKeys {
-            if !excludedAttributes.contains(key), let value = element.attributes[key] {
-                let valueString = formatValue(value)
-                if !valueString.isEmpty {
-                    output += "      \(key): \(valueString)\n"
-                    displayedAttributes = true
-                }
-            }
+        // Filter attributes to find non-excluded ones
+        let filteredAttributes = element.attributes.filter { key, value in
+            !excludedAttributes.contains(key) && formatValue(value).isEmpty == false
         }
         
-        if !displayedAttributes {
-            output += "      No additional attributes\n"
+        // Only show the section if there are attributes to display
+        if !filteredAttributes.isEmpty {
+            output += "\n   Additional Attributes:\n"
+            
+            // Display the remaining attributes in sorted order
+            for key in filteredAttributes.keys.sorted() {
+                if let value = filteredAttributes[key] {
+                    let valueString = formatValue(value)
+                    output += "      \(key): \(valueString)\n"
+                }
+            }
         }
         
         return output
