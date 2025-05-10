@@ -70,8 +70,6 @@ public struct UIInteractionTool {
                         .string("click"),
                         .string("double_click"),
                         .string("right_click"),
-                        .string("type"),
-                        .string("press_key"),
                         .string("drag"),
                         .string("scroll")
                     ])
@@ -91,14 +89,6 @@ public struct UIInteractionTool {
                 "y": .object([
                     "type": .string("number"),
                     "description": .string("Y coordinate for positional actions (required for position-based clicking)")
-                ]),
-                "text": .object([
-                    "type": .string("string"),
-                    "description": .string("Text to type (required for type action)")
-                ]),
-                "keyCode": .object([
-                    "type": .string("number"),
-                    "description": .string("Key code to press (required for press_key action)")
                 ]),
                 "targetElementId": .object([
                     "type": .string("string"),
@@ -200,21 +190,17 @@ public struct UIInteractionTool {
             return try await handleDoubleClick(params)
         case "right_click":
             return try await handleRightClick(params)
-        case "type":
-            return try await handleType(params)
-        case "press_key":
-            return try await handlePressKey(params)
         case "drag":
             return try await handleDrag(params)
         case "scroll":
             return try await handleScroll(params)
         default:
             throw createInteractionError(
-                message: "Invalid action: \(actionValue). Must be one of: click, double_click, right_click, type, press_key, drag, scroll",
+                message: "Invalid action: \(actionValue). Must be one of: click, double_click, right_click, drag, scroll",
                 context: [
                     "toolName": name,
                     "providedAction": actionValue,
-                    "validActions": "click, double_click, right_click, type, press_key, drag, scroll"
+                    "validActions": "click, double_click, right_click, drag, scroll"
                 ]
             ).asMCPError
         }
@@ -343,51 +329,7 @@ public struct UIInteractionTool {
         return [.text("Successfully right-clicked element with ID: \(elementId)")]
     }
     
-    /// Handle type action
-    private func handleType(_ params: [String: Value]) async throws -> [Tool.Content] {
-        guard let elementId = params["elementId"]?.stringValue else {
-            throw createInteractionError(
-                message: "Type action requires elementId",
-                context: [
-                    "toolName": name,
-                    "action": "type",
-                    "providedParams": "\(params.keys.joined(separator: ", "))"
-                ]
-            ).asMCPError
-        }
-        
-        guard let text = params["text"]?.stringValue else {
-            throw createInteractionError(
-                message: "Type action requires text",
-                context: [
-                    "toolName": name,
-                    "action": "type",
-                    "elementId": elementId,
-                    "providedParams": "\(params.keys.joined(separator: ", "))"
-                ]
-            ).asMCPError
-        }
-        
-        try await interactionService.typeText(elementIdentifier: elementId, text: text)
-        return [.text("Successfully typed \(text.count) characters into element with ID: \(elementId)")]
-    }
     
-    /// Handle press key action
-    private func handlePressKey(_ params: [String: Value]) async throws -> [Tool.Content] {
-        guard let keyCode = params["keyCode"]?.intValue else {
-            throw createInteractionError(
-                message: "Press key action requires keyCode",
-                context: [
-                    "toolName": name,
-                    "action": "press_key",
-                    "providedParams": "\(params.keys.joined(separator: ", "))"
-                ]
-            ).asMCPError
-        }
-        
-        try await interactionService.pressKey(keyCode: keyCode)
-        return [.text("Successfully pressed key with code: \(keyCode)")]
-    }
     
     /// Handle drag action
     private func handleDrag(_ params: [String: Value]) async throws -> [Tool.Content] {
