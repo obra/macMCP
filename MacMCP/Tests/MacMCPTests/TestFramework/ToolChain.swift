@@ -30,9 +30,6 @@ public final class ToolChain: @unchecked Sendable {
     
     // MARK: - Tools
 
-    /// Tool for inspecting UI state
-    public let uiStateTool: UIStateTool
-
     /// Tool for taking screenshots
     public let screenshotTool: ScreenshotTool
 
@@ -48,11 +45,6 @@ public final class ToolChain: @unchecked Sendable {
     /// Tool for navigating menus
     public let menuNavigationTool: MenuNavigationTool
 
-    /// Tool for discovering interactive elements
-    public let interactiveElementsDiscoveryTool: InteractiveElementsDiscoveryTool
-
-    /// Tool for checking element capabilities
-    public let elementCapabilitiesTool: ElementCapabilitiesTool
 
     /// Tool for exploring UI interface elements (consolidated tool)
     public let interfaceExplorerTool: InterfaceExplorerTool
@@ -81,11 +73,6 @@ public final class ToolChain: @unchecked Sendable {
         )
         
         // Create tools
-        self.uiStateTool = UIStateTool(
-            accessibilityService: accessibilityService,
-            logger: logger
-        )
-        
         self.screenshotTool = ScreenshotTool(
             screenshotService: screenshotService,
             logger: logger
@@ -113,15 +100,6 @@ public final class ToolChain: @unchecked Sendable {
             logger: logger
         )
         
-        self.interactiveElementsDiscoveryTool = InteractiveElementsDiscoveryTool(
-            accessibilityService: accessibilityService,
-            logger: logger
-        )
-        
-        self.elementCapabilitiesTool = ElementCapabilitiesTool(
-            accessibilityService: accessibilityService,
-            logger: logger
-        )
 
         self.interfaceExplorerTool = InterfaceExplorerTool(
             accessibilityService: accessibilityService,
@@ -219,17 +197,17 @@ public final class ToolChain: @unchecked Sendable {
             "scope": .string(scope),
             "maxDepth": .int(maxDepth)
         ]
-        
+
         if let bundleId = bundleId {
             params["bundleId"] = .string(bundleId)
         }
-        
+
         if let position = position {
             params["x"] = .double(Double(position.x))
             params["y"] = .double(Double(position.y))
         }
 
-        // Add filter criteria to UI state tool if applicable
+        // Add filter criteria if applicable
         if criteria.role != nil {
             if params["filter"] == nil {
                 params["filter"] = .object([:])
@@ -241,9 +219,8 @@ public final class ToolChain: @unchecked Sendable {
             }
         }
 
-
-        // Call the UI state tool
-        let result = try await uiStateTool.handler(params)
+        // Call the interface explorer tool
+        let result = try await interfaceExplorerTool.handler(params)
         
         // Parse the result
         if let content = result.first, case .text(let jsonString) = content {
