@@ -376,24 +376,52 @@ public final class ToolChain: @unchecked Sendable {
     /// - Parameter modifiers: Optional modifier keys (like Command, Shift, etc.)
     /// - Returns: True if the key was successfully pressed
     public func pressKey(keyCode: Int, modifiers: CGEventFlags? = nil) async throws -> Bool {
-        // Create parameters for the tool
-        var params: [String: Value] = [
-            "action": .string("press_key"),
-            "keyCode": .int(keyCode)
-        ]
+        // Create a key sequence with a single tap event for the key code
+        let keyToPress = String(keyCode)
+
+        // We'll create a simple tap sequence for the key
+        var tapEvent: [String: Value] = ["tap": .string(keyToPress)]
 
         // Add modifiers if present
-        if let modifiers = modifiers {
-            params["modifiers"] = .int(Int(modifiers.rawValue))
+        if let modifiers = modifiers, !modifiers.isEmpty {
+            // Convert the modifiers to an array of strings
+            // This is a simplified approach - in practice, we'd have a proper mapping
+            var modifierStrings: [String] = []
+
+            if modifiers.contains(.maskShift) {
+                modifierStrings.append("shift")
+            }
+            if modifiers.contains(.maskCommand) {
+                modifierStrings.append("command")
+            }
+            if modifiers.contains(.maskAlternate) {
+                modifierStrings.append("option")
+            }
+            if modifiers.contains(.maskControl) {
+                modifierStrings.append("control")
+            }
+
+            if !modifierStrings.isEmpty {
+                tapEvent["modifiers"] = .array(modifierStrings.map { .string($0) })
+            }
         }
 
-        // Call the UI interaction tool
-        let result = try await uiInteractionTool.handler(params)
+        // Create the full sequence with just the one tap event
+        let sequence: [[String: Value]] = [tapEvent]
+
+        // Create the parameters for the tool
+        let params: [String: Value] = [
+            "action": .string("key_sequence"),
+            "sequence": .array(sequence.map { .object($0) })
+        ]
+
+        // Call the keyboard interaction tool
+        let result = try await keyboardInteractionTool.handler(params)
 
         // Parse the result
         if let content = result.first, case .text(let text) = content {
             // Check for success message in the result
-            return text.contains("success") || text.contains("pressed") || text.contains("true")
+            return text.contains("success") || text.contains("executed") || text.contains("true")
         }
 
         return false
