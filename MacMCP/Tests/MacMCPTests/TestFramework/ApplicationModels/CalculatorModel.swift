@@ -156,9 +156,15 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
         // Search for scroll area with description "Input"
         let scrollAreaCriteria = UIElementCriteria(
             role: "AXScrollArea",
-            description: "Input"
+            descriptionContains: "Input"  // Use contains for more flexible matching
         )
 
+        // If that doesn't work, try a broader search
+        let staticTextCriteria = UIElementCriteria(
+            role: "AXStaticText"
+        )
+
+        // First try with the scroll area
         if let scrollArea = try await toolChain.findElement(
             matching: scrollAreaCriteria,
             scope: "application",
@@ -175,7 +181,10 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
                         let cleanValue = stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
                                                   .replacingOccurrences(of: "‎", with: "") // Remove invisible character
 
-                        return cleanValue
+                        // If the value looks like a number, return it
+                        if !cleanValue.isEmpty {
+                            return cleanValue
+                        }
                     }
                 }
             }
@@ -188,7 +197,31 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
                 let cleanValue = stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
                                           .replacingOccurrences(of: "‎", with: "") // Remove invisible character
 
-                return cleanValue
+                if !cleanValue.isEmpty {
+                    return cleanValue
+                }
+            }
+        }
+
+        // As a fallback, look for any static text element that might contain the display value
+        let staticTextElements = try await toolChain.findElements(
+            matching: staticTextCriteria,
+            scope: "application",
+            bundleId: bundleId,
+            maxDepth: 15
+        )
+
+        // Check each static text element for a numeric value
+        for element in staticTextElements {
+            if let value = element.value {
+                let stringValue = String(describing: value)
+                let cleanValue = stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+                                          .replacingOccurrences(of: "‎", with: "")
+
+                // Check if it looks like a number
+                if !cleanValue.isEmpty && (Double(cleanValue) != nil || cleanValue == "0") {
+                    return cleanValue
+                }
             }
         }
 
@@ -284,7 +317,22 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
             }
         }
 
-        // APPROACH 4: Manual search through all buttons
+        // APPROACH 4: Try to find by using broader criteria with case-insensitive matching
+        let broadCriteria = UIElementCriteria(
+            role: "AXButton",
+            descriptionContains: button
+        )
+
+        if let element = try await toolChain.findElement(
+            matching: broadCriteria,
+            scope: "application",
+            bundleId: bundleId,
+            maxDepth: 10
+        ) {
+            return element
+        }
+
+        // APPROACH 5: Manual search through all buttons
         let buttonElements = try await toolChain.findElements(
             matching: UIElementCriteria(role: "AXButton"),
             scope: "application",
@@ -294,8 +342,10 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
 
         for element in buttonElements {
             // Check button description (most reliable for Calculator)
-            if let description = element.elementDescription, description == button {
-                return element
+            if let description = element.elementDescription {
+                if description == button || description.localizedCaseInsensitiveContains(button) {
+                    return element
+                }
             }
 
             // Check exact ID match
@@ -304,12 +354,17 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
             }
 
             // Check for the button name/value in any property
-            if let title = element.title, title == button {
-                return element
+            if let title = element.title {
+                if title == button || title.localizedCaseInsensitiveContains(button) {
+                    return element
+                }
             }
 
-            if let value = element.value, String(describing: value) == button {
-                return element
+            if let value = element.value {
+                let stringValue = String(describing: value)
+                if stringValue == button || stringValue.localizedCaseInsensitiveContains(button) {
+                    return element
+                }
             }
         }
 

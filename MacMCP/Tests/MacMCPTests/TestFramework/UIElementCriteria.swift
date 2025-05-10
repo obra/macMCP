@@ -89,66 +89,88 @@ public struct UIElementCriteria {
         if let role = role, element.role != role {
             return false
         }
-        
+
         if let title = title, element.title != title {
             return false
         }
-        
+
         if let identifier = identifier, element.identifier != identifier {
             return false
         }
-        
-        if let value = value, element.value != value {
-            return false
+
+        if let value = value {
+            if element.value == nil {
+                return false
+            }
+
+            // Handle conversion to string for comparison
+            let elementValueString = String(describing: element.value!)
+            if elementValueString != value {
+                return false
+            }
         }
-        
+
         if let description = description, element.elementDescription != description {
             return false
         }
-        
-        // Check contains matches
-        if let titleContains = titleContains, element.title?.contains(titleContains) != true {
+
+        // Check contains matches with case-insensitive comparison
+        if let titleContains = titleContains {
+            if element.title == nil || !(element.title!.localizedCaseInsensitiveContains(titleContains)) {
+                return false
+            }
+        }
+
+        if let identifierContains = identifierContains,
+           !element.identifier.localizedCaseInsensitiveContains(identifierContains) {
             return false
         }
-        
-        if let identifierContains = identifierContains, !element.identifier.contains(identifierContains) {
-            return false
+
+        if let valueContains = valueContains {
+            if element.value == nil {
+                return false
+            }
+
+            // Handle conversion to string for comparison
+            let elementValueString = String(describing: element.value!)
+            if !elementValueString.localizedCaseInsensitiveContains(valueContains) {
+                return false
+            }
         }
-        
-        if let valueContains = valueContains, element.value?.contains(valueContains) != true {
-            return false
+
+        if let descriptionContains = descriptionContains {
+            if element.elementDescription == nil || !(element.elementDescription!.localizedCaseInsensitiveContains(descriptionContains)) {
+                return false
+            }
         }
-        
-        if let descriptionContains = descriptionContains, element.elementDescription?.contains(descriptionContains) != true {
-            return false
-        }
-        
+
         // Check capabilities
+        // Note that element.isClickable is derived from attributes in the parseUIElement method
         if let isClickable = isClickable, element.isClickable != isClickable {
             return false
         }
-        
+
         if let isEditable = isEditable, element.isEditable != isEditable {
             return false
         }
-        
+
         if let isVisible = isVisible, element.isVisible != isVisible {
             return false
         }
-        
+
         if let isEnabled = isEnabled, element.isEnabled != isEnabled {
             return false
         }
-        
+
         // Check position criteria
         if let position = position, !element.frame.contains(position) {
             return false
         }
-        
+
         if let area = area, !element.frame.intersects(area) {
             return false
         }
-        
+
         // All specified criteria are matched
         return true
     }

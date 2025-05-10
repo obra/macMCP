@@ -207,42 +207,61 @@ public final class ToolChain: @unchecked Sendable {
             params["y"] = .double(Double(position.y))
         }
 
+        // Create filter object
+        var filterObj: [String: Value] = [:]
+
         // Add filter criteria if applicable
         if criteria.role != nil {
-            if params["filter"] == nil {
-                params["filter"] = .object([:])
-            }
+            filterObj["role"] = .string(criteria.role!)
+        }
 
-            if case var .object(filterObj) = params["filter"] {
-                filterObj["role"] = .string(criteria.role!)
-                params["filter"] = .object(filterObj)
-            }
+        // Add title contains filter
+        if criteria.titleContains != nil {
+            filterObj["titleContains"] = .string(criteria.titleContains!)
+        }
+
+        // Add value contains filter
+        if criteria.valueContains != nil {
+            filterObj["valueContains"] = .string(criteria.valueContains!)
+        }
+
+        // Add description contains filter
+        if criteria.descriptionContains != nil {
+            filterObj["descriptionContains"] = .string(criteria.descriptionContains!)
+        }
+
+        // Only add filter if we have filter criteria
+        if !filterObj.isEmpty {
+            params["filter"] = .object(filterObj)
+        }
+
+        // Set hidden elements flag
+        if criteria.isVisible != nil {
+            params["includeHidden"] = .bool(true) // We'll filter later based on isVisible
         }
 
         // Call the interface explorer tool
         let result = try await interfaceExplorerTool.handler(params)
-        
+
         // Parse the result
         if let content = result.first, case .text(let jsonString) = content {
             // Parse the JSON into UI elements
             let jsonData = jsonString.data(using: .utf8)!
             let json = try JSONSerialization.jsonObject(with: jsonData) as! [[String: Any]]
-            
+
             // Create UI elements from JSON
             var elements: [UIElement] = []
             for elementJson in json {
-                // This is a simplified version - in practice, we'd need more complete parsing
                 let element = try parseUIElement(from: elementJson)
                 elements.append(element)
             }
 
-
-            // Filter elements by criteria and log count
+            // Filter elements by criteria
             let matchingElements = elements.filter { criteria.matches($0) }
 
             return matchingElements
         }
-        
+
         return []
     }
     
@@ -532,18 +551,19 @@ public final class ToolChain: @unchecked Sendable {
     // MARK: - Helper Methods
 
     /// Parse a UI element from JSON
-    /// - Parameter json: JSON dictionary representing a UI element
+    /// - Parameter json: JSON dictionary representing a UI element (in EnhancedElementDescriptor format)
     /// - Returns: UI element
     private func parseUIElement(from json: [String: Any]) throws -> UIElement {
         // Extract required fields
-        guard let identifier = json["identifier"] as? String else {
+        // With EnhancedElementDescriptor, the identifier is now "id"
+        guard let identifier = json["id"] as? String else {
             throw NSError(
                 domain: "ToolChain",
                 code: 1000,
-                userInfo: [NSLocalizedDescriptionKey: "Missing identifier in UI element JSON"]
+                userInfo: [NSLocalizedDescriptionKey: "Missing identifier (id) in UI element JSON"]
             )
         }
-        
+
         guard let role = json["role"] as? String else {
             throw NSError(
                 domain: "ToolChain",
@@ -563,7 +583,6 @@ public final class ToolChain: @unchecked Sendable {
         }()
         let description = json["description"] as? String
 
-
         // Extract frame
         var frame = CGRect.zero
         if let frameDict = json["frame"] as? [String: Any] {
@@ -576,17 +595,8 @@ public final class ToolChain: @unchecked Sendable {
             frame = CGRect(x: x, y: y, width: width, height: height)
         }
 
-        // Extract normalized frame
-        var normalizedFrame: CGRect? = nil
-        if let normFrameDict = json["normalizedFrame"] as? [String: Any] {
-            // Try to get values with different types
-            let x = (normFrameDict["x"] as? CGFloat) ?? CGFloat(normFrameDict["x"] as? Double ?? 0)
-            let y = (normFrameDict["y"] as? CGFloat) ?? CGFloat(normFrameDict["y"] as? Double ?? 0)
-            let width = (normFrameDict["width"] as? CGFloat) ?? CGFloat(normFrameDict["width"] as? Double ?? 0)
-            let height = (normFrameDict["height"] as? CGFloat) ?? CGFloat(normFrameDict["height"] as? Double ?? 0)
-
-            normalizedFrame = CGRect(x: x, y: y, width: width, height: height)
-        }
+        // Extract normalized frame (not directly available in EnhancedElementDescriptor)
+        let normalizedFrame: CGRect? = nil
 
         // Extract children
         var children: [UIElement] = []
@@ -599,14 +609,66 @@ public final class ToolChain: @unchecked Sendable {
 
         // Extract attributes
         var attributes: [String: Any] = [:]
-        if let attributesDict = json["attributes"] as? [String: Any] {
-            attributes = attributesDict
+        if let attributesDict = json["attributes"] as? [String: String] {
+            // Convert string-to-string dictionary to string-to-any dictionary
+            for (key, value) in attributesDict {
+                attributes[key] = value
+            }
         }
 
         // Extract actions
         var actions: [String] = []
         if let actionsArray = json["actions"] as? [String] {
             actions = actionsArray
+        }
+
+        // Extract capabilities and state information
+        // These fields are new in EnhancedElementDescriptor
+        var isEnabled = true
+        var isVisible = true
+        var isFocused = false
+        var isSelected = false
+
+        // Parse state array
+        if let stateArray = json["state"] as? [String] {
+            for state in stateArray {
+                switch state.lowercased() {
+                case "enabled": isEnabled = true
+                case "disabled": isEnabled = false
+                case "visible": isVisible = true
+                case "hidden": isVisible = false
+                case "focused": isFocused = true
+                case "unfocused": isFocused = false
+                case "selected": isSelected = true
+                case "unselected": isSelected = false
+                default: break // Ignore other states
+                }
+            }
+        }
+
+        // Add state information to attributes
+        attributes["enabled"] = isEnabled
+        attributes["visible"] = isVisible
+        attributes["focused"] = isFocused
+        attributes["selected"] = isSelected
+
+        // Parse capabilities array
+        if let capabilitiesArray = json["capabilities"] as? [String] {
+            for capability in capabilitiesArray {
+                switch capability.lowercased() {
+                case "clickable": attributes["clickable"] = true
+                case "editable": attributes["editable"] = true
+                case "toggleable": attributes["toggleable"] = true
+                case "selectable": attributes["selectable"] = true
+                case "adjustable": attributes["adjustable"] = true
+                case "scrollable": attributes["scrollable"] = true
+                case "haschildren": attributes["hasChildren"] = true
+                case "hasmenu": attributes["hasMenu"] = true
+                case "hashelp": attributes["hasHelp"] = true
+                case "hastooltip": attributes["hasTooltip"] = true
+                default: break // Ignore other capabilities
+                }
+            }
         }
 
         // Create and return the UI element
