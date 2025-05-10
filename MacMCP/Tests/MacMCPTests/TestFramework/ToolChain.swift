@@ -54,6 +54,9 @@ public final class ToolChain: @unchecked Sendable {
     /// Tool for checking element capabilities
     public let elementCapabilitiesTool: ElementCapabilitiesTool
 
+    /// Tool for exploring UI interface elements (consolidated tool)
+    public let interfaceExplorerTool: InterfaceExplorerTool
+
     /// Tool for keyboard interactions
     public let keyboardInteractionTool: KeyboardInteractionTool
     
@@ -116,6 +119,11 @@ public final class ToolChain: @unchecked Sendable {
         )
         
         self.elementCapabilitiesTool = ElementCapabilitiesTool(
+            accessibilityService: accessibilityService,
+            logger: logger
+        )
+
+        self.interfaceExplorerTool = InterfaceExplorerTool(
             accessibilityService: accessibilityService,
             logger: logger
         )
@@ -471,8 +479,81 @@ public final class ToolChain: @unchecked Sendable {
         return false
     }
     
+    // MARK: - Interface Explorer
+
+    /// Explore UI elements using the InterfaceExplorerTool
+    /// - Parameters:
+    ///   - scope: Scope of the search ("system", "application", "focused", "position", "element")
+    ///   - bundleId: Bundle identifier for application scope
+    ///   - elementId: Element ID for element scope
+    ///   - position: Position (x,y) for position scope
+    ///   - filter: Optional filter criteria for elements
+    ///   - elementTypes: Types of elements to find
+    ///   - includeHidden: Whether to include hidden elements
+    ///   - maxDepth: Maximum depth of the element hierarchy
+    ///   - limit: Maximum number of elements to return
+    /// - Returns: An array of enhanced element descriptors
+    public func exploreInterface(
+        scope: String,
+        bundleId: String? = nil,
+        elementId: String? = nil,
+        position: CGPoint? = nil,
+        filter: [String: String]? = nil,
+        elementTypes: [String]? = nil,
+        includeHidden: Bool = false,
+        maxDepth: Int = 10,
+        limit: Int = 100
+    ) async throws -> [[String: Any]] {
+        // Create parameters for the tool
+        var params: [String: Value] = [
+            "scope": .string(scope),
+            "maxDepth": .int(maxDepth),
+            "includeHidden": .bool(includeHidden),
+            "limit": .int(limit)
+        ]
+
+        // Add parameters based on scope
+        if let bundleId = bundleId {
+            params["bundleId"] = .string(bundleId)
+        }
+
+        if let elementId = elementId {
+            params["elementId"] = .string(elementId)
+        }
+
+        if let position = position {
+            params["x"] = .double(Double(position.x))
+            params["y"] = .double(Double(position.y))
+        }
+
+        // Add filter if provided
+        if let filter = filter, !filter.isEmpty {
+            var filterObj: [String: Value] = [:]
+            for (key, value) in filter {
+                filterObj[key] = .string(value)
+            }
+            params["filter"] = .object(filterObj)
+        }
+
+        // Add element types if provided
+        if let elementTypes = elementTypes, !elementTypes.isEmpty {
+            params["elementTypes"] = .array(elementTypes.map { .string($0) })
+        }
+
+        // Call the interface explorer tool
+        let result = try await interfaceExplorerTool.handler(params)
+
+        // Parse the result
+        if let content = result.first, case .text(let jsonString) = content {
+            let jsonData = jsonString.data(using: .utf8)!
+            return try JSONSerialization.jsonObject(with: jsonData) as! [[String: Any]]
+        }
+
+        return []
+    }
+
     // MARK: - Helper Methods
-    
+
     /// Parse a UI element from JSON
     /// - Parameter json: JSON dictionary representing a UI element
     /// - Returns: UI element
