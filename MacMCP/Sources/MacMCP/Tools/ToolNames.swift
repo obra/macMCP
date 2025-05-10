@@ -11,8 +11,6 @@ public enum ToolNames {
     /// Generic ping tool (connectivity test)
     public static let ping = "\(prefix)_ping"
 
-    /// UI state tool (accessibility hierarchy)
-    public static let uiState = "\(prefix)_ui_state"
 
     /// Screenshot tool
     public static let screenshot = "\(prefix)_screenshot"
@@ -29,11 +27,6 @@ public enum ToolNames {
     /// Menu navigation tool
     public static let menuNavigation = "\(prefix)_menu_navigation"
 
-    /// Interactive elements discovery tool
-    public static let interactiveElements = "\(prefix)_interactive_elements"
-
-    /// Element capabilities tool
-    public static let elementCapabilities = "\(prefix)_element_capabilities"
 
     /// Interface explorer tool (consolidates UI state, interactive elements, and capabilities)
     public static let interfaceExplorer = "\(prefix)_interface_explorer"

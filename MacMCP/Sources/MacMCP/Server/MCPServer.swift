@@ -267,15 +267,6 @@ public actor MCPServer {
             }
         )
         
-        // Register the UI state tool
-        let uiStateTool = UIStateTool(accessibilityService: accessibilityService, logger: logger)
-        await registerTool(
-            name: uiStateTool.name,
-            description: uiStateTool.description,
-            inputSchema: uiStateTool.inputSchema,
-            annotations: uiStateTool.annotations,
-            handler: uiStateTool.handler
-        )
 
         // Register the screenshot tool
         let screenshotTool = ScreenshotTool(screenshotService: screenshotService, logger: logger)
@@ -341,31 +332,6 @@ public actor MCPServer {
             handler: menuNavigationTool.handler
         )
 
-        // Register the interactive elements discovery tool
-        let interactiveElementsTool = InteractiveElementsDiscoveryTool(
-            accessibilityService: accessibilityService,
-            logger: logger
-        )
-        await registerTool(
-            name: interactiveElementsTool.name,
-            description: interactiveElementsTool.description,
-            inputSchema: interactiveElementsTool.inputSchema,
-            annotations: interactiveElementsTool.annotations,
-            handler: interactiveElementsTool.handler
-        )
-
-        // Register the element capabilities tool
-        let elementCapabilitiesTool = ElementCapabilitiesTool(
-            accessibilityService: accessibilityService,
-            logger: logger
-        )
-        await registerTool(
-            name: elementCapabilitiesTool.name,
-            description: elementCapabilitiesTool.description,
-            inputSchema: elementCapabilitiesTool.inputSchema,
-            annotations: elementCapabilitiesTool.annotations,
-            handler: elementCapabilitiesTool.handler
-        )
 
         // Register the interface explorer tool (consolidated UI exploration tool)
         let interfaceExplorerTool = InterfaceExplorerTool(
