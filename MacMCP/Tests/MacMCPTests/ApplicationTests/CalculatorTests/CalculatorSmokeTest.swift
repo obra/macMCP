@@ -41,7 +41,7 @@ final class CalculatorSmokeTest: XCTestCase {
         XCTAssertTrue(isRunning, "Calculator should be running after launch")
         
         // Clear the calculator using ESC key
-        let clearSuccess = try await toolChain.pressKey(keyCode: 53) // ESC key
+        let clearSuccess = try await toolChain.executeKeySequence(sequence: [["tap": .string("escape")]])
         XCTAssertTrue(clearSuccess, "Calculator should clear successfully")
         try await Task.sleep(for: .milliseconds(500))
         

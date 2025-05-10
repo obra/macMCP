@@ -129,8 +129,8 @@ final class BasicArithmeticTest: XCTestCase {
             )
 
             // Test a simple interaction with the calculator
-            // Try to press a digit with a keyboard shortcut
-            _ = try await toolChain.pressKey(keyCode: 18) // 1 key
+            // Try to type a digit using the keyboard interaction tool
+            _ = try await toolChain.typeTextWithKeyboard(text: "1")
 
             // Wait for UI to update
             try await Task.sleep(for: .milliseconds(1000))

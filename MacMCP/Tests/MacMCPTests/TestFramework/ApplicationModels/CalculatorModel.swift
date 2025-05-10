@@ -339,10 +339,9 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
     public func pressButton(_ button: String) async throws -> Bool {
         // For clear buttons, try to use the escape key as a fallback
         if button == "Delete" || button == "C" || button == "AC" {
-                return try await toolChain.pressKey(keyCode: 53) // Escape key
+                return try await toolChain.executeKeySequence(sequence: [["tap": .string("escape")]])
         }
-        
-        
+
         // Use the accessibility-based interaction by default
         return try await pressButtonViaAccessibility(button)
     }
@@ -365,7 +364,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
         }
         
         // If all clear buttons fail, try using the escape key
-        let result = try await toolChain.pressKey(keyCode: 53) // Escape key
+        let result = try await toolChain.executeKeySequence(sequence: [["tap": .string("escape")]])
         return result
     }
     
@@ -548,67 +547,16 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
             )
         }
 
-        // Try using the new keyboard interaction tool first
-        do {
-            return try await toolChain.typeTextWithKeyboard(text: digit)
-        } catch {
-            // Fallback to the old approach with keycodes
-            // Map digit to key code
-            let keyCodes = [
-                "0": 29, // 0 key
-                "1": 18, // 1 key
-                "2": 19, // 2 key
-                "3": 20, // 3 key
-                "4": 21, // 4 key
-                "5": 23, // 5 key
-                "6": 22, // 6 key
-                "7": 26, // 7 key
-                "8": 28, // 8 key
-                "9": 25  // 9 key
-            ]
-
-            guard let keyCode = keyCodes[digit] else {
-                throw NSError(
-                    domain: "CalculatorModel",
-                    code: 1003,
-                    userInfo: [NSLocalizedDescriptionKey: "Unknown key code for digit: \(digit)"]
-                )
-            }
-
-            // Use the pressKey method to type the digit
-            return try await toolChain.pressKey(keyCode: keyCode)
-        }
+        // Use the keyboard interaction tool to type the digit
+        return try await toolChain.typeTextWithKeyboard(text: digit)
     }
 
     /// Type an operator key using keyboard input
     /// - Parameter operator: The operator to type (+, -, *, /)
     /// - Returns: True if the key was successfully pressed
     public func typeOperator(_ operator: String) async throws -> Bool {
-        // Try using the new keyboard interaction tool first
-        do {
-            return try await toolChain.typeTextWithKeyboard(text: `operator`)
-        } catch {
-            // Fallback to the old approach with keycodes
-            // Map operator to key code
-            let keyCodes = [
-                "+": 24, // + key
-                "-": 27, // - key
-                "*": 28, // * key
-                "/": 75, // / key
-                "=": 36  // Return key for equals
-            ]
-
-            guard let keyCode = keyCodes[`operator`] else {
-                throw NSError(
-                    domain: "CalculatorModel",
-                    code: 1004,
-                    userInfo: [NSLocalizedDescriptionKey: "Unknown key code for operator: \(`operator`)"]
-                )
-            }
-
-            // Use the pressKey method to type the operator
-            return try await toolChain.pressKey(keyCode: keyCode)
-        }
+        // Use the keyboard interaction tool to type the operator
+        return try await toolChain.typeTextWithKeyboard(text: `operator`)
     }
 
     /// Type text directly using the keyboard interaction tool
