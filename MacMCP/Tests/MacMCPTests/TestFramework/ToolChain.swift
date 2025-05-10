@@ -29,30 +29,33 @@ public final class ToolChain: @unchecked Sendable {
     public let interactionService: UIInteractionService
     
     // MARK: - Tools
-    
+
     /// Tool for inspecting UI state
     public let uiStateTool: UIStateTool
-    
+
     /// Tool for taking screenshots
     public let screenshotTool: ScreenshotTool
-    
+
     /// Tool for interacting with UI elements
     public let uiInteractionTool: UIInteractionTool
-    
+
     /// Tool for opening applications
     public let openApplicationTool: OpenApplicationTool
-    
+
     /// Tool for managing windows
     public let windowManagementTool: WindowManagementTool
-    
+
     /// Tool for navigating menus
     public let menuNavigationTool: MenuNavigationTool
-    
+
     /// Tool for discovering interactive elements
     public let interactiveElementsDiscoveryTool: InteractiveElementsDiscoveryTool
-    
+
     /// Tool for checking element capabilities
     public let elementCapabilitiesTool: ElementCapabilitiesTool
+
+    /// Tool for keyboard interactions
+    public let keyboardInteractionTool: KeyboardInteractionTool
     
     // MARK: - Initialization
     
@@ -114,6 +117,11 @@ public final class ToolChain: @unchecked Sendable {
         
         self.elementCapabilitiesTool = ElementCapabilitiesTool(
             accessibilityService: accessibilityService,
+            logger: logger
+        )
+
+        self.keyboardInteractionTool = KeyboardInteractionTool(
+            interactionService: interactionService,
             logger: logger
         )
     }
@@ -365,23 +373,73 @@ public final class ToolChain: @unchecked Sendable {
     
     /// Press a key
     /// - Parameter keyCode: Key code to press
+    /// - Parameter modifiers: Optional modifier keys (like Command, Shift, etc.)
     /// - Returns: True if the key was successfully pressed
-    public func pressKey(keyCode: Int) async throws -> Bool {
+    public func pressKey(keyCode: Int, modifiers: CGEventFlags? = nil) async throws -> Bool {
         // Create parameters for the tool
-        let params: [String: Value] = [
+        var params: [String: Value] = [
             "action": .string("press_key"),
             "keyCode": .int(keyCode)
         ]
-        
+
+        // Add modifiers if present
+        if let modifiers = modifiers {
+            params["modifiers"] = .int(Int(modifiers.rawValue))
+        }
+
         // Call the UI interaction tool
         let result = try await uiInteractionTool.handler(params)
-        
+
         // Parse the result
         if let content = result.first, case .text(let text) = content {
             // Check for success message in the result
             return text.contains("success") || text.contains("pressed") || text.contains("true")
         }
-        
+
+        return false
+    }
+
+    /// Type text using the keyboard interaction tool
+    /// - Parameter text: The text to type
+    /// - Returns: True if the text was successfully typed
+    public func typeTextWithKeyboard(text: String) async throws -> Bool {
+        // Create parameters for the tool
+        let params: [String: Value] = [
+            "action": .string("type_text"),
+            "text": .string(text)
+        ]
+
+        // Call the keyboard interaction tool
+        let result = try await keyboardInteractionTool.handler(params)
+
+        // Parse the result
+        if let content = result.first, case .text(let text) = content {
+            // Check for success message in the result
+            return text.contains("success") || text.contains("typed") || text.contains("true")
+        }
+
+        return false
+    }
+
+    /// Execute a key sequence using the keyboard interaction tool
+    /// - Parameter sequence: Array of key sequence events (e.g., tap, press, release, delay)
+    /// - Returns: True if the sequence was successfully executed
+    public func executeKeySequence(sequence: [[String: Value]]) async throws -> Bool {
+        // Create parameters for the tool
+        let params: [String: Value] = [
+            "action": .string("key_sequence"),
+            "sequence": .array(sequence.map { .object($0) })
+        ]
+
+        // Call the keyboard interaction tool
+        let result = try await keyboardInteractionTool.handler(params)
+
+        // Parse the result
+        if let content = result.first, case .text(let text) = content {
+            // Check for success message in the result
+            return text.contains("success") || text.contains("executed") || text.contains("true")
+        }
+
         return false
     }
     

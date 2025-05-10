@@ -2,6 +2,7 @@
 // ABOUTME: It provides interfaces for clicking, typing, and other UI operations.
 
 import Foundation
+import AppKit
 
 /// Direction for scrolling operations
 public enum ScrollDirection: String, Codable, Sendable {
@@ -38,8 +39,10 @@ public protocol UIInteractionServiceProtocol {
     func typeText(elementIdentifier: String, text: String) async throws
     
     /// Press a specific key on the keyboard
-    /// - Parameter keyCode: The key code to press
-    func pressKey(keyCode: Int) async throws
+    /// - Parameters:
+    ///   - keyCode: The key code to press
+    ///   - modifiers: Optional modifier flags to apply
+    func pressKey(keyCode: Int, modifiers: CGEventFlags?) async throws
     
     /// Drag and drop from one element to another
     /// - Parameters:

@@ -153,18 +153,18 @@ final class BasicArithmeticTest: XCTestCase {
     func testSequentialUIInteractions() async throws {
         // Set up calculator
         try await resetCalculator()
-        
+
         // Enter a sequence of button presses
         let sequenceSuccess = try await calculator.enterSequence("123")
         XCTAssertTrue(sequenceSuccess, "Should be able to enter a sequence of buttons")
-        
+
         // Brief pause to allow UI to update
         try await Task.sleep(for: .milliseconds(500))
-        
+
         // Verify the result shows the correct sequence
         let displayValue = try await calculator.getDisplayValue()
         XCTAssertNotNil(displayValue, "Should be able to read the display value")
-        
+
         if let displayValue = displayValue {
             let isExpectedValue = displayValue == "123" || displayValue == "123." || displayValue.hasPrefix("123")
             XCTAssertTrue(
@@ -172,7 +172,109 @@ final class BasicArithmeticTest: XCTestCase {
                 "Display should show the entered sequence '123' (got '\(displayValue)')"
             )
         }
-        
+
+        // Clean up
+        let terminateSuccess = try await calculator.terminate()
+        XCTAssertTrue(terminateSuccess, "Calculator should terminate successfully")
+    }
+
+    /// Test calculator operations using keyboard input
+    func testKeyboardInput() async throws {
+        // Set up calculator
+        try await resetCalculator()
+
+        // Use the keyboard interaction tool to type a simple calculation
+        let typingSuccess = try await calculator.typeText("123+456=")
+        XCTAssertTrue(typingSuccess, "Should be able to type text using keyboard")
+
+        // Brief pause to allow UI to update
+        try await Task.sleep(for: .milliseconds(500))
+
+        // Verify the result is correct
+        let displayValue = try await calculator.getDisplayValue()
+        XCTAssertNotNil(displayValue, "Should be able to read the display value")
+
+        if let displayValue = displayValue {
+            // The result should be 579 (123+456)
+            let isExpectedValue = displayValue == "579" || displayValue == "579." || displayValue.hasPrefix("579")
+            XCTAssertTrue(
+                isExpectedValue,
+                "Display should show the result '579' (got '\(displayValue)')"
+            )
+        }
+
+        // Test with key sequence
+        try await calculator.clear()
+
+        // Use direct typing instead of key sequence for this part of the test
+        let typingSuccess2 = try await calculator.typeText("50*2=")
+        XCTAssertTrue(typingSuccess2, "Should be able to type calculation using keyboard")
+
+        // Let's wait to see if the calculation completes correctly with the direct typing approach
+        // (no need to execute a key sequence here)
+
+        // Brief pause to allow UI to update
+        try await Task.sleep(for: .milliseconds(500))
+
+        // Verify the result is correct
+        let result = try await calculator.getDisplayValue()
+        XCTAssertNotNil(result, "Should be able to read the display value")
+
+        if let result = result {
+            // The result should be 100 (50*2)
+            let isExpectedValue = result == "100" || result == "100." || result.hasPrefix("100")
+            XCTAssertTrue(
+                isExpectedValue,
+                "Display should show the result '100' (got '\(result)')"
+            )
+        }
+
+        // Now test more complex key sequences
+        try await calculator.clear()
+
+        // Create a more complex sequence with explicit modifiers for special characters
+        let keySequence: [[String: Value]] = [
+            // First tap 5
+            ["tap": .string("5")],
+
+            // Tap * (shift+8)
+            ["tap": .string("8"), "modifiers": .array([.string("shift")])],
+
+            // Tap 4
+            ["tap": .string("4")],
+
+            // Add a small delay (200ms)
+            ["delay": .double(0.2)],
+
+            // Press plus (shift+=)
+            ["tap": .string("="), "modifiers": .array([.string("shift")])],
+
+            // Tap 6
+            ["tap": .string("6")],
+
+            // Tap =
+            ["tap": .string("=")]
+        ]
+
+        let keySequenceSuccess = try await calculator.executeKeySequence(keySequence)
+        XCTAssertTrue(keySequenceSuccess, "Should be able to execute complex key sequence")
+
+        // Brief pause to allow UI to update
+        try await Task.sleep(for: .milliseconds(500))
+
+        // Verify the result is correct
+        let sequenceResult = try await calculator.getDisplayValue()
+        XCTAssertNotNil(sequenceResult, "Should be able to read the display value")
+
+        if let sequenceResult = sequenceResult {
+            // The result should be 26 (5*4+6)
+            let isExpectedValue = sequenceResult == "26" || sequenceResult == "26." || sequenceResult.hasPrefix("26")
+            XCTAssertTrue(
+                isExpectedValue,
+                "Display should show the result '26' (got '\(sequenceResult)')"
+            )
+        }
+
         // Clean up
         let terminateSuccess = try await calculator.terminate()
         XCTAssertTrue(terminateSuccess, "Calculator should terminate successfully")

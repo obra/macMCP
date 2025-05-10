@@ -547,57 +547,82 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
                 userInfo: [NSLocalizedDescriptionKey: "Invalid digit: \(digit)"]
             )
         }
-        
-        
-        // Map digit to key code
-        let keyCodes = [
-            "0": 29, // 0 key
-            "1": 18, // 1 key
-            "2": 19, // 2 key
-            "3": 20, // 3 key
-            "4": 21, // 4 key
-            "5": 23, // 5 key
-            "6": 22, // 6 key
-            "7": 26, // 7 key
-            "8": 28, // 8 key
-            "9": 25  // 9 key
-        ]
-        
-        guard let keyCode = keyCodes[digit] else {
-            throw NSError(
-                domain: "CalculatorModel",
-                code: 1003,
-                userInfo: [NSLocalizedDescriptionKey: "Unknown key code for digit: \(digit)"]
-            )
+
+        // Try using the new keyboard interaction tool first
+        do {
+            return try await toolChain.typeTextWithKeyboard(text: digit)
+        } catch {
+            // Fallback to the old approach with keycodes
+            // Map digit to key code
+            let keyCodes = [
+                "0": 29, // 0 key
+                "1": 18, // 1 key
+                "2": 19, // 2 key
+                "3": 20, // 3 key
+                "4": 21, // 4 key
+                "5": 23, // 5 key
+                "6": 22, // 6 key
+                "7": 26, // 7 key
+                "8": 28, // 8 key
+                "9": 25  // 9 key
+            ]
+
+            guard let keyCode = keyCodes[digit] else {
+                throw NSError(
+                    domain: "CalculatorModel",
+                    code: 1003,
+                    userInfo: [NSLocalizedDescriptionKey: "Unknown key code for digit: \(digit)"]
+                )
+            }
+
+            // Use the pressKey method to type the digit
+            return try await toolChain.pressKey(keyCode: keyCode)
         }
-        
-        // Use the pressKey method to type the digit
-        return try await toolChain.pressKey(keyCode: keyCode)
     }
-    
+
     /// Type an operator key using keyboard input
     /// - Parameter operator: The operator to type (+, -, *, /)
     /// - Returns: True if the key was successfully pressed
     public func typeOperator(_ operator: String) async throws -> Bool {
-        
-        // Map operator to key code
-        let keyCodes = [
-            "+": 24, // + key
-            "-": 27, // - key
-            "*": 28, // * key
-            "/": 75, // / key
-            "=": 36  // Return key for equals
-        ]
-        
-        guard let keyCode = keyCodes[`operator`] else {
-            throw NSError(
-                domain: "CalculatorModel",
-                code: 1004,
-                userInfo: [NSLocalizedDescriptionKey: "Unknown key code for operator: \(`operator`)"]
-            )
+        // Try using the new keyboard interaction tool first
+        do {
+            return try await toolChain.typeTextWithKeyboard(text: `operator`)
+        } catch {
+            // Fallback to the old approach with keycodes
+            // Map operator to key code
+            let keyCodes = [
+                "+": 24, // + key
+                "-": 27, // - key
+                "*": 28, // * key
+                "/": 75, // / key
+                "=": 36  // Return key for equals
+            ]
+
+            guard let keyCode = keyCodes[`operator`] else {
+                throw NSError(
+                    domain: "CalculatorModel",
+                    code: 1004,
+                    userInfo: [NSLocalizedDescriptionKey: "Unknown key code for operator: \(`operator`)"]
+                )
+            }
+
+            // Use the pressKey method to type the operator
+            return try await toolChain.pressKey(keyCode: keyCode)
         }
-        
-        // Use the pressKey method to type the operator
-        return try await toolChain.pressKey(keyCode: keyCode)
     }
+
+    /// Type text directly using the keyboard interaction tool
+    /// - Parameter text: The text to type
+    /// - Returns: True if the text was successfully typed
+    public func typeText(_ text: String) async throws -> Bool {
+        return try await toolChain.typeTextWithKeyboard(text: text)
+    }
+
+    /// Execute a sequence of keystrokes
+    /// - Parameter sequence: The sequence to execute (e.g., [{"tap": "1"}, {"tap": "+"}, {"tap": "2"}])
+    /// - Returns: True if the sequence was successfully executed
+    public func executeKeySequence(_ sequence: [[String: Value]]) async throws -> Bool {
+        return try await toolChain.executeKeySequence(sequence: sequence)
+    }
+
 }

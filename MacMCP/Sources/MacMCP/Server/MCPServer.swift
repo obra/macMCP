@@ -366,6 +366,19 @@ public actor MCPServer {
             annotations: elementCapabilitiesTool.annotations,
             handler: elementCapabilitiesTool.handler
         )
+
+        // Register the keyboard interaction tool
+        let keyboardInteractionTool = KeyboardInteractionTool(
+            interactionService: interactionService,
+            logger: logger
+        )
+        await registerTool(
+            name: keyboardInteractionTool.name,
+            description: keyboardInteractionTool.description,
+            inputSchema: keyboardInteractionTool.inputSchema,
+            annotations: keyboardInteractionTool.annotations,
+            handler: keyboardInteractionTool.handler
+        )
         
         // Register cancellation handler
         await server.onNotification(CancelNotification.self) { [weak self] notification in

@@ -363,26 +363,47 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
     }
     
     /// Press a specific key on the keyboard
-    /// - Parameter keyCode: The key code to press
-    public func pressKey(keyCode: Int) async throws {
-        logger.debug("Pressing key", metadata: ["keyCode": "\(keyCode)"])
-        
+    /// - Parameters:
+    ///   - keyCode: The key code to press
+    ///   - modifiers: Optional modifier flags to apply
+    public func pressKey(keyCode: Int, modifiers: CGEventFlags? = nil) async throws {
+        logger.debug("Pressing key", metadata: [
+            "keyCode": "\(keyCode)",
+            "modifiers": modifiers != nil ? "\(modifiers!)" : "none"
+        ])
+
+        // Get the event source
+        let eventSource = CGEventSource(stateID: .combinedSessionState)
+
+        // Create key events
         let keyDownEvent = CGEvent(
-            keyboardEventSource: CGEventSource(stateID: .combinedSessionState),
+            keyboardEventSource: eventSource,
             virtualKey: CGKeyCode(keyCode),
             keyDown: true
         )
-        
+
         let keyUpEvent = CGEvent(
-            keyboardEventSource: CGEventSource(stateID: .combinedSessionState),
+            keyboardEventSource: eventSource,
             virtualKey: CGKeyCode(keyCode),
             keyDown: false
         )
-        
+
         guard let keyDownEvent = keyDownEvent, let keyUpEvent = keyUpEvent else {
             throw createError("Failed to create key events", code: 2003)
         }
-        
+
+        // Apply modifiers if provided
+        if let modifiers = modifiers {
+            keyDownEvent.flags = modifiers
+            keyUpEvent.flags = modifiers
+
+            logger.debug("Applied modifiers to key events", metadata: [
+                "keyCode": "\(keyCode)",
+                "modifiers": "\(modifiers)"
+            ])
+        }
+
+        // Post the events
         keyDownEvent.post(tap: .cghidEventTap)
         try await Task.sleep(for: .milliseconds(50))
         keyUpEvent.post(tap: .cghidEventTap)
