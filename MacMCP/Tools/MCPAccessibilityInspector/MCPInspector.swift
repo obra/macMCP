@@ -164,35 +164,36 @@ class MCPInspector {
         }
     }
     
-    /// Fetches UI state data from MCP UIStateTool
+    /// Fetches UI state data from MCP InterfaceExplorerTool
     private func fetchUIStateData(bundleIdentifier: String, maxDepth: Int) async throws -> CallTool.Result {
         guard let mcpClient = self.mcpClient else {
             throw InspectionError.unexpectedError("MCP client not initialized")
         }
-        
-        // Create the request parameters for the UIStateTool
+
+        // Create the request parameters for the InterfaceExplorerTool (replacing the older UIStateTool)
         let arguments: [String: Value] = [
             "scope": .string("application"),
             "bundleId": .string(bundleIdentifier),
-            "maxDepth": .int(maxDepth)
+            "maxDepth": .int(maxDepth),
+            "includeHidden": .bool(true) // Include all elements for completeness
         ]
-        
-        // Send request to the MCP server
+
+        // Send request to the MCP server using the new tool name
         do {
-            print("Sending UI state request to MCP for: \(bundleIdentifier)")
+            print("Sending interface explorer request to MCP for: \(bundleIdentifier)")
             let (content, isError) = try await mcpClient.callTool(
-                name: "macos_ui_state",
+                name: "macos_interface_explorer", // Updated tool name
                 arguments: arguments
             )
-            
+
             if let isError = isError, isError {
                 throw InspectionError.unexpectedError("Error from MCP tool: \(content)")
             }
-            
+
             return CallTool.Result(content: content)
         } catch {
             inspectorLogger.error("Failed to fetch UI state data: \(error.localizedDescription)")
-            print("ERROR: Detailed UI state error: \(error)")
+            print("ERROR: Detailed interface explorer error: \(error)")
             throw InspectionError.unexpectedError("Failed to fetch UI state: \(error.localizedDescription)")
         }
     }

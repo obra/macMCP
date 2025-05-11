@@ -103,14 +103,20 @@ class MCPElementPrinter {
         }
         
         output += "   State: " + stateTokens.joined(separator: ", ") + "\n"
-        
+
+        // SECTION 2.5: Capabilities from InterfaceExplorerTool
+        if let capabilities = (element.attributes["capabilities"] as? [String]) ?? (element.attributes["capabilities"] as? String)?.components(separatedBy: ", "),
+           !capabilities.isEmpty {
+            output += "   Capabilities: " + capabilities.joined(separator: ", ") + "\n"
+        }
+
         // SECTION 3: Role details
         output += "   Role: \(element.role)"
         if let roleDescription = element.roleDescription {
             output += " (\(roleDescription))"
         }
         output += "\n"
-        
+
         if let subrole = element.subrole {
             output += "   Subrole: \(subrole)\n"
         }

@@ -44,25 +44,28 @@ struct MCPAccessibilityInspector: ParsableCommand {
         commandName: "mcp-ax-inspector",
         abstract: "A utility for inspecting the accessibility tree of macOS applications using MCP tools",
         discussion: """
-        The MCP Accessibility Tree Inspector provides detailed visualization and inspection 
+        The MCP Accessibility Tree Inspector provides detailed visualization and inspection
         of UI element hierarchies in macOS applications. This implementation uses the MacMCP's
-        tools rather than direct API access, making it suitable for LLM-driven exploration.
-        
+        InterfaceExplorerTool for enhanced element information including state and capabilities.
+
         Examples:
           # Inspect Calculator with default settings
           mcp-ax-inspector --app-id com.apple.calculator
-          
+
           # Filter to show only button elements
           mcp-ax-inspector --app-id com.apple.calculator --filter "role=AXButton"
-          
+
           # Find elements with specific description
           mcp-ax-inspector --app-id com.apple.calculator --filter "description=1"
-          
+
           # Show only window content elements (exclude menus and controls)
           mcp-ax-inspector --app-id com.apple.calculator --show-window-contents
-          
+
           # Save the output to a file
           mcp-ax-inspector --app-id com.apple.calculator --save output.txt
+
+          # Limit tree depth for large applications (improves performance)
+          mcp-ax-inspector --app-id com.apple.TextEdit --max-depth 10
         """
     )
     
