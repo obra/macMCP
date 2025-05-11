@@ -16,13 +16,13 @@ private let inspectorLogger = Logger(label: "com.anthropic.mac-mcp.mcp-inspector
 
 /// The main inspector class responsible for accessibility tree traversal using MCP tools
 class MCPInspector {
-    private let appId: String?
+    let appId: String? // Changed to public access for menu and window helpers
     private let pid: Int?
     private let maxDepth: Int
     private var elementIndex = 0
     
     // Official MCP client for communicating with the MCP server
-    private var mcpClient: Client?
+    var mcpClient: Client? // Changed to public access for use by menu and window helpers
     private var transport: StdioTransport?
     private var process: Process?
     
@@ -164,7 +164,7 @@ class MCPInspector {
         }
     }
     
-    /// Fetches UI state data from MCP InterfaceExplorerTool
+    /// Fetches UI state data from MCP InterfaceExplorerTool, enhanced with menu and window data
     private func fetchUIStateData(bundleIdentifier: String, maxDepth: Int) async throws -> CallTool.Result {
         guard let mcpClient = self.mcpClient else {
             throw InspectionError.unexpectedError("MCP client not initialized")
@@ -190,6 +190,10 @@ class MCPInspector {
                 throw InspectionError.unexpectedError("Error from MCP tool: \(content)")
             }
 
+            // Menu and window details are now handled by the AsyncInspectionTask
+
+            // For now, we'll still just return the interface explorer content
+            // In a more complete implementation, we'd merge the menu and window data
             return CallTool.Result(content: content)
         } catch {
             inspectorLogger.error("Failed to fetch UI state data: \(error.localizedDescription)")
@@ -197,6 +201,8 @@ class MCPInspector {
             throw InspectionError.unexpectedError("Failed to fetch UI state: \(error.localizedDescription)")
         }
     }
+
+    // Menu and window details fetching now handled in AsyncInspectionTask
     
     /// Cleanup resources - call this method explicitly before deallocation
     func cleanup() async {

@@ -5,6 +5,7 @@ import Foundation
 import ArgumentParser
 import Logging
 import Dispatch
+import MCP  // Import MCP for Value type
 
 // Configure a logger for the inspector
 let logger = Logger(label: "com.anthropic.mac-mcp.mcp-ax-inspector")
@@ -14,23 +15,156 @@ let logger = Logger(label: "com.anthropic.mac-mcp.mcp-ax-inspector")
 @available(macOS 12.0, *)
 final class AsyncInspectionTask: @unchecked Sendable {
     private let inspector: MCPInspector
-    private let onComplete: (MCPUIElementNode) -> Void
-    private let onError: (Error) -> Void
-    
-    init(inspector: MCPInspector, 
-         onComplete: @escaping (MCPUIElementNode) -> Void,
-         onError: @escaping (Error) -> Void) {
+    private let onComplete: (MCPUIElementNode, String) -> Void  // Added additional output parameter
+    private let onError: (Swift.Error) -> Void
+    private let showMenuDetail: Bool
+    private let menuPath: String?
+    private let showWindowDetail: Bool
+    private let windowId: String?
+
+    init(inspector: MCPInspector,
+         showMenuDetail: Bool = false,
+         menuPath: String? = nil,
+         showWindowDetail: Bool = false,
+         windowId: String? = nil,
+         onComplete: @escaping (MCPUIElementNode, String) -> Void,
+         onError: @escaping (Swift.Error) -> Void) {
         self.inspector = inspector
+        self.showMenuDetail = showMenuDetail
+        self.menuPath = menuPath
+        self.showWindowDetail = showWindowDetail
+        self.windowId = windowId
         self.onComplete = onComplete
         self.onError = onError
     }
-    
+
     func run() async {
         do {
             print("Launching MCP and retrieving UI state...")
             let rootElement = try await inspector.inspectApplication()
             print("Successfully retrieved UI state!")
-            onComplete(rootElement)
+
+            // Fetch additional details
+            var additionalOutput = ""
+
+            // Get menu details if requested
+            if showMenuDetail || menuPath != nil {
+                additionalOutput += "\n--- Menu Structure ---\n"
+                // Get menu information using the client from the inspector
+                if let mcpClient = inspector.mcpClient, let appId = inspector.appId {
+                    do {
+                        // Get application menus
+                        let arguments: [String: Value] = [
+                            "action": .string("getApplicationMenus"),
+                            "bundleId": .string(appId)
+                        ]
+
+                        print("Fetching menu structure for \(appId)...")
+                        let (content, isError) = try await mcpClient.callTool(
+                            name: "macos_menu_navigation",
+                            arguments: arguments
+                        )
+
+                        if let isError = isError, isError {
+                            additionalOutput += "Error fetching menu structure: \(content)\n"
+                        } else if let firstContent = content.first, case let .text(menuText) = firstContent {
+                            additionalOutput += "Application Menus:\n\(menuText)\n"
+                        } else {
+                            additionalOutput += "No menu structure available\n"
+                        }
+
+                        // If a specific menu was requested, get its items
+                        if let menuName = menuPath {
+                            additionalOutput += "\nFetching items for menu '\(menuName)'...\n"
+
+                            let menuItemsArgs: [String: Value] = [
+                                "action": .string("getMenuItems"),
+                                "bundleId": .string(appId),
+                                "menuTitle": .string(menuName),
+                                "includeSubmenus": .bool(true)
+                            ]
+
+                            let (menuItemsContent, menuItemsError) = try await mcpClient.callTool(
+                                name: "macos_menu_navigation",
+                                arguments: menuItemsArgs
+                            )
+
+                            if let isError = menuItemsError, isError {
+                                additionalOutput += "Error fetching menu items: \(menuItemsContent)\n"
+                            } else if let firstContent = menuItemsContent.first, case let .text(menuItemsText) = firstContent {
+                                additionalOutput += "Menu Items:\n\(menuItemsText)\n"
+                            } else {
+                                additionalOutput += "No menu items available\n"
+                            }
+                        }
+                    } catch {
+                        additionalOutput += "Error with menu navigation: \(error.localizedDescription)\n"
+                    }
+                } else {
+                    additionalOutput += "Cannot access menu navigation tools\n"
+                }
+            }
+
+            // Get window details if requested
+            if showWindowDetail || windowId != nil {
+                additionalOutput += "\n--- Window Information ---\n"
+                // Get window information using the client from the inspector
+                if let mcpClient = inspector.mcpClient, let appId = inspector.appId {
+                    do {
+                        // Get application windows
+                        let arguments: [String: Value] = [
+                            "action": .string("getApplicationWindows"),
+                            "bundleId": .string(appId),
+                            "includeMinimized": .bool(true)
+                        ]
+
+                        print("Fetching window information for \(appId)...")
+                        let (content, isError) = try await mcpClient.callTool(
+                            name: "macos_window_management",
+                            arguments: arguments
+                        )
+
+                        if let isError = isError, isError {
+                            additionalOutput += "Error fetching window information: \(content)\n"
+                        } else if let firstContent = content.first, case let .text(windowText) = firstContent {
+                            additionalOutput += "Application Windows:\n\(windowText)\n"
+                        } else {
+                            additionalOutput += "No window information available\n"
+                        }
+
+                        // If a specific window was requested, get its details
+                        if let windowIdValue = windowId {
+                            additionalOutput += "\nFetching details for window ID '\(windowIdValue)'...\n"
+
+                            let windowDetailsArgs: [String: Value] = [
+                                "action": .string("getActiveWindow"),
+                                "bundleId": .string(appId),
+                                "windowId": .string(windowIdValue)
+                            ]
+
+                            let (windowDetailsContent, windowDetailsError) = try await mcpClient.callTool(
+                                name: "macos_window_management",
+                                arguments: windowDetailsArgs
+                            )
+
+                            if let isError = windowDetailsError, isError {
+                                additionalOutput += "Error fetching window details: \(windowDetailsContent)\n"
+                            } else if let firstContent = windowDetailsContent.first, case let .text(windowDetailsText) = firstContent {
+                                additionalOutput += "Window Details:\n\(windowDetailsText)\n"
+                            } else {
+                                additionalOutput += "No details available for this window\n"
+                            }
+                        }
+                    } catch {
+                        additionalOutput += "Error with window management: \(error.localizedDescription)\n"
+                    }
+                } else {
+                    additionalOutput += "Cannot access window management tools\n"
+                }
+            }
+
+            // Call onComplete with both the root element and the additional output
+            onComplete(rootElement, additionalOutput)
         } catch {
             print("Error during inspection: \(error)")
             onError(error)
@@ -46,7 +180,8 @@ struct MCPAccessibilityInspector: ParsableCommand {
         discussion: """
         The MCP Accessibility Tree Inspector provides detailed visualization and inspection
         of UI element hierarchies in macOS applications. This implementation uses the MacMCP's
-        InterfaceExplorerTool for enhanced element information including state and capabilities.
+        InterfaceExplorerTool for enhanced element information including state and capabilities,
+        along with MenuNavigationTool and WindowManagementTool for menu and window inspection.
 
         Examples:
           # Inspect Calculator with default settings
@@ -66,6 +201,12 @@ struct MCPAccessibilityInspector: ParsableCommand {
 
           # Limit tree depth for large applications (improves performance)
           mcp-ax-inspector --app-id com.apple.TextEdit --max-depth 10
+
+          # Show detailed menu structure and window information
+          mcp-ax-inspector --app-id com.apple.TextEdit --menu-detail --window-detail
+
+          # Get details for a specific menu
+          mcp-ax-inspector --app-id com.apple.TextEdit --menu-path "File"
         """
     )
     
@@ -106,9 +247,23 @@ struct MCPAccessibilityInspector: ParsableCommand {
     
     @Flag(name: [.customLong("show-window-contents")], help: "Only show window content elements (excluding menus and controls)")
     var showWindowContents: Bool = false
-    
+
     @Flag(name: [.customLong("verbose")], help: "Show even more detailed diagnostics (currently all data is shown by default)")
     var verbose: Bool = false
+
+    // Menu interaction options
+    @Flag(name: [.customLong("menu-detail")], help: "Show detailed menu structure for the application")
+    var showMenuDetail: Bool = false
+
+    @Option(name: [.customLong("menu-path")], help: "Get items for a specific menu (e.g., 'File')")
+    var menuPath: String?
+
+    // Window interaction options
+    @Flag(name: [.customLong("window-detail")], help: "Show detailed window information for the application")
+    var showWindowDetail: Bool = false
+
+    @Option(name: [.customLong("window-id")], help: "Get details for a specific window ID")
+    var windowId: String?
     
     // Need to implement a synchronous wrapper to execute async code
     func run() throws {
@@ -169,19 +324,25 @@ struct MCPAccessibilityInspector: ParsableCommand {
             // Perform the inspection
             // We can't directly use async/await in a synchronous run method,
             // so we need to use a workaround to bridge the gap
-            
-            // Instead of using await directly, we'll use a dispatch semaphore 
+
+            // Instead of using await directly, we'll use a dispatch semaphore
             // to wait for the async operation to complete
             let semaphore = DispatchSemaphore(value: 0)
             var resultRootElement: MCPUIElementNode?
-            var resultError: Error?
+            var resultError: Swift.Error?
+            var additionalOutput = ""
             
             // We need to delegate to a separate async method to avoid issues
             // with capturing state in the Task
             let asyncTask = AsyncInspectionTask(
                 inspector: inspector,
-                onComplete: { root in
+                showMenuDetail: showMenuDetail,
+                menuPath: menuPath,
+                showWindowDetail: showWindowDetail,
+                windowId: windowId,
+                onComplete: { root, additionalInfo in
                     resultRootElement = root
+                    additionalOutput = additionalInfo
                     semaphore.signal()
                 },
                 onError: { error in
@@ -221,13 +382,16 @@ struct MCPAccessibilityInspector: ParsableCommand {
             // Generate the visualization
             print("Generating visualization...")
             let output = visualizer.visualize(rootElement, withFilters: filterDict)
-            
+
+            // Note: additionalOutput is already populated by the AsyncInspectionTask
+
             // Output handling
             if let saveToFile = saveToFile {
                 // Save to file
                 print("Saving output to file: \(saveToFile)")
                 do {
-                    try output.write(toFile: saveToFile, atomically: true, encoding: .utf8)
+                    let combinedOutput = output + additionalOutput
+                    try combinedOutput.write(toFile: saveToFile, atomically: true, encoding: .utf8)
                     print("Output saved to: \(saveToFile)")
                 } catch {
                     logger.error("Failed to save output to file: \(error.localizedDescription)")
@@ -237,6 +401,11 @@ struct MCPAccessibilityInspector: ParsableCommand {
                 // Print to console
                 print("\n--- UI Tree ---\n")
                 print(output)
+
+                // Print additional info if available
+                if !additionalOutput.isEmpty {
+                    print(additionalOutput)
+                }
             }
             
             logger.info("Inspection completed successfully")
@@ -284,7 +453,7 @@ struct MCPAccessibilityInspector: ParsableCommand {
         let fileManager = FileManager.default
         if !fileManager.fileExists(atPath: path) {
             print("Warning: MCP executable not found at: \(path)")
-            
+
             // Try to find MacMCP in various locations
             let possibleLocations = [
                 "./MacMCP",
@@ -292,7 +461,7 @@ struct MCPAccessibilityInspector: ParsableCommand {
                 "../.build/debug/MacMCP",
                 "/usr/local/bin/MacMCP"
             ]
-            
+
             for location in possibleLocations {
                 let resolvedPath = URL(fileURLWithPath: fileManager.currentDirectoryPath).appendingPathComponent(location).path
                 if fileManager.fileExists(atPath: resolvedPath) {
@@ -300,7 +469,7 @@ struct MCPAccessibilityInspector: ParsableCommand {
                     return resolvedPath
                 }
             }
-            
+
             // If we get here, we couldn't find the executable
             print("WARNING: Could not find MCP executable in any standard location.")
             print("Using the original path but the application may fail to start: \(path)")
@@ -308,6 +477,134 @@ struct MCPAccessibilityInspector: ParsableCommand {
         } else {
             print("MCP executable found at: \(path)")
             return path
+        }
+    }
+
+    /// Get detailed menu information using MenuNavigationTool
+    private func getMenuDetails(inspector: MCPInspector, bundleId: String) async throws -> String {
+        guard let mcpClient = inspector.mcpClient else {
+            return "Menu client not available\n"
+        }
+
+        var result = "Fetching menu structure for \(bundleId)...\n"
+
+        // Create the request parameters for the MenuNavigationTool
+        var arguments: [String: Value] = [
+            "action": .string("getApplicationMenus"),
+            "bundleId": .string(bundleId)
+        ]
+
+        do {
+            // First get all application menus
+            let (content, isError) = try await mcpClient.callTool(
+                name: "macos_menu_navigation",
+                arguments: arguments
+            )
+
+            if let isError = isError, isError {
+                return "Error fetching menu structure: \(content)\n"
+            }
+
+            // Convert menu content to string
+            if let firstContent = content.first, case let .text(menuText) = firstContent {
+                result += "Application Menus:\n\(menuText)\n"
+            } else {
+                result += "No menu structure available\n"
+            }
+
+            // If a specific menu path was requested, get the menu items
+            if let menuTitle = menuPath {
+                result += "\nFetching menu items for \(menuTitle)...\n"
+
+                // Create parameters for getting menu items
+                arguments = [
+                    "action": .string("getMenuItems"),
+                    "bundleId": .string(bundleId),
+                    "menuTitle": .string(menuTitle),
+                    "includeSubmenus": .bool(true)
+                ]
+
+                let (menuItemsContent, menuItemsError) = try await mcpClient.callTool(
+                    name: "macos_menu_navigation",
+                    arguments: arguments
+                )
+
+                if let isError = menuItemsError, isError {
+                    result += "Error fetching menu items: \(menuItemsContent)\n"
+                } else if let firstContent = menuItemsContent.first, case let .text(menuItemsText) = firstContent {
+                    result += "Menu Items for \(menuTitle):\n\(menuItemsText)\n"
+                } else {
+                    result += "No menu items available for \(menuTitle)\n"
+                }
+            }
+
+            return result
+        } catch {
+            return "Error fetching menu details: \(error.localizedDescription)\n"
+        }
+    }
+
+    /// Get detailed window information using WindowManagementTool
+    private func getWindowDetails(inspector: MCPInspector, bundleId: String, windowId: String?) async throws -> String {
+        guard let mcpClient = inspector.mcpClient else {
+            return "Window client not available\n"
+        }
+
+        var result = "Fetching window information for \(bundleId)...\n"
+
+        // Create the request parameters for the WindowManagementTool
+        var arguments: [String: Value] = [
+            "action": .string("getApplicationWindows"),
+            "bundleId": .string(bundleId),
+            "includeMinimized": .bool(true)
+        ]
+
+        do {
+            // First get all application windows
+            let (content, isError) = try await mcpClient.callTool(
+                name: "macos_window_management",
+                arguments: arguments
+            )
+
+            if let isError = isError, isError {
+                return "Error fetching window information: \(content)\n"
+            }
+
+            // Convert window content to string
+            if let firstContent = content.first, case let .text(windowText) = firstContent {
+                result += "Application Windows:\n\(windowText)\n"
+            } else {
+                result += "No window information available\n"
+            }
+
+            // If a specific window ID was requested, get details for that window
+            if let windowId = windowId {
+                result += "\nFetching details for window ID \(windowId)...\n"
+
+                // Create parameters for getting window details
+                arguments = [
+                    "action": .string("getActiveWindow"),
+                    "bundleId": .string(bundleId),
+                    "windowId": .string(windowId)
+                ]
+
+                let (windowDetailsContent, windowDetailsError) = try await mcpClient.callTool(
+                    name: "macos_window_management",
+                    arguments: arguments
+                )
+
+                if let isError = windowDetailsError, isError {
+                    result += "Error fetching window details: \(windowDetailsContent)\n"
+                } else if let firstContent = windowDetailsContent.first, case let .text(windowDetailsText) = firstContent {
+                    result += "Window Details for \(windowId):\n\(windowDetailsText)\n"
+                } else {
+                    result += "No details available for window ID \(windowId)\n"
+                }
+            }
+
+            return result
+        } catch {
+            return "Error fetching window details: \(error.localizedDescription)\n"
         }
     }
 }
