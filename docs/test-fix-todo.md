@@ -29,7 +29,7 @@ This document outlines the remaining test issues to fix after updating the error
 - [x] Implement Calculator-specific test helpers with state reset logic
 - [x] Implement improved Calculator tests with shared app instances
 - [x] Implement TextEdit-specific test helpers with state reset logic
-- [ ] Implement improved TextEdit tests with shared app instances
+- [x] Implement improved TextEdit tests with shared app instances
 - [ ] Create similar test helpers for other applications
 - [ ] Update E2E test suite to use the shared app pattern consistently
 
@@ -37,9 +37,9 @@ This document outlines the remaining test issues to fix after updating the error
 
 - [x] Reduce application launches and terminations between tests
 - [x] Improve state reset between tests (clear calculator, create new document, etc.)
-- [ ] Add more robust waiting mechanisms for application state changes
-- [ ] Implement retry mechanisms for flaky UI interactions
-- [ ] Add proper cleanup for test applications even when tests fail
+- [x] Add more robust waiting mechanisms for application state changes
+- [x] Implement retry mechanisms for flaky UI interactions
+- [x] Add proper cleanup for test applications even when tests fail
 - [x] Implement better assertion helpers like the `assertDisplayValue` method
 - [ ] Consider screenshot-based verification for UI state
 
@@ -55,7 +55,7 @@ This document outlines the remaining test issues to fix after updating the error
 
 - [x] Abstract common test setup and lifecycle management code
 - [x] Use proper async/await patterns in test code
-- [ ] Add more detailed error messages to test assertions
+- [x] Add more detailed error messages to test assertions
 - [x] Implement better patterns for actor access in tests (added proper MainActor annotations)
 - [x] Create helper methods for common test operations
 - [x] Extract duplicate code into shared utilities
@@ -71,9 +71,9 @@ This document outlines the remaining test issues to fix after updating the error
 ## Documentation
 
 - [ ] Update tool documentation to reflect the new tools and error handling
-- [ ] Document common testing patterns for asynchronous actor code
-- [ ] Add examples of how to test tools with mock services
-- [x] Document the new application test helpers approach (via CalculatorTestHelper)
+- [x] Document common testing patterns for asynchronous actor code
+- [x] Add examples of how to test tools with mock services
+- [x] Document the new application test helpers approach (via CalculatorTestHelper and TextEditTestHelper)
 - [ ] Create a testing guide with best practices for MCP tests
 - [ ] Add XML documentation to all public test APIs
 
@@ -83,7 +83,7 @@ This document outlines the remaining test issues to fix after updating the error
 - [x] Ensure proper MainActor usage for UI-related code in Calculator tests
 - [x] Fix data race issues in shared test state for Calculator tests
 - [x] Implement better patterns for async setUp and tearDown in Calculator tests
-- [ ] Create helper utilities for handling async XCTest flows
+- [x] Create helper utilities for handling async XCTest flows
 
 ## Recent Progress
 
@@ -92,3 +92,17 @@ This document outlines the remaining test issues to fix after updating the error
 - Implemented proper MainActor annotations for test classes
 - Fixed setUp and tearDown methods to respect actor isolation
 - Tests now run without data race warnings in Calculator tests
+- Created TextEditTestHelper.swift for shared TextEdit test functionality
+- Updated SimpleTextEditTest and TextEditFormattingTest to use the helper
+- Added improved document management and state reset to TextEdit tests
+- Implemented retry mechanisms and better error handling in test helpers
+
+## Known Issues and Next Steps
+
+- Menu navigation is still problematic in some tests; we need to investigate why the MenuNavigationTool fails to find menu items in TextEdit
+- TextEdit's testSaveAndReopen test fails with element not found errors, likely due to UI focus issues with save dialogs
+- We should implement a reliable mechanism for handling file dialogs consistently (save, open, etc.)
+- Consider implementing a fallback mechanism where keyboard shortcuts can be used when menu navigation fails
+- Need to further improve async error handling for accessibility interaction failures
+- Need to standardize the test helper pattern across all application tests
+- Consider creating a base ApplicationTestHelper class that can be extended for specific application tests
