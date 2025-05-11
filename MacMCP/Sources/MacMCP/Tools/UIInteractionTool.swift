@@ -237,8 +237,7 @@ public struct UIInteractionTool {
                     )
                 }
                 
-                if let element = foundElement {
-                } else {
+                if foundElement == nil {
                     print("⚠️ DEBUG: handleClick - WARNING: Element NOT found before click operation. This may fail.")
                 }
             } catch {

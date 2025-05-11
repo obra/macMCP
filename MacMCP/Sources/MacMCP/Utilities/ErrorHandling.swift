@@ -340,6 +340,25 @@ public func createTimeoutError(
     )
 }
 
+/// Create a clipboard error
+public func createClipboardError(
+    code: String,
+    message: String,
+    context: [String: String] = [:],
+    underlyingError: Swift.Error? = nil
+) -> MacMCPErrorInfo {
+    var contextWithCode = context
+    contextWithCode["errorCode"] = code
+
+    return MacMCPErrorInfo(
+        category: .interaction,
+        code: MacMCPErrorCode.actionFailed,
+        message: message,
+        context: contextWithCode,
+        underlyingError: underlyingError
+    )
+}
+
 /// Extension for NSError conversion to MacMCPErrorInfo
 extension NSError {
     /// Convert to MacMCPErrorInfo if possible

@@ -651,7 +651,3 @@ struct KeyboardInteractionError: Swift.Error {
     }
 }
 
-// Add to ToolNames.swift
-extension ToolNames {
-    public static let keyboardInteraction = "keyboard_interaction"
-}

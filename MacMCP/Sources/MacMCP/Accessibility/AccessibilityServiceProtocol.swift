@@ -45,4 +45,63 @@ public protocol AccessibilityServiceProtocol: Sendable {
         identifier: String,
         in bundleId: String?
     ) async throws -> UIElement?
+    
+    /// Move a window to a new position
+    func moveWindow(
+        withIdentifier identifier: String,
+        to point: CGPoint
+    ) async throws
+    
+    /// Resize a window
+    func resizeWindow(
+        withIdentifier identifier: String,
+        to size: CGSize
+    ) async throws
+    
+    /// Minimize a window
+    func minimizeWindow(
+        withIdentifier identifier: String
+    ) async throws
+    
+    /// Maximize (zoom) a window
+    func maximizeWindow(
+        withIdentifier identifier: String
+    ) async throws
+    
+    /// Close a window
+    func closeWindow(
+        withIdentifier identifier: String
+    ) async throws
+    
+    /// Activate (bring to front) a window
+    func activateWindow(
+        withIdentifier identifier: String
+    ) async throws
+    
+    /// Set the window order (front, back, above, below)
+    func setWindowOrder(
+        withIdentifier identifier: String,
+        orderMode: WindowOrderMode,
+        referenceWindowId: String?
+    ) async throws
+    
+    /// Focus a window (give it keyboard focus)
+    func focusWindow(
+        withIdentifier identifier: String
+    ) async throws
+}
+
+/// Window ordering modes
+public enum WindowOrderMode: String, Codable, Sendable {
+    /// Bring window to the front
+    case front
+
+    /// Send window to the back
+    case back
+
+    /// Position window above a reference window
+    case above
+
+    /// Position window below a reference window
+    case below
 }

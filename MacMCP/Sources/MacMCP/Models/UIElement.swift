@@ -142,6 +142,9 @@ public enum FrameSource: String, Codable {
     
     /// Available actions that can be performed on this element
     public let actions: [String]
+
+    /// The underlying AXUIElement (if available)
+    public var axElement: AXUIElement?
     
     // MARK: - Capability Properties
     
@@ -275,7 +278,8 @@ public enum FrameSource: String, Codable {
         parent: UIElement? = nil,
         children: [UIElement] = [],
         attributes: [String: Any] = [:],
-        actions: [String] = []
+        actions: [String] = [],
+        axElement: AXUIElement? = nil
     ) {
         self.identifier = identifier
         self.role = role
@@ -290,6 +294,7 @@ public enum FrameSource: String, Codable {
         self.children = children
         self.attributes = attributes
         self.actions = actions
+        self.axElement = axElement
     }
     
     /// Create a dictionary representation of the element

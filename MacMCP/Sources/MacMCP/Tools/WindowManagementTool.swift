@@ -11,7 +11,7 @@ public struct WindowManagementTool: @unchecked Sendable {
     public let name = ToolNames.windowManagement
     
     /// Description of the tool
-    public let description = "Get and manage windows of macOS applications"
+    public let description = "Comprehensive window management for macOS applications"
     
     /// Input schema for the tool
     public private(set) var inputSchema: Value
@@ -22,6 +22,9 @@ public struct WindowManagementTool: @unchecked Sendable {
     /// The accessibility service to use
     private let accessibilityService: any AccessibilityServiceProtocol
     
+    /// The logger
+    private let logger: Logger
+    
     /// Tool handler function that uses this instance's accessibility service
     public var handler: @Sendable ([String: Value]?) async throws -> [Tool.Content] {
         return { [self] params in
@@ -29,8 +32,41 @@ public struct WindowManagementTool: @unchecked Sendable {
         }
     }
     
-    /// The logger
-    private let logger: Logger
+    /// Available window management actions
+    enum Action: String, Codable {
+        /// Get all windows for an application
+        case getApplicationWindows
+        
+        /// Get the currently active window
+        case getActiveWindow
+        
+        /// Get the currently focused UI element
+        case getFocusedElement
+        
+        /// Move a window to a new position
+        case moveWindow
+        
+        /// Resize a window
+        case resizeWindow
+        
+        /// Minimize a window
+        case minimizeWindow
+        
+        /// Maximize (zoom) a window
+        case maximizeWindow
+        
+        /// Close a window
+        case closeWindow
+        
+        /// Activate a window (bring to front)
+        case activateWindow
+        
+        /// Change window ordering
+        case setWindowOrder
+        
+        /// Focus a window (give it keyboard focus)
+        case focusWindow
+    }
     
     /// Create a new window management tool
     /// - Parameters:
@@ -64,25 +100,63 @@ public struct WindowManagementTool: @unchecked Sendable {
             "properties": .object([
                 "action": .object([
                     "type": .string("string"),
-                    "description": .string("The action to perform: getApplicationWindows, getActiveWindow, getFocusedElement"),
+                    "description": .string("The window management action to perform"),
                     "enum": .array([
                         .string("getApplicationWindows"),
                         .string("getActiveWindow"),
-                        .string("getFocusedElement")
+                        .string("getFocusedElement"),
+                        .string("moveWindow"),
+                        .string("resizeWindow"),
+                        .string("minimizeWindow"),
+                        .string("maximizeWindow"),
+                        .string("closeWindow"),
+                        .string("activateWindow"),
+                        .string("setWindowOrder"),
+                        .string("focusWindow")
                     ])
                 ]),
                 "bundleId": .object([
                     "type": .string("string"),
-                    "description": .string("The bundle identifier of the application. Required for getApplicationWindows.")
+                    "description": .string("The bundle identifier of the application")
+                ]),
+                "windowId": .object([
+                    "type": .string("string"),
+                    "description": .string("Identifier of a specific window to target")
                 ]),
                 "includeMinimized": .object([
                     "type": .string("boolean"),
                     "description": .string("Whether to include minimized windows in the results"),
                     "default": .bool(true)
                 ]),
-                "windowId": .object([
+                "x": .object([
+                    "type": .string("number"),
+                    "description": .string("X coordinate for window positioning")
+                ]),
+                "y": .object([
+                    "type": .string("number"),
+                    "description": .string("Y coordinate for window positioning")
+                ]),
+                "width": .object([
+                    "type": .string("number"),
+                    "description": .string("Width for window resizing")
+                ]),
+                "height": .object([
+                    "type": .string("number"),
+                    "description": .string("Height for window resizing")
+                ]),
+                "orderMode": .object([
                     "type": .string("string"),
-                    "description": .string("Identifier of a specific window to target")
+                    "description": .string("Window ordering mode: front, back, above, below"),
+                    "enum": .array([
+                        .string("front"),
+                        .string("back"),
+                        .string("above"),
+                        .string("below")
+                    ])
+                ]),
+                "referenceWindowId": .object([
+                    "type": .string("string"),
+                    "description": .string("Reference window ID for relative ordering operations")
                 ])
             ]),
             "required": .array([.string("action")]),
@@ -99,25 +173,47 @@ public struct WindowManagementTool: @unchecked Sendable {
         }
         
         // Get the action
-        guard let actionValue = params["action"]?.stringValue else {
-            throw MCPError.invalidParams("Action is required")
+        guard let actionString = params["action"]?.stringValue,
+              let action = Action(rawValue: actionString) else {
+            throw MCPError.invalidParams("Valid action is required")
         }
         
         // Common parameters
         let includeMinimized = params["includeMinimized"]?.boolValue ?? true
         
-        switch actionValue {
-        case "getApplicationWindows":
+        switch action {
+        case .getApplicationWindows:
             return try await handleGetApplicationWindows(params, includeMinimized: includeMinimized)
             
-        case "getActiveWindow":
+        case .getActiveWindow:
             return try await handleGetActiveWindow()
             
-        case "getFocusedElement":
+        case .getFocusedElement:
             return try await handleGetFocusedElement()
             
-        default:
-            throw MCPError.invalidParams("Invalid action: \(actionValue)")
+        case .moveWindow:
+            return try await handleMoveWindow(params)
+            
+        case .resizeWindow:
+            return try await handleResizeWindow(params)
+            
+        case .minimizeWindow:
+            return try await handleMinimizeWindow(params)
+            
+        case .maximizeWindow:
+            return try await handleMaximizeWindow(params)
+            
+        case .closeWindow:
+            return try await handleCloseWindow(params)
+            
+        case .activateWindow:
+            return try await handleActivateWindow(params)
+            
+        case .setWindowOrder:
+            return try await handleSetWindowOrder(params)
+            
+        case .focusWindow:
+            return try await handleFocusWindow(params)
         }
     }
     
@@ -216,6 +312,256 @@ public struct WindowManagementTool: @unchecked Sendable {
         
         // Return the element descriptors
         return try formatResponse(descriptors)
+    }
+    
+    /// Handle the moveWindow action
+    /// - Parameter params: The request parameters
+    /// - Returns: The tool result
+    private func handleMoveWindow(_ params: [String: Value]) async throws -> [Tool.Content] {
+        guard let windowId = params["windowId"]?.stringValue else {
+            throw MCPError.invalidParams("windowId is required for moveWindow action")
+        }
+        
+        let x: CGFloat
+        let y: CGFloat
+        
+        if let xDouble = params["x"]?.doubleValue {
+            x = CGFloat(xDouble)
+        } else {
+            throw MCPError.invalidParams("x coordinate is required for moveWindow action")
+        }
+        
+        if let yDouble = params["y"]?.doubleValue {
+            y = CGFloat(yDouble)
+        } else {
+            throw MCPError.invalidParams("y coordinate is required for moveWindow action")
+        }
+        
+        do {
+            try await accessibilityService.moveWindow(
+                withIdentifier: windowId,
+                to: CGPoint(x: x, y: y)
+            )
+            
+            return [.text("""
+                {
+                    "success": true,
+                    "action": "moveWindow",
+                    "windowId": "\(windowId)",
+                    "position": {
+                        "x": \(x),
+                        "y": \(y)
+                    }
+                }
+                """)]
+        } catch {
+            throw MCPError.internalError("Failed to move window: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Handle the resizeWindow action
+    /// - Parameter params: The request parameters
+    /// - Returns: The tool result
+    private func handleResizeWindow(_ params: [String: Value]) async throws -> [Tool.Content] {
+        guard let windowId = params["windowId"]?.stringValue else {
+            throw MCPError.invalidParams("windowId is required for resizeWindow action")
+        }
+        
+        let width: CGFloat
+        let height: CGFloat
+        
+        if let widthDouble = params["width"]?.doubleValue {
+            width = CGFloat(widthDouble)
+        } else {
+            throw MCPError.invalidParams("width is required for resizeWindow action")
+        }
+        
+        if let heightDouble = params["height"]?.doubleValue {
+            height = CGFloat(heightDouble)
+        } else {
+            throw MCPError.invalidParams("height is required for resizeWindow action")
+        }
+        
+        do {
+            try await accessibilityService.resizeWindow(
+                withIdentifier: windowId,
+                to: CGSize(width: width, height: height)
+            )
+            
+            return [.text("""
+                {
+                    "success": true,
+                    "action": "resizeWindow",
+                    "windowId": "\(windowId)",
+                    "size": {
+                        "width": \(width),
+                        "height": \(height)
+                    }
+                }
+                """)]
+        } catch {
+            throw MCPError.internalError("Failed to resize window: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Handle the minimizeWindow action
+    /// - Parameter params: The request parameters
+    /// - Returns: The tool result
+    private func handleMinimizeWindow(_ params: [String: Value]) async throws -> [Tool.Content] {
+        guard let windowId = params["windowId"]?.stringValue else {
+            throw MCPError.invalidParams("windowId is required for minimizeWindow action")
+        }
+        
+        do {
+            try await accessibilityService.minimizeWindow(withIdentifier: windowId)
+            
+            return [.text("""
+                {
+                    "success": true,
+                    "action": "minimizeWindow",
+                    "windowId": "\(windowId)"
+                }
+                """)]
+        } catch {
+            throw MCPError.internalError("Failed to minimize window: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Handle the maximizeWindow action
+    /// - Parameter params: The request parameters
+    /// - Returns: The tool result
+    private func handleMaximizeWindow(_ params: [String: Value]) async throws -> [Tool.Content] {
+        guard let windowId = params["windowId"]?.stringValue else {
+            throw MCPError.invalidParams("windowId is required for maximizeWindow action")
+        }
+        
+        do {
+            try await accessibilityService.maximizeWindow(withIdentifier: windowId)
+            
+            return [.text("""
+                {
+                    "success": true,
+                    "action": "maximizeWindow",
+                    "windowId": "\(windowId)"
+                }
+                """)]
+        } catch {
+            throw MCPError.internalError("Failed to maximize window: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Handle the closeWindow action
+    /// - Parameter params: The request parameters
+    /// - Returns: The tool result
+    private func handleCloseWindow(_ params: [String: Value]) async throws -> [Tool.Content] {
+        guard let windowId = params["windowId"]?.stringValue else {
+            throw MCPError.invalidParams("windowId is required for closeWindow action")
+        }
+        
+        do {
+            try await accessibilityService.closeWindow(withIdentifier: windowId)
+            
+            return [.text("""
+                {
+                    "success": true,
+                    "action": "closeWindow",
+                    "windowId": "\(windowId)"
+                }
+                """)]
+        } catch {
+            throw MCPError.internalError("Failed to close window: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Handle the activateWindow action
+    /// - Parameter params: The request parameters
+    /// - Returns: The tool result
+    private func handleActivateWindow(_ params: [String: Value]) async throws -> [Tool.Content] {
+        guard let windowId = params["windowId"]?.stringValue else {
+            throw MCPError.invalidParams("windowId is required for activateWindow action")
+        }
+        
+        do {
+            try await accessibilityService.activateWindow(withIdentifier: windowId)
+            
+            return [.text("""
+                {
+                    "success": true,
+                    "action": "activateWindow",
+                    "windowId": "\(windowId)"
+                }
+                """)]
+        } catch {
+            throw MCPError.internalError("Failed to activate window: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Handle the setWindowOrder action
+    /// - Parameter params: The request parameters
+    /// - Returns: The tool result
+    private func handleSetWindowOrder(_ params: [String: Value]) async throws -> [Tool.Content] {
+        guard let windowId = params["windowId"]?.stringValue else {
+            throw MCPError.invalidParams("windowId is required for setWindowOrder action")
+        }
+        
+        guard let orderModeString = params["orderMode"]?.stringValue,
+              let orderMode = WindowOrderMode(rawValue: orderModeString) else {
+            throw MCPError.invalidParams("Valid orderMode is required for setWindowOrder action (front, back, above, below)")
+        }
+        
+        // Reference window ID is required for above/below ordering
+        let referenceWindowId = params["referenceWindowId"]?.stringValue
+        
+        if (orderMode == .above || orderMode == .below) && referenceWindowId == nil {
+            throw MCPError.invalidParams("referenceWindowId is required for '\(orderMode.rawValue)' order mode")
+        }
+        
+        do {
+            try await accessibilityService.setWindowOrder(
+                withIdentifier: windowId,
+                orderMode: orderMode,
+                referenceWindowId: referenceWindowId
+            )
+            
+            let referenceInfo = referenceWindowId != nil ? """
+                ,
+                    "referenceWindowId": "\(referenceWindowId!)"
+                """ : ""
+            
+            return [.text("""
+                {
+                    "success": true,
+                    "action": "setWindowOrder",
+                    "windowId": "\(windowId)",
+                    "orderMode": "\(orderMode.rawValue)"\(referenceInfo)
+                }
+                """)]
+        } catch {
+            throw MCPError.internalError("Failed to set window order: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Handle the focusWindow action
+    /// - Parameter params: The request parameters
+    /// - Returns: The tool result
+    private func handleFocusWindow(_ params: [String: Value]) async throws -> [Tool.Content] {
+        guard let windowId = params["windowId"]?.stringValue else {
+            throw MCPError.invalidParams("windowId is required for focusWindow action")
+        }
+        
+        do {
+            try await accessibilityService.focusWindow(withIdentifier: windowId)
+            
+            return [.text("""
+                {
+                    "success": true,
+                    "action": "focusWindow",
+                    "windowId": "\(windowId)"
+                }
+                """)]
+        } catch {
+            throw MCPError.internalError("Failed to focus window: \(error.localizedDescription)")
+        }
     }
     
     /// Format a response as JSON

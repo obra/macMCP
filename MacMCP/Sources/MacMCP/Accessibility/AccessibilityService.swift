@@ -8,7 +8,7 @@ import Logging
 /// Service for working with the macOS accessibility API
 public actor AccessibilityService: AccessibilityServiceProtocol {
     /// The logger for accessibility operations
-    private let logger: Logger
+    internal let logger: Logger
     
     /// The default maximum recursion depth for element hierarchy
     public static let defaultMaxDepth = 25

@@ -41,6 +41,9 @@ public actor MCPServer {
     /// The application service
     private lazy var applicationService = ApplicationService(logger: logger)
     
+    /// The clipboard service
+    private lazy var clipboardService = ClipboardService()
+    
     /// Create a new macOS MCP server
     /// - Parameters:
     ///   - name: The server name
@@ -357,6 +360,18 @@ public actor MCPServer {
             inputSchema: keyboardInteractionTool.inputSchema,
             annotations: keyboardInteractionTool.annotations,
             handler: keyboardInteractionTool.handler
+        )
+        
+        // Register the clipboard management tool
+        let clipboardManagementTool = ClipboardManagementTool(
+            clipboardService: clipboardService
+        )
+        await registerTool(
+            name: clipboardManagementTool.name,
+            description: clipboardManagementTool.description,
+            inputSchema: clipboardManagementTool.inputSchema,
+            annotations: nil,
+            handler: clipboardManagementTool.handler
         )
         
         // Register cancellation handler

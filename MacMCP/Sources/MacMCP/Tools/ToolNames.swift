@@ -18,8 +18,8 @@ public enum ToolNames {
     /// UI interaction tool (click, type, etc.)
     public static let uiInteraction = "\(prefix)_ui_interact"
 
-    /// Application opening tool
-    public static let openApplication = "\(prefix)_open_application"
+    /// Application management tool (replacing openApplication)
+    public static let applicationManagement = "\(prefix)_application_management"
 
     /// Window management tool
     public static let windowManagement = "\(prefix)_window_management"
@@ -27,7 +27,15 @@ public enum ToolNames {
     /// Menu navigation tool
     public static let menuNavigation = "\(prefix)_menu_navigation"
 
+    /// Clipboard management tool
+    public static let clipboardManagement = "\(prefix)_clipboard_management"
 
     /// Interface explorer tool (consolidates UI state, interactive elements, and capabilities)
     public static let interfaceExplorer = "\(prefix)_interface_explorer"
+    
+    /// Keyboard interaction tool
+    public static let keyboardInteraction = "\(prefix)_keyboard_interaction"
+    
+    /// Legacy tool names (for backward compatibility)
+    public static let openApplication = "\(prefix)_open_application"
 }
