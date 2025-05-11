@@ -85,7 +85,7 @@ swift build
 ./.build/debug/ax-inspector --app-id com.apple.calculator --filter "role=button"
 ```
 
-#### MCP-Based Accessibility Inspector (Uses MCP Tools)
+#### MCP-Based Accessibility Inspector (Uses MCP Tools) - PREFERRED METHOD
 ```bash
 # Navigate to the MacMCP directory
 cd MacMCP
@@ -111,27 +111,43 @@ swift build
 
 # Limit the tree depth for large applications
 ./.build/debug/mcp-ax-inspector --app-id com.apple.calculator --mcp-path ./.build/debug/MacMCP --max-depth 5
+
+# NEW: Display detailed menu structure - shows all application menus
+./.build/debug/mcp-ax-inspector --app-id com.apple.calculator --mcp-path ./.build/debug/MacMCP --menu-detail
+
+# NEW: Get items for a specific menu
+./.build/debug/mcp-ax-inspector --app-id com.apple.TextEdit --mcp-path ./.build/debug/MacMCP --menu-path "File"
+
+# NEW: Get detailed window information
+./.build/debug/mcp-ax-inspector --app-id com.apple.calculator --mcp-path ./.build/debug/MacMCP --window-detail
+
+# NEW: Combine multiple options for comprehensive inspection
+./.build/debug/mcp-ax-inspector --app-id com.apple.TextEdit --mcp-path ./.build/debug/MacMCP --menu-detail --window-detail --max-depth 3
 ```
 
 #### Choosing Between the Inspectors
 
-Both accessibility inspectors provide valuable insights, but they serve different purposes:
+While both accessibility inspectors provide valuable insights, the **MCP-based inspector** is now the **preferred tool**:
 
 1. **Native Inspector (`ax-inspector`)**
-   - Provides the most complete view of the accessibility tree
-   - Shows all available attributes directly from the Accessibility APIs
-   - Best for general exploration and debugging
+   - Provides a complete view of the accessibility tree directly from macOS APIs
+   - Shows all native attributes without any processing
+   - Only useful when you need to see the raw API perspective, which is rarely needed
 
-2. **MCP-Based Inspector (`mcp-ax-inspector`)**
+2. **MCP-Based Inspector (`mcp-ax-inspector`) - RECOMMENDED**
    - Shows exactly what the MCP server sees and provides to LLMs
    - Essential for writing tests that use MCP
    - Helps debug issues where MCP interactions may not match direct API behaviors
    - More accurately reflects the state that Claude or other LLMs will work with
+   - **Enhanced with menu and window inspection capabilities**
+   - Provides better information about element capabilities and states
+   - Uses the same InterfaceExplorerTool that the MCP server uses
 
 When to use which:
-- Use the **native inspector** for comprehensive debugging of accessibility issues
-- Use the **MCP-based inspector** when writing tests or when you need to verify what information the MCP server is exposing to LLMs
-- The MCP-based inspector is especially useful when creating test fixtures, as it shows the exact element IDs and structure that the MCP tools will work with
+- **Always start with the MCP-based inspector** - it shows you what the MCP actually sees
+- Only use the native inspector if you're specifically debugging discrepancies between the raw accessibility APIs and the MCP's interpretation
+- The MCP-based inspector is the required choice when creating test fixtures, as it shows the exact element IDs and structure that the MCP tools will work with
+- The menu and window inspection features of the MCP-based inspector are essential for debugging menu navigation and window management issues
 
 ## Code Architecture
 
@@ -146,14 +162,14 @@ When to use which:
    - `ApplicationService`: Launches and manages macOS applications
 
 3. **MCP Tools**:
-   - `UIStateTool`: Gets the current UI state of applications
-   - `ScreenshotTool`: Takes screenshots
-   - `UIInteractionTool`: Interacts with UI elements
-   - `OpenApplicationTool`: Opens macOS applications
-   - `WindowManagementTool`: Manages application windows
-   - `MenuNavigationTool`: Navigates application menus
-   - `InteractiveElementsDiscoveryTool`: Discovers interactive UI elements
-   - `ElementCapabilitiesTool`: Determines what actions can be performed on elements
+   - `InterfaceExplorerTool`: Enhanced UI exploration with state and capabilities information (replaces UIStateTool)
+   - `ScreenshotTool`: Takes screenshots of the screen or UI elements
+   - `UIInteractionTool`: Interacts with UI elements (clicking, typing, scrolling)
+   - `OpenApplicationTool`: Opens macOS applications by name or bundle ID
+   - `WindowManagementTool`: Manages application windows (move, resize, minimize, maximize)
+   - `MenuNavigationTool`: Navigates application menus and activates menu items
+   - `KeyboardInteractionTool`: Executes keyboard shortcuts and types text
+   - `ClipboardManagementTool`: Manages clipboard content including text and images
 
 4. **Models**:
    - `UIElement`: Represents a UI element with accessibility properties
@@ -224,50 +240,73 @@ Example output for a button:
 
 To find the correct element selectors for interacting with UI elements:
 
-1. Run the appropriate inspector on your target application:
+1. Run the MCP-based inspector on your target application:
    ```bash
-   # For general exploration:
-   ./.build/debug/ax-inspector --app-id com.apple.calculator
-   
-   # For MCP tools and tests (recommended):
+   # Always use the MCP-based inspector for MCP tools and tests:
    ./.build/debug/mcp-ax-inspector --app-id com.apple.calculator --mcp-path ./.build/debug/MacMCP
    ```
 
 2. Look for elements with the identifier, role, or description you need:
    ```bash
-   # Find all buttons (with MCP inspector)
+   # Find all buttons
    ./.build/debug/mcp-ax-inspector --app-id com.apple.calculator --mcp-path ./.build/debug/MacMCP --filter "role=AXButton"
-   
+
    # Find elements with specific descriptions
    ./.build/debug/mcp-ax-inspector --app-id com.apple.calculator --mcp-path ./.build/debug/MacMCP --filter "description=1"
-   
+
    # Find elements with specific identifiers
    ./.build/debug/mcp-ax-inspector --app-id com.apple.calculator --mcp-path ./.build/debug/MacMCP --filter "id=Equals"
    ```
 
-3. Use the identified properties in your MCP tools:
-   - For UIStateTool: Use the role, identifier, or description
+3. For menu-related testing, use the new menu inspection features:
+   ```bash
+   # Get full menu structure of the application
+   ./.build/debug/mcp-ax-inspector --app-id com.apple.TextEdit --mcp-path ./.build/debug/MacMCP --menu-detail
+
+   # Get items for a specific menu
+   ./.build/debug/mcp-ax-inspector --app-id com.apple.TextEdit --mcp-path ./.build/debug/MacMCP --menu-path "File"
+   ```
+
+4. For window-related testing, use the window inspection features:
+   ```bash
+   # Get all windows and their properties
+   ./.build/debug/mcp-ax-inspector --app-id com.apple.TextEdit --mcp-path ./.build/debug/MacMCP --window-detail
+   ```
+
+5. Use the identified properties in your MCP tools:
+   - For InterfaceExplorerTool (formerly UIStateTool): Use the role, identifier, or description
    - For UIInteractionTool: Use the identifier for precise targeting
-   - For MenuNavigationTool: Note the menu item identifiers and structure
-   
-   **Important**: The MCP-based inspector will show you the exact element identifiers that the MCP tools use, making it the preferred choice when developing tests for MCP-based workflows.
+   - For MenuNavigationTool: Use the menu item identifiers from the menu structure output
+   - For WindowManagementTool: Use the window IDs from the window information output
+
+   **Important**: The MCP-based inspector with its menu and window inspection features shows you the exact element identifiers that the MCP tools use, making it essential when developing tests for MCP-based workflows.
 
 ### Tips for Effective Use
 
-Both inspector tools support similar filtering and display options:
+The MCP-based inspector provides a rich set of options for exploring UI hierarchies:
 
+#### Basic Filtering and Display Options:
 - Use `--show-window-contents` to focus on the main UI elements and exclude menus and controls
-- Use `--show-menus` to explore available menu items and their identifiers
 - Use `--hide-invisible` to reduce clutter in output
-- Save complex hierarchies to a file for further analysis: `--save output.txt`
-- When debugging interaction issues, check if the element is Enabled and Visible
-- Look at the available Actions to determine what operations are supported
+- Use `--filter "role=X"` to find elements with specific roles
+- Use `--filter "description=X"` to find elements with specific descriptions
+- Save output to a file for analysis: `--save output.txt`
+- Use `--max-depth` (e.g., 3-5) for large applications to prevent overwhelming output
 
-For the MCP-based inspector:
+#### Advanced Features:
+- Use `--menu-detail` to see all application menus (essential for MenuNavigationTool)
+- Use `--menu-path "MenuName"` to explore specific menu contents
+- Use `--window-detail` to see all windows and their properties (essential for WindowManagementTool)
+- Combine multiple options for comprehensive inspection (e.g., `--menu-detail --window-detail --max-depth 3`)
+
+#### Best Practices:
 - Always include the `--mcp-path` parameter pointing to your MacMCP executable
-- Use `--max-depth` (e.g., 5-10) for large applications to prevent overwhelming output
-- When writing tests, use `--filter "description=X"` to find specific buttons by their label
-- When debugging MCP tool issues, the MCP inspector will show exactly what the server sees, which can help identify discrepancies between expected and actual element properties
+- Check if elements are Enabled, Visible, and have the right Capabilities
+- Look at the State section to determine element interactability
+- The Capabilities field shows high-level interaction capabilities like "clickable" and "editable"
+- The Actions field shows low-level accessibility actions that can be performed
+- When debugging menu navigation issues, always use `--menu-detail` to verify menu structure
+- When debugging window management issues, always use `--window-detail` to verify window IDs
 
 ## Important Development Notes
 
