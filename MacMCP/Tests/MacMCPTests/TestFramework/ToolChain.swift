@@ -51,6 +51,9 @@ public final class ToolChain: @unchecked Sendable {
 
     /// Tool for keyboard interactions
     public let keyboardInteractionTool: KeyboardInteractionTool
+
+    /// Tool for managing applications
+    public let applicationManagementTool: ApplicationManagementTool
     
     // MARK: - Initialization
     
@@ -108,6 +111,11 @@ public final class ToolChain: @unchecked Sendable {
 
         self.keyboardInteractionTool = KeyboardInteractionTool(
             interactionService: interactionService,
+            logger: logger
+        )
+
+        self.applicationManagementTool = ApplicationManagementTool(
+            applicationService: applicationService,
             logger: logger
         )
     }
