@@ -8,6 +8,8 @@ import MCP
 
 /// Model for the macOS Calculator application
 public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
+    /// Main window ID for the Calculator - can be set during tests
+    public var windowId: String?
     /// Button identifiers on the macOS Calculator
     public enum Button {
         /// Digit buttons (0-9)
