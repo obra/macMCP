@@ -44,20 +44,36 @@ public actor MockClipboardService: ClipboardServiceProtocol {
     public init() {}
     
     // MARK: - Setter methods for configuring mock behavior
-    
+
+    // Counter reset methods
+    public func resetGetInfoCallCount() {
+        getInfoCallCount = 0
+    }
+
+    public func resetAllCallCounts() {
+        getTextCallCount = 0
+        setTextCallCount = 0
+        getImageCallCount = 0
+        setImageCallCount = 0
+        getFilesCallCount = 0
+        setFilesCallCount = 0
+        clearCallCount = 0
+        getInfoCallCount = 0
+    }
+
     // Mock response setters
     public func setTextToReturn(_ text: String) {
         _textToReturn = text
     }
-    
+
     public func setImageToReturn(_ image: String) {
         _imageToReturn = image
     }
-    
+
     public func setFilesToReturn(_ files: [String]) {
         _filesToReturn = files
     }
-    
+
     public func setInfoToReturn(_ info: ClipboardContentInfo) {
         _infoToReturn = info
     }
