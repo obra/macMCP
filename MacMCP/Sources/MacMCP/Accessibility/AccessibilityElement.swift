@@ -181,15 +181,28 @@ public class AccessibilityElement {
             }
             
             // Create the final identifier structure
-            // Format: [type]:[descriptive-part]:[hash]
+            // Check if this is a menu-related element
+            if role == AXAttribute.Role.menuItem ||
+               role == AXAttribute.Role.menu ||
+               role == "AXMenuBarItem" ||
+               role == "AXMenuBar" {
+
+                // Use path-based identifiers for menu items
+                identifier = generateMenuPathIdentifier(
+                    role: role,
+                    title: title,
+                    description: description,
+                    parent: parent,
+                    path: path
+                )
+            }
             // For common interactive controls like buttons, we include the descriptive part directly
             // in the identifier to make it more recognizable to Claude
-            if role == AXAttribute.Role.button || 
-               role == AXAttribute.Role.menuItem ||
-               role == AXAttribute.Role.checkbox ||
-               role == AXAttribute.Role.radioButton ||
-               role == AXAttribute.Role.textField {
-                
+            else if role == AXAttribute.Role.button ||
+                    role == AXAttribute.Role.checkbox ||
+                    role == AXAttribute.Role.radioButton ||
+                    role == AXAttribute.Role.textField {
+
                 // For native IDs, preserve them in a consistent format to ensure compatibility
                 if validNativeID {
                     identifier = "ui:\(nativeID!):\(hashedID)"
@@ -1156,5 +1169,97 @@ public class AccessibilityElement {
     /// - Returns: The application AXUIElement
     public static func applicationElement(pid: pid_t) -> AXUIElement {
         return AXUIElementCreateApplication(pid)
+    }
+
+    /// Generate a path-based identifier for menu elements
+    /// - Parameters:
+    ///   - role: The element's role
+    ///   - title: The element's title
+    ///   - description: The element's description
+    ///   - parent: The parent UI element
+    ///   - path: The element's path in hierarchy
+    /// - Returns: A path-based identifier string
+    private static func generateMenuPathIdentifier(
+        role: String,
+        title: String?,
+        description: String?,
+        parent: UIElement?,
+        path: String
+    ) -> String {
+        // First, determine the display name for this element
+        let shortenedRole = role.replacingOccurrences(of: "AX", with: "")
+        let displayName: String
+        
+        if let title = title, !title.isEmpty {
+            displayName = title
+        } else if let description = description, !description.isEmpty {
+            displayName = description
+        } else {
+            // When no name is available, use the role
+            displayName = "\(shortenedRole)"
+        }
+        
+        // Start building the path components, beginning with this element
+        var pathComponents = [displayName]
+        
+        // If we have a parent, use it to build the path upward
+        if let parent = parent {
+            // Recursively collect parent names up the menu chain
+            var parentPathComponents: [String] = []
+            var currentParent: UIElement? = parent
+            var depth = 0
+            var siblingIndex = 0
+            
+            while currentParent != nil {
+                // Try to find index of child among siblings to use for position-based naming
+                if let grandparent = currentParent!.parent {
+                    if let index = grandparent.children.firstIndex(where: { $0.identifier == currentParent!.identifier }) {
+                        siblingIndex = index
+                    }
+                }
+                
+                // Only include menu-related elements in the path
+                if isMenuElement(currentParent!.role) {
+                    let parentShortenedRole = currentParent!.role.replacingOccurrences(of: "AX", with: "")
+                    var parentName: String
+                    
+                    if let title = currentParent!.title, !title.isEmpty {
+                        parentName = title
+                    } else if let description = currentParent!.elementDescription, !description.isEmpty {
+                        parentName = description
+                    } else {
+                        // For unnamed elements, include role and position
+                        parentName = "\(parentShortenedRole)\(siblingIndex + 1)"
+                    }
+                    
+                    parentPathComponents.insert(parentName, at: 0)
+                }
+                
+                // Move up to the next parent
+                currentParent = currentParent!.parent
+                depth += 1
+            }
+            
+            // Add parent components to the beginning of our path
+            pathComponents = parentPathComponents + pathComponents
+        }
+        
+        // If we couldn't build a path (no parents or no names), use a fallback
+        if pathComponents.isEmpty {
+            // Use the path parameter as a fallback
+            let pathElements = path.split(separator: "/")
+            
+            // If path is also empty, use a default with role and UUID
+            if pathElements.isEmpty {
+                return "ui:menu:\(shortenedRole)_\(UUID().uuidString.prefix(8))"
+            }
+            
+            // Build a path-based ID from the path parameter
+            return "ui:menu:\(pathElements.joined(separator: " > "))"
+        }
+        
+        // Build the final path-based ID
+        let pathString = pathComponents.joined(separator: " > ")
+        return "ui:menu:\(pathString)"
     }
 }
