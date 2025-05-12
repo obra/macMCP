@@ -264,8 +264,8 @@ public struct MenuNavigationTool: @unchecked Sendable {
         let subPath = Array(pathComponents.dropFirst())
 
         logger.debug("Navigating menu path", metadata: [
-            "menuTitle": "\(menuTitle)",
-            "subPath": "\(subPath.joined(separator: " > "))"
+            "menuTitle": .string(menuTitle),
+            "subPath": .string(subPath.joined(separator: " > "))
         ])
 
         // Get the application element
@@ -360,8 +360,8 @@ public struct MenuNavigationTool: @unchecked Sendable {
 
         for (index, component) in subPath.enumerated() {
             logger.debug("Processing submenu component", metadata: [
-                "index": "\(index)",
-                "component": component
+                "index": .string("\(index)"),
+                "component": .string(component)
             ])
 
             // Find the target menu item in the current menu
@@ -379,8 +379,8 @@ public struct MenuNavigationTool: @unchecked Sendable {
             if targetMenuItem == nil {
                 // If we couldn't find the target item, cancel the menu navigation
                 logger.error("Menu item not found", metadata: [
-                    "component": component,
-                    "availableItems": "\(currentMenu.children.map { $0.title ?? "untitled" }.joined(separator: ", "))"
+                    "component": .string(component),
+                    "availableItems": .string(currentMenu.children.map { $0.title ?? "untitled" }.joined(separator: ", "))
                 ])
 
                 // Try to click on the application window to dismiss the menu
@@ -471,8 +471,8 @@ public struct MenuNavigationTool: @unchecked Sendable {
 
                     if menuItemForPathComponent == nil {
                         logger.warning("Failed to find menu item when traversing path", metadata: [
-                            "pathComponent": pathComponent,
-                            "currentPath": "\(currentPath.joined(separator: " > "))"
+                            "pathComponent": .string(pathComponent),
+                            "currentPath": .string(currentPath.joined(separator: " > "))
                         ])
                         continue
                     }
@@ -488,8 +488,8 @@ public struct MenuNavigationTool: @unchecked Sendable {
 
                     if submenuForMenuItem == nil {
                         logger.warning("Failed to find submenu when traversing path", metadata: [
-                            "pathComponent": pathComponent,
-                            "currentPath": "\(currentPath.joined(separator: " > "))"
+                            "pathComponent": .string(pathComponent),
+                            "currentPath": .string(currentPath.joined(separator: " > "))
                         ])
                         continue
                     }
