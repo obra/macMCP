@@ -100,6 +100,7 @@ public final class ToolChain: @unchecked Sendable {
         self.menuNavigationTool = MenuNavigationTool(
             accessibilityService: accessibilityService,
             interactionService: interactionService,
+            applicationService: applicationService,
             logger: logger
         )
         

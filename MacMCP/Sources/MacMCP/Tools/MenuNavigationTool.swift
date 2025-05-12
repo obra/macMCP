@@ -24,29 +24,35 @@ public struct MenuNavigationTool: @unchecked Sendable {
     
     /// The UI interaction service to use
     private let interactionService: any UIInteractionServiceProtocol
-    
+
+    /// The application service to use
+    private let applicationService: any ApplicationServiceProtocol
+
     /// Tool handler function that uses this instance's services
     public var handler: @Sendable ([String: Value]?) async throws -> [Tool.Content] {
         return { [self] params in
             return try await self.processRequest(params)
         }
     }
-    
+
     /// The logger
     private let logger: Logger
-    
+
     /// Create a new menu navigation tool
     /// - Parameters:
     ///   - accessibilityService: The accessibility service to use
     ///   - interactionService: The UI interaction service to use
+    ///   - applicationService: The application service to use
     ///   - logger: Optional logger to use
     public init(
         accessibilityService: any AccessibilityServiceProtocol,
         interactionService: any UIInteractionServiceProtocol,
+        applicationService: any ApplicationServiceProtocol,
         logger: Logger? = nil
     ) {
         self.accessibilityService = accessibilityService
         self.interactionService = interactionService
+        self.applicationService = applicationService
         self.logger = logger ?? Logger(label: "mcp.tool.menu_navigation")
         
         // Set tool annotations

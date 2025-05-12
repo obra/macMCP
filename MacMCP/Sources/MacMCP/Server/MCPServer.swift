@@ -325,6 +325,7 @@ public actor MCPServer {
         let menuNavigationTool = MenuNavigationTool(
             accessibilityService: accessibilityService,
             interactionService: interactionService,
+            applicationService: applicationService,
             logger: logger
         )
         await registerTool(
