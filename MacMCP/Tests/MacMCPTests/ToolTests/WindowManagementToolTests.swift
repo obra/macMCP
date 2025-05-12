@@ -194,7 +194,15 @@ private class MockAccessibilityService: @unchecked Sendable, AccessibilityServic
     func focusWindow(withIdentifier identifier: String) async throws {
         focusWindowCalled = true
         focusWindowIdentifier = identifier
-        
+
+        if shouldFailOperations {
+            throw errorToThrow ?? MCPError.internalError("Mock error")
+        }
+    }
+
+    func performAction(action: String, onElement identifier: String, in bundleId: String?) async throws {
+        // Add tracking properties if needed in the future
+
         if shouldFailOperations {
             throw errorToThrow ?? MCPError.internalError("Mock error")
         }

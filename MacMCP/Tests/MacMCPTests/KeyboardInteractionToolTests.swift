@@ -318,6 +318,10 @@ class UIInteractionServiceStub: UIInteractionServiceProtocol {
     func scrollElement(identifier: String, direction: ScrollDirection, amount: Double) async throws {
         // No-op for testing
     }
+
+    func performAction(identifier: String, action: String, appBundleId: String?) async throws {
+        // No-op for testing
+    }
 }
 
 /// Class to monitor keyboard events for testing

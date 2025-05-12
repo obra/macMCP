@@ -393,11 +393,11 @@ public struct MenuNavigationTool: @unchecked Sendable {
 
             // Is this the final component (the actual item we want to activate)?
             if index == subPath.count - 1 {
-                // This is the target menu item, click it
-                try await interactionService.clickElement(identifier: targetMenuItem!.identifier, appBundleId: bundleId)
+                // This is the target menu item, use AXPick action instead of click
+                try await interactionService.performAction(identifier: targetMenuItem!.identifier, action: "AXPick", appBundleId: bundleId)
             } else {
-                // This is an intermediate menu item (has a submenu), click it to open its submenu
-                try await interactionService.clickElement(identifier: targetMenuItem!.identifier, appBundleId: bundleId)
+                // This is an intermediate menu item (has a submenu), use AXPick to open its submenu
+                try await interactionService.performAction(identifier: targetMenuItem!.identifier, action: "AXPick", appBundleId: bundleId)
 
                 // Brief pause to allow submenu to open
                 try await Task.sleep(for: .milliseconds(300))

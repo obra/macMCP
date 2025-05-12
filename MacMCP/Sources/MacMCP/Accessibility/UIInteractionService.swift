@@ -1865,4 +1865,24 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
             context: ["internalErrorCode": "\(code)"]
         )
     }
+
+    /// Perform a specific accessibility action on an element
+    /// - Parameters:
+    ///   - identifier: The element identifier
+    ///   - action: The accessibility action to perform (e.g., "AXPress", "AXPick")
+    ///   - appBundleId: Optional application bundle ID
+    public func performAction(identifier: String, action: String, appBundleId: String?) async throws {
+        logger.debug("Performing accessibility action", metadata: [
+            "id": .string(identifier),
+            "action": .string(action),
+            "appBundleId": appBundleId.map { .string($0) } ?? "nil"
+        ])
+
+        // Delegate to the AccessibilityService implementation
+        try await accessibilityService.performAction(
+            action: action,
+            onElement: identifier,
+            in: appBundleId
+        )
+    }
 }

@@ -4,6 +4,7 @@
 import Foundation
 import AppKit
 import Logging
+import MCP
 
 /// Service for working with the macOS accessibility API
 public actor AccessibilityService: AccessibilityServiceProtocol {
@@ -289,6 +290,180 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
         }
         
         return results
+    }
+
+    /// Perform a specific accessibility action on an element
+    /// - Parameters:
+    ///   - action: The accessibility action to perform (e.g., "AXPress", "AXPick")
+    ///   - identifier: The element identifier
+    ///   - bundleId: Optional bundle ID of the application containing the element
+    public func performAction(
+        action: String,
+        onElement identifier: String,
+        in bundleId: String?
+    ) async throws {
+        logger.info("Performing accessibility action", metadata: [
+            "action": .string(action),
+            "identifier": .string(identifier),
+            "bundleId": bundleId.map { .string($0) } ?? "nil"
+        ])
+
+        // First check permissions
+        guard AccessibilityPermissions.isAccessibilityEnabled() else {
+            logger.error("Accessibility permissions not granted")
+            throw AccessibilityPermissions.Error.permissionDenied
+        }
+
+        // Find the target element
+        guard let element = try await findElement(identifier: identifier, in: bundleId) else {
+            logger.error("Element not found", metadata: [
+                "identifier": .string(identifier),
+                "bundleId": bundleId.map { .string($0) } ?? "nil"
+            ])
+            throw NSError(
+                domain: "com.macos.mcp.accessibility",
+                code: MacMCPErrorCode.elementNotFound,
+                userInfo: [NSLocalizedDescriptionKey: "Element not found: \(identifier)"]
+            )
+        }
+
+        // Validate that the element has the required action
+        if !element.actions.contains(action) {
+            logger.error("Element does not support the requested action", metadata: [
+                "identifier": .string(identifier),
+                "action": .string(action),
+                "availableActions": .string(element.actions.joined(separator: ", "))
+            ])
+            throw NSError(
+                domain: "com.macos.mcp.accessibility",
+                code: MacMCPErrorCode.actionNotSupported,
+                userInfo: [
+                    NSLocalizedDescriptionKey: "Element does not support action: \(action)",
+                    "availableActions": element.actions
+                ]
+            )
+        }
+
+        // Get the element's position to use with AXUIElementCopyElementAtPosition if needed
+        let elementPosition = CGPoint(
+            x: element.frame.origin.x + (element.frame.size.width / 2),
+            y: element.frame.origin.y + (element.frame.size.height / 2)
+        )
+
+        // Find the raw AXUIElement using the system element and position
+        let systemElement = AccessibilityElement.systemWideElement()
+        var rawElement: AXUIElement?
+        let positionError = AXUIElementCopyElementAtPosition(
+            systemElement,
+            Float(elementPosition.x),
+            Float(elementPosition.y),
+            &rawElement
+        )
+
+        // Check if we successfully got the element at position
+        if positionError != .success || rawElement == nil {
+            logger.error("Failed to get element at position", metadata: [
+                "x": .string("\(elementPosition.x)"),
+                "y": .string("\(elementPosition.y)"),
+                "error": .string("\(positionError.rawValue)")
+            ])
+
+            // Fall back to application element if we have a bundle ID
+            if let bundleId = bundleId,
+               let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId).first {
+
+                logger.info("Falling back to application search", metadata: [
+                    "bundleId": .string(bundleId)
+                ])
+
+                // Get application element
+                let appElement = AccessibilityElement.applicationElement(pid: app.processIdentifier)
+
+                // Need to recursively search the app element for a matching element ID
+                // Do this by getting the app UI tree and searching for our target element
+                do {
+                    let appUIElement = try await getApplicationUIElement(
+                        bundleIdentifier: bundleId,
+                        recursive: true,
+                        maxDepth: 25
+                    )
+
+                    // Search for element by ID
+                    if let foundElement = searchForElementWithId(appUIElement, identifier: identifier, exact: true) {
+                        // Found the element, but we need the raw AXUIElement for the accessibility action
+                        // This is difficult without storing the original AXUIElement
+
+                        logger.error("Found element by ID but cannot get raw AXUIElement reference", metadata: [
+                            "identifier": .string(identifier)
+                        ])
+
+                        throw NSError(
+                            domain: "com.macos.mcp.accessibility",
+                            code: MacMCPErrorCode.actionFailed,
+                            userInfo: [NSLocalizedDescriptionKey: "Unable to get raw AXUIElement for action"]
+                        )
+                    } else {
+                        logger.error("Element not found in application", metadata: [
+                            "identifier": .string(identifier),
+                            "bundleId": .string(bundleId)
+                        ])
+
+                        throw NSError(
+                            domain: "com.macos.mcp.accessibility",
+                            code: MacMCPErrorCode.elementNotFound,
+                            userInfo: [NSLocalizedDescriptionKey: "Element not found in application: \(identifier)"]
+                        )
+                    }
+                } catch {
+                    logger.error("Error searching for element in application", metadata: [
+                        "error": .string(error.localizedDescription)
+                    ])
+
+                    throw NSError(
+                        domain: "com.macos.mcp.accessibility",
+                        code: MacMCPErrorCode.actionFailed,
+                        userInfo: [NSLocalizedDescriptionKey: "Error finding element: \(error.localizedDescription)"]
+                    )
+                }
+            } else {
+                // No fallback available
+                throw NSError(
+                    domain: "com.macos.mcp.accessibility",
+                    code: MacMCPErrorCode.actionFailed,
+                    userInfo: [NSLocalizedDescriptionKey: "Failed to get element at position and no fallback available"]
+                )
+            }
+        }
+
+        // We have the raw element, now perform the action
+        guard let rawElement = rawElement else {
+            throw NSError(
+                domain: "com.macos.mcp.accessibility",
+                code: MacMCPErrorCode.actionFailed,
+                userInfo: [NSLocalizedDescriptionKey: "Raw element unavailable for action"]
+            )
+        }
+
+        do {
+            // Attempt the action
+            try AccessibilityElement.performAction(rawElement, action: action)
+            logger.info("Successfully performed action", metadata: [
+                "action": .string(action),
+                "identifier": .string(identifier)
+            ])
+        } catch {
+            logger.error("Failed to perform action", metadata: [
+                "action": .string(action),
+                "identifier": .string(identifier),
+                "error": .string(error.localizedDescription)
+            ])
+
+            throw NSError(
+                domain: "com.macos.mcp.accessibility",
+                code: MacMCPErrorCode.actionFailed,
+                userInfo: [NSLocalizedDescriptionKey: "Failed to perform \(action): \(error.localizedDescription)"]
+            )
+        }
     }
 }
 
