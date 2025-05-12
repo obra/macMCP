@@ -1,0 +1,514 @@
+Starting MCP Accessibility Inspector...
+Command-line arguments received in run():
+App ID: com.apple.calculator
+PID: -1
+MCP path: ./.build/debug/MacMCP
+Max depth: 150
+Save to file: Not specified
+Filters: []
+Hide invisible: false
+Hide disabled: false
+Show menus: false
+Show window controls: false
+Show window contents: true
+Verbose: false
+Creating inspector with MCP path: /Users/jesse/Documents/GitHub/projects/mac-mcp/MacMCP/./.build/debug/MacMCP
+MCP executable found at: /Users/jesse/Documents/GitHub/projects/mac-mcp/MacMCP/./.build/debug/MacMCP
+Using MCP server at: /Users/jesse/Documents/GitHub/projects/mac-mcp/MacMCP/./.build/debug/MacMCP
+Beginning inspection of com.apple.calculator
+Waiting for MCP inspection to complete...
+Launching MCP and retrieving UI state...
+Starting MCP server process...
+Initializing MCP client...
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : [MacMCP] Starting MacMCP server in direct mode (Claude desktop)
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : [MacMCP] Working directory: /Users/jesse/Documents/GitHub/projects/mac-mcp/MacMCP
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : [MacMCP] Arguments: ["/Users/jesse/Documents/GitHub/projects/mac-mcp/MacMCP/.build/debug/MacMCP"]
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : [MacMCP] Created MCPServer instance
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : [MacMCP] Created StdioTransport
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : [MacMCP] Entering main run loop
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : [MacMCP] Starting server with transport
+MCP server stderr: 2025-05-08T17:07:36-0700 info mcp.macos : name=MacMCP version=0.1.0 [MacMCP] Starting macOS MCP Server
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : [MacMCP] Checking accessibility permissions
+MCP server stderr: 2025-05-08T17:07:36-0700 info mcp.macos : [MacMCP] Accessibility permissions already granted
+MCP server stderr: 2025-05-08T17:07:36-0700 info mcp.macos : [MacMCP] Registering macOS accessibility tools
+MCP server stderr: 2025-05-08T17:07:36-0700 info mcp.macos : description=Test connectivity with the macOS MCP server name=macos_ping [MacMCP] Registered tool
+MCP server stderr: 2025-05-08T17:07:36-0700 info mcp.macos : description=Get the current UI state and accessibility hierarchy of macOS applications name=macos_ui_state [MacMCP] Registered tool
+MCP server stderr: 2025-05-08T17:07:36-0700 info mcp.macos : description=Capture screenshot of macOS screen, window, or UI element name=macos_screenshot [MacMCP] Registered tool
+MCP server stderr: 2025-05-08T17:07:36-0700 info mcp.macos : description=Interact with UI elements on macOS - click, type, scroll and more name=macos_ui_interact [MacMCP] Registered tool
+MCP server stderr: 2025-05-08T17:07:36-0700 info mcp.macos : description=Open a macOS application by name or bundle identifier name=macos_open_application [MacMCP] Registered tool
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : [MacMCP] Configuring application state observers
+MCP server stderr: 2025-05-08T17:07:36-0700 info mcp.macos : description=Get and manage windows of macOS applications name=macos_window_management [MacMCP] Registered tool
+MCP server stderr: 2025-05-08T17:07:36-0700 info mcp.macos : description=Get and interact with menus of macOS applications name=macos_menu_navigation [MacMCP] Registered tool
+MCP server stderr: 2025-05-08T17:07:36-0700 info mcp.macos : description=Discover interactive UI elements in macOS applications name=macos_interactive_elements [MacMCP] Registered tool
+MCP server stderr: 2025-05-08T17:07:36-0700 info mcp.macos : description=Get detailed capabilities and properties of UI elements name=macos_element_capabilities [MacMCP] Registered tool
+MCP server stderr: 2025-05-08T17:07:36-0700 info mcp.macos : [MCP] Transport connected successfully
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : size=200 [MCP] Message received
+MCP server stderr: 2025-05-08T17:07:36-0700 info mcp.macos : name=MacMCP version=0.1.0 [MCP] Server started
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : [MacMCP] Server started successfully in direct mode
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : [MacMCP] Waiting for completion
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : [MacMCP] Application state observers configured
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : id=CE047F30-DEE4-4BB3-92A2-CDCBDC32524B method=initialize [MCP] Processing request
+MCP server stderr: 2025-05-08T17:07:36-0700 info mcp.macos : clientName=MCPAXInspector clientVersion=1.0.0 [MacMCP] Client connected
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : size=55 [MCP] Message received
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : size=89 [MCP] Message received
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : method=notifications/initialized [MCP] Processing notification
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : id=B35ABAD1-02E6-4B86-8F05-A00857880BDE method=ping [MCP] Processing request
+Successfully connected to MCP server
+Sending UI state request to MCP for: com.apple.calculator
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : size=204 [MCP] Message received
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : id=10406B7B-1BB6-4D2E-9D22-D871CE60589C method=tools/call [MCP] Processing request
+MCP server stderr: 2025-05-08T17:07:36-0700 info mcp.macos : bundleId=com.apple.calculator isActive=true isFinishedLaunching=true pid=25426 [MacMCP] Found application
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : frame={0.0, 0.0, 0.0, 0.0} id=ui:AXApplication:31814d0a1dfb5ca4 role=AXApplication [MacMCP] Source element before filtering
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : actions=["AXPress"] clickable=true description=All Clear frame={347.0, 745.0, 40.0, 40.0} frameSource=direct id=ui:AllClear:8c80c300c6c3093e normalizedFrame=no viewportFrame=no visible=true [MacMCP] FOUND CALCULATOR BUTTON
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : actions=["AXPress"] clickable=true description=Change Sign frame={393.0, 745.0, 40.0, 40.0} frameSource=direct id=ui:Negate:0ecb4655434a67f4 normalizedFrame=no viewportFrame=no visible=true [MacMCP] FOUND CALCULATOR BUTTON
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : actions=["AXPress"] clickable=true description=Percent frame={439.0, 745.0, 40.0, 40.0} frameSource=direct id=ui:Percent:ab04fd1e8d536769 normalizedFrame=no viewportFrame=no visible=true [MacMCP] FOUND CALCULATOR BUTTON
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : actions=["AXPress"] clickable=true description=Divide frame={485.0, 745.0, 40.0, 40.0} frameSource=direct id=ui:Divide:a9eaa67eb21185e7 normalizedFrame=no viewportFrame=no visible=true [MacMCP] FOUND CALCULATOR BUTTON
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : actions=["AXPress"] clickable=true description=7 frame={347.0, 791.0, 40.0, 40.0} frameSource=direct id=ui:Seven:8d037607e8f8f393 normalizedFrame=no viewportFrame=no visible=true [MacMCP] FOUND CALCULATOR BUTTON
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : actions=["AXPress"] clickable=true description=8 frame={393.0, 791.0, 40.0, 40.0} frameSource=direct id=ui:Eight:f67917dc5cd76a6c normalizedFrame=no viewportFrame=no visible=true [MacMCP] FOUND CALCULATOR BUTTON
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : actions=["AXPress"] clickable=true description=9 frame={439.0, 791.0, 40.0, 40.0} frameSource=direct id=ui:Nine:a5e0cf02072aed2b normalizedFrame=no viewportFrame=no visible=true [MacMCP] FOUND CALCULATOR BUTTON
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : actions=["AXPress"] clickable=true description=Multiply frame={485.0, 791.0, 40.0, 40.0} frameSource=direct id=ui:Multiply:e7d6b0f1c262c7c6 normalizedFrame=no viewportFrame=no visible=true [MacMCP] FOUND CALCULATOR BUTTON
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : actions=["AXPress"] clickable=true description=4 frame={347.0, 837.0, 40.0, 40.0} frameSource=direct id=ui:Four:e6f538ed5493cf2e normalizedFrame=no viewportFrame=no visible=true [MacMCP] FOUND CALCULATOR BUTTON
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : actions=["AXPress"] clickable=true description=5 frame={393.0, 837.0, 40.0, 40.0} frameSource=direct id=ui:Five:a4a5059f35e656e3 normalizedFrame=no viewportFrame=no visible=true [MacMCP] FOUND CALCULATOR BUTTON
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : actions=["AXPress"] clickable=true description=6 frame={439.0, 837.0, 40.0, 40.0} frameSource=direct id=ui:Six:93d83f5e3f2288b6 normalizedFrame=no viewportFrame=no visible=true [MacMCP] FOUND CALCULATOR BUTTON
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : actions=["AXPress"] clickable=true description=Subtract frame={485.0, 837.0, 40.0, 40.0} frameSource=direct id=ui:Subtract:f5d95b1955041e8e normalizedFrame=no viewportFrame=no visible=true [MacMCP] FOUND CALCULATOR BUTTON
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : actions=["AXPress"] clickable=true description=1 frame={347.0, 883.0, 40.0, 40.0} frameSource=direct id=ui:One:3de92c2b7df0c0b4 normalizedFrame=no viewportFrame=no visible=true [MacMCP] FOUND CALCULATOR BUTTON
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : actions=["AXPress"] clickable=true description=2 frame={393.0, 883.0, 40.0, 40.0} frameSource=direct id=ui:Two:534b00223948a4e9 normalizedFrame=no viewportFrame=no visible=true [MacMCP] FOUND CALCULATOR BUTTON
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : actions=["AXPress"] clickable=true description=3 frame={439.0, 883.0, 40.0, 40.0} frameSource=direct id=ui:Three:11bdb56adc9bf20f normalizedFrame=no viewportFrame=no visible=true [MacMCP] FOUND CALCULATOR BUTTON
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : actions=["AXPress"] clickable=true description=Add frame={485.0, 883.0, 40.0, 40.0} frameSource=direct id=ui:Add:9c49141ad15f89b9 normalizedFrame=no viewportFrame=no visible=true [MacMCP] FOUND CALCULATOR BUTTON
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : actions=["AXPress"] clickable=true description=0 frame={393.0, 929.0, 40.0, 40.0} frameSource=direct id=ui:Zero:2e0def8cf4c33a08 normalizedFrame=no viewportFrame=no visible=true [MacMCP] FOUND CALCULATOR BUTTON
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : actions=["AXPress"] clickable=true description=Point frame={439.0, 929.0, 40.0, 40.0} frameSource=direct id=ui:Decimal:5662db8ae93a96c6 normalizedFrame=no viewportFrame=no visible=true [MacMCP] FOUND CALCULATOR BUTTON
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : actions=["AXPress"] clickable=true description=Equals frame={485.0, 929.0, 40.0, 40.0} frameSource=direct id=ui:Equals:f2f76903bdbf8d78 normalizedFrame=no viewportFrame=no visible=true [MacMCP] FOUND CALCULATOR BUTTON
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : actions=["AXPress"] clickable=true description=nil frame={348.0, 639.0, 16.0, 16.0} frameSource=direct id=ui:AXButton:b6e1b3b49306207a normalizedFrame=no viewportFrame=no visible=true [MacMCP] FOUND CALCULATOR BUTTON
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : actions=["AXPress"] clickable=true description=nil frame={368.0, 639.0, 16.0, 16.0} frameSource=direct id=ui:AXButton:b6e1b3b49306207a normalizedFrame=no viewportFrame=no visible=true [MacMCP] FOUND CALCULATOR BUTTON
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : actions=["AXPress", "AXShowMenu"] clickable=true description=nil frame={388.0, 639.0, 16.0, 16.0} frameSource=direct id=ui:AXButton:b6e1b3b49306207a normalizedFrame=no viewportFrame=no visible=true [MacMCP] FOUND CALCULATOR BUTTON
+MCP server stderr: 2025-05-08T17:07:36-0700 debug mcp.macos : [MacMCP] Filtered 0 elements with invalid frames out of 1 total
+Successfully retrieved UI state!
+Generating visualization...
+
+--- UI Tree ---
+
+[1;32m[0] AXApplication: Calculator[0m
+   Identifier: ui:AXApplication:31814d0a1dfb5ca4
+   Frame: (x:0, y:0, w:0, h:0)
+   State: Disabled, Invisible, Not clickable, Unfocused, Unselected
+   Role: AXApplication
+   Relationships: Children: 2
+   │
+   ├─+[1;34m[1] AXWindow: Calculator[0m
+   │      Identifier: ui:AXWindow:dfffea55bdd78c8e
+   │      Frame: (x:337, y:628, w:198, h:350)
+   │      State: Enabled, Visible, Not clickable, Unfocused, Unselected
+   │      Role: AXWindow
+   │      Relationships: Children: 5
+   │      Actions: AXRaise
+   │   
+   │   │
+   │   ├─+[35m[2] AXGroup: Untitled[0m
+   │   │      Identifier: ui:AXGroup:b8f468994a93ea8d
+   │   │      Frame: (x:337, y:628, w:198, h:350)
+   │   │      State: Disabled, Visible, Not clickable, Unfocused, Unselected
+   │   │      Role: AXGroup
+   │   │      Relationships: Children: 1
+   │   │   
+   │   │   │
+   │   │   └─+[37m[3] AXSplitGroup: Untitled[0m
+   │   │         Identifier: ui:AXSplitGroup:2b58c43889b13e67
+   │   │         Frame: (x:337, y:628, w:198, h:350)
+   │   │         State: Disabled, Visible, Not clickable, Unfocused, Unselected
+   │   │         Role: AXSplitGroup
+   │   │         Relationships: Children: 2
+   │   │      
+   │   │      │
+   │   │      ├─+[35m[4] AXGroup: Untitled[0m
+   │   │      │      Identifier: ui:AXGroup:b8f468994a93ea8d
+   │   │      │      Frame: (x:337, y:628, w:198, h:350)
+   │   │      │      State: Disabled, Visible, Not clickable, Unfocused, Unselected
+   │   │      │      Role: AXGroup
+   │   │      │      Relationships: Children: 1
+   │   │      │   
+   │   │      │   │
+   │   │      │   └─+[35m[5] AXGroup: Untitled[0m
+   │   │      │         Identifier: ui:AXGroup:04efe8549fceb38a
+   │   │      │         Frame: (x:337, y:665, w:198, h:314)
+   │   │      │         State: Disabled, Visible, Not clickable, Unfocused, Unselected
+   │   │      │         Role: AXGroup
+   │   │      │         Relationships: Children: 21
+   │   │      │      
+   │   │      │      │
+   │   │      │      ├─+[35m[6] AXGroup: Untitled[0m
+   │   │      │      │      Identifier: ui:AXGroup:b8f468994a93ea8d
+   │   │      │      │      Frame: (x:347, y:665, w:178, h:75)
+   │   │      │      │      State: Disabled, Visible, Not clickable, Unfocused, Unselected
+   │   │      │      │      Role: AXGroup
+   │   │      │      │      Relationships: Children: 1
+   │   │      │      │   
+   │   │      │      │   │
+   │   │      │      │   └─+[37m[7] AXScrollArea: Untitled[0m
+   │   │      │      │         Identifier: ui:AXScrollArea:1b0d4055ef8ba539
+   │   │      │      │         Frame: (x:347, y:698, w:178, h:42)
+   │   │      │      │         Description: Input
+   │   │      │      │         State: Enabled, Visible, Not clickable, Unfocused, Unselected
+   │   │      │      │         Role: AXScrollArea
+   │   │      │      │         Relationships: Children: 1
+   │   │      │      │         Actions: AXScrollLeftByPage, AXScrollRightByPage, AXScrollUpByPage, AXScrollDownByPage
+   │   │      │      │      
+   │   │      │      │      │
+   │   │      │      │      └─+[37m[8] AXStaticText: Untitled[0m
+   │   │      │      │            Identifier: ui:AXStaticText:030369cac7bad813
+   │   │      │      │            Frame: (x:506, y:701, w:19, h:36)
+   │   │      │      │            State: Disabled, Visible, Not clickable, Unfocused, Unselected
+   │   │      │      │            Role: AXStaticText
+   │   │      │      │            Value: ‎0
+   │   │      │      │            Relationships: Children: 0
+   │   │      │      │         
+   │   │      │      ├─+[35m[9] AXGroup: Untitled[0m
+   │   │      │      │      Identifier: ui:AXGroup:931902dc3d178bc3
+   │   │      │      │      Frame: (x:347, y:929, w:40, h:40)
+   │   │      │      │      Description: Change Mode
+   │   │      │      │      State: Disabled, Visible, Not clickable, Unfocused, Unselected
+   │   │      │      │      Role: AXGroup
+   │   │      │      │      Relationships: Children: 1
+   │   │      │      │   
+   │   │      │      │   │
+   │   │      │      │   └─+[37m[10] AXMenuButton: Untitled[0m
+   │   │      │      │         Identifier: AXMenuButton_untitled_105553116648752
+   │   │      │      │         Frame: (x:0, y:0, w:0, h:0)
+   │   │      │      │         State: Disabled, Invisible, Not clickable, Unfocused, Unselected
+   │   │      │      │         Role: AXMenuButton
+   │   │      │      │         Relationships: Children: 0
+   │   │      │      │      
+   │   │      │      ├─+[32m[11] AXButton: All Clear[0m
+   │   │      │      │      Identifier: ui:AllClear:8c80c300c6c3093e
+   │   │      │      │      Frame: (x:347, y:745, w:40, h:40)
+   │   │      │      │      Description: All Clear
+   │   │      │      │      State: Enabled, Visible, Clickable, Unfocused, Unselected
+   │   │      │      │      Role: AXButton
+   │   │      │      │      Relationships: Children: 0
+   │   │      │      │      Actions: AXPress
+   │   │      │      │   
+   │   │      │      ├─+[32m[12] AXButton: Change Sign[0m
+   │   │      │      │      Identifier: ui:Negate:0ecb4655434a67f4
+   │   │      │      │      Frame: (x:393, y:745, w:40, h:40)
+   │   │      │      │      Description: Change Sign
+   │   │      │      │      State: Enabled, Visible, Clickable, Unfocused, Unselected
+   │   │      │      │      Role: AXButton
+   │   │      │      │      Relationships: Children: 0
+   │   │      │      │      Actions: AXPress
+   │   │      │      │   
+   │   │      │      ├─+[32m[13] AXButton: Percent[0m
+   │   │      │      │      Identifier: ui:Percent:ab04fd1e8d536769
+   │   │      │      │      Frame: (x:439, y:745, w:40, h:40)
+   │   │      │      │      Description: Percent
+   │   │      │      │      State: Enabled, Visible, Clickable, Unfocused, Unselected
+   │   │      │      │      Role: AXButton
+   │   │      │      │      Relationships: Children: 0
+   │   │      │      │      Actions: AXPress
+   │   │      │      │   
+   │   │      │      ├─+[32m[14] AXButton: Divide[0m
+   │   │      │      │      Identifier: ui:Divide:a9eaa67eb21185e7
+   │   │      │      │      Frame: (x:485, y:745, w:40, h:40)
+   │   │      │      │      Description: Divide
+   │   │      │      │      State: Enabled, Visible, Clickable, Unfocused, Unselected
+   │   │      │      │      Role: AXButton
+   │   │      │      │      Relationships: Children: 0
+   │   │      │      │      Actions: AXPress
+   │   │      │      │   
+   │   │      │      ├─+[32m[15] AXButton: 7[0m
+   │   │      │      │      Identifier: ui:Seven:8d037607e8f8f393
+   │   │      │      │      Frame: (x:347, y:791, w:40, h:40)
+   │   │      │      │      Description: 7
+   │   │      │      │      State: Enabled, Visible, Clickable, Unfocused, Unselected
+   │   │      │      │      Role: AXButton
+   │   │      │      │      Relationships: Children: 0
+   │   │      │      │      Actions: AXPress
+   │   │      │      │   
+   │   │      │      ├─+[32m[16] AXButton: 8[0m
+   │   │      │      │      Identifier: ui:Eight:f67917dc5cd76a6c
+   │   │      │      │      Frame: (x:393, y:791, w:40, h:40)
+   │   │      │      │      Description: 8
+   │   │      │      │      State: Enabled, Visible, Clickable, Unfocused, Unselected
+   │   │      │      │      Role: AXButton
+   │   │      │      │      Relationships: Children: 0
+   │   │      │      │      Actions: AXPress
+   │   │      │      │   
+   │   │      │      ├─+[32m[17] AXButton: 9[0m
+   │   │      │      │      Identifier: ui:Nine:a5e0cf02072aed2b
+   │   │      │      │      Frame: (x:439, y:791, w:40, h:40)
+   │   │      │      │      Description: 9
+   │   │      │      │      State: Enabled, Visible, Clickable, Unfocused, Unselected
+   │   │      │      │      Role: AXButton
+   │   │      │      │      Relationships: Children: 0
+   │   │      │      │      Actions: AXPress
+   │   │      │      │   
+   │   │      │      ├─+[32m[18] AXButton: Multiply[0m
+   │   │      │      │      Identifier: ui:Multiply:e7d6b0f1c262c7c6
+   │   │      │      │      Frame: (x:485, y:791, w:40, h:40)
+   │   │      │      │      Description: Multiply
+   │   │      │      │      State: Enabled, Visible, Clickable, Unfocused, Unselected
+   │   │      │      │      Role: AXButton
+   │   │      │      │      Relationships: Children: 0
+   │   │      │      │      Actions: AXPress
+   │   │      │      │   
+   │   │      │      ├─+[32m[19] AXButton: 4[0m
+   │   │      │      │      Identifier: ui:Four:e6f538ed5493cf2e
+   │   │      │      │      Frame: (x:347, y:837, w:40, h:40)
+   │   │      │      │      Description: 4
+   │   │      │      │      State: Enabled, Visible, Clickable, Unfocused, Unselected
+   │   │      │      │      Role: AXButton
+   │   │      │      │      Relationships: Children: 0
+   │   │      │      │      Actions: AXPress
+   │   │      │      │   
+   │   │      │      ├─+[32m[20] AXButton: 5[0m
+   │   │      │      │      Identifier: ui:Five:a4a5059f35e656e3
+   │   │      │      │      Frame: (x:393, y:837, w:40, h:40)
+   │   │      │      │      Description: 5
+   │   │      │      │      State: Enabled, Visible, Clickable, Unfocused, Unselected
+   │   │      │      │      Role: AXButton
+   │   │      │      │      Relationships: Children: 0
+   │   │      │      │      Actions: AXPress
+   │   │      │      │   
+   │   │      │      ├─+[32m[21] AXButton: 6[0m
+   │   │      │      │      Identifier: ui:Six:93d83f5e3f2288b6
+   │   │      │      │      Frame: (x:439, y:837, w:40, h:40)
+   │   │      │      │      Description: 6
+   │   │      │      │      State: Enabled, Visible, Clickable, Unfocused, Unselected
+   │   │      │      │      Role: AXButton
+   │   │      │      │      Relationships: Children: 0
+   │   │      │      │      Actions: AXPress
+   │   │      │      │   
+   │   │      │      ├─+[32m[22] AXButton: Subtract[0m
+   │   │      │      │      Identifier: ui:Subtract:f5d95b1955041e8e
+   │   │      │      │      Frame: (x:485, y:837, w:40, h:40)
+   │   │      │      │      Description: Subtract
+   │   │      │      │      State: Enabled, Visible, Clickable, Unfocused, Unselected
+   │   │      │      │      Role: AXButton
+   │   │      │      │      Relationships: Children: 0
+   │   │      │      │      Actions: AXPress
+   │   │      │      │   
+   │   │      │      ├─+[32m[23] AXButton: 1[0m
+   │   │      │      │      Identifier: ui:One:3de92c2b7df0c0b4
+   │   │      │      │      Frame: (x:347, y:883, w:40, h:40)
+   │   │      │      │      Description: 1
+   │   │      │      │      State: Enabled, Visible, Clickable, Unfocused, Unselected
+   │   │      │      │      Role: AXButton
+   │   │      │      │      Relationships: Children: 0
+   │   │      │      │      Actions: AXPress
+   │   │      │      │   
+   │   │      │      ├─+[32m[24] AXButton: 2[0m
+   │   │      │      │      Identifier: ui:Two:534b00223948a4e9
+   │   │      │      │      Frame: (x:393, y:883, w:40, h:40)
+   │   │      │      │      Description: 2
+   │   │      │      │      State: Enabled, Visible, Clickable, Unfocused, Unselected
+   │   │      │      │      Role: AXButton
+   │   │      │      │      Relationships: Children: 0
+   │   │      │      │      Actions: AXPress
+   │   │      │      │   
+   │   │      │      ├─+[32m[25] AXButton: 3[0m
+   │   │      │      │      Identifier: ui:Three:11bdb56adc9bf20f
+   │   │      │      │      Frame: (x:439, y:883, w:40, h:40)
+   │   │      │      │      Description: 3
+   │   │      │      │      State: Enabled, Visible, Clickable, Unfocused, Unselected
+   │   │      │      │      Role: AXButton
+   │   │      │      │      Relationships: Children: 0
+   │   │      │      │      Actions: AXPress
+   │   │      │      │   
+   │   │      │      ├─+[32m[26] AXButton: Add[0m
+   │   │      │      │      Identifier: ui:Add:9c49141ad15f89b9
+   │   │      │      │      Frame: (x:485, y:883, w:40, h:40)
+   │   │      │      │      Description: Add
+   │   │      │      │      State: Enabled, Visible, Clickable, Unfocused, Unselected
+   │   │      │      │      Role: AXButton
+   │   │      │      │      Relationships: Children: 0
+   │   │      │      │      Actions: AXPress
+   │   │      │      │   
+   │   │      │      ├─+[32m[27] AXButton: 0[0m
+   │   │      │      │      Identifier: ui:Zero:2e0def8cf4c33a08
+   │   │      │      │      Frame: (x:393, y:929, w:40, h:40)
+   │   │      │      │      Description: 0
+   │   │      │      │      State: Enabled, Visible, Clickable, Unfocused, Unselected
+   │   │      │      │      Role: AXButton
+   │   │      │      │      Relationships: Children: 0
+   │   │      │      │      Actions: AXPress
+   │   │      │      │   
+   │   │      │      ├─+[32m[28] AXButton: Point[0m
+   │   │      │      │      Identifier: ui:Decimal:5662db8ae93a96c6
+   │   │      │      │      Frame: (x:439, y:929, w:40, h:40)
+   │   │      │      │      Description: Point
+   │   │      │      │      State: Enabled, Visible, Clickable, Unfocused, Unselected
+   │   │      │      │      Role: AXButton
+   │   │      │      │      Relationships: Children: 0
+   │   │      │      │      Actions: AXPress
+   │   │      │      │   
+   │   │      │      └─+[32m[29] AXButton: Equals[0m
+   │   │      │            Identifier: ui:Equals:f2f76903bdbf8d78
+   │   │      │            Frame: (x:485, y:929, w:40, h:40)
+   │   │      │            Description: Equals
+   │   │      │            State: Enabled, Visible, Clickable, Unfocused, Unselected
+   │   │      │            Role: AXButton
+   │   │      │            Relationships: Children: 0
+   │   │      │            Actions: AXPress
+   │   │      │         
+   │   │      └─+[37m[30] AXSplitter: Untitled[0m
+   │   │            Identifier: AXSplitter_untitled_105553116611616
+   │   │            Frame: (x:0, y:0, w:0, h:0)
+   │   │            State: Disabled, Invisible, Not clickable, Unfocused, Unselected
+   │   │            Role: AXSplitter
+   │   │            Relationships: Children: 0
+   │   │         
+   │   ├─+[37m[31] AXToolbar: Untitled[0m
+   │   │      Identifier: ui:AXToolbar:43ea4b4cbf5390e6
+   │   │      Frame: (x:337, y:628, w:198, h:38)
+   │   │      State: Enabled, Visible, Not clickable, Unfocused, Unselected
+   │   │      Role: AXToolbar
+   │   │      Relationships: Children: 0
+   │   │      Actions: AXShowMenu
+   │   │   
+   │   ├─+[32m[32] AXButton: Untitled[0m
+   │   │      Identifier: ui:AXButton:b6e1b3b49306207a
+   │   │      Frame: (x:348, y:639, w:16, h:16)
+   │   │      State: Enabled, Visible, Clickable, Unfocused, Unselected
+   │   │      Role: AXButton
+   │   │      Relationships: Children: 0
+   │   │      Actions: AXPress
+   │   │   
+   │   ├─+[32m[33] AXButton: Untitled[0m
+   │   │      Identifier: ui:AXButton:b6e1b3b49306207a
+   │   │      Frame: (x:368, y:639, w:16, h:16)
+   │   │      State: Enabled, Visible, Clickable, Unfocused, Unselected
+   │   │      Role: AXButton
+   │   │      Relationships: Children: 0
+   │   │      Actions: AXPress
+   │   │   
+   │   └─+[32m[34] AXButton: Untitled[0m
+   │         Identifier: ui:AXButton:b6e1b3b49306207a
+   │         Frame: (x:388, y:639, w:16, h:16)
+   │         State: Enabled, Visible, Clickable, Unfocused, Unselected
+   │         Role: AXButton
+   │         Relationships: Children: 1
+   │         Actions: AXPress, AXShowMenu
+   │      
+   │      │
+   │      └─+[35m[35] AXGroup: Untitled[0m
+   │            Identifier: ui:AXGroup:b8f468994a93ea8d
+   │            Frame: (x:389, y:639, w:14, h:16)
+   │            State: Disabled, Visible, Not clickable, Unfocused, Unselected
+   │            Role: AXGroup
+   │            Relationships: Children: 1
+   │         
+   │         │
+   │         └─+[35m[36] AXGroup: Untitled[0m
+   │               Identifier: ui:AXGroup:b8f468994a93ea8d
+   │               Frame: (x:389, y:639, w:14, h:16)
+   │               State: Disabled, Visible, Not clickable, Unfocused, Unselected
+   │               Role: AXGroup
+   │               Relationships: Children: 0
+   │            
+   └─+[36m[37] AXMenuBar: Untitled[0m
+         Identifier: ui:AXMenuBar:df3e57370779e7fd
+         Frame: (x:0, y:0, w:1512, h:37)
+         State: Enabled, Visible, Not clickable, Unfocused, Unselected
+         Role: AXMenuBar
+         Relationships: Children: 6
+         Actions: AXCancel
+      
+      │
+      ├─+[37m[38] AXMenuBarItem: Apple[0m
+      │      Identifier: ui:AXMenuBarItem:3b6963ea52584c31
+      │      Frame: (x:10, y:0, w:34, h:37)
+      │      State: Enabled, Visible, Clickable, Unfocused, Unselected
+      │      Role: AXMenuBarItem
+      │      Relationships: Children: 1
+      │      Actions: AXCancel, AXPress, AXPick
+      │   
+      │   │
+      │   └─+[36m[39] AXMenu: Untitled[0m
+      │         Identifier: AXMenu_untitled_105553116648032
+      │         Frame: (x:0, y:0, w:0, h:0)
+      │         State: Disabled, Invisible, Not clickable, Unfocused, Unselected
+      │         Role: AXMenu
+      │         Relationships: Children: 0
+      │      
+      ├─+[37m[40] AXMenuBarItem: Calculator[0m
+      │      Identifier: ui:AXMenuBarItem:d3f7782e05a9bac5
+      │      Frame: (x:44, y:0, w:87, h:37)
+      │      State: Enabled, Visible, Clickable, Unfocused, Unselected
+      │      Role: AXMenuBarItem
+      │      Relationships: Children: 1
+      │      Actions: AXCancel, AXPress, AXPick
+      │   
+      │   │
+      │   └─+[36m[41] AXMenu: Untitled[0m
+      │         Identifier: AXMenu_untitled_105553116650096
+      │         Frame: (x:0, y:0, w:0, h:0)
+      │         State: Disabled, Invisible, Not clickable, Unfocused, Unselected
+      │         Role: AXMenu
+      │         Relationships: Children: 0
+      │      
+      ├─+[37m[42] AXMenuBarItem: Edit[0m
+      │      Identifier: ui:AXMenuBarItem:73f12084cf014fc7
+      │      Frame: (x:131, y:0, w:44, h:37)
+      │      State: Enabled, Visible, Clickable, Unfocused, Unselected
+      │      Role: AXMenuBarItem
+      │      Relationships: Children: 1
+      │      Actions: AXCancel, AXPress, AXPick
+      │   
+      │   │
+      │   └─+[36m[43] AXMenu: Untitled[0m
+      │         Identifier: AXMenu_untitled_105553116650096
+      │         Frame: (x:0, y:0, w:0, h:0)
+      │         State: Disabled, Invisible, Not clickable, Unfocused, Unselected
+      │         Role: AXMenu
+      │         Relationships: Children: 0
+      │      
+      ├─+[37m[44] AXMenuBarItem: View[0m
+      │      Identifier: ui:AXMenuBarItem:56631db7a6a35d93
+      │      Frame: (x:175, y:0, w:50, h:37)
+      │      State: Enabled, Visible, Clickable, Unfocused, Unselected
+      │      Role: AXMenuBarItem
+      │      Relationships: Children: 1
+      │      Actions: AXCancel, AXPress, AXPick
+      │   
+      │   │
+      │   └─+[36m[45] AXMenu: Untitled[0m
+      │         Identifier: AXMenu_untitled_105553116612912
+      │         Frame: (x:0, y:0, w:0, h:0)
+      │         State: Disabled, Invisible, Not clickable, Unfocused, Unselected
+      │         Role: AXMenu
+      │         Relationships: Children: 0
+      │      
+      ├─+[37m[46] AXMenuBarItem: Window[0m
+      │      Identifier: ui:AXMenuBarItem:d011a5881e39d0d9
+      │      Frame: (x:225, y:0, w:69, h:37)
+      │      State: Enabled, Visible, Clickable, Unfocused, Unselected
+      │      Role: AXMenuBarItem
+      │      Relationships: Children: 1
+      │      Actions: AXCancel, AXPress, AXPick
+      │   
+      │   │
+      │   └─+[36m[47] AXMenu: Untitled[0m
+      │         Identifier: AXMenu_untitled_105553116650096
+      │         Frame: (x:0, y:0, w:0, h:0)
+      │         State: Disabled, Invisible, Not clickable, Unfocused, Unselected
+      │         Role: AXMenu
+      │         Relationships: Children: 0
+      │      
+      └─+[37m[48] AXMenuBarItem: Help[0m
+            Identifier: ui:AXMenuBarItem:d9354cdbe93abcaa
+            Frame: (x:294, y:0, w:48, h:37)
+            State: Enabled, Visible, Clickable, Unfocused, Unselected
+            Role: AXMenuBarItem
+            Relationships: Children: 1
+            Actions: AXCancel, AXPress, AXPick
+         
+         │
+         └─+[36m[49] AXMenu: Untitled[0m
+               Identifier: AXMenu_untitled_105553116650096
+               Frame: (x:0, y:0, w:0, h:0)
+               State: Disabled, Invisible, Not clickable, Unfocused, Unselected
+               Role: AXMenu
+               Relationships: Children: 0
+            
+
+Inspection completed successfully
+Cleaning up MCP resources...
+MCP resources cleaned up
