@@ -210,21 +210,28 @@ final class MenuNavigationCalculatorTest: XCTestCase {
         // Ensure Calculator is activated first
         try await activateCalculatorWithMCP()
         try await Task.sleep(for: .milliseconds(1000))
-        
+
+        // Now let's try the approach that directly uses menu paths with MenuNavigationTool
+        // but we'll use a properly formatted menu path
         let menuParams: [String: Value] = [
             "action": .string("activateMenuItem"),
             "bundleId": .string("com.apple.calculator"),
-            "menuPath": .string("View > \(mode)")
+            "menuPath": .string("View > " + mode)  // Plain format without the identifiers
         ]
-        
+
+        // Use MenuNavigationTool's handler method
         let result = try await helper.toolChain.menuNavigationTool.handler(menuParams)
-        
+
         // Check if navigation was successful
         if let content = result.first, case .text(let text) = content {
             print("Menu navigation result: \(text)")
+
+            // Add a longer delay to allow menu action to take effect
+            try await Task.sleep(for: .milliseconds(1000))
+
             return text.contains("success") || text.contains("true")
         }
-        
+
         return false
     }
 }
