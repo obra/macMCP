@@ -314,6 +314,26 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
             throw AccessibilityPermissions.Error.permissionDenied
         }
 
+        // Special handling for menu items with path-based identifiers
+        if identifier.hasPrefix("ui:menu:") && action == "AXPress" && bundleId != nil {
+            logger.info("Detected menu item by path-based identifier, using hierarchical navigation", metadata: [
+                "identifier": .string(identifier),
+                "menuPath": .string(identifier.replacingOccurrences(of: "ui:menu:", with: ""))
+            ])
+
+            if let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId!).first {
+                let appElement = AccessibilityElement.applicationElement(pid: app.processIdentifier)
+
+                try await directMenuItemActivation(
+                    menuIdentifier: identifier,
+                    menuTitle: nil, // We'll extract from path components
+                    appElement: appElement
+                )
+
+                return
+            }
+        }
+
         // Find the target element
         guard let element = try await findElement(identifier: identifier, in: bundleId) else {
             logger.error("Element not found", metadata: [
@@ -345,10 +365,55 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
         }
 
         // Get the element's position to use with AXUIElementCopyElementAtPosition if needed
-        let elementPosition = CGPoint(
-            x: element.frame.origin.x + (element.frame.size.width / 2),
-            y: element.frame.origin.y + (element.frame.size.height / 2)
-        )
+        // For menu items with zero size, we need a special approach
+        let elementPosition: CGPoint
+        let hasZeroSize = element.frame.size.width == 0 && element.frame.size.height == 0
+
+        // Special handling for menu items with zero-sized frames - common in macOS
+        if hasZeroSize && element.role == "AXMenuItem" {
+            // For zero-sized menu items, we'll use a direct approach without relying on position
+            if action == "AXPress" && element.title != nil {
+                logger.info("Using title-based direct activation for zero-sized menu item", metadata: [
+                    "id": .string(identifier),
+                    "title": .string(element.title ?? "unknown"),
+                    "role": .string(element.role)
+                ])
+
+                // For AXMenuItem with zero-sized frames, we'll use direct action via raw AXUIElement
+                // Instead of trying to find the element by position, which is unreliable
+
+                // Get the app element
+                if let bundleId = bundleId,
+                   let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId).first {
+                    let appElement = AccessibilityElement.applicationElement(pid: app.processIdentifier)
+
+                    // Use direct AXPress without position-based lookup
+                    // This approach is more reliable for menu items
+                    try await directMenuItemActivation(
+                        menuIdentifier: identifier,
+                        menuTitle: element.title,
+                        appElement: appElement
+                    )
+
+                    // Action performed successfully - return early
+                    return
+                }
+            }
+
+            // If we can't use the direct approach, fall back to the position-based approach
+            elementPosition = element.frame.origin
+
+            logger.info("Using position-based handling for zero-sized menu item", metadata: [
+                "id": .string(identifier),
+                "position": .string("\(elementPosition.x), \(elementPosition.y)")
+            ])
+        } else {
+            // For normal elements, use the center point
+            elementPosition = CGPoint(
+                x: element.frame.origin.x + (element.frame.size.width / 2),
+                y: element.frame.origin.y + (element.frame.size.height / 2)
+            )
+        }
 
         // Find the raw AXUIElement using the system element and position
         let systemElement = AccessibilityElement.systemWideElement()
@@ -362,11 +427,48 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
 
         // Check if we successfully got the element at position
         if positionError != .success || rawElement == nil {
-            logger.error("Failed to get element at position", metadata: [
-                "x": .string("\(elementPosition.x)"),
-                "y": .string("\(elementPosition.y)"),
-                "error": .string("\(positionError.rawValue)")
-            ])
+            // For menu items with zero size, try a few different Y positions as a last resort
+            if hasZeroSize && element.role == "AXMenuItem" {
+                logger.info("Trying alternative positions for zero-sized menu item", metadata: [
+                    "originalPosition": .string("\(elementPosition.x), \(elementPosition.y)")
+                ])
+
+                // Try positions with slight offsets from the original Y
+                let alternativeOffsets = [5.0, 10.0, 15.0, 20.0, -5.0, -10.0, -15.0, -20.0]
+                for offset in alternativeOffsets {
+                    let alternativePosition = CGPoint(x: elementPosition.x, y: elementPosition.y + offset)
+
+                    let altPositionError = AXUIElementCopyElementAtPosition(
+                        systemElement,
+                        Float(alternativePosition.x),
+                        Float(alternativePosition.y),
+                        &rawElement
+                    )
+
+                    if altPositionError == .success && rawElement != nil {
+                        logger.info("Found element at alternative position", metadata: [
+                            "x": .string("\(alternativePosition.x)"),
+                            "y": .string("\(alternativePosition.y)"),
+                            "offset": .string("\(offset)")
+                        ])
+                        break
+                    }
+                }
+            }
+
+            // If still not found, log the error and continue to fallback methods
+            if positionError != .success || rawElement == nil {
+                logger.error("Failed to get element at position", metadata: [
+                    "x": .string("\(elementPosition.x)"),
+                    "y": .string("\(elementPosition.y)"),
+                    "error": .string("\(positionError.rawValue)"),
+                    "elementId": .string(identifier),
+                    "elementRole": .string(element.role),
+                    "elementTitle": .string(element.title ?? "nil"),
+                    "elementFrame": .string("(\(element.frame.origin.x), \(element.frame.origin.y), \(element.frame.size.width), \(element.frame.size.height))"),
+                    "frameSource": .string("\(element.frameSource)")
+                ])
+            }
 
             // Fall back to application element if we have a bundle ID
             if let bundleId = bundleId,
@@ -391,16 +493,60 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
                     // Search for element by ID
                     if let foundElement = searchForElementWithId(appUIElement, identifier: identifier, exact: true) {
                         // Found the element, but we need the raw AXUIElement for the accessibility action
-                        // This is difficult without storing the original AXUIElement
+                        // For menu items, we can try a special approach: finding and activating by title
+
+                        if foundElement.role == "AXMenuItem" && action == "AXPress" && foundElement.title != nil {
+                            logger.info("Using title-based activation for menu item", metadata: [
+                                "identifier": .string(identifier),
+                                "title": .string(foundElement.title ?? "unknown"),
+                                "menuPath": .string(identifier.replacingOccurrences(of: "ui:menu:", with: ""))
+                            ])
+
+                            // Try to find parent menu elements to construct a path
+                            var menuPathComponents: [String] = []
+                            if let title = foundElement.title {
+                                menuPathComponents.append(title)
+                            }
+
+                            var currentParent = foundElement.parent
+                            while currentParent != nil && (currentParent!.role == "AXMenu" || currentParent!.role == "AXMenuBarItem") {
+                                if let title = currentParent!.title, !title.isEmpty {
+                                    menuPathComponents.insert(title, at: 0)
+                                }
+                                currentParent = currentParent!.parent
+                            }
+
+                            // If we constructed a path with at least two components (parent menu and item)
+                            if menuPathComponents.count >= 2 {
+                                let menuPath = menuPathComponents.joined(separator: " > ")
+                                logger.info("Attempting menu path activation", metadata: [
+                                    "menuPath": .string(menuPath)
+                                ])
+
+                                // Use our direct menu item activation method
+                                try await directMenuItemActivation(
+                                    menuIdentifier: identifier,
+                                    menuTitle: foundElement.title,
+                                    appElement: appElement,
+                                    menuPath: menuPath
+                                )
+                            }
+                        }
 
                         logger.error("Found element by ID but cannot get raw AXUIElement reference", metadata: [
-                            "identifier": .string(identifier)
+                            "identifier": .string(identifier),
+                            "role": .string(foundElement.role),
+                            "title": .string(foundElement.title ?? "nil"),
+                            "frame": .string("(\(foundElement.frame.origin.x), \(foundElement.frame.origin.y), \(foundElement.frame.size.width), \(foundElement.frame.size.height))"),
+                            "parent": .string(foundElement.parent?.role ?? "nil"),
+                            "position": .string("\(foundElement.frame.origin.x + (foundElement.frame.size.width / 2)), \(foundElement.frame.origin.y + (foundElement.frame.size.height / 2))"),
+                            "frameSource": .string("\(foundElement.frameSource)")
                         ])
 
                         throw NSError(
                             domain: "com.macos.mcp.accessibility",
                             code: MacMCPErrorCode.actionFailed,
-                            userInfo: [NSLocalizedDescriptionKey: "Unable to get raw AXUIElement for action"]
+                            userInfo: [NSLocalizedDescriptionKey: "Unable to get raw AXUIElement for action: \(identifier) (role: \(foundElement.role))"]
                         )
                     } else {
                         logger.error("Element not found in application", metadata: [
@@ -478,6 +624,267 @@ public enum UIElementScope: Sendable {
 }
 
 extension AccessibilityService {
+    /// Activate a menu item directly via its path
+    /// - Parameters:
+    ///   - menuIdentifier: The menu item identifier
+    ///   - menuTitle: The menu item title
+    ///   - appElement: The application's AXUIElement
+    ///   - menuPath: Optional explicit path to use (default: parse from identifier)
+    private func directMenuItemActivation(
+        menuIdentifier: String,
+        menuTitle: String?,
+        appElement: AXUIElement,
+        menuPath: String? = nil
+    ) async throws {
+        // Extract or use the path from either the provided path or the identifier
+        let pathToUse: String
+        if let explicitPath = menuPath {
+            pathToUse = explicitPath
+        } else if menuIdentifier.hasPrefix("ui:menu:") {
+            pathToUse = menuIdentifier.replacingOccurrences(of: "ui:menu:", with: "")
+        } else {
+            throw NSError(
+                domain: "com.macos.mcp.accessibility",
+                code: MacMCPErrorCode.invalidActionParams,
+                userInfo: [NSLocalizedDescriptionKey: "Cannot determine menu path for activation"]
+            )
+        }
+
+        logger.info("Activating menu item using path-based navigation", metadata: [
+            "path": .string(pathToUse),
+            "title": .string(menuTitle ?? "unknown")
+        ])
+
+        // Split the path into components
+        let pathComponents = pathToUse.components(separatedBy: " > ")
+
+        // We need at least one component (the menu bar item) to continue
+        guard pathComponents.count >= 1 else {
+            throw NSError(
+                domain: "com.macos.mcp.accessibility",
+                code: MacMCPErrorCode.invalidActionParams,
+                userInfo: [NSLocalizedDescriptionKey: "Invalid menu path: \(pathToUse)"]
+            )
+        }
+
+        // Get the menu bar
+        var menuBarRef: CFTypeRef?
+        let menuBarStatus = AXUIElementCopyAttributeValue(appElement, "AXMenuBar" as CFString, &menuBarRef)
+
+        if menuBarStatus != .success || menuBarRef == nil {
+            throw NSError(
+                domain: "com.macos.mcp.accessibility",
+                code: MacMCPErrorCode.elementNotFound,
+                userInfo: [NSLocalizedDescriptionKey: "Failed to get menu bar from application"]
+            )
+        }
+
+        let menuBar = menuBarRef as! AXUIElement
+
+        // Get the menu bar items
+        var menuBarItemsRef: CFTypeRef?
+        let menuBarItemsStatus = AXUIElementCopyAttributeValue(menuBar, "AXChildren" as CFString, &menuBarItemsRef)
+
+        if menuBarItemsStatus != .success || menuBarItemsRef == nil {
+            throw NSError(
+                domain: "com.macos.mcp.accessibility",
+                code: MacMCPErrorCode.elementNotFound,
+                userInfo: [NSLocalizedDescriptionKey: "Failed to get menu bar items"]
+            )
+        }
+
+        guard let menuBarItems = menuBarItemsRef as? [AXUIElement] else {
+            throw NSError(
+                domain: "com.macos.mcp.accessibility",
+                code: MacMCPErrorCode.elementNotFound,
+                userInfo: [NSLocalizedDescriptionKey: "Menu bar items not in expected format"]
+            )
+        }
+
+        // Find the first component (menu bar item)
+        var currentElement: AXUIElement?
+        let firstComponent = pathComponents[0]
+
+        // Find the top-level menu
+        for menuBarItem in menuBarItems {
+            var titleRef: CFTypeRef?
+            let titleStatus = AXUIElementCopyAttributeValue(menuBarItem, "AXTitle" as CFString, &titleRef)
+
+            if titleStatus == .success, let title = titleRef as? String {
+                // Match by exact title, or just "MenuBar" prefix for generic menu bar items
+                if title == firstComponent || (firstComponent.hasPrefix("MenuBar") && title.count > 0) {
+                    currentElement = menuBarItem
+                    break
+                }
+            }
+        }
+
+        guard let menuBarItem = currentElement else {
+            throw NSError(
+                domain: "com.macos.mcp.accessibility",
+                code: MacMCPErrorCode.elementNotFound,
+                userInfo: [NSLocalizedDescriptionKey: "Could not find menu bar item: \(firstComponent)"]
+            )
+        }
+
+        // Open the top-level menu by performing AXPress
+        logger.info("Opening top-level menu", metadata: [
+            "menuItem": .string(firstComponent)
+        ])
+
+        try AccessibilityElement.performAction(menuBarItem, action: "AXPress")
+        try await Task.sleep(nanoseconds: 300_000_000) // 300ms delay
+
+        // Now we need to navigate through the rest of the path
+        currentElement = menuBarItem
+
+        // Process each path component after the menu bar item
+        for i in 1..<pathComponents.count {
+            let component = pathComponents[i]
+
+            // Get the children of the current element
+            var childrenRef: CFTypeRef?
+            var childrenStatus = AXUIElementCopyAttributeValue(currentElement!, "AXChildren" as CFString, &childrenRef)
+
+            if childrenStatus != .success || childrenRef == nil {
+                // If we can't get children, check if there's an AXMenu child first
+                var menuRef: CFTypeRef?
+                let menuStatus = AXUIElementCopyAttributeValue(currentElement!, "AXMenu" as CFString, &menuRef)
+
+                if menuStatus == .success && menuRef != nil {
+                    // Use the menu as the current element
+                    currentElement = menuRef as! AXUIElement
+
+                    // Try to get children again
+                    childrenStatus = AXUIElementCopyAttributeValue(currentElement!, "AXChildren" as CFString, &childrenRef)
+                }
+
+                if childrenStatus != .success || childrenRef == nil {
+                    throw NSError(
+                        domain: "com.macos.mcp.accessibility",
+                        code: MacMCPErrorCode.elementNotFound,
+                        userInfo: [NSLocalizedDescriptionKey: "Failed to get children for component: \(component)"]
+                    )
+                }
+            }
+
+            guard let childrenArray = childrenRef as? [AXUIElement] else {
+                throw NSError(
+                    domain: "com.macos.mcp.accessibility",
+                    code: MacMCPErrorCode.elementNotFound,
+                    userInfo: [NSLocalizedDescriptionKey: "Children not in expected format for component: \(component)"]
+                )
+            }
+
+            // Try to find the matching child element
+            var found = false
+
+            // First pass: Try exact title match
+            for child in childrenArray {
+                var titleRef: CFTypeRef?
+                let titleStatus = AXUIElementCopyAttributeValue(child, "AXTitle" as CFString, &titleRef)
+
+                if titleStatus == .success, let title = titleRef as? String {
+                    // Match by exact title, or just "Menu" prefix for generic menu items
+                    if title == component || (component.hasPrefix("Menu") && title.count > 0) {
+                        currentElement = child
+                        found = true
+
+                        // If this is the last component, perform AXPress to activate it
+                        if i == pathComponents.count - 1 {
+                            logger.info("Activating final menu item", metadata: [
+                                "component": .string(component),
+                                "title": .string(title)
+                            ])
+
+                            try AccessibilityElement.performAction(child, action: "AXPress")
+                            try await Task.sleep(nanoseconds: 300_000_000) // 300ms delay
+                        } else {
+                            // If it's an intermediate component, open the submenu
+                            logger.info("Opening submenu", metadata: [
+                                "component": .string(component),
+                                "title": .string(title)
+                            ])
+
+                            try AccessibilityElement.performAction(child, action: "AXPress")
+                            try await Task.sleep(nanoseconds: 300_000_000) // 300ms delay
+                        }
+
+                        break
+                    }
+                }
+            }
+
+            // Second pass: Try a more flexible match if exact match failed
+            if !found {
+                for child in childrenArray {
+                    var titleRef: CFTypeRef?
+                    let titleStatus = AXUIElementCopyAttributeValue(child, "AXTitle" as CFString, &titleRef)
+
+                    if titleStatus == .success, let title = titleRef as? String {
+                        // Try more flexible matching options
+                        if title.lowercased() == component.lowercased() ||
+                           title.contains(component) ||
+                           component.contains(title) {
+                            currentElement = child
+                            found = true
+
+                            // If this is the last component, perform AXPress to activate it
+                            if i == pathComponents.count - 1 {
+                                logger.info("Activating final menu item (flexible match)", metadata: [
+                                    "component": .string(component),
+                                    "matchedTitle": .string(title)
+                                ])
+
+                                try AccessibilityElement.performAction(child, action: "AXPress")
+                                try await Task.sleep(nanoseconds: 300_000_000) // 300ms delay
+                            } else {
+                                // If it's an intermediate component, open the submenu
+                                logger.info("Opening submenu (flexible match)", metadata: [
+                                    "component": .string(component),
+                                    "matchedTitle": .string(title)
+                                ])
+
+                                try AccessibilityElement.performAction(child, action: "AXPress")
+                                try await Task.sleep(nanoseconds: 300_000_000) // 300ms delay
+                            }
+
+                            break
+                        }
+                    }
+                }
+            }
+
+            if !found {
+                // If we still couldn't find a match, log details about available items for debugging
+                var availableItems: [String] = []
+                for child in childrenArray {
+                    var titleRef: CFTypeRef?
+                    if AXUIElementCopyAttributeValue(child, "AXTitle" as CFString, &titleRef) == .success,
+                       let title = titleRef as? String {
+                        availableItems.append(title)
+                    }
+                }
+
+                logger.error("Could not find menu component", metadata: [
+                    "component": .string(component),
+                    "availableItems": .string(availableItems.joined(separator: ", "))
+                ])
+
+                throw NSError(
+                    domain: "com.macos.mcp.accessibility",
+                    code: MacMCPErrorCode.elementNotFound,
+                    userInfo: [NSLocalizedDescriptionKey: "Could not find menu component: \(component)"]
+                )
+            }
+        }
+
+        // If we reached this point, we successfully activated the menu item
+        logger.info("Successfully activated menu item using path-based navigation", metadata: [
+            "path": .string(pathToUse)
+        ])
+    }
+
     /// Find a UI element by identifier
     /// - Parameters:
     ///   - identifier: The element identifier to search for
