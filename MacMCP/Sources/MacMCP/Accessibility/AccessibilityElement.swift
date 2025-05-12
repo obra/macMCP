@@ -252,19 +252,8 @@ public class AccessibilityElement {
         if shouldTraverse {
             do {
                 if let axChildren = try getAttribute(axElement, attribute: AXAttribute.children) as? [AXUIElement] {
-                    // Prioritize containers with higher depth limits
-                    let isMenuElement = isMenuElement(role)
-                    
-                    // Use different depth limits based on element type:
-                    // - Containers get full depth
-                    // - Menus get shallow depth but still adequate
-                    // - Most elements get full depth now for completeness
-                    let adjustedMaxDepth: Int
-                    if isMenuElement {
-                        adjustedMaxDepth = min(5, maxDepth) // Allow deeper menu traversal
-                    } else {
-                        adjustedMaxDepth = maxDepth // Full depth for most elements
-                    }
+                    // All elements get full depth - don't limit menu traversal
+                    let adjustedMaxDepth = maxDepth
                     
                     // Sort children to prioritize likely interactive elements and containers
                     let prioritizedChildren = try prioritizeChildren(axChildren)
@@ -305,35 +294,36 @@ public class AccessibilityElement {
                                 
                                 let hasZeroSize = frame.size.width <= 0 || frame.size.height <= 0
                                 
-                                // For menus, also check if they're actually open
-                                let isMenuElement = childRole == "AXMenu" || childRole == "AXMenuBarItem"
-                                let isExpanded = isMenuElement ? 
-                                    (try? getAttribute(axChild, attribute: "AXExpanded") as? Bool) ?? false : true
-                                let isMenuOpened = isMenuElement ? 
-                                    (try? getAttribute(axChild, attribute: "AXMenuOpened") as? Bool) ?? false : true
-                                
                                 // Special case for interactive elements - don't filter them out based on zero size
-                                let isInteractiveElement = childRole == "AXButton" || 
-                                                          childRole == "AXMenuItem" || 
-                                                          childRole == "AXCheckBox" || 
+                                let isInteractiveElement = childRole == "AXButton" ||
+                                                          childRole == "AXMenuItem" ||
+                                                          childRole == "AXCheckBox" ||
                                                           childRole == "AXRadioButton" ||
                                                           childRole == "AXTextField" ||
                                                           childRole == "AXLink"
-                                
+
+                                // Always include menu elements regardless of state
+                                let isMenuElement = childRole == "AXMenu" ||
+                                                 childRole == "AXMenuBar" ||
+                                                 childRole == "AXMenuBarItem" ||
+                                                 childRole == "AXMenuItem"
+
                                 // Identify important container and content elements
                                 let isImportantContainer = childRole == "AXSplitGroup" ||
                                                         childRole == "AXGroup" ||
                                                         childRole == "AXScrollArea"
-                                
+
                                 // Identify elements that might contain important text/values
-                                let isValueElement = childRole == "AXStaticText" || 
+                                let isValueElement = childRole == "AXStaticText" ||
                                                    childRole == "AXTextField" ||
                                                    childRole == "AXTextArea"
-                                
-                                // For important containers and value-containing elements, we want to be less strict about 
-                                // frame size checks, but still respect explicit disabled/hidden attributes
+
+                                // Less strict filtering - include menu elements always
                                 let isAvailable: Bool
-                                if isImportantContainer {
+                                if isMenuElement {
+                                    // Always include menu elements regardless of state
+                                    isAvailable = true
+                                } else if isImportantContainer {
                                     // For containers: don't filter based on zero size, but respect enabled/hidden state
                                     isAvailable = isVisible && !isHidden
                                 } else if isValueElement {
@@ -343,10 +333,8 @@ public class AccessibilityElement {
                                     // For other elements: use the normal stringent checks
                                     isAvailable = isVisible && isEnabled && !isHidden && (!hasZeroSize || isInteractiveElement)
                                 }
-                                
-                                let isMenuAvailable = !isMenuElement || (isMenuElement && (isExpanded || isMenuOpened))
-                                
-                                if (!isAvailable || !isMenuAvailable) {
+
+                                if (!isAvailable) {
                                     // Only log skips at higher depths to reduce noise
                                     if depth < 3 {
                                       //  NSLog("SKIPPING invisible element: \(childRole)")
@@ -415,29 +403,29 @@ public class AccessibilityElement {
             
             // Get child role
             if let role = try? getAttribute(child, attribute: AXAttribute.role) as? String {
-                // Check if this is a menu element - if so, deprioritize it
-                if isMenuElement(role) {
-                    priority = 10 // Very low priority - explore after everything else
-                }
                 // Window elements get highest priority
-                else if role == AXAttribute.Role.window {
+                if role == AXAttribute.Role.window {
                     priority = 0
+                }
+                // Menu elements get high priority too (no longer deprioritized)
+                else if isMenuElement(role) {
+                    priority = 1 // High priority for menus
                 }
                 // Give containers next priority
                 else if isControlContainer(role) {
-                    priority = 1
+                    priority = 2
                 }
                 // Interactive controls get next priority
                 else if isInteractiveControl(role) {
-                    priority = 2
+                    priority = 3
                 }
                 // Static text and other identifiable elements
                 else if role == AXAttribute.Role.staticText || role == AXAttribute.Role.image {
-                    priority = 3
+                    priority = 4
                 }
                 // Everything else
                 else {
-                    priority = 4
+                    priority = 5
                 }
                 
                 // Check for useful button titles
