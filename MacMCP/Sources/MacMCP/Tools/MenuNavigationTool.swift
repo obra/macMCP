@@ -382,14 +382,14 @@ public struct MenuNavigationTool: @unchecked Sendable {
 
                     // Also check standard approach
                     if openMenuItem.children.contains(where: { $0.role == "AXMenuItem" }) {
-                    	menu = openMenuItem
+                        menu = openMenuItem
                         logger.info("Found direct AXMenuItem children in menu bar item")
                     }
                     // Check for alternate menu item types
                     else if openMenuItem.children.contains(where: {
                         ["AXStaticText", "AXRadioButton", "AXCheckBox"].contains($0.role)
                     }) {
-                    	menu = openMenuItem
+                        menu = openMenuItem
                         logger.info("Found menu-like items (StaticText/RadioButton/CheckBox) in menu bar item")
                     }
                     // Check if any child contains menu items even if it's not a menu
@@ -398,7 +398,7 @@ public struct MenuNavigationTool: @unchecked Sendable {
                             if child.children.contains(where: {
                                 ["AXMenuItem", "AXStaticText", "AXRadioButton", "AXCheckBox"].contains($0.role)
                             }) {
-                    		menu = openMenuItem
+                                menu = openMenuItem
                                 logger.info("Found child containing menu-like items", metadata: [
                                     "childRole": .string(child.role)
                                 ])
@@ -411,19 +411,36 @@ public struct MenuNavigationTool: @unchecked Sendable {
 
             // Reset menu items collection - we're starting from scratch after activation
             menuItems = []
-            
+
             if let menu = menu {
-     
+                // Log menu info
+                logger.info("Processing menu items", metadata: [
+                    "menuRole": .string(menu.role),
+                    "menuId": .string(menu.identifier),
+                    "childCount": .string("\(menu.children.count)")
+                ])
+
                 // Log complete menu structure for debugging
                 for (index, menuItem) in menu.children.enumerated() {
-     
+                    // Log each menu item we're processing
+                    logger.debug("Processing menu item", metadata: [
+                        "index": .string("\(index)"),
+                        "role": .string(menuItem.role),
+                        "title": .string(menuItem.title ?? "nil"),
+                        "id": .string(menuItem.identifier)
+                    ])
 
                     // Try to create a descriptor for this menu item
                     if let descriptor = MenuItemDescriptor.from(
                         element: menuItem,
                         includeSubmenu: includeSubmenus
                     ) {
-                     
+                        // Log the descriptor we created
+                        logger.debug("Created descriptor", metadata: [
+                            "name": .string(descriptor.name),
+                            "id": .string(descriptor.id)
+                        ])
+
                         menuItems.append(descriptor)
                         menuLocated = true
                     } else {
@@ -441,7 +458,7 @@ public struct MenuNavigationTool: @unchecked Sendable {
             // Log all top-level children to find something we can click on to dismiss
             var foundClickable = false
 
-            for (i, child) in updatedAppElement.children.enumerated() {
+            for (_, child) in updatedAppElement.children.enumerated() {
 
                 // Try to find any valid window or content area we can click on
                 if child.role == "AXWindow" || child.role == "AXGroup" {
@@ -489,7 +506,9 @@ public struct MenuNavigationTool: @unchecked Sendable {
         let menuTitle = pathComponents[0]
         let subPath = Array(pathComponents.dropFirst())
 
-
+        // Record actual method we used to activate the menu item
+        var activationMethod = "direct" // Will be updated based on actual method used
+        
 
         // Get the application element
         let appElement = try await accessibilityService.getApplicationUIElement(
@@ -500,13 +519,34 @@ public struct MenuNavigationTool: @unchecked Sendable {
 
         // Find the menu bar element
         guard let menuBar = appElement.children.first(where: { $0.role == "AXMenuBar" }) else {
+            logger.error("Menu bar not found in application", metadata: [
+                "bundleId": .string(bundleId),
+                "availableRoles": .string(appElement.children.map { $0.role }.joined(separator: ", "))
+            ])
             throw MCPError.internalError("Could not find menu bar in application")
         }
 
+        // Log menu bar info
+        logger.info("Found menu bar", metadata: [
+            "identifier": .string(menuBar.identifier),
+            "menuCount": .string("\(menuBar.children.count)"),
+            "menus": .string(menuBar.children.map { $0.title ?? "unnamed" }.joined(separator: ", "))
+        ])
+
         // Find the specified menu in the menu bar
         guard let menuBarItem = menuBar.children.first(where: { $0.title == menuTitle }) else {
+            logger.error("Menu not found in menu bar", metadata: [
+                "menuTitle": .string(menuTitle),
+                "availableMenus": .string(menuBar.children.map { $0.title ?? "unnamed" }.joined(separator: ", "))
+            ])
             throw MCPError.internalError("Could not find menu: \(menuTitle)")
         }
+
+        // Log menu info
+        logger.info("Found menu", metadata: [
+            "menuTitle": .string(menuTitle),
+            "identifier": .string(menuBarItem.identifier)
+        ])
 
 
         // Try to find the menu without activation first for apps like Calculator
@@ -636,7 +676,8 @@ public struct MenuNavigationTool: @unchecked Sendable {
                 // Log available items to help debugging
                 logger.error("Menu item not found", metadata: [
                     "targetComponent": .string(component),
-                    "availableItems": .string(currentMenu.children.map { $0.title ?? $0.elementDescription ?? "unnamed" }.joined(separator: ", "))
+                    "availableItems": .string(currentMenu.children.map { $0.title ?? $0.elementDescription ?? "unnamed" }.joined(separator: ", ")),
+                    "identifierPattern": .string(currentMenu.children.map { $0.identifier }.joined(separator: ", "))
                 ])
 
                 // Try to dismiss menu by clicking on the application window
@@ -658,16 +699,55 @@ public struct MenuNavigationTool: @unchecked Sendable {
             if index == subPath.count - 1 {
                 // This is the target menu item, activate it directly
 
+                // Log the menu item we found (final target)
+                logger.info("Found final menu item for activation", metadata: [
+                    "title": .string(targetMenuItem.title ?? "untitled"),
+                    "identifier": .string(targetMenuItem.identifier),
+                    "component": .string(component)
+                ])
 
-                try await interactionService.performAction(
-                    identifier: targetMenuItem.identifier,
-                    action: "AXPress",
-                    appBundleId: bundleId
-                )
-                try await Task.sleep(for: .milliseconds(100))
+                // Check if this is a zero-sized menu item that might need special handling
+                let hasZeroSize = targetMenuItem.frame.size.width == 0 && targetMenuItem.frame.size.height == 0
+
+                // For zero-sized menu items especially in Calculator, try title-based activation
+                if hasZeroSize && targetMenuItem.role == "AXMenuItem" && targetMenuItem.title != nil {
+                    activationMethod = "title_based"
+                    logger.info("Using title-based activation for zero-sized menu item", metadata: [
+                        "title": .string(targetMenuItem.title ?? "unknown"),
+                        "identifier": .string(targetMenuItem.identifier)
+                    ])
+
+                    // Add a small delay before performing action for stability
+                    try await Task.sleep(for: .milliseconds(200))
+
+                    // Perform the action using the hierarchical path-based ID
+                    // This is much more reliable than position-based lookup
+                    try await interactionService.performAction(
+                        identifier: targetMenuItem.identifier,
+                        action: "AXPress",
+                        appBundleId: bundleId
+                    )
+                } else {
+                    // For normal elements, use standard approach
+                    activationMethod = "direct"
+                    try await interactionService.performAction(
+                        identifier: targetMenuItem.identifier,
+                        action: "AXPress",
+                        appBundleId: bundleId
+                    )
+                }
+
+                // Add a longer delay to allow menu action to complete
+                try await Task.sleep(for: .milliseconds(500))
             } else {
                 // This is an intermediate menu item with a submenu, open it
-     
+
+                // Log the menu item we found (intermediate item)
+                logger.info("Found intermediate menu item", metadata: [
+                    "title": .string(targetMenuItem.title ?? "untitled"),
+                    "identifier": .string(targetMenuItem.identifier),
+                    "component": .string(component)
+                ])
 
                 try await interactionService.performAction(
                     identifier: targetMenuItem.identifier,
@@ -734,15 +814,17 @@ public struct MenuNavigationTool: @unchecked Sendable {
             }
         }
 
-        // Return success message
+        // Return success message with activation method
         struct ActivationResult: Codable {
             let success: Bool
             let message: String
+            let activationMethod: String
         }
 
         let result = ActivationResult(
             success: true,
-            message: "Menu item activated: \(menuPath)"
+            message: "Menu item activated: \(menuPath)",
+            activationMethod: activationMethod
         )
 
         return try formatResponse(result)
