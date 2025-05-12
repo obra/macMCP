@@ -4,6 +4,8 @@
 import Foundation
 import MCP
 import Logging
+import CoreGraphics
+import ApplicationServices
 
 /// A tool for navigating and interacting with application menus
 public struct MenuNavigationTool: @unchecked Sendable {
@@ -194,50 +196,274 @@ public struct MenuNavigationTool: @unchecked Sendable {
         let appElement = try await accessibilityService.getApplicationUIElement(
             bundleIdentifier: bundleId,
             recursive: true,
-            maxDepth: 4  // Need deeper traversal to access menu items
+            maxDepth: 10  // Ensure we get deep enough for menus
         )
-        
+
+
+
+
+        // Find the menu bar
+        guard let menuBar = appElement.children.first(where: { $0.role == "AXMenuBar" }) else {
+            logger.error("DEBUG_MENU: CRITICAL ERROR - No AXMenuBar found in application")
+            throw MCPError.internalError("Could not find menu bar in application")
+        }
+
+
+
+      
+        // Find the target menu bar item by title
+        guard let menuBarItem = menuBar.children.first(where: { $0.title == menuTitle }) else {
+            logger.error("DEBUG_MENU: CRITICAL ERROR - No menu found with title '\(menuTitle)'", metadata: [
+                "availableMenus": .string(menuBar.children.compactMap { $0.title }.joined(separator: ", "))
+            ])
+            throw MCPError.internalError("Could not find menu: \(menuTitle)")
+        }
+
         // Find the menu bar element
         var menuItems: [MenuItemDescriptor] = []
-        var menuBarFound = false
+        var menuLocated = false
         
-        // Look for the menu bar in the children
-        for child in appElement.children {
-            if child.role == "AXMenuBar" {
-                menuBarFound = true
-                
-                // Find the specified menu
-                for menuBarItem in child.children {
-                    if menuBarItem.title == menuTitle {
-                        // Found the menu, now get its items
-                        // Menu items are typically in a submenu
-                        for subElement in menuBarItem.children {
-                            if subElement.role == AXAttribute.Role.menu {
-                                // Found the menu, get its items
-                                for menuItem in subElement.children {
-                                    if let menuItemDescriptor = MenuItemDescriptor.from(
-                                        element: menuItem,
-                                        includeSubmenu: includeSubmenus
-                                    ) {
-                                        menuItems.append(menuItemDescriptor)
-                                    }
-                                }
+        // First check if menu already exists in menuBarItem before activation
+        // This is critical for apps like Calculator where menus have items before activation
+        if menuBarItem.children.count > 0 {
+  
+
+
+            // Look for an AXMenu in the existing children
+            if let existingMenu = menuBarItem.children.first(where: { $0.role == "AXMenu" }) {
+
+              
+                // Try to extract menu items even if they have zero-sized frames
+                if existingMenu.children.count > 0 {
+                    for (index, menuItem) in existingMenu.children.enumerated() {
+                        // We'll consider all menu items as potentially valid for now
+                        // as some accessibility info might be limited before menu activation
+                        let isEnabled = true
+                        let hasValidTitle = menuItem.title != nil && !menuItem.title!.isEmpty
+
+                    
+
+                        // Only include valid, enabled menu items in the result
+                        if isEnabled && (hasValidTitle || menuItem.elementDescription != nil) {
+          
+                            if let descriptor = MenuItemDescriptor.from(
+                                element: menuItem,
+                                includeSubmenu: includeSubmenus
+                            ) {
+            
+                                menuItems.append(descriptor)
+                            } else {
+                                logger.error("DEBUG_MENU: Failed to convert menu item to MenuItemDescriptor", metadata: [
+                                    "index": .string("\(index)"),
+                                    "role": .string(menuItem.role),
+                                    "title": .string(menuItem.title ?? "(nil)")
+                                ])
                             }
                         }
+                    }
+
+                    if !menuItems.isEmpty {
+                        menuLocated = true
+                        logger.info("Found valid menu items in existing tree before activation", metadata: [
+                            "count": .string("\(menuItems.count)"),
+                            "menuTitle": .string(menuTitle)
+                        ])
+                    } else {
+                        logger.info("No valid enabled menu items found in existing tree")
+                    }
+                }
+            } else {
+
+                // Some applications might have AXMenuItems directly as children
+                let menuItemChildren = menuBarItem.children.filter { $0.role == "AXMenuItem" }
+                if !menuItemChildren.isEmpty {
+
+                    for (index, menuItem) in menuItemChildren.enumerated() {
+                        // We'll consider all menu items as potentially valid for now
+                        let isEnabled = true
+                        let hasValidTitle = menuItem.title != nil && !menuItem.title!.isEmpty
+
+                    
+
+                        // Only include valid, enabled menu items in the result
+                        if isEnabled && (hasValidTitle || menuItem.elementDescription != nil) {
+                 
+                            if let descriptor = MenuItemDescriptor.from(
+                                element: menuItem,
+                                includeSubmenu: includeSubmenus
+                            ) {
+                   
+                                menuItems.append(descriptor)
+                            } else {
+                                logger.error("DEBUG_MENU: Failed to convert direct menu item", metadata: [
+                                    "index": .string("\(index)"),
+                                    "role": .string(menuItem.role),
+                                    "title": .string(menuItem.title ?? "(nil)")
+                                ])
+                            }
+                        }
+                    }
+
+                    if !menuItems.isEmpty {
+                        menuLocated = true
+                        logger.info("Found valid direct menu items before activation", metadata: [
+                            "count": .string("\(menuItems.count)"),
+                            "menuTitle": .string(menuTitle)
+                        ])
+                    }
+                }
+            }
+        }
+
+        // If we didn't find items in the existing tree, activate the menu
+        if !menuLocated {
+            
+            // For menu items, we need to first activate the menu to see its contents
+            // In many applications (like Calculator), the menu items might exist in the tree
+            // but with empty content until the menu is activated
+
+
+            try await interactionService.performAction(
+                identifier: menuBarItem.identifier,
+                action: "AXPress",
+                appBundleId: bundleId
+            )
+
+            // Brief pause to allow menu to open
+            try await Task.sleep(for: .milliseconds(500)) // Increase wait time to 500ms
+
+            // Get a fresh view of the application after opening the menu
+            let updatedAppElement = try await accessibilityService.getApplicationUIElement(
+                bundleIdentifier: bundleId,
+                recursive: true,
+                maxDepth: 10
+            )
+
+
+
+            // Find the menu bar again
+            guard let updatedMenuBar = updatedAppElement.children.first(where: { $0.role == "AXMenuBar" }) else {
+                throw MCPError.internalError("Could not find menu bar after opening menu")
+            }
+
+            // Find the menu item that should now have an open menu
+            guard let openMenuItem = updatedMenuBar.children.first(where: { $0.title == menuTitle }) else {
+                throw MCPError.internalError("Could not find menu item after opening menu: \(menuTitle)")
+            }
+
+            // Now find the open menu (AXMenu) that should be a direct child of the menu item
+            var menu = openMenuItem.children.first(where: { $0.role == "AXMenu" })
+
+            // If still not found, check other possible menu structures
+            if menu == nil {
+                logger.info("Menu not found as direct child after activation, looking for alternate structure", metadata: [
+                    "menuTitle": .string(menuTitle)
+                ])
+
+                // Try other potential containers or structures
+                let potentialContainers = openMenuItem.children.filter {
+                    ["AXGroup", "AXList", "AXScrollArea"].contains($0.role)
+                }
+
+                // Check if any of these containers have a menu
+                for container in potentialContainers {
+                    if let containerMenu = container.children.first(where: { $0.role == "AXMenu" }) {
+                        menu = containerMenu
+                        logger.info("Found menu in container", metadata: [
+                            "containerRole": .string(container.role)
+                        ])
                         break
                     }
                 }
-                break
+
+                // If still not found, check if menuItem itself contains menu items
+                if menu == nil {
+    
+
+                    // Also check standard approach
+                    if openMenuItem.children.contains(where: { $0.role == "AXMenuItem" }) {
+                    	menu = openMenuItem
+                        logger.info("Found direct AXMenuItem children in menu bar item")
+                    }
+                    // Check for alternate menu item types
+                    else if openMenuItem.children.contains(where: {
+                        ["AXStaticText", "AXRadioButton", "AXCheckBox"].contains($0.role)
+                    }) {
+                    	menu = openMenuItem
+                        logger.info("Found menu-like items (StaticText/RadioButton/CheckBox) in menu bar item")
+                    }
+                    // Check if any child contains menu items even if it's not a menu
+                    else {
+                        for child in openMenuItem.children {
+                            if child.children.contains(where: {
+                                ["AXMenuItem", "AXStaticText", "AXRadioButton", "AXCheckBox"].contains($0.role)
+                            }) {
+                    		menu = openMenuItem
+                                logger.info("Found child containing menu-like items", metadata: [
+                                    "childRole": .string(child.role)
+                                ])
+                                break
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Reset menu items collection - we're starting from scratch after activation
+            menuItems = []
+            
+            if let menu = menu {
+     
+                // Log complete menu structure for debugging
+                for (index, menuItem) in menu.children.enumerated() {
+     
+
+                    // Try to create a descriptor for this menu item
+                    if let descriptor = MenuItemDescriptor.from(
+                        element: menuItem,
+                        includeSubmenu: includeSubmenus
+                    ) {
+                     
+                        menuItems.append(descriptor)
+                        menuLocated = true
+                    } else {
+                        logger.error("DEBUG_MENU: CRITICAL ERROR - Failed to convert post-activation menu item", metadata: [
+                            "index": .string("\(index)"),
+                            "role": .string(menuItem.role),
+                            "title": .string(menuItem.title ?? "(nil)"),
+                            "supportedRoles": .string("AXMenuItem, AXMenuBarItem, AXStaticText, AXRadioButton, AXCheckBox")
+                        ])
+                    }
+                }
+            }
+
+            // Always dismiss the menu by clicking elsewhere to prevent it staying open
+            // Log all top-level children to find something we can click on to dismiss
+            var foundClickable = false
+
+            for (i, child) in updatedAppElement.children.enumerated() {
+
+                // Try to find any valid window or content area we can click on
+                if child.role == "AXWindow" || child.role == "AXGroup" {
+                    try? await interactionService.clickElement(identifier: child.identifier, appBundleId: bundleId)
+                    foundClickable = true
+                    break
+                }
+            }
+
+            if !foundClickable {
+                // If we couldn't find a window, try to find any non-menu element to click
+                if let anyElement = updatedAppElement.children.first(where: {
+                    $0.role != "AXMenuBar" && $0.role != "AXMenu" && $0.role != "AXMenuItem"
+                }) {
+                    try? await interactionService.clickElement(identifier: anyElement.identifier, appBundleId: bundleId)
+                }
             }
         }
-        
-        if !menuBarFound {
-            throw MCPError.internalError("Could not find menu bar in application")
-        }
-        
-        if menuItems.isEmpty {
-            logger.warning("No menu items found for menu: \(menuTitle)")
-        }
+
+
+
+
         
         // Return the menu items
         return try formatResponse(menuItems)
@@ -263,10 +489,7 @@ public struct MenuNavigationTool: @unchecked Sendable {
         let menuTitle = pathComponents[0]
         let subPath = Array(pathComponents.dropFirst())
 
-        logger.debug("Navigating menu path", metadata: [
-            "menuTitle": .string(menuTitle),
-            "subPath": .string(subPath.joined(separator: " > "))
-        ])
+
 
         // Get the application element
         let appElement = try await accessibilityService.getApplicationUIElement(
@@ -276,115 +499,155 @@ public struct MenuNavigationTool: @unchecked Sendable {
         )
 
         // Find the menu bar element
-        var menuBarFound = false
-        var foundMenuBarItem: UIElement? = nil
-
-        // Look for the menu bar in the children
-        for child in appElement.children {
-            if child.role == "AXMenuBar" {
-                menuBarFound = true
-
-                // Find the specified menu
-                for menuBarItem in child.children {
-                    if menuBarItem.title == menuTitle {
-                        foundMenuBarItem = menuBarItem
-                        break
-                    }
-                }
-                break
-            }
-        }
-
-        if !menuBarFound {
+        guard let menuBar = appElement.children.first(where: { $0.role == "AXMenuBar" }) else {
             throw MCPError.internalError("Could not find menu bar in application")
         }
 
-        if foundMenuBarItem == nil {
+        // Find the specified menu in the menu bar
+        guard let menuBarItem = menuBar.children.first(where: { $0.title == menuTitle }) else {
             throw MCPError.internalError("Could not find menu: \(menuTitle)")
         }
 
-        // First, open the menu bar item using AXPick (more semantically correct for menus)
-        try await interactionService.performAction(identifier: foundMenuBarItem!.identifier, action: "AXPick", appBundleId: bundleId)
 
-        // Brief pause to allow menu to open
-        try await Task.sleep(for: .milliseconds(300))
+        // Try to find the menu without activation first for apps like Calculator
+        var openMenuItem = menuBarItem
+        var menu: UIElement? = nil
 
-        // After opening the top-level menu, get a fresh view of the application to see the open menu
-        let updatedAppElement = try await accessibilityService.getApplicationUIElement(
-            bundleIdentifier: bundleId,
-            recursive: true,
-            maxDepth: 5
-        )
+        // Check if we can access the menu structure without activating it
+        if let existingMenu = menuBarItem.children.first(where: { $0.role == "AXMenu" }),
+           !existingMenu.children.isEmpty {
 
-        // Find the menu bar again with the updated state
-        var updatedMenuBar: UIElement? = nil
-        for child in updatedAppElement.children {
-            if child.role == "AXMenuBar" {
-                updatedMenuBar = child
-                break
+
+            menu = existingMenu
+        }
+
+        // If we couldn't find a valid menu or it doesn't have the needed items, activate it
+        if menu == nil {
+    
+
+            // Open the top-level menu using AXPress
+            try await interactionService.performAction(
+                identifier: menuBarItem.identifier,
+                action: "AXPress",
+                appBundleId: bundleId
+            )
+
+            // Brief pause to allow menu to open
+            try await Task.sleep(for: .milliseconds(300))
+
+            // Get updated application state to see the open menu
+            let updatedAppElement = try await accessibilityService.getApplicationUIElement(
+                bundleIdentifier: bundleId,
+                recursive: true,
+                maxDepth: 10
+            )
+
+            // Find the menu bar again
+            guard let updatedMenuBar = updatedAppElement.children.first(where: { $0.role == "AXMenuBar" }) else {
+                throw MCPError.internalError("Could not find menu bar after opening menu")
+            }
+
+            // Find the menu item that should now have an open menu
+            guard let updatedMenuItem = updatedMenuBar.children.first(where: { $0.title == menuTitle }) else {
+                throw MCPError.internalError("Could not find menu item after opening menu: \(menuTitle)")
+            }
+
+            openMenuItem = updatedMenuItem
+        }
+
+
+
+
+        // Find the open menu (AXMenu) if we haven't already
+        if menu == nil {
+            // First, try to find AXMenu as a direct child
+            menu = openMenuItem.children.first(where: { $0.role == "AXMenu" })
+
+            // If not found, look for it in other potential containers
+            if menu == nil {
+                for child in openMenuItem.children {
+                    // Look for containers that might hold the menu
+                    if ["AXGroup", "AXScrollArea", "AXList"].contains(child.role) {
+                        if let nestedMenu = child.children.first(where: { $0.role == "AXMenu" }) {
+                            menu = nestedMenu
+                            break
+                        }
+                    }
+                }
             }
         }
 
-        if updatedMenuBar == nil {
-            throw MCPError.internalError("Could not find menu bar after opening menu")
-        }
-
-        // Find the menu item that should now have an open menu
-        var openMenuItem: UIElement? = nil
-        for menuBarItem in updatedMenuBar!.children {
-            if menuBarItem.title == menuTitle {
-                openMenuItem = menuBarItem
-                break
-            }
-        }
-
-        if openMenuItem == nil {
-            throw MCPError.internalError("Could not find menu item after opening menu: \(menuTitle)")
-        }
-
-        // Now find the menu (submenu) that should be a direct child of the menu item
-        var openMenu: UIElement? = nil
-        for child in openMenuItem!.children {
-            if child.role == "AXMenu" {
-                openMenu = child
-                break
-            }
-        }
-
-        if openMenu == nil {
+        guard let openMenu = menu else {
             throw MCPError.internalError("Could not find open menu for: \(menuTitle)")
         }
 
-        // Now we have the open menu, navigate through any submenu path if needed
-        var currentMenu = openMenu!
+
+        // Navigate through the menu hierarchy for each component in the path
+        var currentMenu = openMenu
 
         for (index, component) in subPath.enumerated() {
-            logger.debug("Processing submenu component", metadata: [
-                "index": .string("\(index)"),
-                "component": .string(component)
-            ])
+  
 
-            // Find the target menu item in the current menu
-            var targetMenuItem: UIElement? = nil
+            // Find the target menu item in the current menu - with more flexible matching
+            guard let targetMenuItem = currentMenu.children.first(where: { menuItem in
+                // Check against title and description
+               if let title = menuItem.title {
+                   if title == component {
+                       return true
+                   }
+                   
+                   // For calculator, menu items might have leading/trailing whitespace
+                   let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+                   if trimmedTitle == component {
+                       return true
+                   }
+                   
+                   // Try case-insensitive matching
+                   if title.lowercased() == component.lowercased() {
+                       return true
+                   }
+               }
+               
+               if let description = menuItem.elementDescription {
+                   if description == component {
+                       return true
+                   }
+                   
+                   // For calculator, menu items might have leading/trailing whitespace
+                   let trimmedDesc = description.trimmingCharacters(in: .whitespacesAndNewlines)
+                   if trimmedDesc == component {
+                       return true
+                   }
+               }
 
-            // Look through menu items for a match
-            for menuItem in currentMenu.children {
-                // Check both title and description for matches
-                if menuItem.title == component || menuItem.elementDescription == component {
-                    targetMenuItem = menuItem
-                    break
+                // Some menu items have empty titles but valid descriptions
+                if (menuItem.title == nil || menuItem.title?.isEmpty == true) && 
+                   menuItem.elementDescription == component {
+                    return true
                 }
-            }
 
-            if targetMenuItem == nil {
-                // If we couldn't find the target item, cancel the menu navigation
+                // Match against partial title if needed
+                if let title = menuItem.title, title.contains(component) {
+                    return true
+                }
+
+                return false
+            }) else {
+                // Log available items to help debugging
                 logger.error("Menu item not found", metadata: [
-                    "component": .string(component),
-                    "availableItems": .string(currentMenu.children.map { $0.title ?? "untitled" }.joined(separator: ", "))
+                    "targetComponent": .string(component),
+                    "availableItems": .string(currentMenu.children.map { $0.title ?? $0.elementDescription ?? "unnamed" }.joined(separator: ", "))
                 ])
 
-                // Try to click on the application window to dismiss the menu
-                if let window = updatedAppElement.children.first(where: { $0.role == "AXWindow" }) {
+                // Try to dismiss menu by clicking on the application window
+                // Get the application element first
+                let appElement = try await accessibilityService.getApplicationUIElement(
+                    bundleIdentifier: bundleId,
+                    recursive: true,
+                    maxDepth: 2
+                )
+
+                if let window = appElement.children.first(where: { $0.role == "AXWindow" }) {
                     try await interactionService.clickElement(identifier: window.identifier, appBundleId: bundleId)
                 }
 
@@ -393,144 +656,112 @@ public struct MenuNavigationTool: @unchecked Sendable {
 
             // Is this the final component (the actual item we want to activate)?
             if index == subPath.count - 1 {
-                // This is the target menu item, use AXPick action instead of click
-                try await interactionService.performAction(identifier: targetMenuItem!.identifier, action: "AXPick", appBundleId: bundleId)
+                // This is the target menu item, activate it directly
+
+
+                try await interactionService.performAction(
+                    identifier: targetMenuItem.identifier,
+                    action: "AXPress",
+                    appBundleId: bundleId
+                )
+                try await Task.sleep(for: .milliseconds(100))
             } else {
-                // This is an intermediate menu item (has a submenu), use AXPick to open its submenu
-                try await interactionService.performAction(identifier: targetMenuItem!.identifier, action: "AXPick", appBundleId: bundleId)
+                // This is an intermediate menu item with a submenu, open it
+     
+
+                try await interactionService.performAction(
+                    identifier: targetMenuItem.identifier,
+                    action: "AXPress",
+                    appBundleId: bundleId
+                )
 
                 // Brief pause to allow submenu to open
                 try await Task.sleep(for: .milliseconds(300))
 
-                // Get updated application state
+                // Get refreshed application state
                 let refreshedAppElement = try await accessibilityService.getApplicationUIElement(
                     bundleIdentifier: bundleId,
                     recursive: true,
-                    maxDepth: 5
+                    maxDepth: 10
                 )
 
-                // Find the submenu by traversing the menu hierarchy again
-
-                // First find the menu bar
-                var refreshedMenuBar: UIElement? = nil
-                for child in refreshedAppElement.children {
-                    if child.role == "AXMenuBar" {
-                        refreshedMenuBar = child
-                        break
-                    }
-                }
-
-                if refreshedMenuBar == nil {
+                // Find the submenu in the refreshed state
+                // First, locate the menu bar again
+                guard let refreshedMenuBar = refreshedAppElement.children.first(where: { $0.role == "AXMenuBar" }) else {
                     throw MCPError.internalError("Could not find menu bar after opening submenu")
                 }
 
-                // Find our top-level menu item
-                var refreshedMenuItem: UIElement? = nil
-                for menuBarItem in refreshedMenuBar!.children {
-                    if menuBarItem.title == menuTitle {
-                        refreshedMenuItem = menuBarItem
-                        break
-                    }
-                }
+                // Find our current menu path by traversing the hierarchy again
+                var refreshedMenu: UIElement? = nil
 
-                if refreshedMenuItem == nil {
+                // First get the top-level menu
+                guard let refreshedTopMenu = refreshedMenuBar.children.first(where: { $0.title == menuTitle }) else {
                     throw MCPError.internalError("Could not find top-level menu after opening submenu")
                 }
 
-                // Find the primary menu under the menu item
-                var primaryMenu: UIElement? = nil
-                for child in refreshedMenuItem!.children {
-                    if child.role == "AXMenu" {
-                        primaryMenu = child
-                        break
-                    }
+                // Get the main menu
+                guard let mainMenu = refreshedTopMenu.children.first(where: { $0.role == "AXMenu" }) else {
+                    throw MCPError.internalError("Could not find main menu after opening submenu")
                 }
 
-                if primaryMenu == nil {
-                    throw MCPError.internalError("Could not find primary menu after opening submenu")
-                }
+                refreshedMenu = mainMenu
 
-                // Now we need to traverse down to our submenu
-                // We need to find where we are in the path and what's been opened so far
-                var currentPath = [menuTitle]  // Start with the top level menu
-                var currentSubmenu = primaryMenu!
-
-                // Traverse the path we've followed so far
+                // Traverse down to the current submenu by following the path we've gone through so far
                 for i in 0..<index {
-                    let pathComponent = subPath[i]
-                    currentPath.append(pathComponent)
+                    let prevComponent = subPath[i]
 
-                    // Try to find the menu item matching this path component
-                    var menuItemForPathComponent: UIElement? = nil
-                    for menuItem in currentSubmenu.children {
-                        if menuItem.title == pathComponent || menuItem.elementDescription == pathComponent {
-                            menuItemForPathComponent = menuItem
-                            break
-                        }
-                    }
-
-                    if menuItemForPathComponent == nil {
-                        logger.warning("Failed to find menu item when traversing path", metadata: [
-                            "pathComponent": .string(pathComponent),
-                            "currentPath": .string(currentPath.joined(separator: " > "))
-                        ])
-                        continue
+                    // Find the menu item for this path component
+                    guard let menuItem = refreshedMenu?.children.first(where: {
+                        $0.title == prevComponent || $0.elementDescription == prevComponent
+                    }) else {
+                        throw MCPError.internalError("Could not find previous menu item: \(prevComponent) after refresh")
                     }
 
                     // Find its submenu
-                    var submenuForMenuItem: UIElement? = nil
-                    for child in menuItemForPathComponent!.children {
-                        if child.role == "AXMenu" {
-                            submenuForMenuItem = child
-                            break
-                        }
+                    guard let submenu = menuItem.children.first(where: { $0.role == "AXMenu" }) else {
+                        throw MCPError.internalError("Could not find submenu for: \(prevComponent) after refresh")
                     }
 
-                    if submenuForMenuItem == nil {
-                        logger.warning("Failed to find submenu when traversing path", metadata: [
-                            "pathComponent": .string(pathComponent),
-                            "currentPath": .string(currentPath.joined(separator: " > "))
-                        ])
-                        continue
-                    }
-
-                    // Update our current submenu
-                    currentSubmenu = submenuForMenuItem!
+                    refreshedMenu = submenu
                 }
 
-                // Now we should have found the correct submenu that was just opened
-                // Update our current menu for the next iteration
-                currentMenu = currentSubmenu
+                // Update our current menu to the refreshed submenu for the next iteration
+                guard let refreshedMenu = refreshedMenu else {
+                    throw MCPError.internalError("Failed to locate current submenu in refreshed state")
+                }
+
+                currentMenu = refreshedMenu
             }
         }
-        
+
         // Return success message
         struct ActivationResult: Codable {
             let success: Bool
             let message: String
         }
-        
+
         let result = ActivationResult(
             success: true,
             message: "Menu item activated: \(menuPath)"
         )
-        
+
         return try formatResponse(result)
     }
     
+
     /// Format a response as JSON
     /// - Parameter data: The data to format
     /// - Returns: The formatted tool content
     private func formatResponse<T: Encodable>(_ data: T) throws -> [Tool.Content] {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        
+
         do {
             let jsonData = try encoder.encode(data)
             guard let jsonString = String(data: jsonData, encoding: .utf8) else {
                 throw MCPError.internalError("Failed to encode response as JSON")
             }
-            
+
             return [.text(jsonString)]
         } catch {
             logger.error("Error encoding response as JSON", metadata: [

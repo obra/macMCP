@@ -413,9 +413,11 @@ public struct MenuItemDescriptor: Codable, Sendable, Identifiable {
         element: UIElement,
         includeSubmenu: Bool = false
     ) -> MenuItemDescriptor? {
-        // Only convert menu items
-        guard element.role == AXAttribute.Role.menuItem || 
-              element.role == "AXMenuBarItem" else { return nil }
+        // More permissive approach for menu items, especially for Calculator
+        // Just ensure it's not obviously a container or non-interactive element
+        // TODO: I think we probably just want to skip this check
+        let nonMenuRoles = ["AXWindow", "AXApplication", "AXGroup", "AXScrollArea", "AXUnknown", "AXSplitter"]
+        guard !nonMenuRoles.contains(element.role) else { return nil }
         
         // Extract menu-specific attributes
         let isEnabled = (element.attributes["enabled"] as? Bool) ?? true
