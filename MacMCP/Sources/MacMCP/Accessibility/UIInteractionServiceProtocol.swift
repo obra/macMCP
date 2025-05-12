@@ -2,6 +2,7 @@
 // ABOUTME: It provides interfaces for clicking, typing, and other UI operations.
 
 import Foundation
+import AppKit
 
 /// Direction for scrolling operations
 public enum ScrollDirection: String, Codable, Sendable {
@@ -18,39 +19,48 @@ public protocol UIInteractionServiceProtocol {
     ///   - identifier: The UI element identifier
     ///   - appBundleId: Optional bundle ID of the application containing the element
     func clickElement(identifier: String, appBundleId: String?) async throws
-    
+
     /// Click at a specific screen position
     /// - Parameter position: The screen position to click
     func clickAtPosition(position: CGPoint) async throws
-    
+
     /// Double click on a UI element
     /// - Parameter identifier: The UI element identifier
     func doubleClickElement(identifier: String) async throws
-    
+
     /// Right click on a UI element
     /// - Parameter identifier: The UI element identifier
     func rightClickElement(identifier: String) async throws
-    
+
     /// Type text into a UI element
     /// - Parameters:
     ///   - elementIdentifier: The UI element identifier
     ///   - text: The text to type
     func typeText(elementIdentifier: String, text: String) async throws
-    
+
     /// Press a specific key on the keyboard
-    /// - Parameter keyCode: The key code to press
-    func pressKey(keyCode: Int) async throws
-    
+    /// - Parameters:
+    ///   - keyCode: The key code to press
+    ///   - modifiers: Optional modifier flags to apply
+    func pressKey(keyCode: Int, modifiers: CGEventFlags?) async throws
+
     /// Drag and drop from one element to another
     /// - Parameters:
     ///   - sourceIdentifier: The source element identifier
     ///   - targetIdentifier: The target element identifier
     func dragElement(sourceIdentifier: String, targetIdentifier: String) async throws
-    
+
     /// Scroll a UI element
     /// - Parameters:
     ///   - identifier: The UI element identifier
     ///   - direction: The scroll direction
     ///   - amount: The amount to scroll (normalized 0-1)
     func scrollElement(identifier: String, direction: ScrollDirection, amount: Double) async throws
+
+    /// Perform a specific accessibility action on an element
+    /// - Parameters:
+    ///   - identifier: The element identifier
+    ///   - action: The accessibility action to perform (e.g., "AXPress", "AXPick")
+    ///   - appBundleId: Optional application bundle ID
+    func performAction(identifier: String, action: String, appBundleId: String?) async throws
 }

@@ -74,3 +74,4 @@
 - ⬜ Migrate existing E2E tests to use the new framework
 - ⬜ Fix element-level screenshot testing to properly handle element identification
 - ⬜ Add more robust methods to verify button coordinates and presence
+- ⬜ keyboard input - take constants and strings and translate them to keycodes. don't make api users know keycodes

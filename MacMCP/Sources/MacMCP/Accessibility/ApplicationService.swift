@@ -54,10 +54,10 @@ struct ApplicationInfo: Equatable {
 /// Implementation of the ApplicationServiceProtocol for managing macOS applications
 public actor ApplicationService: ApplicationServiceProtocol {
     /// Logger for the application service
-    private let logger: Logger
+    internal let logger: Logger
     
     /// Cache of known applications by bundle ID
-    private var appCache: [String: ApplicationInfo] = [:]
+    internal var appCache: [String: ApplicationInfo] = [:]
     
     /// Cache of applications by name (lowercase)
     private var nameToAppCache: [String: ApplicationInfo] = [:]
@@ -226,7 +226,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
     /// Find an application by bundle ID
     /// - Parameter bundleIdentifier: The bundle identifier to look for
     /// - Returns: ApplicationInfo if found, nil otherwise
-    private func findApplicationByBundleID(_ bundleIdentifier: String) async -> ApplicationInfo? {
+    internal func findApplicationByBundleID(_ bundleIdentifier: String) async -> ApplicationInfo? {
         // Refresh the cache first
         await refreshCache()
         
@@ -315,7 +315,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
     ///   - url: Optional known URL for the application
     /// - Returns: ApplicationInfo with validated application details
     /// - Throws: MacMCPErrorInfo if the application validation fails
-    private func validateApplication(bundleIdentifier: String, url: URL? = nil) async throws -> ApplicationInfo {
+    internal func validateApplication(bundleIdentifier: String, url: URL? = nil) async throws -> ApplicationInfo {
         logger.debug("Validating application", metadata: [
             "bundleIdentifier": "\(bundleIdentifier)",
             "providedURL": "\(url?.path ?? "none")"
@@ -604,13 +604,13 @@ public actor ApplicationService: ApplicationServiceProtocol {
         }
         
         if !hasWindows {
-            logger.warning("No visible windows detected for application", metadata: [
+            logger.debug("No visible windows detected for application", metadata: [
                 "bundleIdentifier": "\(application.bundleIdentifier ?? "unknown")",
                 "applicationName": "\(application.localizedName ?? "Unknown")",
                 "timeout": "\(timeout)"
             ])
-            
-            // Don't fail - some apps are legitimately windowless
+
+            // Don't fail - some apps are legitimately windowless or windows may not be immediately visible to accessibility APIs
         } else {
             logger.debug("Application has visible windows")
         }
@@ -695,7 +695,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
     /// - Parameter name: The name of the application to validate
     /// - Returns: ApplicationInfo with validated application details
     /// - Throws: MacMCPErrorInfo if the application cannot be found
-    private func validateApplicationByName(_ name: String) async throws -> ApplicationInfo {
+    internal func validateApplicationByName(_ name: String) async throws -> ApplicationInfo {
         logger.debug("Validating application by name", metadata: [
             "name": "\(name)"
         ])
@@ -1250,7 +1250,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
         
         // Notify all observers
         Task {
-            for (observerId, handler) in applicationObservers {
+            for (_, handler) in applicationObservers {
                 await handler(stateChange)
             }
         }
@@ -1291,7 +1291,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
         
         // Notify all observers
         Task {
-            for (observerId, handler) in applicationObservers {
+            for (_, handler) in applicationObservers {
                 await handler(stateChange)
             }
         }
@@ -1339,7 +1339,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
         
         // Notify all observers
         Task {
-            for (observerId, handler) in applicationObservers {
+            for (_, handler) in applicationObservers {
                 await handler(stateChange)
             }
         }
@@ -1387,7 +1387,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
         
         // Notify all observers
         Task {
-            for (observerId, handler) in applicationObservers {
+            for (_, handler) in applicationObservers {
                 await handler(stateChange)
             }
         }
@@ -1435,7 +1435,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
         
         // Notify all observers
         Task {
-            for (observerId, handler) in applicationObservers {
+            for (_, handler) in applicationObservers {
                 await handler(stateChange)
             }
         }
@@ -1483,7 +1483,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
         
         // Notify all observers
         Task {
-            for (observerId, handler) in applicationObservers {
+            for (_, handler) in applicationObservers {
                 await handler(stateChange)
             }
         }

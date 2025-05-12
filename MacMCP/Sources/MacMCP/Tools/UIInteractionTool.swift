@@ -70,8 +70,6 @@ public struct UIInteractionTool {
                         .string("click"),
                         .string("double_click"),
                         .string("right_click"),
-                        .string("type"),
-                        .string("press_key"),
                         .string("drag"),
                         .string("scroll")
                     ])
@@ -91,14 +89,6 @@ public struct UIInteractionTool {
                 "y": .object([
                     "type": .string("number"),
                     "description": .string("Y coordinate for positional actions (required for position-based clicking)")
-                ]),
-                "text": .object([
-                    "type": .string("string"),
-                    "description": .string("Text to type (required for type action)")
-                ]),
-                "keyCode": .object([
-                    "type": .string("number"),
-                    "description": .string("Key code to press (required for press_key action)")
                 ]),
                 "targetElementId": .object([
                     "type": .string("string"),
@@ -128,7 +118,11 @@ public struct UIInteractionTool {
     
     /// Tool handler function
     public let handler: @Sendable ([String: Value]?) async throws -> [Tool.Content] = { params in
+        
         // Create services on demand to ensure we're in the right context
+        let handlerLogger = Logger(label: "mcp.tool.ui_interact")
+        handlerLogger.info("Creating services for UIInteractionTool")
+        
         let accessibilityService = AccessibilityService(
             logger: Logger(label: "mcp.tool.ui_interact.accessibility")
         )
@@ -139,10 +133,34 @@ public struct UIInteractionTool {
         let tool = UIInteractionTool(
             interactionService: interactionService,
             accessibilityService: accessibilityService,
-            logger: Logger(label: "mcp.tool.ui_interact")
+            logger: handlerLogger
         )
         
-        return try await tool.processRequest(params)
+        // Extract and log the key parameters for debugging
+        if let params = params {
+            let action = params["action"]?.stringValue ?? "unknown"
+            let elementId = params["elementId"]?.stringValue ?? "none"
+            let appBundleId = params["appBundleId"]?.stringValue ?? "none"
+            
+            if action == "click" {
+                if let x = params["x"]?.doubleValue, let y = params["y"]?.doubleValue {
+                    print("   - Position: (\(x), \(y))")
+                }
+            }
+        }
+        
+        do {
+            let result = try await tool.processRequest(params)
+            
+            return result
+        } catch {
+            print("❌ DEBUG: UIInteractionTool.handler error: \(error.localizedDescription)")
+            let nsError = error as NSError
+            print("   - Error domain: \(nsError.domain)")
+            print("   - Error code: \(nsError.code)")
+            print("   - Error info: \(nsError.userInfo)")
+            throw error
+        }
     }
     
     /// Process a UI interaction request
@@ -172,21 +190,17 @@ public struct UIInteractionTool {
             return try await handleDoubleClick(params)
         case "right_click":
             return try await handleRightClick(params)
-        case "type":
-            return try await handleType(params)
-        case "press_key":
-            return try await handlePressKey(params)
         case "drag":
             return try await handleDrag(params)
         case "scroll":
             return try await handleScroll(params)
         default:
             throw createInteractionError(
-                message: "Invalid action: \(actionValue). Must be one of: click, double_click, right_click, type, press_key, drag, scroll",
+                message: "Invalid action: \(actionValue). Must be one of: click, double_click, right_click, drag, scroll",
                 context: [
                     "toolName": name,
                     "providedAction": actionValue,
-                    "validActions": "click, double_click, right_click, type, press_key, drag, scroll"
+                    "validActions": "click, double_click, right_click, drag, scroll"
                 ]
             ).asMCPError
         }
@@ -194,23 +208,70 @@ public struct UIInteractionTool {
     
     /// Handle click action
     private func handleClick(_ params: [String: Value]) async throws -> [Tool.Content] {
+        
         // Element ID click
         if let elementId = params["elementId"]?.stringValue {
             // Check if app bundle ID is provided
             let appBundleId = params["appBundleId"]?.stringValue
             
-            try await interactionService.clickElement(identifier: elementId, appBundleId: appBundleId)
+            // Before clicking, try to look up the element to verify it exists
+            do {
+                // Use the accessibility service to search for the element
+                var foundElement: UIElement? = nil
+                
+                if let bundleId = appBundleId {
+                    print("   - Searching in application with bundle ID: \(bundleId)")
+                    // Try finding in specific app first
+                    foundElement = try await accessibilityService.findElement(
+                        identifier: elementId,
+                        in: bundleId
+                    )
+                }
+                
+                if foundElement == nil {
+                    print("   - Element not found in specified app, searching system-wide")
+                    // Fall back to system-wide search
+                    foundElement = try await accessibilityService.findElement(
+                        identifier: elementId,
+                        in: nil
+                    )
+                }
+                
+                if foundElement == nil {
+                    print("⚠️ DEBUG: handleClick - WARNING: Element NOT found before click operation. This may fail.")
+                }
+            } catch {
+                print("⚠️ DEBUG: handleClick - Error validating element: \(error.localizedDescription)")
+                print("   - Will still attempt click operation...")
+            }
             
-            let bundleIdInfo = appBundleId != nil ? " in app \(appBundleId!)" : ""
-            return [.text("Successfully clicked element with ID: \(elementId)\(bundleIdInfo)")]
+            do {
+                try await interactionService.clickElement(identifier: elementId, appBundleId: appBundleId)
+                
+                let bundleIdInfo = appBundleId != nil ? " in app \(appBundleId!)" : ""
+                return [.text("Successfully clicked element with ID: \(elementId)\(bundleIdInfo)")]
+            } catch {
+                print("❌ DEBUG: handleClick - Click operation failed: \(error.localizedDescription)")
+                let nsError = error as NSError
+                print("   - Error domain: \(nsError.domain)")
+                print("   - Error code: \(nsError.code)")
+                throw error
+            }
         }
         
         // Position click
         if let x = params["x"]?.intValue, let y = params["y"]?.intValue {
-            try await interactionService.clickAtPosition(position: CGPoint(x: x, y: y))
-            return [.text("Successfully clicked at position (\(x), \(y))")]
+            
+            do {
+                try await interactionService.clickAtPosition(position: CGPoint(x: x, y: y))
+                return [.text("Successfully clicked at position (\(x), \(y))")]
+            } catch {
+                print("❌ DEBUG: handleClick - Position click operation failed: \(error.localizedDescription)")
+                throw error
+            }
         }
         
+        print("❌ DEBUG: handleClick - Missing required parameters (elementId or x,y coordinates)")
         throw createInteractionError(
             message: "Click action requires either elementId or x,y coordinates",
             context: [
@@ -267,51 +328,7 @@ public struct UIInteractionTool {
         return [.text("Successfully right-clicked element with ID: \(elementId)")]
     }
     
-    /// Handle type action
-    private func handleType(_ params: [String: Value]) async throws -> [Tool.Content] {
-        guard let elementId = params["elementId"]?.stringValue else {
-            throw createInteractionError(
-                message: "Type action requires elementId",
-                context: [
-                    "toolName": name,
-                    "action": "type",
-                    "providedParams": "\(params.keys.joined(separator: ", "))"
-                ]
-            ).asMCPError
-        }
-        
-        guard let text = params["text"]?.stringValue else {
-            throw createInteractionError(
-                message: "Type action requires text",
-                context: [
-                    "toolName": name,
-                    "action": "type",
-                    "elementId": elementId,
-                    "providedParams": "\(params.keys.joined(separator: ", "))"
-                ]
-            ).asMCPError
-        }
-        
-        try await interactionService.typeText(elementIdentifier: elementId, text: text)
-        return [.text("Successfully typed \(text.count) characters into element with ID: \(elementId)")]
-    }
     
-    /// Handle press key action
-    private func handlePressKey(_ params: [String: Value]) async throws -> [Tool.Content] {
-        guard let keyCode = params["keyCode"]?.intValue else {
-            throw createInteractionError(
-                message: "Press key action requires keyCode",
-                context: [
-                    "toolName": name,
-                    "action": "press_key",
-                    "providedParams": "\(params.keys.joined(separator: ", "))"
-                ]
-            ).asMCPError
-        }
-        
-        try await interactionService.pressKey(keyCode: keyCode)
-        return [.text("Successfully pressed key with code: \(keyCode)")]
-    }
     
     /// Handle drag action
     private func handleDrag(_ params: [String: Value]) async throws -> [Tool.Content] {

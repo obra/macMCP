@@ -41,6 +41,9 @@ public actor MCPServer {
     /// The application service
     private lazy var applicationService = ApplicationService(logger: logger)
     
+    /// The clipboard service
+    private lazy var clipboardService = ClipboardService()
+    
     /// Create a new macOS MCP server
     /// - Parameters:
     ///   - name: The server name
@@ -267,16 +270,7 @@ public actor MCPServer {
             }
         )
         
-        // Register the UI state tool
-        let uiStateTool = UIStateTool(accessibilityService: accessibilityService, logger: logger)
-        await registerTool(
-            name: uiStateTool.name,
-            description: uiStateTool.description,
-            inputSchema: uiStateTool.inputSchema,
-            annotations: uiStateTool.annotations,
-            handler: uiStateTool.handler
-        )
-        
+
         // Register the screenshot tool
         let screenshotTool = ScreenshotTool(screenshotService: screenshotService, logger: logger)
         await registerTool(
@@ -286,7 +280,7 @@ public actor MCPServer {
             annotations: screenshotTool.annotations,
             handler: screenshotTool.handler
         )
-        
+
         // Register the UI interaction tool
         let interactionTool = UIInteractionTool(
             interactionService: interactionService,
@@ -300,7 +294,7 @@ public actor MCPServer {
             annotations: interactionTool.annotations,
             handler: interactionTool.handler
         )
-        
+
         // Register the open application tool
         let openApplicationTool = OpenApplicationTool(
             applicationService: applicationService,
@@ -313,7 +307,7 @@ public actor MCPServer {
             annotations: openApplicationTool.annotations,
             handler: openApplicationTool.handler
         )
-        
+
         // Register the window management tool
         let windowManagementTool = WindowManagementTool(
             accessibilityService: accessibilityService,
@@ -326,11 +320,12 @@ public actor MCPServer {
             annotations: windowManagementTool.annotations,
             handler: windowManagementTool.handler
         )
-        
+
         // Register the menu navigation tool
         let menuNavigationTool = MenuNavigationTool(
             accessibilityService: accessibilityService,
             interactionService: interactionService,
+            applicationService: applicationService,
             logger: logger
         )
         await registerTool(
@@ -340,31 +335,44 @@ public actor MCPServer {
             annotations: menuNavigationTool.annotations,
             handler: menuNavigationTool.handler
         )
-        
-        // Register the interactive elements discovery tool
-        let interactiveElementsTool = InteractiveElementsDiscoveryTool(
+
+
+        // Register the interface explorer tool (consolidated UI exploration tool)
+        let interfaceExplorerTool = InterfaceExplorerTool(
             accessibilityService: accessibilityService,
             logger: logger
         )
         await registerTool(
-            name: interactiveElementsTool.name,
-            description: interactiveElementsTool.description,
-            inputSchema: interactiveElementsTool.inputSchema,
-            annotations: interactiveElementsTool.annotations,
-            handler: interactiveElementsTool.handler
+            name: interfaceExplorerTool.name,
+            description: interfaceExplorerTool.description,
+            inputSchema: interfaceExplorerTool.inputSchema,
+            annotations: interfaceExplorerTool.annotations,
+            handler: interfaceExplorerTool.handler
         )
-        
-        // Register the element capabilities tool
-        let elementCapabilitiesTool = ElementCapabilitiesTool(
-            accessibilityService: accessibilityService,
+
+        // Register the keyboard interaction tool
+        let keyboardInteractionTool = KeyboardInteractionTool(
+            interactionService: interactionService,
             logger: logger
         )
         await registerTool(
-            name: elementCapabilitiesTool.name,
-            description: elementCapabilitiesTool.description,
-            inputSchema: elementCapabilitiesTool.inputSchema,
-            annotations: elementCapabilitiesTool.annotations,
-            handler: elementCapabilitiesTool.handler
+            name: keyboardInteractionTool.name,
+            description: keyboardInteractionTool.description,
+            inputSchema: keyboardInteractionTool.inputSchema,
+            annotations: keyboardInteractionTool.annotations,
+            handler: keyboardInteractionTool.handler
+        )
+        
+        // Register the clipboard management tool
+        let clipboardManagementTool = ClipboardManagementTool(
+            clipboardService: clipboardService
+        )
+        await registerTool(
+            name: clipboardManagementTool.name,
+            description: clipboardManagementTool.description,
+            inputSchema: clipboardManagementTool.inputSchema,
+            annotations: nil,
+            handler: clipboardManagementTool.handler
         )
         
         // Register cancellation handler

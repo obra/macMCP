@@ -413,24 +413,25 @@ public struct MenuItemDescriptor: Codable, Sendable, Identifiable {
         element: UIElement,
         includeSubmenu: Bool = false
     ) -> MenuItemDescriptor? {
-        // Only convert menu items
-        guard element.role == AXAttribute.Role.menuItem || 
-              element.role == "AXMenuBarItem" else { return nil }
-        
+        // More permissive approach for menu items - almost any element can be a menu item
+        // We just filter out obvious containers and non-interactive elements
+        let nonMenuRoles = ["AXWindow", "AXApplication", "AXGroup", "AXScrollArea", "AXUnknown", "AXSplitter"]
+        guard !nonMenuRoles.contains(element.role) else { return nil }
+
         // Extract menu-specific attributes
         let isEnabled = (element.attributes["enabled"] as? Bool) ?? true
         let isSelected = (element.attributes["selected"] as? Bool) ?? false
-        
+
         // Check for a submenu
         let hasSubmenu = element.children.contains { $0.role == AXAttribute.Role.menu }
-        
+
         // Process submenu items if requested
         let submenuItems: [MenuItemDescriptor]?
         if includeSubmenu && hasSubmenu {
             // Find the submenu element
             if let submenu = element.children.first(where: { $0.role == AXAttribute.Role.menu }) {
                 // Convert submenu items
-                submenuItems = submenu.children.compactMap { 
+                submenuItems = submenu.children.compactMap {
                     from(element: $0, includeSubmenu: includeSubmenu)
                 }
             } else {
@@ -439,21 +440,29 @@ public struct MenuItemDescriptor: Codable, Sendable, Identifiable {
         } else {
             submenuItems = nil
         }
-        
+
         // Extract keyboard shortcut if available
         let shortcut = element.attributes["keyboardShortcut"] as? String
-        
-        // Generate human-readable name
+
+        // Generate human-readable name - keep it simple and consistent
         var name: String
         if let title = element.title, !title.isEmpty {
             name = title
             if let shortcut = shortcut, !shortcut.isEmpty {
                 name += " (\(shortcut))"
             }
+        } else if let identifier = element.identifier.split(separator: ":").last,
+                  !identifier.isEmpty && !identifier.contains(where: { $0.isNumber }) {
+            // Use the last part of the ID if it looks like a name and not a hash
+            name = String(identifier)
         } else {
+            // Fallback to a generic name with the ID
             name = "Menu Item \(element.identifier)"
         }
-        
+
+        // For identifiers, we want to preserve the path-based ID structure
+        // The AccessibilityElement.swift already generates path-based IDs
+        // for menu items (ui:menu:Path > To > Item), so we'll use that directly
         return MenuItemDescriptor(
             id: element.identifier,
             name: name,

@@ -12,27 +12,23 @@ struct ToolNamesTest {
         // Print each tool name
         print("Tool names:")
         print("- Ping: \(ToolNames.ping)")
-        print("- UI State: \(ToolNames.uiState)")
         print("- Screenshot: \(ToolNames.screenshot)")
         print("- UI Interaction: \(ToolNames.uiInteraction)")
         print("- Open Application: \(ToolNames.openApplication)")
         print("- Window Management: \(ToolNames.windowManagement)")
         print("- Menu Navigation: \(ToolNames.menuNavigation)")
-        print("- Interactive Elements: \(ToolNames.interactiveElements)")
-        print("- Element Capabilities: \(ToolNames.elementCapabilities)")
+        print("- Interface Explorer: \(ToolNames.interfaceExplorer)")
         
         // Check for consistency
         print("\nChecking consistency:")
         let allNames = [
             ToolNames.ping,
-            ToolNames.uiState,
             ToolNames.screenshot,
             ToolNames.uiInteraction,
             ToolNames.openApplication,
             ToolNames.windowManagement,
             ToolNames.menuNavigation,
-            ToolNames.interactiveElements,
-            ToolNames.elementCapabilities
+            ToolNames.interfaceExplorer
         ]
         
         // Check that all names use the same prefix
