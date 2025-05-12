@@ -2,6 +2,16 @@
 
 This document outlines the remaining test issues to fix after updating the error handling mechanism and actor isolation in the tests.
 
+
+## Menu Navigation tests
+
+- [ ] Write a basic test for menu navigation
+	- open text edit
+	- count the open windows
+	- open the file menu
+	- click on 'New' in the file menu
+	- count the number of windows to make sure it has increased by one
+
 ## General Issues
 
 - [ ] Continue migrating from `MacMCPError` to `MCPError` in any remaining files
