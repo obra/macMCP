@@ -254,31 +254,36 @@ public struct MenuNavigationTool: @unchecked Sendable {
     ) async throws -> [Tool.Content] {
         // Parse the menu path
         let pathComponents = menuPath.split(separator: ">").map { $0.trimmingCharacters(in: .whitespaces) }
-        
+
         if pathComponents.isEmpty {
             throw MCPError.invalidParams("Invalid menu path: \(menuPath)")
         }
-        
+
         // First component is the menu title, the rest is the submenu path
         let menuTitle = pathComponents[0]
         let subPath = Array(pathComponents.dropFirst())
-        
+
+        logger.debug("Navigating menu path", metadata: [
+            "menuTitle": "\(menuTitle)",
+            "subPath": "\(subPath.joined(separator: " > "))"
+        ])
+
         // Get the application element
         let appElement = try await accessibilityService.getApplicationUIElement(
             bundleIdentifier: bundleId,
             recursive: true,
             maxDepth: 5  // Need deeper traversal for nested menus
         )
-        
+
         // Find the menu bar element
         var menuBarFound = false
         var foundMenuBarItem: UIElement? = nil
-        
+
         // Look for the menu bar in the children
         for child in appElement.children {
             if child.role == "AXMenuBar" {
                 menuBarFound = true
-                
+
                 // Find the specified menu
                 for menuBarItem in child.children {
                     if menuBarItem.title == menuTitle {
@@ -289,84 +294,213 @@ public struct MenuNavigationTool: @unchecked Sendable {
                 break
             }
         }
-        
+
         if !menuBarFound {
             throw MCPError.internalError("Could not find menu bar in application")
         }
-        
+
         if foundMenuBarItem == nil {
             throw MCPError.internalError("Could not find menu: \(menuTitle)")
         }
-        
-        // First, click the menu bar item to open the menu
-        try await interactionService.clickElement(identifier: foundMenuBarItem!.identifier, appBundleId: nil)
-        
+
+        // First, open the menu bar item using AXPick (more semantically correct for menus)
+        try await interactionService.performAction(identifier: foundMenuBarItem!.identifier, action: "AXPick", appBundleId: bundleId)
+
         // Brief pause to allow menu to open
         try await Task.sleep(for: .milliseconds(300))
-        
-        // If there are submenu components, navigate through them
-        var currentMenuItem = foundMenuBarItem!
-        
+
+        // After opening the top-level menu, get a fresh view of the application to see the open menu
+        let updatedAppElement = try await accessibilityService.getApplicationUIElement(
+            bundleIdentifier: bundleId,
+            recursive: true,
+            maxDepth: 5
+        )
+
+        // Find the menu bar again with the updated state
+        var updatedMenuBar: UIElement? = nil
+        for child in updatedAppElement.children {
+            if child.role == "AXMenuBar" {
+                updatedMenuBar = child
+                break
+            }
+        }
+
+        if updatedMenuBar == nil {
+            throw MCPError.internalError("Could not find menu bar after opening menu")
+        }
+
+        // Find the menu item that should now have an open menu
+        var openMenuItem: UIElement? = nil
+        for menuBarItem in updatedMenuBar!.children {
+            if menuBarItem.title == menuTitle {
+                openMenuItem = menuBarItem
+                break
+            }
+        }
+
+        if openMenuItem == nil {
+            throw MCPError.internalError("Could not find menu item after opening menu: \(menuTitle)")
+        }
+
+        // Now find the menu (submenu) that should be a direct child of the menu item
+        var openMenu: UIElement? = nil
+        for child in openMenuItem!.children {
+            if child.role == "AXMenu" {
+                openMenu = child
+                break
+            }
+        }
+
+        if openMenu == nil {
+            throw MCPError.internalError("Could not find open menu for: \(menuTitle)")
+        }
+
+        // Now we have the open menu, navigate through any submenu path if needed
+        var currentMenu = openMenu!
+
         for (index, component) in subPath.enumerated() {
-            var found = false
-            
-            // If this is the last component, look for the menu item to click
-            if index == subPath.count - 1 {
-                // Search for the target menu item
-                // Look for a direct menu item
-                for childMenu in currentMenuItem.children {
-                    if childMenu.role == AXAttribute.Role.menu {
-                        for menuItem in childMenu.children {
-                            if menuItem.title == component || menuItem.elementDescription == component {
-                                // Found the target menu item, click it
-                                try await interactionService.clickElement(identifier: menuItem.identifier, appBundleId: nil)
-                                found = true
-                                break
-                            }
-                        }
-                        
-                        if found {
-                            break
-                        }
-                    }
-                }
-            } else {
-                // This is an intermediate component (submenu)
-                // First find the menu
-                for childMenu in currentMenuItem.children {
-                    if childMenu.role == AXAttribute.Role.menu {
-                        // Then find the submenu item
-                        for menuItem in childMenu.children {
-                            if menuItem.title == component || menuItem.elementDescription == component {
-                                // Found the submenu item
-                                currentMenuItem = menuItem
-                                
-                                // Click it to open the submenu
-                                try await interactionService.clickElement(identifier: menuItem.identifier, appBundleId: nil)
-                                
-                                // Brief pause to allow submenu to open
-                                try await Task.sleep(for: .milliseconds(300))
-                                
-                                found = true
-                                break
-                            }
-                        }
-                        
-                        if found {
-                            break
-                        }
-                    }
+            logger.debug("Processing submenu component", metadata: [
+                "index": "\(index)",
+                "component": component
+            ])
+
+            // Find the target menu item in the current menu
+            var targetMenuItem: UIElement? = nil
+
+            // Look through menu items for a match
+            for menuItem in currentMenu.children {
+                // Check both title and description for matches
+                if menuItem.title == component || menuItem.elementDescription == component {
+                    targetMenuItem = menuItem
+                    break
                 }
             }
-            
-            if !found {
-                // If we didn't find the menu item, cancel the menu navigation by clicking elsewhere
+
+            if targetMenuItem == nil {
+                // If we couldn't find the target item, cancel the menu navigation
+                logger.error("Menu item not found", metadata: [
+                    "component": component,
+                    "availableItems": "\(currentMenu.children.map { $0.title ?? "untitled" }.joined(separator: ", "))"
+                ])
+
                 // Try to click on the application window to dismiss the menu
-                if let window = appElement.children.first(where: { $0.role == AXAttribute.Role.window }) {
-                    try await interactionService.clickElement(identifier: window.identifier, appBundleId: nil)
+                if let window = updatedAppElement.children.first(where: { $0.role == "AXWindow" }) {
+                    try await interactionService.clickElement(identifier: window.identifier, appBundleId: bundleId)
                 }
-                
+
                 throw MCPError.internalError("Could not find menu item: \(component) in path: \(menuPath)")
+            }
+
+            // Is this the final component (the actual item we want to activate)?
+            if index == subPath.count - 1 {
+                // This is the target menu item, click it
+                try await interactionService.clickElement(identifier: targetMenuItem!.identifier, appBundleId: bundleId)
+            } else {
+                // This is an intermediate menu item (has a submenu), click it to open its submenu
+                try await interactionService.clickElement(identifier: targetMenuItem!.identifier, appBundleId: bundleId)
+
+                // Brief pause to allow submenu to open
+                try await Task.sleep(for: .milliseconds(300))
+
+                // Get updated application state
+                let refreshedAppElement = try await accessibilityService.getApplicationUIElement(
+                    bundleIdentifier: bundleId,
+                    recursive: true,
+                    maxDepth: 5
+                )
+
+                // Find the submenu by traversing the menu hierarchy again
+
+                // First find the menu bar
+                var refreshedMenuBar: UIElement? = nil
+                for child in refreshedAppElement.children {
+                    if child.role == "AXMenuBar" {
+                        refreshedMenuBar = child
+                        break
+                    }
+                }
+
+                if refreshedMenuBar == nil {
+                    throw MCPError.internalError("Could not find menu bar after opening submenu")
+                }
+
+                // Find our top-level menu item
+                var refreshedMenuItem: UIElement? = nil
+                for menuBarItem in refreshedMenuBar!.children {
+                    if menuBarItem.title == menuTitle {
+                        refreshedMenuItem = menuBarItem
+                        break
+                    }
+                }
+
+                if refreshedMenuItem == nil {
+                    throw MCPError.internalError("Could not find top-level menu after opening submenu")
+                }
+
+                // Find the primary menu under the menu item
+                var primaryMenu: UIElement? = nil
+                for child in refreshedMenuItem!.children {
+                    if child.role == "AXMenu" {
+                        primaryMenu = child
+                        break
+                    }
+                }
+
+                if primaryMenu == nil {
+                    throw MCPError.internalError("Could not find primary menu after opening submenu")
+                }
+
+                // Now we need to traverse down to our submenu
+                // We need to find where we are in the path and what's been opened so far
+                var currentPath = [menuTitle]  // Start with the top level menu
+                var currentSubmenu = primaryMenu!
+
+                // Traverse the path we've followed so far
+                for i in 0..<index {
+                    let pathComponent = subPath[i]
+                    currentPath.append(pathComponent)
+
+                    // Try to find the menu item matching this path component
+                    var menuItemForPathComponent: UIElement? = nil
+                    for menuItem in currentSubmenu.children {
+                        if menuItem.title == pathComponent || menuItem.elementDescription == pathComponent {
+                            menuItemForPathComponent = menuItem
+                            break
+                        }
+                    }
+
+                    if menuItemForPathComponent == nil {
+                        logger.warning("Failed to find menu item when traversing path", metadata: [
+                            "pathComponent": pathComponent,
+                            "currentPath": "\(currentPath.joined(separator: " > "))"
+                        ])
+                        continue
+                    }
+
+                    // Find its submenu
+                    var submenuForMenuItem: UIElement? = nil
+                    for child in menuItemForPathComponent!.children {
+                        if child.role == "AXMenu" {
+                            submenuForMenuItem = child
+                            break
+                        }
+                    }
+
+                    if submenuForMenuItem == nil {
+                        logger.warning("Failed to find submenu when traversing path", metadata: [
+                            "pathComponent": pathComponent,
+                            "currentPath": "\(currentPath.joined(separator: " > "))"
+                        ])
+                        continue
+                    }
+
+                    // Update our current submenu
+                    currentSubmenu = submenuForMenuItem!
+                }
+
+                // Now we should have found the correct submenu that was just opened
+                // Update our current menu for the next iteration
+                currentMenu = currentSubmenu
             }
         }
         
