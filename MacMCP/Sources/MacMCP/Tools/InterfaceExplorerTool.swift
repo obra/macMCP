@@ -294,7 +294,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
     public let name = ToolNames.interfaceExplorer
     
     /// Description of the tool
-    public let description = "Explore and examine UI elements and their capabilities in macOS applications"
+    public let description = "Explore and examine UI elements and their capabilities in macOS applications - essential for discovering elements to interact with"
     
     /// Input schema for the tool
     public private(set) var inputSchema: Value
@@ -347,7 +347,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
             "properties": .object([
                 "scope": .object([
                     "type": .string("string"),
-                    "description": .string("The scope of UI elements to retrieve: system, application, focused, position, element"),
+                    "description": .string("The scope of UI elements to retrieve: system (all apps, very broad), application (specific app by bundleId), focused (currently active app, RECOMMENDED), position (element at screen coordinates), element (specific element by ID)"),
                     "enum": .array([
                         .string("system"),
                         .string("application"),
@@ -374,8 +374,8 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
                 ]),
                 "maxDepth": .object([
                     "type": .string("number"),
-                    "description": .string("Maximum depth of the element hierarchy to retrieve"),
-                    "default": .double(10)
+                    "description": .string("Maximum depth of the element hierarchy to retrieve (higher values provide more detail but slower response)"),
+                    "default": .double(15)
                 ]),
                 "filter": .object([
                     "type": .string("object"),

@@ -65,20 +65,51 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
         logger.debug("Capturing area screenshot", metadata: [
             "x": "\(x)", "y": "\(y)", "width": "\(width)", "height": "\(height)"
         ])
-        
-        let rect = CGRect(x: x, y: y, width: width, height: height)
-        
+
+        // Sanitize input values
+        // Ensure width and height are positive
+        let sanitizedWidth = max(1, width)
+        let sanitizedHeight = max(1, height)
+
+        // Ensure coordinates are within screen bounds
+        var sanitizedX = max(0, x)
+        var sanitizedY = max(0, y)
+
+        // Get screen dimensions
+        if let mainScreen = NSScreen.main {
+            let screenWidth = Int(mainScreen.frame.width)
+            let screenHeight = Int(mainScreen.frame.height)
+
+            // Keep capture area within screen bounds
+            if sanitizedX + sanitizedWidth > screenWidth {
+                sanitizedX = max(0, screenWidth - sanitizedWidth)
+            }
+
+            if sanitizedY + sanitizedHeight > screenHeight {
+                sanitizedY = max(0, screenHeight - sanitizedHeight)
+            }
+        }
+
+        if x != sanitizedX || y != sanitizedY || width != sanitizedWidth || height != sanitizedHeight {
+            logger.debug("Adjusted capture area to fit screen", metadata: [
+                "original": "(\(x), \(y), \(width), \(height))",
+                "adjusted": "(\(sanitizedX), \(sanitizedY), \(sanitizedWidth), \(sanitizedHeight))"
+            ])
+        }
+
+        let rect = CGRect(x: sanitizedX, y: sanitizedY, width: sanitizedWidth, height: sanitizedHeight)
+
         // For area screenshots, we need to flip the y-coordinate
         // macOS screen coordinates have (0,0) at bottom-left, but we expose (0,0) as top-left
         let flippedRect = flipRectForScreen(rect)
-        
+
         let cgImage = try CGWindowListCreateImage(
             flippedRect,
             .optionOnScreenOnly,
             kCGNullWindowID,
             .bestResolution
         ).unwrapping(throwing: "Failed to create area image")
-        
+
         return try createScreenshotResult(from: cgImage)
     }
     
@@ -153,64 +184,202 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
         logger.debug("Capturing element screenshot", metadata: [
             "elementId": "\(elementId)"
         ])
-        
+
         // First try to find the element in our cache
         if let element = elementCache[elementId] {
-            return try await captureArea(
-                x: Int(element.frame.origin.x),
-                y: Int(element.frame.origin.y),
-                width: Int(element.frame.size.width),
-                height: Int(element.frame.size.height)
-            )
+            // Only use the cached element if its frame is valid
+            if element.frame.size.width > 0 && element.frame.size.height > 0 {
+                logger.debug("Using cached element for screenshot", metadata: [
+                    "elementId": "\(elementId)",
+                    "frame": "(\(element.frame.origin.x), \(element.frame.origin.y), \(element.frame.size.width), \(element.frame.size.height))"
+                ])
+
+                return try await captureArea(
+                    x: Int(element.frame.origin.x),
+                    y: Int(element.frame.origin.y),
+                    width: Int(element.frame.size.width),
+                    height: Int(element.frame.size.height)
+                )
+            } else {
+                // Remove invalid cached element
+                elementCache.removeValue(forKey: elementId)
+            }
         }
-        
-        // If not in cache, try to find it in the system-wide hierarchy
+
+        // For most reliable element discovery, use AccessibilityService.findElement
+        // Which handles menu elements, system elements, and more complex cases
+        do {
+            logger.debug("Using AccessibilityService.findElement method", metadata: [
+                "elementId": "\(elementId)"
+            ])
+
+            let element = try await accessibilityService.findElement(identifier: elementId, in: nil)
+
+            if let element = element, element.frame.size.width > 0 && element.frame.size.height > 0 {
+                // Cache the element for future use
+                elementCache[elementId] = element
+
+                // Get the element's frame
+                let frame = element.frame
+
+                // Add some padding around the element to avoid cutting off edges
+                // A 5-pixel padding on each side ensures we capture the full element
+                let paddedX = max(0, Int(frame.origin.x) - 5)
+                let paddedY = max(0, Int(frame.origin.y) - 5)
+                let paddedWidth = Int(frame.size.width) + 10
+                let paddedHeight = Int(frame.size.height) + 10
+
+                logger.debug("Found element with AccessibilityService.findElement", metadata: [
+                    "elementId": "\(elementId)",
+                    "frame": "(\(frame.origin.x), \(frame.origin.y), \(frame.size.width), \(frame.size.height))",
+                    "paddedFrame": "(\(paddedX), \(paddedY), \(paddedWidth), \(paddedHeight))"
+                ])
+
+                return try await captureArea(
+                    x: paddedX,
+                    y: paddedY,
+                    width: paddedWidth,
+                    height: paddedHeight
+                )
+            }
+        } catch {
+            logger.debug("Error using AccessibilityService.findElement: \(error.localizedDescription)", metadata: [
+                "elementId": "\(elementId)"
+            ])
+            // Continue with traditional approach
+        }
+
+        // If direct approach failed, try the traditional way by searching system hierarchy
         // Using detached Task to isolate accessibilityService access
         let systemElement = try await Task.detached {
             // Capture local copies of necessary values
             let localAccessibilityService = self.accessibilityService
-            
+
             return try await localAccessibilityService.getSystemUIElement(
                 recursive: true,
-                maxDepth: 20
+                maxDepth: 25  // Deeper search for better results
             )
         }.value
-        
+
+        logger.debug("Searching system-wide hierarchy", metadata: [
+            "elementId": "\(elementId)"
+        ])
+
         // Look for element with matching ID
         if let element = findElementById(systemElement, id: elementId) {
-            // Cache the element for future use
-            elementCache[elementId] = element
-            
-            return try await captureArea(
-                x: Int(element.frame.origin.x),
-                y: Int(element.frame.origin.y),
-                width: Int(element.frame.size.width),
-                height: Int(element.frame.size.height)
-            )
+            // Verify that the element has a valid frame
+            if element.frame.size.width > 0 && element.frame.size.height > 0 {
+                // Cache the element for future use
+                elementCache[elementId] = element
+
+                // Get the element's frame
+                let frame = element.frame
+
+                // Add some padding around the element to avoid cutting off edges
+                // A 5-pixel padding on each side ensures we capture the full element
+                let paddedX = max(0, Int(frame.origin.x) - 5)
+                let paddedY = max(0, Int(frame.origin.y) - 5)
+                let paddedWidth = Int(frame.size.width) + 10
+                let paddedHeight = Int(frame.size.height) + 10
+
+                logger.debug("Found element in system hierarchy", metadata: [
+                    "elementId": "\(elementId)",
+                    "frame": "(\(frame.origin.x), \(frame.origin.y), \(frame.size.width), \(frame.size.height))",
+                    "paddedFrame": "(\(paddedX), \(paddedY), \(paddedWidth), \(paddedHeight))"
+                ])
+
+                return try await captureArea(
+                    x: paddedX,
+                    y: paddedY,
+                    width: paddedWidth,
+                    height: paddedHeight
+                )
+            }
         }
-        
-        logger.error("Element not found", metadata: ["elementId": "\(elementId)"])
+
+        logger.error("Element not found or has invalid frame", metadata: ["elementId": "\(elementId)"])
         throw NSError(
             domain: "com.macos.mcp.screenshot",
             code: 1005,
             userInfo: [
-                NSLocalizedDescriptionKey: "Element not found: \(elementId)"
+                NSLocalizedDescriptionKey: "Element not found or has invalid frame: \(elementId)"
             ]
         )
     }
     
     /// Find an element by ID in the hierarchy
-    private func findElementById(_ root: UIElement, id: String) -> UIElement? {
-        if root.identifier == id {
-            return root
+    /// - Parameters:
+    ///   - root: The root element to search from
+    ///   - id: The identifier to search for
+    ///   - exact: Whether to require an exact match (default: true)
+    /// - Returns: The matching element or nil if not found
+    private func findElementById(_ root: UIElement, id: String, exact: Bool = true) -> UIElement? {
+        // For exact matching, just check equality
+        if exact {
+            if root.identifier == id {
+                return root
+            }
+        } else {
+            // For partial matching, check different patterns
+
+            // Check if the element's ID matches or contains the target ID
+            if root.identifier == id || root.identifier.contains(id) {
+                return root
+            }
+
+            // For structured IDs (ui:type:hash), try to match by components
+            if id.hasPrefix("ui:") && root.identifier.hasPrefix("ui:") {
+                let idParts = id.split(separator: ":")
+                let elementIdParts = root.identifier.split(separator: ":")
+
+                // If there are enough parts for comparison
+                if idParts.count >= 2 && elementIdParts.count >= 2 {
+                    // Match by the second part (typically the role or descriptive part)
+                    if idParts[1] == elementIdParts[1] {
+                        return root
+                    }
+
+                    // If there's a hash part, try to match that too
+                    if idParts.count > 2 && elementIdParts.count > 2 && idParts[2] == elementIdParts[2] {
+                        return root
+                    }
+                }
+            }
+
+            // For menu items, try path-based matching
+            if id.hasPrefix("ui:menu:") && root.identifier.hasPrefix("ui:menu:") {
+                let idPath = id.replacingOccurrences(of: "ui:menu:", with: "")
+                let elementPath = root.identifier.replacingOccurrences(of: "ui:menu:", with: "")
+
+                // Check for path inclusion (one path contains the other)
+                if idPath.contains(elementPath) || elementPath.contains(idPath) {
+                    return root
+                }
+
+                // If paths have multiple parts, check if any significant part matches
+                let idPathComponents = idPath.split(separator: ">").map { $0.trimmingCharacters(in: .whitespaces) }
+                let elementPathComponents = elementPath.split(separator: ">").map { $0.trimmingCharacters(in: .whitespaces) }
+
+                for idComponent in idPathComponents {
+                    if idComponent.count > 2 { // Only check non-trivial components
+                        for elementComponent in elementPathComponents {
+                            if elementComponent.count > 2 &&
+                               (elementComponent.contains(idComponent) || idComponent.contains(elementComponent)) {
+                                return root
+                            }
+                        }
+                    }
+                }
+            }
         }
-        
+
+        // Recursively search children
         for child in root.children {
-            if let found = findElementById(child, id: id) {
+            if let found = findElementById(child, id: id, exact: exact) {
                 return found
             }
         }
-        
+
         return nil
     }
     
