@@ -922,6 +922,61 @@ extension AccessibilityService {
         )
       }
 
+      // Check if we should handle Menu1 traversal
+      if implicitTraversal && !component.hasPrefix("Menu") {
+        // Look for AXMenu elements in the children
+        var menuElement: AXUIElement? = nil
+        var menuChildren: [AXUIElement]? = nil
+
+        for child in childrenArray {
+          var roleRef: CFTypeRef?
+          AXUIElementCopyAttributeValue(child, "AXRole" as CFString, &roleRef)
+
+          if let role = roleRef as? String, role == "AXMenu" {
+            // Get the children of this menu element
+            var menuChildrenRef: CFTypeRef?
+            let menuStatus = AXUIElementCopyAttributeValue(child, "AXChildren" as CFString, &menuChildrenRef)
+
+            if menuStatus == .success, let children = menuChildrenRef as? [AXUIElement], !children.isEmpty {
+              menuElement = child
+              menuChildren = children
+
+              // Log that we found a menu to traverse
+              var menuItemsInfo = ""
+              for menuChild in children {
+                var titleRef: CFTypeRef?
+                AXUIElementCopyAttributeValue(menuChild, "AXTitle" as CFString, &titleRef)
+                if let title = titleRef as? String {
+                  menuItemsInfo += "\(title), "
+                }
+              }
+
+              logger.info("Found Menu1 element to traverse implicitly", metadata: [
+                "component": .string(component),
+                "childCount": .string("\(children.count)"),
+                "items": .string(menuItemsInfo)
+              ])
+
+              break
+            }
+          }
+        }
+
+        // If we found a menu with children, use it as our current element
+        if let menu = menuElement, let children = menuChildren {
+          logger.info("Implicitly traversing Menu1 layer", metadata: [
+            "component": .string(component),
+            "menuChildren": .string("\(children.count)")
+          ])
+
+          // Update current element to the menu
+          currentElement = menu
+
+          // And use its children for matching
+          childrenArray = children
+        }
+      }
+
       // Try to find the matching child element
       var found = false
 
