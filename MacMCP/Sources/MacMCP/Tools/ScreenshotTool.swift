@@ -38,26 +38,27 @@ public struct ScreenshotTool {
         self.logger = logger ?? Logger(label: "mcp.tool.screenshot")
         
         // Set tool annotations first
+        // Tool description:
+        // Tool for capturing visual information about UI state. Useful for:
+        // 1. Examining application UI details
+        // 2. Capturing specific UI elements for analysis
+        // 3. Documenting current UI state
+        // 4. Visual debugging of layout issues
+        //
+        // IMPORTANT: For element screenshots, first use InterfaceExplorerTool to discover element IDs.
+        //
+        // Best practices:
+        // - For window screenshots, use the window region with app's bundle ID (e.g., com.apple.calculator)
+        // - For UI elements, first use InterfaceExplorerTool to get the element ID, then capture with element region
+        // - Full screen screenshots are useful for overall context, but may be large
+
         self.annotations = .init(
             title: "Screenshot",
-            description: """
-            Tool for capturing visual information about UI state. Useful for:
-            1. Examining application UI details
-            2. Capturing specific UI elements for analysis
-            3. Documenting current UI state
-            4. Visual debugging of layout issues
-
-            IMPORTANT: For element screenshots, first use InterfaceExplorerTool to discover element IDs.
-            """,
             readOnlyHint: true,
-            openWorldHint: true,
-            usageHint: """
-            Best practices:
-            - For window screenshots, use the window region with app's bundle ID (e.g., com.apple.calculator)
-            - For UI elements, first use InterfaceExplorerTool to get the element ID, then capture with element region
-            - Full screen screenshots are useful for overall context, but may be large
-            """
-        )
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: true)
+        
         
         // Set schema to empty initially, then assign the real value
         self.inputSchema = .object([:])
