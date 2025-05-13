@@ -43,6 +43,12 @@ public actor MCPServer {
     
     /// The clipboard service
     private lazy var clipboardService = ClipboardService()
+
+    /// The menu navigation service
+    private lazy var menuNavigationService = MenuNavigationService(
+        accessibilityService: accessibilityService,
+        logger: logger
+    )
     
     /// Create a new macOS MCP server
     /// - Parameters:
@@ -323,9 +329,7 @@ public actor MCPServer {
 
         // Register the menu navigation tool
         let menuNavigationTool = MenuNavigationTool(
-            accessibilityService: accessibilityService,
-            interactionService: interactionService,
-            applicationService: applicationService,
+            menuNavigationService: menuNavigationService,
             logger: logger
         )
         await registerTool(

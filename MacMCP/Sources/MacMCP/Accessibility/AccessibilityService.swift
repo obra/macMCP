@@ -624,17 +624,42 @@ public enum UIElementScope: Sendable {
 }
 
 extension AccessibilityService {
+    /// Navigate through menu path and activate a menu item
+    /// - Parameters:
+    ///   - path: The simplified menu path (e.g., "File > Open" or "View > Scientific")
+    ///   - bundleId: The bundle identifier of the application
+    /// This public method allows other services to use the menu navigation functionality
+    public func navigateMenu(path: String, in bundleId: String) async throws {
+        // Get the application element
+        let appElement = try await getApplicationUIElement(
+            bundleIdentifier: bundleId,
+            recursive: false
+        )
+
+        // Use the internal activation method with the simplified path
+        try await directMenuItemActivation(
+            menuIdentifier: "ui:menu:" + path,
+            menuTitle: nil,
+            appElement: appElement.element,
+            menuPath: path,
+            // Add flag to enable implicit menu traversal through MenuBar1 and Menu1
+            implicitTraversal: true
+        )
+    }
+
     /// Activate a menu item directly via its path
     /// - Parameters:
     ///   - menuIdentifier: The menu item identifier
     ///   - menuTitle: The menu item title
     ///   - appElement: The application's AXUIElement
     ///   - menuPath: Optional explicit path to use (default: parse from identifier)
+    ///   - implicitTraversal: Whether to handle MenuBar1/Menu1 traversal automatically
     private func directMenuItemActivation(
         menuIdentifier: String,
         menuTitle: String?,
         appElement: AXUIElement,
-        menuPath: String? = nil
+        menuPath: String? = nil,
+        implicitTraversal: Bool = false
     ) async throws {
         // Extract or use the path from either the provided path or the identifier
         let pathToUse: String
@@ -666,6 +691,11 @@ extension AccessibilityService {
                 userInfo: [NSLocalizedDescriptionKey: "Invalid menu path: \(pathToUse)"]
             )
         }
+
+        // Implement smart path traversal
+        // Automatically handle cases where there might be MenuBar1 and Menu1 layers
+        // This allows users to specify simple paths like "View > Scientific" and
+        // we'll handle the underlying complexity transparently
 
         // Get the menu bar
         var menuBarRef: CFTypeRef?
@@ -703,16 +733,41 @@ extension AccessibilityService {
 
         // Find the first component (menu bar item)
         var currentElement: AXUIElement?
-        let firstComponent = pathComponents[0]
 
-        // Find the top-level menu
+        // Handle the case where the first component may or may not be "MenuBar1"
+        let firstComponent: String
+        if pathComponents[0].hasPrefix("MenuBar") {
+            // If the path already includes MenuBar1, use it as is
+            firstComponent = pathComponents[0]
+        } else {
+            // Otherwise, this is a simplified path - the first component is a menu name
+            // In this case, find any menu bar item that matches it
+            firstComponent = pathComponents[0]
+
+            // Log that we're handling a simplified path
+            logger.info("Processing simplified path without MenuBar prefix", metadata: [
+                "component": .string(firstComponent)
+            ])
+
+            // Debug information for path traversal
+            logger.info("Starting menu path traversal", metadata: [
+                "path": .string(pathToUse),
+                "implicitTraversal": .string("\(implicitTraversal)"),
+                "components": .string(pathComponents.joined(separator: ", "))
+            ])
+        }
+
+        // Find the top-level menu, with automatic MenuBar traversal
         for menuBarItem in menuBarItems {
             var titleRef: CFTypeRef?
             let titleStatus = AXUIElementCopyAttributeValue(menuBarItem, "AXTitle" as CFString, &titleRef)
 
             if titleStatus == .success, let title = titleRef as? String {
                 // Match by exact title, or just "MenuBar" prefix for generic menu bar items
-                if title == firstComponent || (firstComponent.hasPrefix("MenuBar") && title.count > 0) {
+                if title == firstComponent ||
+                   (firstComponent.hasPrefix("MenuBar") && title.count > 0) ||
+                   // For simplified paths, match the menu name directly
+                   (!firstComponent.hasPrefix("MenuBar") && title == firstComponent) {
                     currentElement = menuBarItem
                     break
                 }

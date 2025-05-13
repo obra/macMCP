@@ -15,18 +15,21 @@ public final class ToolChain: @unchecked Sendable {
     public let logger: Logger
     
     // MARK: - Services
-    
+
     /// Accessibility service for interacting with macOS accessibility APIs
     public let accessibilityService: AccessibilityService
-    
+
     /// Application service for launching and managing applications
     public let applicationService: ApplicationService
-    
+
     /// Screenshot service for taking screenshots
     public let screenshotService: ScreenshotService
-    
+
     /// UI interaction service for interacting with UI elements
     public let interactionService: UIInteractionService
+
+    /// Menu navigation service for working with menus
+    public let menuNavigationService: MenuNavigationService
     
     // MARK: - Tools
 
@@ -74,6 +77,10 @@ public final class ToolChain: @unchecked Sendable {
             accessibilityService: accessibilityService,
             logger: logger
         )
+        self.menuNavigationService = MenuNavigationService(
+            accessibilityService: accessibilityService,
+            logger: logger
+        )
         
         // Create tools
         self.screenshotTool = ScreenshotTool(
@@ -98,9 +105,7 @@ public final class ToolChain: @unchecked Sendable {
         )
         
         self.menuNavigationTool = MenuNavigationTool(
-            accessibilityService: accessibilityService,
-            interactionService: interactionService,
-            applicationService: applicationService,
+            menuNavigationService: menuNavigationService,
             logger: logger
         )
         
