@@ -11,7 +11,7 @@ public struct ScreenshotTool {
     public let name = ToolNames.screenshot
     
     /// Description of the tool
-    public let description = "Capture screenshot of macOS screen, window, or UI element"
+    public let description = "Capture screenshot of macOS screen, window, or UI element for visual inspection and analysis"
     
     /// Input schema for the tool
     public var inputSchema: Value
@@ -40,8 +40,23 @@ public struct ScreenshotTool {
         // Set tool annotations first
         self.annotations = .init(
             title: "Screenshot",
+            description: """
+            Tool for capturing visual information about UI state. Useful for:
+            1. Examining application UI details
+            2. Capturing specific UI elements for analysis
+            3. Documenting current UI state
+            4. Visual debugging of layout issues
+
+            IMPORTANT: For element screenshots, first use InterfaceExplorerTool to discover element IDs.
+            """,
             readOnlyHint: true,
-            openWorldHint: true
+            openWorldHint: true,
+            usageHint: """
+            Best practices:
+            - For window screenshots, use the window region with app's bundle ID (e.g., com.apple.calculator)
+            - For UI elements, first use InterfaceExplorerTool to get the element ID, then capture with element region
+            - Full screen screenshots are useful for overall context, but may be large
+            """
         )
         
         // Set schema to empty initially, then assign the real value
@@ -57,7 +72,7 @@ public struct ScreenshotTool {
             "properties": .object([
                 "region": .object([
                     "type": .string("string"),
-                    "description": .string("The region to capture: full, area, window, element"),
+                    "description": .string("The region to capture: full (entire screen), area (specific coordinates), window (app window by bundleId), element (UI element by elementId from InterfaceExplorerTool)"),
                     "enum": .array([
                         .string("full"),
                         .string("area"),
@@ -83,11 +98,11 @@ public struct ScreenshotTool {
                 ]),
                 "bundleId": .object([
                     "type": .string("string"),
-                    "description": .string("The bundle identifier of the application window to capture (required when region is 'window')")
+                    "description": .string("The bundle identifier of the application window to capture (required when region is 'window') - e.g., 'com.apple.calculator' for Calculator")
                 ]),
                 "elementId": .object([
                     "type": .string("string"),
-                    "description": .string("The ID of the UI element to capture (required when region is 'element')")
+                    "description": .string("The ID of the UI element to capture (required when region is 'element') - MUST be obtained from InterfaceExplorerTool first")
                 ])
             ]),
             "required": .array([.string("region")]),
@@ -114,6 +129,14 @@ public struct ScreenshotTool {
     /// Process a screenshot request
     /// - Parameter params: The request parameters
     /// - Returns: The tool result content
+    ///
+    /// Screenshot workflow for element screenshots:
+    /// 1. User discovers UI elements with InterfaceExplorerTool
+    /// 2. User gets element IDs from the explorer results
+    /// 3. User uses ScreenshotTool with region=element and elementId=<discovered ID>
+    /// 4. Service finds the element (with several fallback approaches for reliability)
+    /// 5. Service captures the element with padding to ensure the full element is visible
+    /// 6. Result is returned as base64-encoded PNG with metadata
     private func processRequest(_ params: [String: Value]?) async throws -> [Tool.Content] {
         guard let params = params else {
             throw createScreenshotError(
