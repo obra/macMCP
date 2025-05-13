@@ -378,7 +378,17 @@ public actor MCPServer {
             annotations: nil,
             handler: clipboardManagementTool.handler
         )
-        
+
+        // Register the onboarding tool
+        let onboardingTool = OnboardingTool(logger: logger)
+        await registerTool(
+            name: onboardingTool.name,
+            description: onboardingTool.description,
+            inputSchema: onboardingTool.inputSchema,
+            annotations: onboardingTool.annotations,
+            handler: onboardingTool.handler
+        )
+
         // Register cancellation handler
         await server.onNotification(CancelNotification.self) { [weak self] notification in
             guard let self = self else { return }

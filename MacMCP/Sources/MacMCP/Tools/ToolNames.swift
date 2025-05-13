@@ -35,7 +35,10 @@ public enum ToolNames {
     
     /// Keyboard interaction tool
     public static let keyboardInteraction = "\(prefix)_keyboard_interaction"
-    
+
+    /// Onboarding tool for AI assistants
+    public static let onboarding = "\(prefix)_onboarding"
+
     /// Legacy tool names (for backward compatibility)
     public static let openApplication = "\(prefix)_open_application"
 }
