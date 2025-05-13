@@ -710,11 +710,21 @@ extension AccessibilityService {
       recursive: false
     )
 
+    // Get the app using its bundle ID to get the pid
+    let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId)
+    guard let app = runningApps.first else {
+      throw NSError(
+        domain: "com.macos.mcp.accessibility",
+        code: 1001,
+        userInfo: [NSLocalizedDescriptionKey: "Application not running: \(bundleId)"]
+      )
+    }
+
     // Use the internal activation method with the simplified path
     try await directMenuItemActivation(
       menuIdentifier: "ui:menu:" + path,
       menuTitle: nil,
-      appElement: AccessibilityElement.applicationElement(pid: appElement.pid),
+      appElement: AccessibilityElement.applicationElement(pid: app.processIdentifier),
       menuPath: path,
       // Add flag to enable implicit menu traversal through MenuBar1 and Menu1
       implicitTraversal: true
