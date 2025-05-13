@@ -100,6 +100,12 @@ public protocol AccessibilityServiceProtocol: Sendable {
     func focusWindow(
         withIdentifier identifier: String
     ) async throws
+
+    /// Navigate through menu path and activate a menu item
+    /// - Parameters:
+    ///   - path: The simplified menu path (e.g., "File > Open" or "View > Scientific")
+    ///   - bundleId: The bundle identifier of the application
+    func navigateMenu(path: String, in bundleId: String) async throws
 }
 
 /// Window ordering modes

@@ -714,7 +714,7 @@ extension AccessibilityService {
     try await directMenuItemActivation(
       menuIdentifier: "ui:menu:" + path,
       menuTitle: nil,
-      appElement: appElement.element,
+      appElement: AccessibilityElement.applicationElement(pid: appElement.pid),
       menuPath: path,
       // Add flag to enable implicit menu traversal through MenuBar1 and Menu1
       implicitTraversal: true
@@ -912,7 +912,7 @@ extension AccessibilityService {
         }
       }
 
-      guard let childrenArray = childrenRef as? [AXUIElement] else {
+      guard var childrenArray = childrenRef as? [AXUIElement] else {
         throw NSError(
           domain: "com.macos.mcp.accessibility",
           code: MacMCPErrorCode.elementNotFound,

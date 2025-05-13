@@ -124,7 +124,7 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
         
         // First check if the menu already has visible items (some apps show this without activation)
         if let menu = menuBarItem.children.first(where: { $0.role == "AXMenu" }),
-           \!menu.children.isEmpty {
+           !menu.children.isEmpty {
             menuItems = menu.children
             needToActivateMenu = false
             logger.info("Found menu items without activation", metadata: [
