@@ -207,6 +207,13 @@ private class MockAccessibilityService: @unchecked Sendable, AccessibilityServic
             throw errorToThrow ?? MCPError.internalError("Mock error")
         }
     }
+
+    func navigateMenu(path: String, in bundleId: String) async throws {
+        // Mock implementation for menu navigation
+        if shouldFailOperations {
+            throw errorToThrow ?? MCPError.internalError("Mock error")
+        }
+    }
     
     // MARK: - Helper Methods
     
