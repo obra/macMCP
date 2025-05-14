@@ -134,13 +134,10 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
         )
     }
     
-    /// Type text into the text area
-    /// - Parameter text: The text to type
-    /// - Returns: True if typing was successful
-    public func typeText(_ text: String) async throws -> Bool {
-        // Use KeyboardInteractionTool instead of UIInteractionTool
-
-        // First, use key_sequence to press Command+A to select all text
+    /// Clear document content by selecting all text
+    /// - Returns: True if successful
+    public func clearDocumentContent() async throws -> Bool {
+        // Use key_sequence to press Command+A to select all text
         let selectAllParams: [String: Value] = [
             "action": .string("key_sequence"),
             "sequence": .array([
@@ -154,7 +151,14 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
         _ = try await toolChain.keyboardInteractionTool.handler(selectAllParams)
         try await Task.sleep(for: .milliseconds(500))
 
-        // Then use type_text to type the text
+        return true
+    }
+
+    /// Type text into the text area at the current cursor position
+    /// - Parameter text: The text to type
+    /// - Returns: True if typing was successful
+    public func typeText(_ text: String) async throws -> Bool {
+        // Use type_text to type the text at the current cursor position
         let typeParams: [String: Value] = [
             "action": .string("type_text"),
             "text": .string(text)
@@ -163,6 +167,17 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
         _ = try await toolChain.keyboardInteractionTool.handler(typeParams)
 
         return true
+    }
+
+    /// Clear document content and then type new text (legacy behavior)
+    /// - Parameter text: The text to type
+    /// - Returns: True if typing was successful
+    public func replaceAllTextWith(_ text: String) async throws -> Bool {
+        // Clear all existing content
+        _ = try await clearDocumentContent()
+
+        // Type the new text
+        return try await typeText(text)
     }
     
     // No longer need keyCodeForChar method since we're using KeyboardInteractionTool
