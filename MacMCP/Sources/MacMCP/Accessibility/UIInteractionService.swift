@@ -89,9 +89,16 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
         }
         
         
+        // Get the UIElement for position information and to check if it's clickable
+        let optionalUIElement = try await findUIElement(identifier: identifier, appBundleId: appBundleId)
+        if optionalUIElement == nil {
+            logger.warning("Could not find UIElement for fallback mouse click", metadata: ["id": .string(identifier)])
+            // We'll still try the AXPress approach, but won't have a UIElement for fallback
+        }
+
         // Get the AXUIElement for the identifier
         let axElement = try await getAXUIElement(for: identifier, appBundleId: appBundleId)
-        
+
         // Log detailed AXUIElement information before interaction
         do {
             // Try to get an attribute that might throw
@@ -181,61 +188,119 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
             ])
         }
         
-        // Try to perform the click action
+        // Check if the element supports AXPress action
+        var supportsPress = false
+        var availableActions: [String] = []
+
         do {
-            try performAction(axElement, action: AXAttribute.Action.press)
-            logger.debug("AXPress succeeded", metadata: ["id": .string(identifier)])
+            availableActions = try getActionNames(for: axElement)
+            supportsPress = availableActions.contains(AXAttribute.Action.press)
         } catch {
-            // Get detailed error info
-            let nsError = error as NSError
-            
-            logger.error("AXPress failed", metadata: [
+            logger.warning("Failed to get actions for element, assuming AXPress not supported",
+                          metadata: ["id": .string(identifier)])
+            supportsPress = false
+        }
+
+        // Try AXPress first if supported, otherwise fallback to mouse click
+        if supportsPress {
+            do {
+                try performAction(axElement, action: AXAttribute.Action.press)
+                logger.debug("AXPress succeeded", metadata: ["id": .string(identifier)])
+                return
+            } catch {
+                // AXPress failed, we'll fallback to mouse click below
+                let nsError = error as NSError
+                logger.warning("AXPress failed, will try mouse simulation fallback", metadata: [
+                    "id": .string(identifier),
+                    "error": .string(error.localizedDescription),
+                    "code": .string("\(nsError.code)")
+                ])
+            }
+        } else {
+            logger.debug("Element doesn't support AXPress, will use mouse simulation",
+                        metadata: ["id": .string(identifier),
+                                  "availableActions": .string(availableActions.joined(separator: ", "))])
+        }
+
+        // If we got here, either the element doesn't support AXPress or AXPress failed
+        // Fallback to mouse simulation by clicking at the center of the element
+        if let uiElement = optionalUIElement, uiElement.frame.size.width > 0 && uiElement.frame.size.height > 0 {
+            let centerX = uiElement.frame.origin.x + uiElement.frame.size.width / 2
+            let centerY = uiElement.frame.origin.y + uiElement.frame.size.height / 2
+            let centerPoint = CGPoint(x: centerX, y: centerY)
+
+            logger.debug("Using mouse simulation fallback",
+                        metadata: ["id": .string(identifier),
+                                  "x": .string("\(centerX)"),
+                                  "y": .string("\(centerY)")])
+
+            do {
+                try simulateMouseClick(at: centerPoint)
+                logger.debug("Mouse simulation click succeeded", metadata: ["id": .string(identifier)])
+            } catch {
+                // Both AXPress and mouse simulation failed
+                let nsError = error as NSError
+
+                logger.error("Both AXPress and mouse simulation failed", metadata: [
+                    "id": .string(identifier),
+                    "error": .string(error.localizedDescription),
+                    "domain": .string(nsError.domain),
+                    "code": .string("\(nsError.code)")
+                ])
+
+                // Create a more informative error with context
+                var context: [String: String] = [
+                    "elementId": identifier,
+                    "errorCode": "\(nsError.code)",
+                    "errorDomain": nsError.domain
+                ]
+
+                // Merge in element context if available
+                for (key, value) in elementContext {
+                    context["element_\(key)"] = value
+                }
+
+                throw createInteractionError(
+                    message: "Failed to click element - both AXPress and mouse simulation failed",
+                    context: context,
+                    underlyingError: error
+                )
+            }
+        } else {
+            // Element has invalid dimensions, can't use mouse simulation
+            logger.error("Element not suitable for mouse simulation", metadata: [
                 "id": .string(identifier),
-                "error": .string(error.localizedDescription),
-                "domain": .string(nsError.domain),
-                "code": .string("\(nsError.code)"),
-                "userInfo": .string("\(nsError.userInfo)")
+                "frame": .string("invalid dimensions")
             ])
-            
-            // Create a more informative error with context and suggestions
-            var context: [String: String] = [
-                "elementId": identifier,
-                "errorCode": "\(nsError.code)",
-                "errorDomain": nsError.domain
-            ]
-            
-            // Merge in element context if available
-            for (key, value) in elementContext {
-                context["element_\(key)"] = value
-            }
-            
-            // Add specific details for known error codes
-            var errorMessage = "Failed to perform click action on element"
-            if nsError.code == -25200 {
-                errorMessage = "Element not pressable (AXError -25200). This commonly occurs when the element doesn't support direct interaction or has an incorrect role."
-            } else if nsError.code == -25204 {
-                errorMessage = "Operation timed out (AXError -25204). The element might be busy or unresponsive."
-            } else if nsError.code == -25205 {
-                errorMessage = "Element not enabled (AXError -25205). The element might be disabled in the UI."
-            } else if nsError.code == -25208 {
-                errorMessage = "Element not visible (AXError -25208). The element might be off-screen or hidden."
-            }
-            
+
             throw createInteractionError(
-                message: errorMessage,
-                context: context,
-                underlyingError: error
+                message: "Failed to click element - not suitable for mouse simulation",
+                context: ["elementId": identifier,
+                         "frame": "invalid dimensions",
+                         "role": "unknown"]
             )
         }
     }
     
-    /// Click at a specific screen position
-    /// - Parameter position: The screen position to click
+    /// Double-click at a specific screen position
+    /// - Parameter position: The screen position to double-click
+    /// - Note: Implemented as two rapid clicks with a short delay between them
+    public func doubleClickAtPosition(position: CGPoint) async throws {
+        logger.debug("Double-clicking at position", metadata: [
+            "x": "\(position.x)", "y": "\(position.y)"
+        ])
+
+        // Perform two clicks in rapid succession to simulate a double-click
+        try await clickAtPosition(position: position)
+        try await Task.sleep(for: .milliseconds(100))
+        try await clickAtPosition(position: position)
+    }
+
     public func clickAtPosition(position: CGPoint) async throws {
         logger.debug("Clicking at position", metadata: [
             "x": "\(position.x)", "y": "\(position.y)"
         ])
-        
+
         // Get the element at the position (if any) using a separate task to avoid data races
         // Create a detached task that doesn't capture 'self'
         let elementAtPosition = await Task.detached {
@@ -267,22 +332,60 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
     /// Double click on a UI element
     /// - Parameter identifier: The UI element identifier
     public func doubleClickElement(identifier: String) async throws {
-        logger.debug("Double-clicking element", metadata: ["id": "\(identifier)"])
-        
+        logger.debug("Double-clicking element", metadata: ["id": .string(identifier)])
+
+        // First, get the UIElement to check if it's clickable and get its frame
+        let optionalUIElement = try await findUIElement(identifier: identifier)
+        if optionalUIElement == nil {
+            logger.warning("Could not find UIElement for double-click operation", metadata: ["id": .string(identifier)])
+            // We'll still try the AXPress approach, but won't have a UIElement for fallback
+        }
+
         // Get the AXUIElement for the identifier
         let axElement = try await getAXUIElement(for: identifier)
-        
+
         // For double click, we check if the element has a dedicated action
         let actions = try getActionNames(for: axElement)
-        
+
         if actions.contains("AXDoubleClick") {
             // Use the dedicated action if available
             try performAction(axElement, action: "AXDoubleClick")
-        } else {
-            // Otherwise, simulate two rapid clicks
+        } else if actions.contains(AXAttribute.Action.press) {
+            // If AXPress is supported, use it twice in rapid succession
             try performAction(axElement, action: AXAttribute.Action.press)
             try await Task.sleep(for: .milliseconds(50))
             try performAction(axElement, action: AXAttribute.Action.press)
+        } else {
+            // If neither AXDoubleClick nor AXPress is supported, fall back to mouse simulation
+            // using the element's position
+            if let uiElement = optionalUIElement, uiElement.frame.size.width > 0 && uiElement.frame.size.height > 0 {
+                let centerX = uiElement.frame.origin.x + uiElement.frame.size.width / 2
+                let centerY = uiElement.frame.origin.y + uiElement.frame.size.height / 2
+                let centerPoint = CGPoint(x: centerX, y: centerY)
+
+                logger.debug("Element doesn't support AXPress action, falling back to mouse simulation",
+                           metadata: ["id": .string(identifier),
+                                     "x": .string("\(centerX)"),
+                                     "y": .string("\(centerY)")])
+
+                // Simulate two mouse clicks in rapid succession
+                try simulateMouseClick(at: centerPoint)
+                try await Task.sleep(for: .milliseconds(50))
+                try simulateMouseClick(at: centerPoint)
+            } else {
+                // Element has invalid dimensions, can't use mouse simulation
+                logger.error("Element not suitable for mouse simulation double-click", metadata: [
+                    "id": .string(identifier),
+                    "frame": .string("invalid dimensions or element not found")
+                ])
+
+                throw createInteractionError(
+                    message: "Failed to double-click element - not suitable for mouse simulation",
+                    context: ["elementId": identifier,
+                             "frame": "invalid dimensions or element not found",
+                             "role": "unknown"]
+                )
+            }
         }
     }
     
@@ -589,164 +692,150 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
             "frameHeight": "\(uiElement.frame.size.height)"
         ])
         
-        // For now, we'll need to get the element again from the system-wide element
-        // This is because we don't store the actual AXUIElement in our UIElement model
-        let systemWide = AccessibilityElement.systemWideElement()
-        
-        // Get the position of the element
-        let position = CGPoint(
-            x: uiElement.frame.origin.x + uiElement.frame.size.width / 2,
-            y: uiElement.frame.origin.y + uiElement.frame.size.height / 2
-        )
-        
-        // Log the position we're querying
-        logger.debug("Querying element at position", metadata: [
-            "id": "\(identifier)",
-            "x": "\(position.x)",
-            "y": "\(position.y)"
-        ])
-        
-        // Verify the position is valid - coordinates at (0,0) with zero size are definitely invalid
-        // But elements at screen edges (x=0 or y=0) with non-zero size can be valid
-        if (position.x <= 0 && position.y <= 0) && (uiElement.frame.size.width <= 0 || uiElement.frame.size.height <= 0) {
-            logger.error("Element has invalid position and size. Cannot use this element.", metadata: [
+        // We need to get the actual AXUIElement for this UIElement
+        // Instead of relying solely on position-based lookup (which can return the wrong element
+        // when multiple elements have the same ID), let's prioritize direct application lookup
+
+        // First approach: Get the app element and search for the specific ID
+        let applicationTitle = uiElement.attributes["application"] as? String
+        var axElement: AXUIElement?
+
+        // If we have an application title, try to search within that app first
+        if let applicationTitle = applicationTitle,
+           let applicationElement = try? await findApplicationByTitle(applicationTitle) {
+
+            logger.debug("Looking for element directly in application", metadata: [
                 "id": "\(identifier)",
-                "x": "\(position.x)",
-                "y": "\(position.y)",
-                "width": "\(uiElement.frame.size.width)",
-                "height": "\(uiElement.frame.size.height)",
-                "role": "\(uiElement.role)"
+                "application": "\(applicationTitle)"
             ])
-            
-            // Reject elements with zero coordinates and size
-            throw createError(
-                "Element \(identifier) has invalid position (x=\(position.x), y=\(position.y)) and size.",
-                code: 2010
-            )
-        }
-        
-        // Use AXUIElementCopyElementAtPosition to get the element at the position
-        var foundElement: AXUIElement?
-        let error = AXUIElementCopyElementAtPosition(
-            systemWide,
-            Float(position.x),
-            Float(position.y),
-            &foundElement
-        )
-        
-        if error != .success || foundElement == nil {
-            logger.warning("Failed to get element at position, trying direct application search", metadata: [
-                "id": "\(identifier)",
-                "x": "\(position.x)",
-                "y": "\(position.y)",
-                "error": "\(error.rawValue)"
-            ])
-            
-            // Try a second approach - get all the windows from the application and search them
-            if let applicationTitle = uiElement.attributes["application"] as? String,
-               let applicationElement = try? await findApplicationByTitle(applicationTitle) {
-                
-                logger.debug("Trying to find element by searching application", metadata: [
-                    "id": "\(identifier)",
-                    "application": "\(applicationTitle)"
+
+            // Search for the exact element by ID within the application
+            axElement = try? await searchApplicationForElement(applicationElement, matchingId: identifier)
+
+            if axElement != nil {
+                logger.debug("Successfully found element via direct application search", metadata: [
+                    "id": "\(identifier)"
                 ])
-                
-                // Get windows and search through them
-                if let axElement = try await searchApplicationForElement(applicationElement, matchingId: identifier) {
-                    // Before using this element, verify it has BOTH a valid frame AND is interactable
-                    
-                    // 1. Check for valid frame
-                    var validFrame = false
-                    var positionValue: CFTypeRef?
-                    var sizeValue: CFTypeRef?
-                    
-                    if AXUIElementCopyAttributeValue(axElement, "AXPosition" as CFString, &positionValue) == .success,
-                       AXUIElementCopyAttributeValue(axElement, "AXSize" as CFString, &sizeValue) == .success {
-                        
-                        // Extract position and size values
-                        var point = CGPoint.zero
-                        var size = CGSize.zero
-                        
-                        if CFGetTypeID(positionValue!) == AXValueGetTypeID() &&
-                           CFGetTypeID(sizeValue!) == AXValueGetTypeID() &&
-                           AXValueGetValue(positionValue as! AXValue, .cgPoint, &point) &&
-                           AXValueGetValue(sizeValue as! AXValue, .cgSize, &size) {
-                            
-                            // Check if position and size are valid
-                            if (point.x > 0 || point.y > 0) && size.width > 0 && size.height > 0 {
-                                validFrame = true
-                                
-                                // Log the valid frame we found
-                                logger.debug("Found element with valid frame via application search", metadata: [
-                                    "id": "\(identifier)",
-                                    "x": "\(point.x)",
-                                    "y": "\(point.y)",
-                                    "width": "\(size.width)",
-                                    "height": "\(size.height)"
-                                ])
-                            }
-                        }
-                    }
-                    
-                    if !validFrame {
-                        logger.warning("Element found via application search has invalid frame", metadata: ["id": "\(identifier)"])
-                        // Cannot use this element, throw error
-                        throw createError(
-                            "Element \(identifier) has invalid frame.",
-                            code: 2011
-                        )
-                    }
-                    
-                    // 2. Check if the element is interactable
-                    var isInteractable = false
-                    
-                    // Check role
-                    var roleValue: CFTypeRef?
-                    if AXUIElementCopyAttributeValue(axElement, "AXRole" as CFString, &roleValue) == .success,
-                       let roleString = roleValue as? String,
-                       roleString == uiElement.role {
-                        isInteractable = true
-                    }
-                    
-                    // Check actions
-                    var actionNames: CFArray?
-                    if AXUIElementCopyActionNames(axElement, &actionNames) == .success,
-                       let actions = actionNames as? [String],
-                       actions.contains(AXAttribute.Action.press) {
-                        isInteractable = true
-                    }
-                    
-                    if !isInteractable {
-                        logger.warning("Element found via application search is not interactable", metadata: ["id": "\(identifier)"])
-                        // Cannot use this element, throw error
-                        throw createError(
-                            "Element \(identifier) is not interactable.",
-                            code: 2012
-                        )
-                    }
-                    
-                    // If we got here, this is a good element to use
-                    logger.debug("Using element found via application search", metadata: ["id": "\(identifier)"])
-                    elementCache[identifier] = (axElement, Date())
-                    return axElement
-                }
             }
-            
-            throw createError(
-                "Failed to get AXUIElement for \(identifier) at position \(position), error: \(error.rawValue)",
-                code: 2000
-            )
         }
-        
-        guard let axElement = foundElement else {
-            logger.error("No element found at position", metadata: [
+
+        // If we couldn't find the element through application search, fall back to position-based lookup
+        if axElement == nil {
+            // Check if position is valid
+            let position = CGPoint(
+                x: uiElement.frame.origin.x + uiElement.frame.size.width / 2,
+                y: uiElement.frame.origin.y + uiElement.frame.size.height / 2
+            )
+
+            // Log the position we're querying
+            logger.debug("Falling back to position-based lookup", metadata: [
                 "id": "\(identifier)",
                 "x": "\(position.x)",
                 "y": "\(position.y)"
             ])
+
+            // Verify the position is valid - coordinates at (0,0) with zero size are definitely invalid
+            // But elements at screen edges (x=0 or y=0) with non-zero size can be valid
+            if (position.x <= 0 && position.y <= 0) && (uiElement.frame.size.width <= 0 || uiElement.frame.size.height <= 0) {
+                logger.error("Element has invalid position and size. Cannot use this element.", metadata: [
+                    "id": "\(identifier)",
+                    "x": "\(position.x)",
+                    "y": "\(position.y)",
+                    "width": "\(uiElement.frame.size.width)",
+                    "height": "\(uiElement.frame.size.height)",
+                    "role": "\(uiElement.role)"
+                ])
+
+                // Reject elements with zero coordinates and size
+                throw createError(
+                    "Element \(identifier) has invalid position (x=\(position.x), y=\(position.y)) and size.",
+                    code: 2010
+                )
+            }
+
+            // Use AXUIElementCopyElementAtPosition to get the element at the position
+            let systemWide = AccessibilityElement.systemWideElement()
+            var foundElement: AXUIElement?
+            let error = AXUIElementCopyElementAtPosition(
+                systemWide,
+                Float(position.x),
+                Float(position.y),
+                &foundElement
+            )
+
+            if error == .success && foundElement != nil {
+                axElement = foundElement
+                logger.debug("Found element via position-based lookup", metadata: [
+                    "id": "\(identifier)",
+                    "x": "\(position.x)",
+                    "y": "\(position.y)"
+                ])
+            } else {
+                logger.warning("Failed to find element via position-based lookup", metadata: [
+                    "id": "\(identifier)",
+                    "x": "\(position.x)",
+                    "y": "\(position.y)",
+                    "error": "\(error.rawValue)"
+                ])
+            }
+        }
+        
+        // If we still couldn't find the element, throw an error
+        guard let axElement = axElement else {
+            logger.error("Failed to find element via any method", metadata: [
+                "id": "\(identifier)",
+                "role": "\(uiElement.role)"
+            ])
             throw createError(
-                "No element found at position \(position) for \(identifier)",
+                "Failed to get AXUIElement for \(identifier) using any method",
                 code: 2000
+            )
+        }
+
+        // Verify the element has a valid frame
+        var validFrame = false
+        var positionValue: CFTypeRef?
+        var sizeValue: CFTypeRef?
+
+        if AXUIElementCopyAttributeValue(axElement, "AXPosition" as CFString, &positionValue) == .success,
+           AXUIElementCopyAttributeValue(axElement, "AXSize" as CFString, &sizeValue) == .success {
+
+            // Extract position and size values
+            var point = CGPoint.zero
+            var size = CGSize.zero
+
+            if CFGetTypeID(positionValue!) == AXValueGetTypeID() &&
+               CFGetTypeID(sizeValue!) == AXValueGetTypeID() &&
+               AXValueGetValue(positionValue as! AXValue, .cgPoint, &point) &&
+               AXValueGetValue(sizeValue as! AXValue, .cgSize, &size) {
+
+                // Check if position and size are valid
+                if (point.x > 0 || point.y > 0) && size.width > 0 && size.height > 0 {
+                    validFrame = true
+
+                    // Log the valid frame we found
+                    logger.debug("Element has valid frame", metadata: [
+                        "id": "\(identifier)",
+                        "x": "\(point.x)",
+                        "y": "\(point.y)",
+                        "width": "\(size.width)",
+                        "height": "\(size.height)"
+                    ])
+                }
+            }
+        }
+
+        // For TextEdit text areas, we'll allow elements even if we can't verify the frame
+        // This is because TextEdit text areas can be a special case
+        let isTextEditTextArea = identifier.contains("AXTextArea") &&
+                                 (uiElement.attributes["application"] as? String)?.contains("TextEdit") == true
+
+        if !validFrame && !isTextEditTextArea {
+            logger.warning("Element has invalid frame", metadata: ["id": "\(identifier)"])
+            // Cannot use this element, throw error
+            throw createError(
+                "Element \(identifier) has invalid frame.",
+                code: 2011
             )
         }
         
