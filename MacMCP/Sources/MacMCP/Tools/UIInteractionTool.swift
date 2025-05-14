@@ -121,7 +121,6 @@ public struct UIInteractionTool {
         
         // Create services on demand to ensure we're in the right context
         let handlerLogger = Logger(label: "mcp.tool.ui_interact")
-        handlerLogger.info("Creating services for UIInteractionTool")
         
         let accessibilityService = AccessibilityService(
             logger: Logger(label: "mcp.tool.ui_interact.accessibility")
@@ -260,8 +259,23 @@ public struct UIInteractionTool {
         }
         
         // Position click
-        if let x = params["x"]?.intValue, let y = params["y"]?.intValue {
-            
+        // Check for double first, then fall back to int for backward compatibility
+        if let xDouble = params["x"]?.doubleValue, let yDouble = params["y"]?.doubleValue {
+            let x = xDouble
+            let y = yDouble
+
+            do {
+                try await interactionService.clickAtPosition(position: CGPoint(x: x, y: y))
+                return [.text("Successfully clicked at position (\(x), \(y))")]
+            } catch {
+                print("❌ DEBUG: handleClick - Position click operation failed: \(error.localizedDescription)")
+                throw error
+            }
+        } else if let xInt = params["x"]?.intValue, let yInt = params["y"]?.intValue {
+            // Fallback to integers if doubles are not provided
+            let x = Double(xInt)
+            let y = Double(yInt)
+
             do {
                 try await interactionService.clickAtPosition(position: CGPoint(x: x, y: y))
                 return [.text("Successfully clicked at position (\(x), \(y))")]
