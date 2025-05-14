@@ -2,27 +2,35 @@
 
 This document presents an ordered series of prompts for implementing a path-based UI element identification system in MacMCP. Each step follows test-driven development (TDD) practices and includes clear commit instructions.
 
+## Current Status
+
+## Implementation Progress
+
+### Step 1: Create ElementPath Model and Parser 
+
+The core ElementPath model and parser must besuccessfully implemented with the following features:
+
+- **Path Syntax**: Supports paths like `ui://AXWindow/AXScrollArea/AXTextArea[@name="Content"]`
+- **Path Components**:
+  - Path ID prefix: `ui://`
+  - Path segments with roles: `AXWindow/AXGroup/AXButton`
+  - Attribute selectors: `[@title="Save"][@description="Save button"]` 
+  - Index selectors: `[2]` (for selecting nth matching element)
+- **Error Handling**: Comprehensive error types for validation failures
+- **Parsing & Generation**: Full support for both parsing paths from strings and generating path strings
+
+**Design Notes**:
+- When generating paths, we should always try to have a unique attribute at each level. it might be the identifier or description or name or value
+- The `ElementPath` struct contains:
+  - `segments`: Array of `PathSegment` objects representing the path hierarchy
+- The nested `PathSegment` struct contains:
+  - `role`: Accessibility role (e.g., "AXButton")
+  - `attributes`: Dictionary of attribute name/value pairs
+  - `index`: Optional index for selecting among multiple matches
+
 ## Phase 1: Core Element Path Infrastructure
 
-### Step 1: Create ElementPath Model and Parser
-
-**Prompt for LLM agent:**
-```
-Create a new ElementPath struct for path-based element identification in MacMCP. Follow these requirements:
-
-1. Start by writing tests first in a new file Tests/MacMCPTests/ElementPathTests.swift
-2. Write tests for parsing paths like "app:com.apple.TextEdit://AXWindow/AXScrollArea/AXTextArea" into structured data
-3. Implement path segment parsing with role, attributes, and optional index (e.g., AXButton[@title="Save"][2])
-4. Handle application IDs in the format "app:com.apple.bundleId://"
-5. Create appropriate error types for invalid paths
-6. Implement validation of path syntax
-
-Once the tests pass, create a new file Sources/MacMCP/Models/ElementPath.swift with the implementation.
-
-Commit the changes with message: "Add ElementPath model and parser with tests"
-```
-
-### Step 2: Element Path Resolution Logic
+### 🔲 Step 2: Element Path Resolution Logic
 
 **Prompt for LLM agent:**
 ```
@@ -44,7 +52,7 @@ The path resolution should:
 Commit the changes with message: "Add ElementPath resolution logic with tests"
 ```
 
-### Step 3: UIElement Path Extension
+### 🔲 Step 3: UIElement Path Extension
 
 **Prompt for LLM agent:**
 ```
@@ -65,7 +73,7 @@ Commit the changes with message: "Add UIElement extensions for path generation a
 
 ## Phase 2: Service Layer Integration
 
-### Step 4: Update AccessibilityService for Path Support
+### 🔲 Step 4: Update AccessibilityService for Path Support
 
 **Prompt for LLM agent:**
 ```
@@ -84,7 +92,7 @@ Make sure the implementation handles error cases gracefully and provides useful 
 Commit the changes with message: "Update AccessibilityService with path-based element lookup"
 ```
 
-### Step 5: Enhance UIInteractionService with Path Support
+### 🔲 Step 5: Enhance UIInteractionService with Path Support
 
 **Prompt for LLM agent:**
 ```
@@ -100,7 +108,7 @@ Update UIInteractionService to prioritize path-based element lookups. Follow TDD
 5. Add detailed error reporting for path resolution failures
 
 The implementation should:
-- Check if an identifier is a path (starts with 'app:')
+- Check if an identifier is a path (starts with 'ui:')
 - Use path-based resolution for paths
 - Fall back to existing methods for legacy identifiers
 - Prioritize paths for reliability
@@ -110,7 +118,7 @@ Commit the changes with message: "Enhance UIInteractionService with path-based e
 
 ## Phase 3: Tools and API Surface
 
-### Step 6: Update InterfaceExplorerTool for Path Output
+### 🔲 Step 6: Update InterfaceExplorerTool for Path Output
 
 **Prompt for LLM agent:**
 ```
@@ -130,7 +138,7 @@ The tool should:
 Commit the changes with message: "Update InterfaceExplorerTool to include element paths"
 ```
 
-### Step 7: Update UIInteractionTool to Document Path Support
+### 🔲 Step 7: Update UIInteractionTool to Document Path Support
 
 **Prompt for LLM agent:**
 ```
@@ -153,7 +161,7 @@ Commit the changes with message: "Update UIInteractionTool with path support doc
 
 ## Phase 4: Testing Infrastructure
 
-### Step 8: Create Path Testing Utilities
+### 🔲 Step 8: Create Path Testing Utilities
 
 **Prompt for LLM agent:**
 ```
@@ -177,7 +185,7 @@ The test helpers should make it easy to:
 Commit the changes with message: "Add path-based testing utilities"
 ```
 
-### Step 9: Update Application Models
+### 🔲 Step 9: Update Application Models
 
 **Prompt for LLM agent:**
 ```
@@ -196,13 +204,13 @@ static let button1ID = "ui:AXButton:123456"
 
 To:
 ```swift
-static let button1Path = "app:com.apple.Calculator://AXWindow/AXGroup/AXButton[@description=\"1\"]"
+static let button1Path = "ui://AXWindow/AXGroup/AXButton[@description=\"1\"]"
 ```
 
 Commit the changes with message: "Update application models to use path-based identifiers"
 ```
 
-### Step 10: Create Integration Tests
+### 🔲 Step 10: Create Integration Tests
 
 **Prompt for LLM agent:**
 ```
@@ -228,7 +236,7 @@ Commit the changes with message: "Add integration tests for path-based element i
 
 ## Phase 5: Documentation and Examples
 
-### Step 11: Create Developer Documentation
+### 🔲 Step 11: Create Developer Documentation
 
 **Prompt for LLM agent:**
 ```
@@ -254,7 +262,7 @@ The documentation should cover:
 Commit the changes with message: "Add comprehensive documentation for element paths"
 ```
 
-### Step 12: Update Existing Tests
+### 🔲 Step 12: Update Existing Tests
 
 **Prompt for LLM agent:**
 ```
@@ -292,3 +300,36 @@ Commit the changes in logical groups with messages like:
 6. **Compatibility**: While we're going all-in on paths, make sure error messages are helpful for users transitioning from the old system.
 
 7. **Realistic Testing**: Test with real applications to ensure the solution works in practice, not just in theory.
+
+## Design Decisions and Implementation Details
+
+### Path Syntax
+
+The path syntax follows a hierarchical approach similar to XPath or CSS selectors but specialized for accessibility elements:
+
+- **Prefix**: `ui://` - Identifies that this is a path to an element
+- **Segments**: `/AXRole` - Defines the accessibility role of the element
+- **Attributes**: `[@attribute="value"]` - Optional attribute constraints to filter elements
+- **Index**: `[n]` - Optional index to select a specific element when multiple match
+
+### Path Resolution Strategy
+
+The planned resolution strategy (to be implemented in Step 2):
+1. Get the application element using the bundleID
+2. For each path segment, resolve by:
+   - Finding all children with the matching role
+   - Filtering by attribute constraints
+   - Selecting by index if needed
+
+### Error Handling
+
+A robust error handling system that provides clear diagnostic information:
+- Path syntax validation errors
+- Application not found errors
+- Element resolution failures with context about where in the path the failure occurred
+
+### Future Considerations
+
+- **Caching**: Implement caching at various levels to improve performance for repeated path resolutions
+- **Partial Path Resolution**: Allow resolving partial paths from a starting element, not just full paths
+- **Relative Paths**: Consider supporting relative paths that don't start from the application root
