@@ -53,6 +53,9 @@ let package = Package(
             path: "Tools/KeyboardMonitor"),
         .testTarget(
             name: "MacMCPTests",
-            dependencies: ["MacMCP"])
+            dependencies: ["MacMCP"],
+            exclude: [
+                "http-logs"
+            ])
     ]
 )
