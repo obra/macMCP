@@ -44,7 +44,9 @@ public struct KeyCodeMapping {
         "f7": 0x62, "f8": 0x64, "f9": 0x65, "f10": 0x6D, "f11": 0x67, "f12": 0x6F,
         "home": 0x73, "end": 0x77, "pageup": 0x74, "pagedown": 0x79,
         // Alternative names for special keys
-        "enter": 0x24, "esc": 0x35, "backspace": 0x33
+        "enter": 0x24, "esc": 0x35, "backspace": 0x33,
+        // Special ASCII characters
+        "\n": 0x24, "\r": 0x24  // Newline and carriage return map to Return key
     ]
     
     /// Modifier keys and their corresponding key codes
@@ -153,9 +155,16 @@ public struct KeyCodeMapping {
             }
         }
 
-        // Handle space character specially
+        // Handle special characters
         if character == " " {
             if let keyCode = specialKeyCodes["space"] {
+                return KeyCodeWithModifiers(keyCode: keyCode)
+            }
+        }
+
+        // Handle newline characters
+        if character == "\n" || character == "\r" {
+            if let keyCode = specialKeyCodes["return"] {
                 return KeyCodeWithModifiers(keyCode: keyCode)
             }
         }

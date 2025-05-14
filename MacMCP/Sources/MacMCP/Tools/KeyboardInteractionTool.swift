@@ -84,8 +84,6 @@ public struct KeyboardInteractionTool: @unchecked Sendable {
     public var handler: @Sendable ([String: Value]?) async throws -> [Tool.Content] {
         // Return a closure that captures self and uses the injected interactionService
         return { [self] params in
-            logger.info("Processing keyboard interaction request")
-            
             do {
                 let result = try await self.processRequest(params)
                 return result
@@ -226,8 +224,6 @@ public struct KeyboardInteractionTool: @unchecked Sendable {
                     ]
                 ).asMCPError
             }
-            
-            logger.debug("Processing sequence item", metadata: ["index": "\(index)", "item": "\(itemObj)"])
             
             // Process based on the action type
             if let tapKey = itemObj["tap"]?.stringValue {
