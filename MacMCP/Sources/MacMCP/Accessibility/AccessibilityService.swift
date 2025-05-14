@@ -1116,8 +1116,6 @@ extension AccessibilityService {
   /// - Returns: The matching UIElement if found, nil otherwise
   public func findElement(identifier: String, in bundleId: String? = nil) async throws -> UIElement?
   {
-    print(
-      "🔍 DEBUG: AccessibilityService.findElement - Searching for element with ID: \(identifier)")
 
     // This is similar to UIInteractionService.findUIElement but with more logging
     var foundElement: UIElement? = nil
@@ -1208,14 +1206,7 @@ extension AccessibilityService {
       }
     }
 
-    if let element = foundElement {
-      print("✅ DEBUG: AccessibilityService.findElement - Element found:")
-      print("   - Role: \(element.role)")
-      print("   - Identifier: \(element.identifier)")
-      print(
-        "   - Frame: (\(element.frame.origin.x), \(element.frame.origin.y), \(element.frame.size.width), \(element.frame.size.height))"
-      )
-    } else {
+    if foundElement == nil {
       print("❌ DEBUG: AccessibilityService.findElement - Element not found with ID: \(identifier)")
     }
 
