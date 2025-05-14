@@ -466,7 +466,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
     /// - Returns: A boolean indicating whether the application was successfully opened
     /// - Throws: MacMCPErrorInfo if the application could not be opened
     public func openApplication(bundleIdentifier: String, arguments: [String]? = nil, hideOthers: Bool? = nil) async throws -> Bool {
-        logger.info("Opening application", metadata: [
+        logger.debug("Opening application", metadata: [
             "bundleIdentifier": "\(bundleIdentifier)",
             "arguments": "\(arguments ?? [])",
             "hideOthers": "\(hideOthers ?? false)"
@@ -477,7 +477,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
         
         // If the application is already running, activate it
         if appInfo.isRunning {
-            logger.info("Application is already running, activating", metadata: [
+            logger.debug("Application is already running, activating", metadata: [
                 "bundleIdentifier": "\(bundleIdentifier)",
                 "applicationName": "\(appInfo.name)",
                 "processId": "\(appInfo.processId ?? 0)"
@@ -656,7 +656,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
             // Update the cache with the running application
             updateCacheForRunningApp(runningApplication)
             
-            logger.info("Application launched, verifying initialization", metadata: [
+            logger.debug("Application launched, verifying initialization", metadata: [
                 "bundleIdentifier": "\(bundleIdentifier)",
                 "applicationName": "\(runningApplication.localizedName ?? "Unknown")",
                 "processIdentifier": "\(runningApplication.processIdentifier)"
@@ -665,7 +665,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
             // Verify the application is properly initialized
             let verified = try await verifyApplicationLaunch(runningApplication, timeout: verificationTimeout)
             
-            logger.info("Application opened and verified successfully", metadata: [
+            logger.debug("Application opened and verified successfully", metadata: [
                 "bundleIdentifier": "\(bundleIdentifier)",
                 "applicationName": "\(runningApplication.localizedName ?? "Unknown")",
                 "processIdentifier": "\(runningApplication.processIdentifier)",
@@ -872,7 +872,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
     /// - Returns: A boolean indicating whether the application was successfully opened
     /// - Throws: MacMCPErrorInfo if the application could not be opened
     public func openApplication(name: String, arguments: [String]? = nil, hideOthers: Bool? = nil) async throws -> Bool {
-        logger.info("Opening application by name", metadata: [
+        logger.debug("Opening application by name", metadata: [
             "name": "\(name)",
             "arguments": "\(arguments ?? [])",
             "hideOthers": "\(hideOthers ?? false)"
@@ -883,7 +883,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
         
         // If the application is already running, activate it
         if appInfo.isRunning {
-            logger.info("Application is already running, activating", metadata: [
+            logger.debug("Application is already running, activating", metadata: [
                 "name": "\(name)",
                 "actualName": "\(appInfo.name)",
                 "bundleId": "\(appInfo.bundleIdentifier)",
@@ -910,7 +910,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
     /// - Returns: A boolean indicating whether the application was successfully activated
     /// - Throws: MacMCPErrorInfo if the application could not be activated
     public func activateApplication(bundleIdentifier: String) async throws -> Bool {
-        logger.info("Activating application", metadata: [
+        logger.debug("Activating application", metadata: [
             "bundleIdentifier": "\(bundleIdentifier)"
         ])
         
@@ -921,7 +921,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
                 let success = app.activate(options: [.activateIgnoringOtherApps])
                 
                 if success {
-                    logger.info("Application activated successfully from cache", metadata: [
+                    logger.debug("Application activated successfully from cache", metadata: [
                         "bundleIdentifier": "\(bundleIdentifier)",
                         "applicationName": "\(appInfo.name)",
                         "processIdentifier": "\(pid)"
@@ -950,7 +950,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
             updateCacheForRunningApp(application)
             
             if success {
-                logger.info("Application activated successfully", metadata: [
+                logger.debug("Application activated successfully", metadata: [
                     "bundleIdentifier": "\(bundleIdentifier)",
                     "applicationName": "\(application.localizedName ?? "Unknown")",
                     "processIdentifier": "\(application.processIdentifier)"
@@ -970,7 +970,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
         
         // If not running, try to launch it
         if let appInfo = await findApplicationByBundleID(bundleIdentifier) {
-            logger.info("Application is not running, attempting to launch", metadata: [
+            logger.debug("Application is not running, attempting to launch", metadata: [
                 "bundleIdentifier": "\(bundleIdentifier)",
                 "applicationName": "\(appInfo.name)"
             ])
@@ -998,7 +998,6 @@ public actor ApplicationService: ApplicationServiceProtocol {
     /// - Returns: A dictionary mapping bundle identifiers to application names
     /// - Throws: MacMCPErrorInfo if the running applications could not be retrieved
     public func getRunningApplications() async throws -> [String: String] {
-        logger.info("Getting running applications")
         
         // Refresh the cache to ensure we have up-to-date information
         await refreshCache()
@@ -1026,7 +1025,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
             }
         }
         
-        logger.info("Found running applications", metadata: [
+        logger.debug("Found running applications", metadata: [
             "count": "\(runningApps.count)"
         ])
         
@@ -1546,7 +1545,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
         // Store the handler
         applicationObservers[observerId] = notificationHandler
         
-        logger.info("Started observing application state changes", metadata: [
+        logger.debug("Started observing application state changes", metadata: [
             "observerId": "\(observerId)",
             "activeObservers": "\(applicationObservers.count)"
         ])
@@ -1560,7 +1559,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
     public func stopObservingApplications(observerId: String) async throws {
         // Remove the observer
         if applicationObservers.removeValue(forKey: observerId) != nil {
-            logger.info("Stopped observing application state changes", metadata: [
+            logger.debug("Stopped observing application state changes", metadata: [
                 "observerId": "\(observerId)",
                 "activeObservers": "\(applicationObservers.count)"
             ])
