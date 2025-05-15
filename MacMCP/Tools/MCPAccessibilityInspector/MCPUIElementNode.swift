@@ -28,8 +28,9 @@ class MCPUIElementNode {
     let isEnabled: Bool
     let isClickable: Bool
     let isVisible: Bool
-    let elementPath: String? // New property for UI element path
+    let elementPath: String? // Element path segment from server
     var parentPath: String? // Path of parent element (populated during traversal)
+    var fullPath: String? // Complete path including all ancestors (calculated during traversal)
     
     init(jsonElement: [String: Any], index: Int) {
         self.index = index
@@ -156,6 +157,9 @@ class MCPUIElementNode {
                 // Set the parent path relationship to help understand the hierarchy
                 childNode.parentPath = self.elementPath
                 
+                // Calculate the full path for this node
+                childNode.calculateFullPath(parentNode: self)
+                
                 // Add to children
                 self.children.append(childNode)
 
@@ -165,6 +169,60 @@ class MCPUIElementNode {
         }
 
         return nextIndex
+    }
+    
+    /// Calculate the full path for this node using parent's full path if available
+    func calculateFullPath(parentNode: MCPUIElementNode?) {
+        // Process node's path segment, removing any 'ui://' prefix if present
+        var cleanSegment: String? = nil
+        if let pathSegment = self.elementPath {
+            // If this segment has a ui:// prefix, remove it
+            if pathSegment.hasPrefix("ui://") {
+                cleanSegment = String(pathSegment.dropFirst(5))
+            } else {
+                cleanSegment = pathSegment
+            }
+        }
+        
+        // For the root node, the full path is "ui://" + the cleaned path segment
+        if parentNode == nil {
+            // Root node - use "ui://" prefix with the cleaned segment
+            if let segment = cleanSegment {
+                self.fullPath = "ui://" + segment
+            } else {
+                self.fullPath = "ui://"
+            }
+            return
+        }
+        
+        // If parent has a full path, combine with this node's segment
+        if let parentFullPath = parentNode?.fullPath, let segment = cleanSegment {
+            // Check if parent's path is the basic prefix
+            if parentFullPath == "ui://" {
+                // Join without adding an extra separator
+                self.fullPath = parentFullPath + segment
+            } else {
+                // Join with separator
+                self.fullPath = parentFullPath + "/" + segment
+            }
+            return
+        }
+        
+        // If parent has no full path but has a path segment
+        if let parentSegment = parentNode?.elementPath, let segment = cleanSegment {
+            // Clean the parent segment too
+            var cleanParentSegment = parentSegment
+            if cleanParentSegment.hasPrefix("ui://") {
+                cleanParentSegment = String(cleanParentSegment.dropFirst(5))
+            }
+            
+            // Start with prefix
+            self.fullPath = "ui://" + cleanParentSegment + "/" + segment
+            return
+        }
+        
+        // Last resort: Use the synthetic path
+        self.fullPath = self.generateSyntheticPath()
     }
     
     /// Generate a synthetic element path if one wasn't provided

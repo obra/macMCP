@@ -19,6 +19,7 @@ class MCPTreeVisualizer {
         var showDetails: Bool = false
         var showAllAttributes: Bool = false
         var highlightPaths: Bool = false
+        var showFullPaths: Bool = true // Default to showing full paths
         var indentSize: Int = 3
         var branchPrefix: String = "+"
     }
