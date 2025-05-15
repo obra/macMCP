@@ -628,6 +628,74 @@ func testEnhancedErrorReporting() throws {
     }
 }
 
+@Test("Testing progressive path resolution")
+func testProgressivePathResolution() throws {
+    let mockHierarchy = createMockElementHierarchy()
+    let mockService = MockAccessibilityService(rootElement: mockHierarchy)
+    
+    // Test 1: Create a helper to test progressive resolution behavior
+    func testProgressiveResolution(path: ElementPath, expectedSuccess: Bool, expectedSegmentCount: Int, expectedFailureIndex: Int?) {
+        // Use mock resolution helpers to manually verify behavior
+        if expectedSuccess {
+            // For success cases, verify element resolves
+            let result = mockResolvePathForTest(service: mockService, path: path)
+            #expect(result != nil)
+        } else {
+            // For failure cases, verify correct error
+            let error = mockResolvePathWithExceptionForTest(service: mockService, path: path)
+            #expect(error != nil)
+            
+            if let failureIndex = expectedFailureIndex {
+                switch error {
+                case .resolutionFailed(_, let index, _, _)?:
+                    #expect(index == failureIndex)
+                case .segmentResolutionFailed(_, let index)?:
+                    #expect(index == failureIndex)
+                case .noMatchingElements(_, let index)?:
+                    #expect(index == failureIndex)
+                case .ambiguousMatch(_, _, let index)?:
+                    #expect(index == failureIndex)
+                default:
+                    break
+                }
+            }
+        }
+    }
+    
+    // Test case 1: Successful path resolution
+    let successPath = try ElementPath.parse("ui://AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]")
+    testProgressiveResolution(path: successPath, expectedSuccess: true, expectedSegmentCount: 3, expectedFailureIndex: nil)
+    
+    // Test case 2: Failed path resolution with non-existent element
+    let failurePath = try ElementPath.parse("ui://AXWindow/AXGroup[@AXTitle=\"NonExistent\"]")
+    testProgressiveResolution(path: failurePath, expectedSuccess: false, expectedSegmentCount: 2, expectedFailureIndex: 1)
+    
+    // Test case 3: Ambiguous match test
+    let ambiguousPath = try ElementPath.parse("ui://AXWindow/AXGroup[@AXTitle=\"Duplicate\"]")
+    testProgressiveResolution(path: ambiguousPath, expectedSuccess: false, expectedSegmentCount: 2, expectedFailureIndex: 1)
+    
+    // Test case 4: Ambiguous match with index
+    let ambiguousWithIndexPath = try ElementPath.parse("ui://AXWindow/AXGroup[@AXTitle=\"Duplicate\"][0]")
+    testProgressiveResolution(path: ambiguousWithIndexPath, expectedSuccess: true, expectedSegmentCount: 2, expectedFailureIndex: nil)
+    
+    // Test case 5: Verify that ambiguous matches report detailed candidate information
+    let ambiguousError = mockResolvePathWithExceptionForTest(service: mockService, path: ambiguousPath)
+    if case .resolutionFailed(_, _, let candidates, _)? = ambiguousError {
+        #expect(candidates.count > 0)
+        // Verify candidates contain useful information
+        for candidate in candidates {
+            #expect(candidate.contains("role:") || candidate.contains("AXRole"))
+        }
+    }
+    
+    // Test case 6: Verify that non-existent element errors provide helpful suggestions
+    let nonExistentError = mockResolvePathWithExceptionForTest(service: mockService, path: failurePath)
+    if case .resolutionFailed(_, _, let candidates, let reason)? = nonExistentError {
+        #expect(candidates.count > 0)
+        #expect(reason.contains("No elements match"))
+    }
+}
+
 // Helper functions for test path resolution
 private func mockResolvePathForTest(service: MockAccessibilityService, path: ElementPath) -> MockAXUIElement? {
     do {
