@@ -402,4 +402,86 @@ public enum FrameSource: String, Codable {
     override public var hash: Int {
         return identifier.hashValue
     }
+    
+    /// Generate a path-based identifier for this element
+    /// - Parameters:
+    ///   - includeValue: Whether to include the value attribute (default false since values can change)
+    ///   - includeFrame: Whether to include frame information (default false)
+    /// - Returns: A path string conforming to ElementPath syntax
+    /// - Throws: ElementPathError if path generation fails
+    public func generatePath(includeValue: Bool = false, includeFrame: Bool = false) throws -> String {
+        // Start building the path with the current element
+        var pathSegments: [PathSegment] = []
+        
+        // Build the path from root to leaf (we'll reverse at the end)
+        var currentElement: UIElement? = self
+        
+        // Convert the current element and its ancestors to path segments
+        while let element = currentElement {
+            // Create a segment for this element
+            var attributes: [String: String] = [:]
+            
+            // Add useful identifying attributes - title, description, and identifier are most stable
+            if let title = element.title, !title.isEmpty {
+                attributes["title"] = title
+            }
+            
+            if let desc = element.elementDescription, !desc.isEmpty {
+                attributes["description"] = desc
+            }
+            
+            // Include the value if requested and available
+            if includeValue, let value = element.value, !value.isEmpty {
+                attributes["value"] = value
+            }
+            
+            // Add custom identifier if available
+            if let identifier = element.attributes["identifier"] as? String, !identifier.isEmpty {
+                attributes["identifier"] = identifier
+            }
+            
+            // Include frame information if requested
+            if includeFrame {
+                attributes["x"] = String(format: "%.0f", element.frame.origin.x)
+                attributes["y"] = String(format: "%.0f", element.frame.origin.y)
+                attributes["width"] = String(format: "%.0f", element.frame.size.width)
+                attributes["height"] = String(format: "%.0f", element.frame.size.height)
+            }
+            
+            // Include boolean state attributes that help identify the element
+            // Only include true values as false is the default
+            if element.attributes["enabled"] as? Bool == false {
+                attributes["enabled"] = "false"
+            }
+            
+            if element.attributes["focused"] as? Bool == true {
+                attributes["focused"] = "true"
+            }
+            
+            if element.attributes["selected"] as? Bool == true {
+                attributes["selected"] = "true"
+            }
+            
+            // Create the path segment
+            let segment = PathSegment(role: element.role, attributes: attributes)
+            pathSegments.append(segment)
+            
+            // Move to parent
+            currentElement = element.parent
+        }
+        
+        // Reverse the segments to get root-to-leaf order
+        pathSegments.reverse()
+        
+        // Create the ElementPath
+        let elementPath = try ElementPath(segments: pathSegments)
+        
+        // Handle special case for menu paths - support legacy format
+        if self.identifier.hasPrefix("ui:menu:") {
+            // Return the path using the new format, but retain the menu structure
+            return elementPath.toString()
+        }
+        
+        return elementPath.toString()
+    }
 }

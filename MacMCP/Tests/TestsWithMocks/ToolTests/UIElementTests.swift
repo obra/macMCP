@@ -146,4 +146,165 @@ struct UIElementTests {
         #expect(frame?["width"] as? Double == 100)
         #expect(frame?["height"] as? Double == 50)
     }
+    
+    @Test("Simple UIElement path generation")
+    func testSimplePathGeneration() throws {
+        let element = UIElement(
+            identifier: "test-element",
+            role: "AXButton",
+            title: "Test Button",
+            elementDescription: "A test button",
+            frame: CGRect(x: 10, y: 20, width: 100, height: 50)
+        )
+        
+        // Test path generation without parent
+        let path = try element.generatePath()
+        #expect(path.hasPrefix(ElementPath.pathPrefix))
+        #expect(path.contains("AXButton"))
+        #expect(path.contains("[@title=\"Test Button\"]"))
+        
+        // The path should include useful attributes for identification
+        #expect(path.contains("[@description=\"A test button\"]"))
+    }
+    
+    @Test("UIElement path generation with parent hierarchy")
+    func testPathGenerationWithParents() throws {
+        // Create a window element
+        let window = UIElement(
+            identifier: "window-1",
+            role: "AXWindow",
+            title: "Test Window",
+            frame: CGRect(x: 0, y: 0, width: 800, height: 600)
+        )
+        
+        // Create a group element
+        let group = UIElement(
+            identifier: "group-1",
+            role: "AXGroup",
+            title: "Controls Group",
+            frame: CGRect(x: 10, y: 10, width: 200, height: 100),
+            parent: window
+        )
+        
+        // Create a button element
+        let button = UIElement(
+            identifier: "button-1",
+            role: "AXButton",
+            title: "OK Button",
+            frame: CGRect(x: 20, y: 50, width: 80, height: 30),
+            parent: group
+        )
+        
+        // Generate path for the button
+        let path = try button.generatePath()
+        
+        // Path should include the full hierarchy
+        #expect(path.hasPrefix(ElementPath.pathPrefix))
+        #expect(path.contains("AXWindow"))
+        #expect(path.contains("[@title=\"Test Window\"]"))
+        #expect(path.contains("AXGroup"))
+        #expect(path.contains("[@title=\"Controls Group\"]"))
+        #expect(path.contains("AXButton"))
+        #expect(path.contains("[@title=\"OK Button\"]"))
+        
+        // The path segments should be in the correct order (parent first)
+        let segments = path.replacingOccurrences(of: ElementPath.pathPrefix, with: "").split(separator: "/")
+        #expect(segments.count == 3)
+        #expect(segments[0].hasPrefix("AXWindow"))
+        #expect(segments[1].hasPrefix("AXGroup"))
+        #expect(segments[2].hasPrefix("AXButton"))
+    }
+    
+    @Test("UIElement path generation with various attribute types")
+    func testPathGenerationWithAttributes() throws {
+        // Create an element with several attribute types
+        let element = UIElement(
+            identifier: "complex-element",
+            role: "AXTextField",
+            title: "Search",
+            value: "query text",
+            elementDescription: "Search field",
+            frame: CGRect(x: 10, y: 20, width: 100, height: 30),
+            attributes: [
+                "enabled": true,
+                "focused": true,
+                "required": true,
+                "placeholder": "Enter search terms",
+                "identifier": "searchField"
+            ]
+        )
+        
+        // Generate the path
+        let path = try element.generatePath()
+        
+        // Path should include useful attributes for identification
+        #expect(path.hasPrefix(ElementPath.pathPrefix))
+        #expect(path.contains("AXTextField"))
+        #expect(path.contains("[@title=\"Search\"]"))
+        #expect(path.contains("[@description=\"Search field\"]"))
+        #expect(path.contains("[@identifier=\"searchField\"]"))
+        
+        // Value is not included by default as it can change
+        #expect(!path.contains("[@value=\"query text\"]"))
+    }
+    
+    @Test("UIElement path generation with missing attributes")
+    func testPathGenerationWithMissingAttributes() throws {
+        // Create an element with minimal attributes
+        let element = UIElement(
+            identifier: "minimal-element",
+            role: "AXUnknown",
+            frame: CGRect(x: 10, y: 20, width: 100, height: 30)
+        )
+        
+        // Generate the path
+        let path = try element.generatePath()
+        
+        // Path should still be valid with just the role
+        #expect(path.hasPrefix(ElementPath.pathPrefix))
+        #expect(path.contains("AXUnknown"))
+        
+        // Should not contain empty attributes
+        #expect(!path.contains("[@title="))
+        #expect(!path.contains("[@description="))
+    }
+    
+    @Test("Menu element path generation compatibility")
+    func testMenuElementPathGeneration() throws {
+        // Create a menu bar item
+        let menuBarItem = UIElement(
+            identifier: "ui:menu:File",
+            role: "AXMenuBarItem",
+            title: "File",
+            frame: CGRect(x: 10, y: 0, width: 50, height: 20)
+        )
+        
+        // Create a menu
+        let menu = UIElement(
+            identifier: "ui:menu:File > Menu",
+            role: "AXMenu",
+            frame: CGRect(x: 10, y: 20, width: 200, height: 300),
+            parent: menuBarItem
+        )
+        
+        // Create a menu item
+        let menuItem = UIElement(
+            identifier: "ui:menu:File > Open",
+            role: "AXMenuItem",
+            title: "Open",
+            frame: CGRect(x: 10, y: 40, width: 180, height: 20),
+            parent: menu
+        )
+        
+        // Generate path for the menu item
+        let path = try menuItem.generatePath()
+        
+        // Path should use the new format but preserve the menu structure
+        #expect(path.hasPrefix(ElementPath.pathPrefix))
+        #expect(path.contains("AXMenuBarItem"))
+        #expect(path.contains("[@title=\"File\"]"))
+        #expect(path.contains("AXMenu"))
+        #expect(path.contains("AXMenuItem"))
+        #expect(path.contains("[@title=\"Open\"]"))
+    }
 }
