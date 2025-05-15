@@ -39,29 +39,29 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
         public static let allClear = "AC"
         public static let delete = "Delete"
         
-        /// Button mappings for modern macOS calculator with exact IDs from MCP
+        /// Button mappings for macOS calculator with path-based identifiers
         public static let buttonMappings: [String: String] = [
-            "0": "ui:Zero:2e0def8cf4c33a08",
-            "1": "ui:One:3de92c2b7df0c0b4",
-            "2": "ui:Two:534b00223948a4e9",
-            "3": "ui:Three:11bdb56adc9bf20f",
-            "4": "ui:Four:e6f538ed5493cf2e",
-            "5": "ui:Five:a4a5059f35e656e3",
-            "6": "ui:Six:93d83f5e3f2288b6",
-            "7": "ui:Seven:8d037607e8f8f393",
-            "8": "ui:Eight:f67917dc5cd76a6c",
-            "9": "ui:Nine:a5e0cf02072aed2b",
-            "+": "ui:Add:9c49141ad15f89b9",
-            "-": "ui:Subtract:f5d95b1955041e8e",
-            "×": "ui:Multiply:e7d6b0f1c262c7c6",
-            "÷": "ui:Divide:a9eaa67eb21185e7",
-            "=": "ui:Equals:f2f76903bdbf8d78",
-            ".": "ui:Decimal:5662db8ae93a96c6",
-            "%": "ui:Percent:ab04fd1e8d536769",
-            "±": "ui:Negate:0ecb4655434a67f4",
-            "C": "ui:Clear:8c80c300c6c3093e",
-            "AC": "ui:AllClear:8c80c300c6c3093e",
-            "Delete": "ui:Delete:65de4e64bffd4335"
+            "0": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"0\"]",
+            "1": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"1\"]",
+            "2": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"2\"]",
+            "3": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"3\"]",
+            "4": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"4\"]",
+            "5": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"5\"]",
+            "6": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"6\"]",
+            "7": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"7\"]",
+            "8": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"8\"]",
+            "9": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"9\"]",
+            "+": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"+\"]",
+            "-": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"-\"]",
+            "×": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"×\"]",
+            "÷": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"÷\"]",
+            "=": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"=\"]",
+            ".": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\".\"]",
+            "%": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"%\"]",
+            "±": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"±\"]",
+            "C": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"C\"]",
+            "AC": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"AC\"]",
+            "Delete": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"Delete\"]"
         ]
         
     }
@@ -115,9 +115,9 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
             return nil
         }
 
-        // Try to find the static text element with ID from direct inspection
-        let staticTextId = "ui:AXStaticText:6eeecdfeaaf1c80a"
-        let directCriteria = UIElementCriteria(identifier: staticTextId)
+        // Try to find the display element using path-based identifier
+        let displayPath = "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXScrollArea[@description=\"Input\"]/AXStaticText"
+        let directCriteria = UIElementCriteria(identifier: displayPath)
 
         if let element = try await toolChain.findElement(
             matching: directCriteria,

@@ -401,6 +401,98 @@ final class InterfaceExplorerToolTests: XCTestCase {
         }
     }
     
+    /// Test path support in interface explorer tool
+    func testElementPathSupport() async throws {
+        // Launch calculator first
+        try await launchCalculator()
+        
+        // Define direct handler access for more precise testing
+        let interfaceExplorerTool = InterfaceExplorerTool(
+            accessibilityService: toolChain.accessibilityService,
+            logger: nil
+        )
+        
+        // Create parameters for application scope
+        let params: [String: Value] = [
+            "scope": .string("application"),
+            "bundleId": .string("com.apple.calculator"),
+            "maxDepth": .int(5)
+        ]
+        
+        // Call the handler directly
+        let result = try await interfaceExplorerTool.handler(params)
+        
+        // Verify we got a result
+        XCTAssertFalse(result.isEmpty, "Should receive a non-empty result")
+        
+        // Verify result is text content
+        if case .text(let jsonString) = result[0] {
+            // Parse JSON
+            let jsonData = jsonString.data(using: String.Encoding.utf8)!
+            let elements = try JSONSerialization.jsonObject(with: jsonData) as! [[String: Any]]
+            
+            // Verify we got UI elements back
+            XCTAssertFalse(elements.isEmpty, "Should receive UI elements")
+            
+            // Check the elements for path information
+            var foundElementWithPath = false
+            
+            // Function to search recursively through the element tree
+            func checkElementsForPaths(element: [String: Any]) {
+                // Check if this element has a path
+                if let path = element["path"] as? String, path.hasPrefix("ui://") {
+                    foundElementWithPath = true
+                }
+                
+                // Recursively check children
+                if let children = element["children"] as? [[String: Any]] {
+                    for child in children {
+                        checkElementsForPaths(element: child)
+                    }
+                }
+            }
+            
+            // Check all elements
+            for element in elements {
+                checkElementsForPaths(element: element)
+            }
+            
+            // Verify that we found at least one element with a path
+            XCTAssertTrue(foundElementWithPath, "Should find at least one element with a path")
+            
+            // Find a specific type of element and check its path in more detail
+            var foundButtonWithValidPath = false
+            
+            // Function to check for buttons with valid paths
+            func checkButtonPaths(element: [String: Any]) {
+                if let role = element["role"] as? String, role == "AXButton",
+                   let path = element["path"] as? String {
+                    // Verify the path has the correct format
+                    XCTAssert(path.hasPrefix("ui://"), "Path should start with ui://")
+                    XCTAssert(path.contains("AXButton"), "Button path should contain AXButton")
+                    foundButtonWithValidPath = true
+                }
+                
+                // Recursively check children
+                if let children = element["children"] as? [[String: Any]] {
+                    for child in children {
+                        checkButtonPaths(element: child)
+                    }
+                }
+            }
+            
+            // Check all elements for buttons with valid paths
+            for element in elements {
+                checkButtonPaths(element: element)
+            }
+            
+            // Verify that we found at least one button with a valid path
+            XCTAssertTrue(foundButtonWithValidPath, "Should find at least one button with a valid path")
+        } else {
+            XCTFail("Result should be text content")
+        }
+    }
+    
     /// Test position scope with the interface explorer tool
     func testPositionScope() async throws {
         // Launch calculator first

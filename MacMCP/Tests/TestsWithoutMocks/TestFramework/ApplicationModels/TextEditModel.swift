@@ -10,13 +10,13 @@ import MCP
 public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
     /// Button and control identifiers for TextEdit
     public enum Control {
-        /// Formatting controls
-        public static let boldCheckbox = "ui:bold:5d262e3bd3786b56"
-        public static let italicCheckbox = "ui:italic:7e218a807f0ce841"
-        public static let underlineCheckbox = "ui:underline:a3bc2336ef8b1322"
+        /// Formatting controls with path-based identifiers
+        public static let boldCheckbox = "ui://AXApplication[@title=\"TextEdit\"]/AXWindow/AXToolbar/AXCheckBox[@description=\"Bold\"]"
+        public static let italicCheckbox = "ui://AXApplication[@title=\"TextEdit\"]/AXWindow/AXToolbar/AXCheckBox[@description=\"Italic\"]"
+        public static let underlineCheckbox = "ui://AXApplication[@title=\"TextEdit\"]/AXWindow/AXToolbar/AXCheckBox[@description=\"Underline\"]"
 
-        /// Text area
-        public static let textArea = "ui:AXTextArea:220ecc61da9f75dc"
+        /// Text area with path-based identifier
+        public static let textArea = "ui://AXApplication[@title=\"TextEdit\"]/AXWindow/AXGroup/AXScrollArea/AXTextArea"
 
         /// Format menu item paths
         public static let fontMenuItem = "Format/Font"

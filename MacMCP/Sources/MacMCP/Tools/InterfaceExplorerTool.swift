@@ -40,6 +40,9 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     /// Additional element attributes
     public let attributes: [String: String]
     
+    /// Path-based identifier for the element
+    public let path: String?
+    
     /// Children elements, if within maxDepth
     public let children: [EnhancedElementDescriptor]?
     
@@ -56,6 +59,7 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     ///   - capabilities: Interaction capabilities
     ///   - actions: Available actions
     ///   - attributes: Additional attributes
+    ///   - path: Path-based identifier (optional)
     ///   - children: Child elements (optional)
     public init(
         id: String,
@@ -69,6 +73,7 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
         capabilities: [String],
         actions: [String],
         attributes: [String: String] = [:],
+        path: String? = nil,
         children: [EnhancedElementDescriptor]? = nil
     ) {
         self.id = id
@@ -82,6 +87,7 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
         self.capabilities = capabilities
         self.actions = actions
         self.attributes = attributes
+        self.path = path
         self.children = children
     }
     
@@ -90,11 +96,13 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     ///   - element: The UIElement to convert
     ///   - maxDepth: Maximum depth of the hierarchy to traverse
     ///   - currentDepth: Current depth in the hierarchy
+    ///   - includePath: Whether to include the path (default true)
     /// - Returns: An EnhancedElementDescriptor
     public static func from(
         element: UIElement,
         maxDepth: Int = 10,
-        currentDepth: Int = 0
+        currentDepth: Int = 0,
+        includePath: Bool = true
     ) -> EnhancedElementDescriptor {
         // Generate a human-readable name
         let name: String
@@ -125,12 +133,25 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
         // Clean and filter attributes
         let filteredAttributes = filterAttributes(element)
         
+        // Generate path if requested
+        let path: String?
+        if includePath {
+            do {
+                path = try element.generatePath()
+            } catch {
+                // If path generation fails, we'll still return the descriptor without a path
+                path = nil
+            }
+        } else {
+            path = nil
+        }
+        
         // Handle children if we haven't reached maximum depth
         let children: [EnhancedElementDescriptor]?
         if currentDepth < maxDepth && !element.children.isEmpty {
             // Recursively convert children with incremented depth
             children = element.children.map { 
-                from(element: $0, maxDepth: maxDepth, currentDepth: currentDepth + 1) 
+                from(element: $0, maxDepth: maxDepth, currentDepth: currentDepth + 1, includePath: includePath) 
             }
         } else {
             children = nil
@@ -148,6 +169,7 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
             capabilities: capabilities,
             actions: element.actions,
             attributes: filteredAttributes,
+            path: path,
             children: children
         )
     }

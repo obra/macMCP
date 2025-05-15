@@ -54,6 +54,9 @@ public struct ElementDescriptor: Codable, Sendable, Identifiable {
     /// Children elements, if requested and available
     public let children: [ElementDescriptor]?
     
+    /// Path-based identifier for the element following the ElementPath syntax
+    public let path: String?
+    
     /// Create a new element descriptor
     /// - Parameters:
     ///   - id: Unique identifier
@@ -72,6 +75,7 @@ public struct ElementDescriptor: Codable, Sendable, Identifiable {
     ///   - hasChildren: Whether element has children
     ///   - childCount: Number of children (optional)
     ///   - children: Child elements (optional)
+    ///   - path: Path-based identifier (optional)
     public init(
         id: String,
         name: String? = nil,
@@ -88,7 +92,8 @@ public struct ElementDescriptor: Codable, Sendable, Identifiable {
         attributes: [String: String] = [:],
         hasChildren: Bool = false,
         childCount: Int? = nil,
-        children: [ElementDescriptor]? = nil
+        children: [ElementDescriptor]? = nil,
+        path: String? = nil
     ) {
         self.id = id
         // Generate a human-readable name if not provided
@@ -118,16 +123,19 @@ public struct ElementDescriptor: Codable, Sendable, Identifiable {
         self.hasChildren = hasChildren
         self.childCount = childCount
         self.children = children
+        self.path = path
     }
     
     /// Convert a UIElement to an ElementDescriptor
     /// - Parameters:
     ///   - element: The UIElement to convert
     ///   - includeChildren: Whether to include children (default false)
+    ///   - includePath: Whether to include the path (default true)
     /// - Returns: An ElementDescriptor representing the element
     public static func from(
         element: UIElement,
-        includeChildren: Bool = false
+        includeChildren: Bool = false,
+        includePath: Bool = true
     ) -> ElementDescriptor {
         // Extract attributes that we want to expose as first-class properties
         let isVisible = (element.attributes["visible"] as? Bool) ?? true
@@ -155,7 +163,7 @@ public struct ElementDescriptor: Codable, Sendable, Identifiable {
         // Handle children
         let children: [ElementDescriptor]?
         if includeChildren && !element.children.isEmpty {
-            children = element.children.map { from(element: $0, includeChildren: includeChildren) }
+            children = element.children.map { from(element: $0, includeChildren: includeChildren, includePath: includePath) }
         } else {
             children = nil
         }
@@ -170,6 +178,19 @@ public struct ElementDescriptor: Codable, Sendable, Identifiable {
             name = "\(element.role) with value \(val)"
         } else {
             name = element.role
+        }
+        
+        // Generate the path if requested
+        let path: String?
+        if includePath {
+            do {
+                path = try element.generatePath()
+            } catch {
+                // If path generation fails, we'll still return the descriptor without a path
+                path = nil
+            }
+        } else {
+            path = nil
         }
         
         // Always use the original stable identifier
@@ -190,7 +211,8 @@ public struct ElementDescriptor: Codable, Sendable, Identifiable {
             attributes: cleanedAttributes,
             hasChildren: !element.children.isEmpty,
             childCount: element.children.isEmpty ? nil : element.children.count,
-            children: children
+            children: children,
+            path: path
         )
     }
     
