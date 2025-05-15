@@ -97,21 +97,37 @@ The UIElement path generation functionality has been successfully implemented wi
 
 ## Phase 2: Element Path Resolution
 
-### Step 5: Implement ElementPath Resolution Logic
+### ✅ Step 5: Implement ElementPath Resolution Logic (Completed)
 
-**Implementation Tasks:**
-1. Extend ElementPathTests.swift with tests for path resolution
-2. Create test fixtures to validate resolution logic
-3. Implement these methods in ElementPath:
-   - `resolve(using: AccessibilityService) async throws -> AXUIElement?`
-   - `resolveSegment(element: AXUIElement, segment: PathSegment) async throws -> AXUIElement?`
-4. Add integration tests with real applications
+The ElementPath resolution functionality has been successfully implemented with the following features:
 
-**Key Requirements:**
-- Start with the application element
-- Traverse through each path segment
-- Match elements based on role, attributes, and index
-- Handle error cases gracefully with clear messages about which segment failed
+- **Core Implementation**:
+  - Added `resolve(using: AccessibilityServiceProtocol) async throws -> AXUIElement` method
+  - Added `resolveSegment(element: AXUIElement, segment: PathSegment, segmentIndex: Int) async throws -> AXUIElement?` method
+  - Added `elementMatchesSegment(_ element: AXUIElement, segment: PathSegment) async throws -> Bool` helper method
+
+- **Application Resolution Strategies**:
+  - Bundle identifier-based application matching: `[@bundleIdentifier="com.apple.calculator"]`
+  - Title-based application matching: `[@title="Calculator"]`
+  - Fallback to focused/frontmost application when no specific attributes provided
+
+- **Robust Resolution Logic**:
+  - Traverses element hierarchy following the path segments
+  - Matches elements based on role, attributes, and optional index
+  - Handles edge cases like missing children or no matching elements
+  - Provides detailed error messages indicating which segment failed and why
+
+- **Comprehensive Testing**:
+  - Mock-based tests for core resolution logic
+  - Integration tests with Calculator app to verify real-world usage
+  - Tests for all three application resolution strategies (bundleId, title, focused app)
+  - Multiple path resolution scenarios including ambiguous matches and indexed resolution
+
+**Implementation Highlights**:
+- Error handling provides precise information about which segment failed and why
+- Supports both exact attribute matches and partial text matches
+- Fallback strategies ensure robust application element resolution
+- Real-world integration tests verify the solution works with actual macOS applications
 
 ### Step 6: Extend UIElement with Path-based Initialization
 
