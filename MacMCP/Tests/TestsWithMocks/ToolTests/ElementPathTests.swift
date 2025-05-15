@@ -277,4 +277,310 @@ struct ElementPathTests {
         
         #expect(regeneratedPath == originalPath)
     }
+    
+    // MARK: - Path Resolution Tests
+    
+    // Mock AXUIElement class for testing path resolution
+    class MockAXUIElement {
+        let role: String
+        let attributes: [String: Any]
+        let children: [MockAXUIElement]
+        
+        init(role: String, attributes: [String: Any] = [:], children: [MockAXUIElement] = []) {
+            self.role = role
+            self.attributes = attributes
+            self.children = children
+        }
+    }
+    
+    // Mock AccessibilityService for testing path resolution
+    class MockAccessibilityService {
+        let rootElement: MockAXUIElement
+        
+        init(rootElement: MockAXUIElement) {
+            self.rootElement = rootElement
+        }
+        
+        func getAttribute(_ element: MockAXUIElement, attribute: String) -> Any? {
+            if attribute == "AXRole" {
+                return element.role
+            } else if attribute == "AXChildren" {
+                return element.children
+            } else {
+                return element.attributes[attribute]
+            }
+        }
+    }
+    
+    // Helper function to create a mock element hierarchy
+    func createMockElementHierarchy() -> MockAXUIElement {
+        // Create a window with various controls
+        let button1 = MockAXUIElement(
+            role: "AXButton",
+            attributes: ["AXTitle": "OK", "AXDescription": "OK Button", "AXEnabled": true]
+        )
+        
+        let button2 = MockAXUIElement(
+            role: "AXButton",
+            attributes: ["AXTitle": "Cancel", "AXDescription": "Cancel Button", "AXEnabled": true]
+        )
+        
+        let textField = MockAXUIElement(
+            role: "AXTextField",
+            attributes: ["AXValue": "Sample text", "AXDescription": "Text input"]
+        )
+        
+        let controlGroup = MockAXUIElement(
+            role: "AXGroup",
+            attributes: ["AXTitle": "Controls", "AXDescription": "Control group"],
+            children: [button1, button2, textField]
+        )
+        
+        let contentArea = MockAXUIElement(
+            role: "AXScrollArea",
+            attributes: ["AXDescription": "Content area"],
+            children: [
+                MockAXUIElement(
+                    role: "AXStaticText",
+                    attributes: ["AXValue": "Hello World"]
+                )
+            ]
+        )
+        
+        let duplicateGroup1 = MockAXUIElement(
+            role: "AXGroup",
+            attributes: ["AXTitle": "Duplicate", "AXIdentifier": "group1"],
+            children: [
+                MockAXUIElement(
+                    role: "AXCheckBox",
+                    attributes: ["AXTitle": "Option 1", "AXValue": 1]
+                )
+            ]
+        )
+        
+        let duplicateGroup2 = MockAXUIElement(
+            role: "AXGroup",
+            attributes: ["AXTitle": "Duplicate", "AXIdentifier": "group2"],
+            children: [
+                MockAXUIElement(
+                    role: "AXCheckBox",
+                    attributes: ["AXTitle": "Option 2", "AXValue": 0]
+                )
+            ]
+        )
+        
+        return MockAXUIElement(
+            role: "AXWindow",
+            attributes: ["AXTitle": "Test Window"],
+            children: [controlGroup, contentArea, duplicateGroup1, duplicateGroup2]
+        )
+    }
+    
+    @Test("Path resolution with simple path")
+    func testPathResolutionSimple() throws {
+        // This test will validate the basic resolution logic using our mock hierarchy
+        let mockHierarchy = createMockElementHierarchy()
+        let mockService = MockAccessibilityService(rootElement: mockHierarchy)
+        
+        // Test resolving a simple path
+        let pathString = "ui://AXWindow/AXGroup[@AXTitle=\"Controls\"]"
+        let path = try ElementPath.parse(pathString)
+        
+        let mockResolveResult = mockResolvePathForTest(service: mockService, path: path)
+        #expect(mockResolveResult != nil)
+        #expect(mockResolveResult?.role == "AXGroup")
+        #expect(mockResolveResult?.attributes["AXTitle"] as? String == "Controls")
+    }
+    
+    @Test("Path resolution with attributes")
+    func testPathResolutionWithAttributes() throws {
+        // This test will validate resolution with attribute matching
+        let mockHierarchy = createMockElementHierarchy()
+        let mockService = MockAccessibilityService(rootElement: mockHierarchy)
+        
+        // Test resolving a path with attribute constraints
+        let pathString = "ui://AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
+        let path = try ElementPath.parse(pathString)
+        
+        let mockResolveResult = mockResolvePathForTest(service: mockService, path: path)
+        #expect(mockResolveResult != nil)
+        #expect(mockResolveResult?.role == "AXButton")
+        #expect(mockResolveResult?.attributes["AXTitle"] as? String == "OK")
+    }
+    
+    @Test("Path resolution with index")
+    func testPathResolutionWithIndex() throws {
+        // This test will validate resolution with index-based selection
+        let mockHierarchy = createMockElementHierarchy()
+        let mockService = MockAccessibilityService(rootElement: mockHierarchy)
+        
+        // Test resolving a path with index for disambiguation
+        let pathString = "ui://AXWindow/AXGroup[@AXTitle=\"Duplicate\"][1]"
+        let path = try ElementPath.parse(pathString)
+        
+        let mockResolveResult = mockResolvePathForTest(service: mockService, path: path)
+        #expect(mockResolveResult != nil)
+        #expect(mockResolveResult?.role == "AXGroup")
+        #expect(mockResolveResult?.attributes["AXIdentifier"] as? String == "group2")
+    }
+    
+    @Test("Path resolution with no matching elements")
+    func testPathResolutionNoMatch() throws {
+        // This test will validate error handling when no elements match
+        let mockHierarchy = createMockElementHierarchy()
+        let mockService = MockAccessibilityService(rootElement: mockHierarchy)
+        
+        // Test resolving a path that has no matches
+        let pathString = "ui://AXWindow/AXGroup[@AXTitle=\"NonExistent\"]"
+        let path = try ElementPath.parse(pathString)
+        
+        let mockResolveResult = mockResolvePathForTest(service: mockService, path: path)
+        #expect(mockResolveResult == nil)
+    }
+    
+    @Test("Path resolution with ambiguous match")
+    func testPathResolutionAmbiguousMatch() throws {
+        // This test will validate error handling when multiple elements match without an index
+        let mockHierarchy = createMockElementHierarchy()
+        let mockService = MockAccessibilityService(rootElement: mockHierarchy)
+        
+        // Test resolving a path with ambiguous matches (both duplicate groups)
+        let pathString = "ui://AXWindow/AXGroup[@AXTitle=\"Duplicate\"]"
+        let path = try ElementPath.parse(pathString)
+        
+        let mockResolveException = mockResolvePathWithExceptionForTest(service: mockService, path: path)
+        #expect(mockResolveException != nil)
+        guard let error = mockResolveException else {
+            XCTFail("Expected ambiguous match error but no error occurred")
+            return
+        }
+        
+        switch error {
+        case .ambiguousMatch(let segment, let count, let index):
+            #expect(segment.contains("AXGroup[@AXTitle=\"Duplicate\"]"))
+            #expect(count == 2)
+            #expect(index == 1)
+        default:
+            XCTFail("Expected ambiguous match error but got \(error)")
+        }
+    }
+    
+// These need to be defined inside the test suite class, not as an extension
+@Test("Utility for path resolution in tests")
+func testMockPathResolution() throws {
+    let mockHierarchy = createMockElementHierarchy()
+    let mockService = MockAccessibilityService(rootElement: mockHierarchy)
+    
+    // Simple path test
+    let path = try ElementPath.parse("ui://AXWindow/AXGroup[@AXTitle=\"Controls\"]")
+    let result = mockResolvePathForTest(service: mockService, path: path)
+    #expect(result != nil)
+    #expect(result?.role == "AXGroup")
+}
+
+// Helper functions for test path resolution
+private func mockResolvePathForTest(service: MockAccessibilityService, path: ElementPath) -> MockAXUIElement? {
+    do {
+        return try mockResolvePathInternal(service: service, path: path)
+    } catch {
+        return nil
+    }
+}
+
+private func mockResolvePathWithExceptionForTest(service: MockAccessibilityService, path: ElementPath) -> ElementPathError? {
+    do {
+        _ = try mockResolvePathInternal(service: service, path: path)
+        return nil
+    } catch let error as ElementPathError {
+        return error
+    } catch {
+        return nil
+    }
+}
+
+// Internal implementation that throws errors
+private func mockResolvePathInternal(service: MockAccessibilityService, path: ElementPath) throws -> MockAXUIElement {
+    // Start with the root element
+    var current = service.rootElement
+    
+    // Navigate through each segment of the path
+    for (index, segment) in path.segments.enumerated() {
+        // Skip the root segment if it's already matched
+        if index == 0 && segment.role == "AXWindow" {
+            continue
+        }
+        
+        // Find children matching this segment
+        var matches: [MockAXUIElement] = []
+        
+        if index == 0 && segment.role == current.role {
+            // Special case for the root element
+            if mockSegmentMatchesElement(segment, element: current) {
+                matches.append(current)
+            }
+        } else {
+            // Check all children
+            for child in current.children {
+                if mockSegmentMatchesElement(segment, element: child) {
+                    matches.append(child)
+                }
+            }
+        }
+        
+        // Handle matches based on count and index
+        if matches.isEmpty {
+            throw ElementPathError.noMatchingElements(segment.toString(), atSegment: index)
+        } else if matches.count > 1 && segment.index == nil {
+            // Ambiguous match
+            throw ElementPathError.ambiguousMatch(segment.toString(), matchCount: matches.count, atSegment: index)
+        } else {
+            if let segmentIndex = segment.index {
+                // Use the specified index if available
+                if segmentIndex < 0 || segmentIndex >= matches.count {
+                    throw ElementPathError.segmentResolutionFailed("Invalid index: \(segmentIndex)", atSegment: index)
+                }
+                current = matches[segmentIndex]
+            } else {
+                // Use the first match
+                current = matches[0]
+            }
+        }
+    }
+    
+    return current
+}
+
+// Check if a segment matches an element
+private func mockSegmentMatchesElement(_ segment: PathSegment, element: MockAXUIElement) -> Bool {
+    // Check role first
+    guard segment.role == element.role else {
+        return false
+    }
+    
+    // Check each attribute
+    for (key, value) in segment.attributes {
+        guard let elementValue = element.attributes[key] else {
+            return false
+        }
+        
+        // Convert to string for comparison
+        let elementValueString: String
+        if let stringValue = elementValue as? String {
+            elementValueString = stringValue
+        } else if let numberValue = elementValue as? NSNumber {
+            elementValueString = numberValue.stringValue
+        } else if let boolValue = elementValue as? Bool {
+            elementValueString = boolValue ? "true" : "false"
+        } else {
+            elementValueString = String(describing: elementValue)
+        }
+        
+        // Compare values
+        if elementValueString != value {
+            return false
+        }
+    }
+    
+    return true
+}
 }
