@@ -21,12 +21,14 @@ final class AsyncInspectionTask: @unchecked Sendable {
     private let menuPath: String?
     private let showWindowDetail: Bool
     private let windowId: String?
+    private let inspectPath: String?
 
     init(inspector: MCPInspector,
          showMenuDetail: Bool = false,
          menuPath: String? = nil,
          showWindowDetail: Bool = false,
          windowId: String? = nil,
+         inspectPath: String? = nil,
          onComplete: @escaping (MCPUIElementNode, String) -> Void,
          onError: @escaping (Swift.Error) -> Void) {
         self.inspector = inspector
@@ -34,6 +36,7 @@ final class AsyncInspectionTask: @unchecked Sendable {
         self.menuPath = menuPath
         self.showWindowDetail = showWindowDetail
         self.windowId = windowId
+        self.inspectPath = inspectPath
         self.onComplete = onComplete
         self.onError = onError
     }
@@ -41,14 +44,29 @@ final class AsyncInspectionTask: @unchecked Sendable {
     func run() async {
         do {
             print("Launching MCP and retrieving UI state...")
-            let rootElement = try await inspector.inspectApplication()
-            print("Successfully retrieved UI state!")
+            
+            // Check if we're doing path-based inspection
+            let rootElement: MCPUIElementNode
+            
+            if let path = inspectPath, let appId = inspector.appId {
+                print("Performing path-based inspection for: \(path)")
+                rootElement = try await inspector.inspectElementByPath(
+                    bundleIdentifier: appId,
+                    path: path,
+                    maxDepth: 15 // Use smaller depth for path inspection
+                )
+                print("Successfully retrieved element at path: \(path)")
+            } else {
+                // Normal application inspection
+                rootElement = try await inspector.inspectApplication()
+                print("Successfully retrieved UI state!")
+            }
 
             // Fetch additional details
             var additionalOutput = ""
 
-            // Get menu details if requested
-            if showMenuDetail || menuPath != nil {
+            // Get menu details if requested (only if not doing path-based inspection)
+            if (showMenuDetail || menuPath != nil) && inspectPath == nil {
                 additionalOutput += "\n--- Menu Structure ---\n"
                 // Get menu information using the client from the inspector
                 if let mcpClient = inspector.mcpClient, let appId = inspector.appId {
@@ -105,8 +123,8 @@ final class AsyncInspectionTask: @unchecked Sendable {
                 }
             }
 
-            // Get window details if requested
-            if showWindowDetail || windowId != nil {
+            // Get window details if requested (only if not doing path-based inspection)
+            if (showWindowDetail || windowId != nil) && inspectPath == nil {
                 additionalOutput += "\n--- Window Information ---\n"
                 // Get window information using the client from the inspector
                 if let mcpClient = inspector.mcpClient, let appId = inspector.appId {
@@ -220,6 +238,15 @@ struct MCPAccessibilityInspector: ParsableCommand {
 
           # Filter elements by path pattern
           mcp-ax-inspector --app-id com.apple.calculator --path-filter "AXButton[@description=\\"1\\"]"
+          
+          # Show full hierarchical paths (default behavior)
+          mcp-ax-inspector --app-id com.apple.calculator
+          
+          # Disable full path display (show only path segments)
+          mcp-ax-inspector --app-id com.apple.calculator --hide-full-paths
+          
+          # Inspect a specific element directly by its path
+          mcp-ax-inspector --app-id com.apple.calculator --inspect-path "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXButton[@description=\"1\"]"
         """
     )
     
@@ -291,6 +318,12 @@ struct MCPAccessibilityInspector: ParsableCommand {
     @Flag(name: [.customLong("interactive-paths")], help: "Highlight paths for interactive elements (buttons, links, etc.)")
     var showInteractivePaths: Bool = false
     
+    @Flag(name: [.customLong("hide-full-paths")], help: "Hide full hierarchical paths and show only path segments")
+    var hideFullPaths: Bool = false
+    
+    @Option(name: [.customLong("inspect-path")], help: "Directly inspect an element by its full path (e.g., \"ui://AXApplication[@title=\\\"Calculator\\\"]/AXWindow/AXButton\")")
+    var inspectPath: String?
+    
     // Need to implement a synchronous wrapper to execute async code
     func run() throws {
         print("Starting MCP Accessibility Inspector...")
@@ -312,6 +345,8 @@ struct MCPAccessibilityInspector: ParsableCommand {
         print("Highlight paths: \(highlightPaths)")
         print("Path filter: \(pathFilter ?? "Not specified")")
         print("Show interactive paths: \(showInteractivePaths)")
+        print("Hide full paths: \(hideFullPaths)")
+        print("Inspect path: \(inspectPath ?? "Not specified")")
         
         // Verify we have either appId or pid
         guard appId != nil || pid != nil else {
@@ -351,12 +386,15 @@ struct MCPAccessibilityInspector: ParsableCommand {
                 "mcpPath": .string(mcpPath ?? "default")
             ])
             
-            // Perform the inspection
+            // Check if app ID is required but not provided
+            if let inspectPath = inspectPath, appId == nil {
+                logger.error("--app-id must be specified with --inspect-path")
+                print("Error: --app-id must be specified with --inspect-path")
+                throw ValidationError("--app-id must be specified with --inspect-path")
+            }
+            
             // We can't directly use async/await in a synchronous run method,
-            // so we need to use a workaround to bridge the gap
-
-            // Instead of using await directly, we'll use a dispatch semaphore
-            // to wait for the async operation to complete
+            // so we'll use a dispatch semaphore to wait for the async operation to complete
             let semaphore = DispatchSemaphore(value: 0)
             var resultRootElement: MCPUIElementNode?
             var resultError: Swift.Error?
@@ -370,6 +408,7 @@ struct MCPAccessibilityInspector: ParsableCommand {
                 menuPath: menuPath,
                 showWindowDetail: showWindowDetail,
                 windowId: windowId,
+                inspectPath: inspectPath,
                 onComplete: { root, additionalInfo in
                     resultRootElement = root
                     additionalOutput = additionalInfo
@@ -408,6 +447,7 @@ struct MCPAccessibilityInspector: ParsableCommand {
             
             // Apply path-related options
             visualizerOptions.highlightPaths = highlightPaths || showPaths
+            visualizerOptions.showFullPaths = !hideFullPaths
             
             // Initialize visualizer
             let visualizer = MCPTreeVisualizer(options: visualizerOptions)

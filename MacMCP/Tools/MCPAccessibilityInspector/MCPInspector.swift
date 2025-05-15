@@ -201,6 +201,72 @@ class MCPInspector {
             throw InspectionError.unexpectedError("Failed to fetch UI state: \(error.localizedDescription)")
         }
     }
+    
+    /// Fetches UI state data using a specific element path
+    func inspectElementByPath(bundleIdentifier: String, path: String, maxDepth: Int) async throws -> MCPUIElementNode {
+        print("Inspecting element by path: \(path) in application: \(bundleIdentifier)")
+        guard let mcpClient = self.mcpClient else {
+            throw InspectionError.unexpectedError("MCP client not initialized")
+        }
+        
+        // Start MCP server if needed
+        try await startMCPIfNeeded()
+            
+        // Create the request parameters for the InterfaceExplorerTool with element parameter
+        let arguments: [String: Value] = [
+            "scope": .string("element"),
+            "bundleId": .string(bundleIdentifier),
+            "elementId": .string(path), // Use the path as the element ID
+            "maxDepth": .int(maxDepth),
+            "includeHidden": .bool(true) // Include all elements for completeness
+        ]
+        
+        // Send request to the MCP server
+        do {
+            print("Sending element path request to MCP: \(path)")
+            let (content, isError) = try await mcpClient.callTool(
+                name: "macos_interface_explorer",
+                arguments: arguments
+            )
+            
+            if let isError = isError, isError {
+                throw InspectionError.unexpectedError("Error from MCP tool: \(content)")
+            }
+            
+            // Process the response
+            guard let firstContent = content.first, 
+                  case let .text(jsonString) = firstContent else {
+                throw InspectionError.unexpectedError("Invalid response format from MCP: missing text content")
+            }
+            
+            // Convert the JSON string to data
+            guard let jsonData = jsonString.data(using: .utf8) else {
+                throw InspectionError.unexpectedError("Failed to convert JSON string to data")
+            }
+            
+            // Parse the JSON into an array of dictionaries
+            let jsonArray = try JSONSerialization.jsonObject(with: jsonData) as? [[String: Any]]
+            guard let rootJson = jsonArray?.first else {
+                throw InspectionError.unexpectedError("Invalid JSON response from MCP or element not found")
+            }
+            
+            // Reset element counter
+            elementIndex = 0
+            
+            // Create the root node
+            let rootNode = MCPUIElementNode(jsonElement: rootJson, index: elementIndex)
+            elementIndex += 1
+            
+            // Recursively populate children
+            _ = rootNode.populateChildren(from: rootJson, startingIndex: elementIndex)
+            
+            return rootNode
+        } catch {
+            inspectorLogger.error("Failed to fetch element by path: \(error.localizedDescription)")
+            print("ERROR: Element path inspection error: \(error)")
+            throw InspectionError.unexpectedError("Failed to fetch element by path: \(error.localizedDescription)")
+        }
+    }
 
     // Menu and window details fetching now handled in AsyncInspectionTask
     
