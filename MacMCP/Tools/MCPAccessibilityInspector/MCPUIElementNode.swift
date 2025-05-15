@@ -3,6 +3,7 @@
 
 import Foundation
 import Cocoa
+import MacMCPUtilities
 
 /// Represents a UI element with all its accessibility properties, retrieved via MCP tools
 class MCPUIElementNode {
@@ -241,13 +242,17 @@ class MCPUIElementNode {
         
         // Add key attributes to make the path more specific
         if let title = self.title, !title.isEmpty {
-            let escapedTitle = title.replacingOccurrences(of: "\"", with: "\\\"")
-            segment += "[@title=\"\(escapedTitle)\"]"
+            let escapedTitle = PathNormalizer.escapeAttributeValue(title)
+            segment += "[@AXTitle=\"\(escapedTitle)\"]"
         }
         
         if let description = self.description, !description.isEmpty {
-            let escapedDesc = description.replacingOccurrences(of: "\"", with: "\\\"")
-            segment += "[@description=\"\(escapedDesc)\"]"
+            let escapedDesc = PathNormalizer.escapeAttributeValue(description)
+            segment += "[@AXDescription=\"\(escapedDesc)\"]"
+        }
+        
+        if let identifier = self.attributes["identifier"] as? String, !identifier.isEmpty {
+            segment += "[@AXIdentifier=\"\(identifier)\"]"
         }
         
         return pathBase + segment

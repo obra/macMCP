@@ -20,11 +20,17 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-log.git", from: "1.5.0")
     ],
     targets: [
+        // Library target for shared utilities that can be used by all executables
+        .target(
+            name: "MacMCPUtilities",
+            dependencies: []),
+            
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
         .executableTarget(
             name: "MacMCP",
             dependencies: [
+                .target(name: "MacMCPUtilities"),
                 .product(name: "MCP", package: "swift-sdk"),
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .product(name: "Logging", package: "swift-log")
@@ -39,6 +45,7 @@ let package = Package(
         .executableTarget(
             name: "MCPAccessibilityInspector",
             dependencies: [
+                .target(name: "MacMCPUtilities"),
                 .target(name: "MacMCP"),
                 .product(name: "MCP", package: "swift-sdk"),
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
@@ -53,12 +60,12 @@ let package = Package(
             path: "Tools/KeyboardMonitor"),
         .testTarget(
             name: "TestsWithMocks",
-            dependencies: ["MacMCP"],
+            dependencies: ["MacMCP", "MacMCPUtilities"],
             exclude: ["http-logs"]
         ),
         .testTarget(
             name: "TestsWithoutMocks",
-            dependencies: ["MacMCP"],
+            dependencies: ["MacMCP", "MacMCPUtilities"],
             exclude: ["http-logs"]
         ),
         // Original test target removed after migration to TestsWithMocks and TestsWithoutMocks

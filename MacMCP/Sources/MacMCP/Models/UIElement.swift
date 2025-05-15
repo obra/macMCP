@@ -4,6 +4,7 @@
 import Foundation
 import AppKit
 import MCP
+import MacMCPUtilities
 
 /// AXAttribute key strings from Apple's AXConstants.h
 public enum AXAttribute {
@@ -423,21 +424,28 @@ public enum FrameSource: String, Codable {
             
             // Add useful identifying attributes - title, description, and identifier are most stable
             if let title = element.title, !title.isEmpty {
-                attributes["title"] = title
+                attributes["AXTitle"] = PathNormalizer.escapeAttributeValue(title)
             }
             
             if let desc = element.elementDescription, !desc.isEmpty {
-                attributes["description"] = desc
+                attributes["AXDescription"] = PathNormalizer.escapeAttributeValue(desc)
             }
             
             // Include the value if requested and available
             if includeValue, let value = element.value, !value.isEmpty {
-                attributes["value"] = value
+                attributes["AXValue"] = PathNormalizer.escapeAttributeValue(value)
             }
             
             // Add custom identifier if available
             if let identifier = element.attributes["identifier"] as? String, !identifier.isEmpty {
-                attributes["identifier"] = identifier
+                attributes["AXIdentifier"] = identifier
+            }
+            
+            // For applications, include bundle identifier if available
+            if element.role == "AXApplication" {
+                if let bundleId = element.attributes["bundleIdentifier"] as? String, !bundleId.isEmpty {
+                    attributes["bundleIdentifier"] = bundleId
+                }
             }
             
             // Include frame information if requested
@@ -451,15 +459,15 @@ public enum FrameSource: String, Codable {
             // Include boolean state attributes that help identify the element
             // Only include true values as false is the default
             if element.attributes["enabled"] as? Bool == false {
-                attributes["enabled"] = "false"
+                attributes["AXEnabled"] = "false"
             }
             
             if element.attributes["focused"] as? Bool == true {
-                attributes["focused"] = "true"
+                attributes["AXFocused"] = "true"
             }
             
             if element.attributes["selected"] as? Bool == true {
-                attributes["selected"] = "true"
+                attributes["AXSelected"] = "true"
             }
             
             // Create the path segment
