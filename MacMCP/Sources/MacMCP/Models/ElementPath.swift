@@ -2,6 +2,7 @@
 // ABOUTME: It includes path parsing, generation, and validation logic for UIElement paths.
 
 import Foundation
+import AppKit
 
 /// Errors that can occur when working with element paths
 public enum ElementPathError: Error, CustomStringConvertible, Equatable {
@@ -190,7 +191,7 @@ public struct ElementPath {
         // Regular expressions for parsing
         let rolePattern = "^([A-Za-z0-9]+)" // Captures the role name
         let attributePattern = "\\[@([^=]+)=\"((?:[^\"]|\\\\\")*)\"\\]" // Captures attribute name and value
-        let indexPattern = "\\[(\\d+)\\]$" // Captures the index at the end
+        let indexPattern = "\\[(\\d+)\\]" // Captures the index (could be anywhere in the segment)
         
         // Extract the role
         guard let roleRange = segmentString.range(of: rolePattern, options: .regularExpression) else {
@@ -266,6 +267,425 @@ public struct ElementPath {
     /// - Returns: True if the string looks like an element path
     public static func isElementPath(_ string: String) -> Bool {
         return string.hasPrefix(pathPrefix)
+    }
+    
+    /// Resolve this path to a UI element in the accessibility hierarchy
+    /// - Parameter accessibilityService: The AccessibilityService to use for accessing the accessibility API
+    /// - Returns: The AXUIElement that matches this path, or nil if no match is found
+    /// - Throws: ElementPathError if there's an error resolving the path
+    public func resolve(using accessibilityService: AccessibilityServiceProtocol) async throws -> AXUIElement {
+        // Get the application element as starting point
+        let startElement: AXUIElement
+        
+        // First segment should be the application or window element
+        let firstSegment = segments[0]
+        
+        // For first segment, we need to get it differently depending on the role
+        if firstSegment.role == "AXApplication" {
+            // Try different approaches to find the application element
+            
+            // 1. Try by bundleIdentifier if provided
+            if let bundleId = firstSegment.attributes["bundleIdentifier"] {
+                guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId).first else {
+                    throw ElementPathError.segmentResolutionFailed("Application not running: \(bundleId)", atSegment: 0)
+                }
+                startElement = AXUIElementCreateApplication(app.processIdentifier)
+            }
+            // 2. Try by title/name if provided
+            else if let title = firstSegment.attributes["title"] {
+                // Get all running applications
+                let runningApps = NSWorkspace.shared.runningApplications
+                
+                // Find application with matching title
+                guard let app = runningApps.first(where: { 
+                    $0.localizedName == title || $0.localizedName?.contains(title) == true 
+                }) else {
+                    throw ElementPathError.segmentResolutionFailed("Application not found with title: \(title)", atSegment: 0)
+                }
+                
+                startElement = AXUIElementCreateApplication(app.processIdentifier)
+            }
+            // 3. Use focused application as fallback
+            else {
+                do {
+                    // Get the focused application from the accessibility service
+                    let focusedElement = try await accessibilityService.getFocusedApplicationUIElement(recursive: false, maxDepth: 1)
+                    
+                    // Check if we got a valid element
+                    guard let axElement = focusedElement.axElement else {
+                        throw ElementPathError.segmentResolutionFailed("Could not get focused application element", atSegment: 0)
+                    }
+                    
+                    startElement = axElement
+                } catch {
+                    // If that fails, try to get the frontmost application using NSWorkspace
+                    guard let frontApp = NSWorkspace.shared.frontmostApplication else {
+                        throw ElementPathError.segmentResolutionFailed("Could not determine frontmost application", atSegment: 0)
+                    }
+                    
+                    startElement = AXUIElementCreateApplication(frontApp.processIdentifier)
+                }
+            }
+        } 
+        // For system-wide operations or other special starting points
+        else if firstSegment.role == "AXSystemWide" {
+            startElement = AXUIElementCreateSystemWide()
+        }
+        // For any other element type as the first segment
+        else {
+            // Get the system-wide element as starting point for a broader search
+            startElement = AXUIElementCreateSystemWide()
+        }
+        
+        // Now we have our starting point, traverse the path
+        var currentElement = startElement
+        
+        // Iterate through each segment starting from the first
+        for (index, segment) in segments.enumerated() {
+            // If we're at the first segment and we already got an application directly, skip to next
+            if index == 0 && firstSegment.role == "AXApplication" {
+                continue
+            }
+            
+            // Resolve this segment
+            guard let nextElement = try await resolveSegment(element: currentElement, segment: segment, segmentIndex: index) else {
+                let segmentString = segment.toString()
+                throw ElementPathError.noMatchingElements(segmentString, atSegment: index)
+            }
+            
+            // Update current element for next iteration
+            currentElement = nextElement
+        }
+        
+        return currentElement
+    }
+    
+    /// Resolve a single segment of a path starting from a given element
+    /// - Parameters:
+    ///   - element: The starting element
+    ///   - segment: The path segment to resolve
+    ///   - segmentIndex: The index of the segment in the overall path (for error reporting)
+    /// - Returns: The resolved element matching the segment, or nil if no match is found
+    /// - Throws: ElementPathError if there's an error resolving the segment
+    public func resolveSegment(element: AXUIElement, segment: PathSegment, segmentIndex: Int) async throws -> AXUIElement? {
+        print("DEBUG: Resolving segment \(segmentIndex): \(segment.toString())")
+        
+        // Get information about the current element
+        var roleRef: CFTypeRef?
+        let roleStatus = AXUIElementCopyAttributeValue(element, "AXRole" as CFString, &roleRef)
+        if roleStatus == .success, let role = roleRef as? String {
+            print("DEBUG: Current element role: \(role)")
+            
+            // Get title if available
+            var titleRef: CFTypeRef?
+            let titleStatus = AXUIElementCopyAttributeValue(element, "AXTitle" as CFString, &titleRef)
+            if titleStatus == .success, let title = titleRef as? String {
+                print("DEBUG: Current element title: \(title)")
+            }
+        }
+        
+        // Get the children of the current element
+        var childrenRef: CFTypeRef?
+        let status = AXUIElementCopyAttributeValue(element, "AXChildren" as CFString, &childrenRef)
+        
+        print("DEBUG: AXUIElementCopyAttributeValue status for AXChildren: \(status.rawValue)")
+        
+        // Check if we could get children
+        if status != .success || childrenRef == nil {
+            print("DEBUG: Failed to get children - status: \(status.rawValue), childrenRef: \(String(describing: childrenRef))")
+            
+            // If this is the first segment (application), allow the element itself to match
+            if segmentIndex == 0 {
+                // Check if this element itself matches the segment
+                if try await elementMatchesSegment(element, segment: segment) {
+                    print("DEBUG: First segment matches element itself")
+                    return element
+                }
+            }
+            
+            let segmentString = segment.toString()
+            throw ElementPathError.segmentResolutionFailed("Could not get children for segment: \(segmentString)", atSegment: segmentIndex)
+        }
+        
+        // Cast to array of elements
+        guard let children = childrenRef as? [AXUIElement] else {
+            print("DEBUG: Failed to cast children to [AXUIElement] - type: \(type(of: childrenRef))")
+            let segmentString = segment.toString()
+            throw ElementPathError.segmentResolutionFailed("Children not in expected format for segment: \(segmentString)", atSegment: segmentIndex)
+        }
+        
+        print("DEBUG: Found \(children.count) children of current element")
+        
+        // Log child roles to help with debugging
+        print("DEBUG: Child roles:")
+        for (i, child) in children.enumerated() {
+            var childRoleRef: CFTypeRef?
+            let childRoleStatus = AXUIElementCopyAttributeValue(child, "AXRole" as CFString, &childRoleRef)
+            if childRoleStatus == .success, let childRole = childRoleRef as? String {
+                print("DEBUG:   [\(i)] \(childRole)")
+                
+                // If the child matches our target segment role, check title too
+                if childRole == segment.role {
+                    var childTitleRef: CFTypeRef?
+                    let childTitleStatus = AXUIElementCopyAttributeValue(child, "AXTitle" as CFString, &childTitleRef)
+                    if childTitleStatus == .success, let childTitle = childTitleRef as? String {
+                        print("DEBUG:     Title: \(childTitle)")
+                    }
+                }
+            } else {
+                print("DEBUG:   [\(i)] Unknown role, status: \(childRoleStatus.rawValue)")
+            }
+        }
+        
+        // Filter children by role to find potential matches
+        var matches: [AXUIElement] = []
+        
+        for child in children {
+            // Check if this child matches the segment
+            if try await elementMatchesSegment(child, segment: segment) {
+                matches.append(child)
+            }
+        }
+        
+        print("DEBUG: Found \(matches.count) matches for segment \(segment.toString())")
+        
+        // Special case for when the parent element itself matches
+        if segmentIndex == 0 && matches.isEmpty {
+            // Check if the root element matches
+            if try await elementMatchesSegment(element, segment: segment) {
+                print("DEBUG: Root element matches first segment")
+                return element
+            }
+        }
+        
+        // Handle based on number of matches and whether an index was specified
+        if matches.isEmpty {
+            print("DEBUG: No matches found for segment")
+            return nil
+        } else if matches.count == 1 || segment.index != nil {
+            // Single match or specific index requested
+            
+            // If an index was specified, use it to select from matches
+            if let index = segment.index {
+                // Make sure the index is valid
+                if index < 0 || index >= matches.count {
+                    let segmentString = segment.toString()
+                    print("DEBUG: Index out of range: \(index) for matches.count: \(matches.count)")
+                    throw ElementPathError.segmentResolutionFailed("Index out of range: \(index) for segment: \(segmentString)", atSegment: segmentIndex)
+                }
+                
+                print("DEBUG: Returning match at specified index \(index)")
+                return matches[index]
+            }
+            
+            // Otherwise return the single match
+            print("DEBUG: Returning single match")
+            return matches[0]
+        } else {
+            // Multiple matches and no index specified - this is ambiguous
+            let segmentString = segment.toString()
+            print("DEBUG: Ambiguous match - \(matches.count) elements match segment")
+            throw ElementPathError.ambiguousMatch(segmentString, matchCount: matches.count, atSegment: segmentIndex)
+        }
+    }
+    
+    /// Check if an element matches a path segment
+    /// - Parameters:
+    ///   - element: The element to check
+    ///   - segment: The path segment to match against
+    /// - Returns: True if the element matches the segment
+    private func elementMatchesSegment(_ element: AXUIElement, segment: PathSegment) async throws -> Bool {
+        // Check role first - this is the primary type matcher
+        var roleRef: CFTypeRef?
+        let roleStatus = AXUIElementCopyAttributeValue(element, "AXRole" as CFString, &roleRef)
+        
+        if roleStatus != .success || roleRef == nil {
+            print("DEBUG: Match check - role not available, status: \(roleStatus.rawValue)")
+            return false
+        }
+        
+        guard let role = roleRef as? String else {
+            print("DEBUG: Match check - role not a string: \(String(describing: roleRef))")
+            return false
+        }
+        
+        // Log role
+        print("DEBUG: Match check - element role: \(role), expected: \(segment.role)")
+        
+        // Check role match
+        guard role == segment.role else {
+            print("DEBUG: Match check - role mismatch")
+            return false
+        }
+        
+        // If there are no attributes to match, we're done
+        if segment.attributes.isEmpty {
+            print("DEBUG: Match check - no attributes required, match found")
+            return true
+        }
+        
+        // Check each attribute with resilient attribute access
+        for (name, expectedValue) in segment.attributes {
+            print("DEBUG: Match check - checking attribute: \(name), expected value: \(expectedValue)")
+            
+            // Handle special cases for common attributes that might need special handling
+            switch name {
+            case "title":
+                // Try multiple approaches to get the title
+                if !matchAttribute(element, name: "AXTitle", expectedValue: expectedValue) {
+                    // If direct title doesn't match, try getting title another way
+                    // Check if there's a help attribute that might contain the title
+                    if !matchAttribute(element, name: "AXHelp", expectedValue: expectedValue) {
+                        // Check if there's a description that might match
+                        if !matchAttribute(element, name: "AXDescription", expectedValue: expectedValue) {
+                            // As a last resort, check if the value contains the title
+                            if !matchAttribute(element, name: "AXValue", expectedValue: expectedValue) {
+                                // No match found for title
+                                print("DEBUG: Match check - title match failed: no matching attribute values")
+                                return false
+                            }
+                        }
+                    }
+                }
+                
+            case "description":
+                // Try multiple approaches to get the description
+                if !matchAttribute(element, name: "AXDescription", expectedValue: expectedValue) {
+                    // If direct description doesn't match, check other possible attributes
+                    if !matchAttribute(element, name: "AXHelp", expectedValue: expectedValue) {
+                        // As a fallback, check if the value matches
+                        if !matchAttribute(element, name: "AXValue", expectedValue: expectedValue) {
+                            // No match found for description
+                            print("DEBUG: Match check - description match failed: no matching attribute values")
+                            return false
+                        }
+                    }
+                }
+                
+            case "value":
+                // Value is often available in different attributes
+                if !matchAttribute(element, name: "AXValue", expectedValue: expectedValue) {
+                    // No match found for value
+                    print("DEBUG: Match check - value match failed: no matching value attribute")
+                    return false
+                }
+                
+            default:
+                // For all other attributes, use the direct attribute name
+                if !matchAttribute(element, name: name, expectedValue: expectedValue) {
+                    print("DEBUG: Match check - attribute \(name) match failed")
+                    return false
+                }
+            }
+        }
+        
+        // All checks passed
+        print("DEBUG: Match check - full match found")
+        return true
+    }
+    
+    /// Match an attribute value against an expected value with robust error handling
+    /// - Parameters:
+    ///   - element: The AXUIElement to check
+    ///   - name: The attribute name
+    ///   - expectedValue: The expected attribute value
+    /// - Returns: True if the attribute matches the expected value
+    private func matchAttribute(_ element: AXUIElement, name: String, expectedValue: String) -> Bool {
+        // Get the attribute value
+        var attributeRef: CFTypeRef?
+        let attributeStatus = AXUIElementCopyAttributeValue(element, name as CFString, &attributeRef)
+        
+        // If we couldn't get the attribute, it doesn't match
+        if attributeStatus != .success || attributeRef == nil {
+            print("DEBUG: Match check - attribute \(name) not available, status: \(attributeStatus.rawValue)")
+            return false
+        }
+        
+        // Convert attribute value to string for comparison
+        let actualValue: String
+        
+        if let stringValue = attributeRef as? String {
+            actualValue = stringValue
+            print("DEBUG: Match check - attribute \(name) value (string): \(actualValue)")
+        } else if let numberValue = attributeRef as? NSNumber {
+            actualValue = numberValue.stringValue
+            print("DEBUG: Match check - attribute \(name) value (number): \(actualValue)")
+        } else if let boolValue = attributeRef as? Bool {
+            actualValue = boolValue ? "true" : "false"
+            print("DEBUG: Match check - attribute \(name) value (bool): \(actualValue)")
+        } else {
+            // For other types, use description
+            actualValue = String(describing: attributeRef!)
+            print("DEBUG: Match check - attribute \(name) value (other): \(actualValue)")
+        }
+        
+        // Check for partial matches in some cases
+        let matchType: MatchType = determineMatchType(forAttribute: name)
+        
+        switch matchType {
+        case .exact:
+            // Exact match required
+            let matches = (actualValue == expectedValue)
+            if !matches {
+                print("DEBUG: Match check - attribute \(name) value mismatch (exact): expected \(expectedValue), got \(actualValue)")
+            }
+            return matches
+            
+        case .contains:
+            // Check if the actual value contains the expected value
+            let matches = actualValue.localizedCaseInsensitiveContains(expectedValue)
+            if !matches {
+                print("DEBUG: Match check - attribute \(name) value mismatch (contains): expected to contain \(expectedValue), got \(actualValue)")
+            }
+            return matches
+            
+        case .substring:
+            // Check both directions - exact match, contains, or is contained by
+            let exactMatch = (actualValue == expectedValue)
+            let containsExpected = actualValue.localizedCaseInsensitiveContains(expectedValue)
+            let expectedContainsActual = expectedValue.localizedCaseInsensitiveContains(actualValue)
+            
+            let matches = exactMatch || containsExpected || expectedContainsActual
+            if !matches {
+                print("DEBUG: Match check - attribute \(name) value mismatch (substring): expected relationship with \(expectedValue), got \(actualValue)")
+            }
+            return matches
+        }
+    }
+    
+    /// Determines how to match an attribute based on its type
+    /// - Parameter attribute: The attribute name
+    /// - Returns: The match type to use
+    private func determineMatchType(forAttribute attribute: String) -> MatchType {
+        switch attribute {
+        case "AXTitle", "title":
+            // Title can sometimes be a substring or contain the attribute we're looking for
+            return .substring
+            
+        case "AXDescription", "description", "AXHelp":
+            // Descriptions are often longer and might just contain the expected text
+            return .contains
+            
+        case "AXValue", "value":
+            // Values can sometimes be partial matches
+            return .substring
+            
+        default:
+            // For most attributes, require exact match
+            return .exact
+        }
+    }
+    
+    /// Types of attribute matching strategies
+    private enum MatchType {
+        /// Require exact match between expected and actual values
+        case exact
+        
+        /// Check if actual value contains expected value
+        case contains
+        
+        /// Check if either value contains the other or they're equal
+        case substring
     }
 }
 
