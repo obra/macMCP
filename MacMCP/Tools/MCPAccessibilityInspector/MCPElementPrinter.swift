@@ -96,20 +96,10 @@ class MCPElementPrinter {
                 }
             }
             
-            // Also show the path segment if different from full path
-            if let pathSegment = element.elementPath, element.fullPath != pathSegment {
-                if showColor {
-                    output += "   \(TerminalColor.cyan.rawValue)Path Segment: \(pathSegment)\(TerminalColor.reset.rawValue)\n"
-                } else {
-                    output += "   Path Segment: \(pathSegment)\n"
-                }
-            }
         } else {
             // Standard path display when not highlighting - still prioritize full path
             if let fullPath = element.fullPath {
                 output += "   Path: \(fullPath)\n"
-            } else if let pathSegment = element.elementPath {
-                output += "   Path: \(pathSegment) (segment)\n"
             } else if let syntheticPath = element.generateSyntheticPath() {
                 output += "   Path (generated): \(syntheticPath)\n"
             }
