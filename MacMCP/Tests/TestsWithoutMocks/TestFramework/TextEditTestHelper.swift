@@ -3,9 +3,10 @@
 
 import Foundation
 import XCTest
-@testable import MacMCP
-import MCP
-import AppKit
+@preconcurrency import AppKit
+@preconcurrency import ApplicationServices
+@testable @preconcurrency import MacMCP
+@preconcurrency import MCP
 
 // Extend UIElementCriteria to be Sendable since it's a simple value type
 extension UIElementCriteria: @unchecked Sendable {}
@@ -53,6 +54,7 @@ final class TextEditTestHelper {
     }
     
     /// Get or create a shared helper instance
+    @MainActor
     static func shared() -> TextEditTestHelper {
         lock.lock()
         defer { lock.unlock() }
@@ -179,6 +181,67 @@ final class TextEditTestHelper {
     /// Open a document from a file
     func openDocument(from path: String) async throws -> Bool {
         return try await app.openDocument(from: path)
+    }
+    
+    /// Close window and click "Delete" button on save dialog
+    /// This is specifically for ElementPath testing where we need to handle
+    /// the window close differently than the regular TextEditModel approach
+    @MainActor
+    func closeWindowAndDiscardChanges(
+        using accessibilityService: AccessibilityService
+    ) async throws -> Bool {
+        // First try pressing Escape to dismiss any open menus or dialogs
+        let systemEsc = AXUIElementCreateSystemWide()
+        try? AccessibilityElement.performAction(systemEsc, action: "AXCancel")
+        
+        // Find the close button on the window using ElementPath
+        let closeButtonPath = try ElementPath.parse(
+            "ui://AXApplication[@bundleIdentifier=\"com.apple.TextEdit\"]/AXWindow[0]/AXButton[@AXSubrole=\"AXCloseButton\"]"
+        )
+        
+        // Try to resolve and press the close button
+        if let closeButton = try? await closeButtonPath.resolve(using: accessibilityService) {
+            // Press the close button
+            try? AccessibilityElement.performAction(closeButton, action: "AXPress")
+            
+            // Wait for save dialog to appear
+            try await Task.sleep(nanoseconds: 800_000_000)
+            
+            // Look for the "Delete" button in the save dialog
+            let appElement = AccessibilityElement.applicationElement(
+                pid: NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.TextEdit").first!.processIdentifier
+            )
+            
+            // Helper to find buttons in the dialog
+            @MainActor
+            func findButtonWithTitle(_ title: String, inElement element: AXUIElement) -> AXUIElement? {
+                if let children = try? AccessibilityElement.getAttribute(element, attribute: "AXChildren") as? [AXUIElement] {
+                    for child in children {
+                        if let role = try? AccessibilityElement.getAttribute(child, attribute: "AXRole") as? String,
+                           role == "AXButton",
+                           let childTitle = try? AccessibilityElement.getAttribute(child, attribute: "AXTitle") as? String,
+                           childTitle == title {
+                            return child
+                        }
+                        
+                        // Recursive search
+                        if let button = findButtonWithTitle(title, inElement: child) {
+                            return button
+                        }
+                    }
+                }
+                return nil
+            }
+            
+            // Find and press "Delete" button
+            if let deleteButton = findButtonWithTitle("Delete", inElement: appElement) {
+                try? AccessibilityElement.performAction(deleteButton, action: "AXPress")
+                try await Task.sleep(nanoseconds: 500_000_000)
+                return true
+            }
+        }
+        
+        return false
     }
     
     /// Perform common text operation and verify result
