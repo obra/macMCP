@@ -9,7 +9,7 @@ import AppKit
 @testable import MacMCP
 
 // Import shared test utilities
-@_implementationOnly import TestsWithoutMocks
+// @_implementationOnly import TestsWithoutMocks
 
 /// End-to-end tests for the ScreenshotTool using the Calculator app
 final class ScreenshotToolE2ETests: XCTestCase {

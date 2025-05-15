@@ -8,7 +8,7 @@ import AppKit
 @testable import MacMCP
 
 // Import shared test utilities
-@_implementationOnly import TestsWithoutMocks
+// @_implementationOnly import TestsWithoutMocks
 
 /// Smoke test for the Calculator app to verify basic MCP functionality
 @MainActor

@@ -8,7 +8,7 @@ import AppKit
 @testable import MacMCP
 
 // Import shared test utilities
-@_implementationOnly import TestsWithoutMocks
+// @_implementationOnly import TestsWithoutMocks
 
 /// Test case for MCP's ability to interact with the Calculator app
 @MainActor

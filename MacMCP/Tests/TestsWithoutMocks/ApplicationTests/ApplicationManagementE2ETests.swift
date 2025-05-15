@@ -9,7 +9,7 @@ import Logging
 @testable import MacMCP
 
 // Import shared test utilities
-@_implementationOnly import TestsWithoutMocks
+// @_implementationOnly import TestsWithoutMocks
 
 /// End-to-end tests for the ApplicationManagementTool
 final class ApplicationManagementE2ETests: XCTestCase {

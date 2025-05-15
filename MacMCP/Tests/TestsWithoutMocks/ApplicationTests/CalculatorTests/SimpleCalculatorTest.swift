@@ -8,7 +8,7 @@ import AppKit
 @testable import MacMCP
 
 // Import shared test utilities
-@_implementationOnly import TestsWithoutMocks
+// @_implementationOnly import TestsWithoutMocks
 
 /// A simpler approach to testing calculator functionality
 final class SimpleCalculatorTest: XCTestCase {

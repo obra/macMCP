@@ -8,7 +8,7 @@ import AppKit
 @testable import MacMCP
 
 // Import shared test utilities
-@_implementationOnly import TestsWithoutMocks
+// @_implementationOnly import TestsWithoutMocks
 
 /// Simple test cases for the TextEdit app using the TextEditTestHelper
 @MainActor
