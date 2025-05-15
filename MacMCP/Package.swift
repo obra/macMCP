@@ -52,10 +52,20 @@ let package = Package(
             ],
             path: "Tools/KeyboardMonitor"),
         .testTarget(
-            name: "MacMCPTests",
+            name: "TestsWithMocks",
             dependencies: ["MacMCP"],
-            exclude: [
-                "http-logs"
-            ])
+            exclude: ["http-logs"]
+        ),
+        .testTarget(
+            name: "TestsWithoutMocks",
+            dependencies: ["MacMCP"],
+            exclude: ["http-logs"]
+        ),
+        // Original test target removed after migration to TestsWithMocks and TestsWithoutMocks
+        // .testTarget(
+        //     name: "MacMCPTests",
+        //     dependencies: ["MacMCP"],
+        //     exclude: ["http-logs"]
+        // )
     ]
 )
