@@ -1975,3 +1975,532 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
         )
     }
 }
+
+// MARK: - Path-based Element Interaction Methods Extension
+
+extension UIInteractionService {
+    /// Click on a UI element using its path
+    /// - Parameters:
+    ///   - path: The UI element path using ui:// notation
+    ///   - appBundleId: Optional bundle ID of the application containing the element
+    public func clickElementByPath(path: String, appBundleId: String?) async throws {
+        logger.debug("Clicking element by path", metadata: [
+            "path": "\(path)",
+            "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil"
+        ])
+        
+        // Parse the path
+        let elementPath: ElementPath
+        do {
+            elementPath = try ElementPath.parse(path)
+        } catch {
+            logger.error("Failed to parse element path", metadata: [
+                "path": .string(path),
+                "error": .string(error.localizedDescription)
+            ])
+            throw createInvalidPathError(
+                message: "Invalid element path format: \(path)",
+                context: ["path": path],
+                underlyingError: error
+            )
+        }
+        
+        // Resolve the path to get the AXUIElement
+        let element: AXUIElement
+        do {
+            element = try await elementPath.resolve(using: accessibilityService)
+        } catch {
+            logger.error("Failed to resolve element path", metadata: [
+                "path": .string(path),
+                "error": .string(error.localizedDescription)
+            ])
+            throw createPathResolutionError(
+                message: "Failed to find element with path: \(path)",
+                context: ["path": path],
+                underlyingError: error
+            )
+        }
+        
+        // Perform the click using the AXUIElement directly
+        try await clickElementDirectly(element)
+    }
+    
+    /// Double click on a UI element using its path
+    /// - Parameters:
+    ///   - path: The UI element path using ui:// notation
+    ///   - appBundleId: Optional bundle ID of the application containing the element
+    public func doubleClickElementByPath(path: String, appBundleId: String?) async throws {
+        logger.debug("Double-clicking element by path", metadata: [
+            "path": "\(path)",
+            "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil"
+        ])
+        
+        // Parse the path
+        let elementPath = try ElementPath.parse(path)
+        
+        // Resolve the path to get the AXUIElement
+        let element = try await elementPath.resolve(using: accessibilityService)
+        
+        // Perform the double click using the AXUIElement directly
+        try await doubleClickElementDirectly(element)
+    }
+    
+    /// Right click on a UI element using its path
+    /// - Parameters:
+    ///   - path: The UI element path using ui:// notation
+    ///   - appBundleId: Optional bundle ID of the application containing the element
+    public func rightClickElementByPath(path: String, appBundleId: String?) async throws {
+        logger.debug("Right-clicking element by path", metadata: [
+            "path": "\(path)",
+            "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil"
+        ])
+        
+        // Parse the path
+        let elementPath = try ElementPath.parse(path)
+        
+        // Resolve the path to get the AXUIElement
+        let element = try await elementPath.resolve(using: accessibilityService)
+        
+        // Perform the right click using the AXUIElement directly
+        try await rightClickElementDirectly(element)
+    }
+    
+    /// Type text into a UI element using its path
+    /// - Parameters:
+    ///   - path: The UI element path using ui:// notation
+    ///   - text: The text to type
+    ///   - appBundleId: Optional bundle ID of the application containing the element
+    public func typeTextByPath(path: String, text: String, appBundleId: String?) async throws {
+        logger.debug("Typing text into element by path", metadata: [
+            "path": "\(path)",
+            "textLength": "\(text.count)",
+            "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil"
+        ])
+        
+        // Parse the path
+        let elementPath = try ElementPath.parse(path)
+        
+        // Resolve the path to get the AXUIElement
+        let element = try await elementPath.resolve(using: accessibilityService)
+        
+        // Get the element's role to determine how to handle text input
+        let role = try AccessibilityElement.getAttribute(element, attribute: AXAttribute.role) as? String
+        
+        if role == AXAttribute.Role.textField || role == AXAttribute.Role.textArea {
+            // For text fields, set the value directly
+            try AccessibilityElement.setAttribute(
+                element,
+                attribute: AXAttribute.value,
+                value: text
+            )
+        } else {
+            // For other elements, try to set focus and use key events
+            let focusParams = AXUIElementSetMessagingTimeout(element, 1.0)
+            guard focusParams == .success else {
+                throw createError("Failed to set messaging timeout", code: 2002)
+            }
+            
+            // Set focus to the element
+            try AccessibilityElement.setAttribute(
+                element,
+                attribute: "AXFocused",
+                value: true
+            )
+            
+            // Give UI time to update focus
+            try await Task.sleep(for: .milliseconds(100))
+            
+            // Type the text character by character using key events
+            for char in text {
+                try simulateKeyPress(character: char)
+                try await Task.sleep(for: .milliseconds(20))
+            }
+        }
+    }
+    
+    /// Drag and drop from one element to another using paths
+    /// - Parameters:
+    ///   - sourcePath: The source element path using ui:// notation
+    ///   - targetPath: The target element path using ui:// notation
+    ///   - appBundleId: Optional bundle ID of the application containing the elements
+    public func dragElementByPath(sourcePath: String, targetPath: String, appBundleId: String?) async throws {
+        logger.debug("Dragging element by path", metadata: [
+            "sourcePath": "\(sourcePath)",
+            "targetPath": "\(targetPath)",
+            "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil"
+        ])
+        
+        // Parse the paths
+        let sourceElementPath = try ElementPath.parse(sourcePath)
+        let targetElementPath = try ElementPath.parse(targetPath)
+        
+        // Resolve the paths to get the AXUIElements
+        let sourceElement = try await sourceElementPath.resolve(using: accessibilityService)
+        let targetElement = try await targetElementPath.resolve(using: accessibilityService)
+        
+        // Get positions for drag operation
+        var sourcePosition = CGPoint.zero
+        var targetPosition = CGPoint.zero
+        
+        // Get source position
+        var positionRef: CFTypeRef?
+        if AXUIElementCopyAttributeValue(sourceElement, "AXPosition" as CFString, &positionRef) == .success,
+           CFGetTypeID(positionRef!) == AXValueGetTypeID() {
+            let value = positionRef as! AXValue
+            AXValueGetValue(value, .cgPoint, &sourcePosition)
+        }
+        
+        // Get source size to calculate center
+        var sizeRef: CFTypeRef?
+        if AXUIElementCopyAttributeValue(sourceElement, "AXSize" as CFString, &sizeRef) == .success,
+           CFGetTypeID(sizeRef!) == AXValueGetTypeID() {
+            let value = sizeRef as! AXValue
+            var size = CGSize.zero
+            AXValueGetValue(value, .cgSize, &size)
+            
+            // Calculate center point
+            sourcePosition.x += size.width / 2
+            sourcePosition.y += size.height / 2
+        }
+        
+        // Get target position
+        positionRef = nil
+        if AXUIElementCopyAttributeValue(targetElement, "AXPosition" as CFString, &positionRef) == .success,
+           CFGetTypeID(positionRef!) == AXValueGetTypeID() {
+            let value = positionRef as! AXValue
+            AXValueGetValue(value, .cgPoint, &targetPosition)
+        }
+        
+        // Get target size to calculate center
+        sizeRef = nil
+        if AXUIElementCopyAttributeValue(targetElement, "AXSize" as CFString, &sizeRef) == .success,
+           CFGetTypeID(sizeRef!) == AXValueGetTypeID() {
+            let value = sizeRef as! AXValue
+            var size = CGSize.zero
+            AXValueGetValue(value, .cgSize, &size)
+            
+            // Calculate center point
+            targetPosition.x += size.width / 2
+            targetPosition.y += size.height / 2
+        }
+        
+        // Perform the drag operation
+        try simulateMouseDrag(from: sourcePosition, to: targetPosition)
+    }
+    
+    /// Scroll a UI element using its path
+    /// - Parameters:
+    ///   - path: The UI element path using ui:// notation
+    ///   - direction: The scroll direction
+    ///   - amount: The amount to scroll (normalized 0-1)
+    ///   - appBundleId: Optional bundle ID of the application containing the element
+    public func scrollElementByPath(path: String, direction: ScrollDirection, amount: Double, appBundleId: String?) async throws {
+        logger.debug("Scrolling element by path", metadata: [
+            "path": "\(path)",
+            "direction": "\(direction)",
+            "amount": "\(amount)",
+            "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil"
+        ])
+        
+        // Parse the path
+        let elementPath = try ElementPath.parse(path)
+        
+        // Resolve the path to get the AXUIElement
+        let element = try await elementPath.resolve(using: accessibilityService)
+        
+        // Check for scroll actions
+        let actions = try getActionNames(for: element)
+        
+        // Map direction to scroll action
+        let scrollAction: String
+        switch direction {
+        case .up:
+            scrollAction = "AXScrollUp"
+        case .down:
+            scrollAction = "AXScrollDown"
+        case .left:
+            scrollAction = "AXScrollLeft"
+        case .right:
+            scrollAction = "AXScrollRight"
+        }
+        
+        // Check if the element supports the specific scroll action
+        if actions.contains(scrollAction) {
+            // Convert normalized amount to number of actions (1-10)
+            let scrollCount = max(1, min(10, Int(amount * 10)))
+            
+            // Perform the scroll action the calculated number of times
+            for _ in 0..<scrollCount {
+                try performAction(element, action: scrollAction)
+                try await Task.sleep(for: .milliseconds(50))
+            }
+        } else if actions.contains(AXAttribute.Action.scrollToVisible) {
+            // If only scroll to visible is available, use it
+            try performAction(element, action: AXAttribute.Action.scrollToVisible)
+        } else {
+            // If no scroll actions, try to simulate a scroll event
+            
+            // Get element position
+            var position = CGPoint.zero
+            var positionRef: CFTypeRef?
+            if AXUIElementCopyAttributeValue(element, "AXPosition" as CFString, &positionRef) == .success,
+               CFGetTypeID(positionRef!) == AXValueGetTypeID() {
+                let value = positionRef as! AXValue
+                AXValueGetValue(value, .cgPoint, &position)
+            }
+            
+            // Get element size to calculate center
+            var size = CGSize.zero
+            var sizeRef: CFTypeRef?
+            if AXUIElementCopyAttributeValue(element, "AXSize" as CFString, &sizeRef) == .success,
+               CFGetTypeID(sizeRef!) == AXValueGetTypeID() {
+                let value = sizeRef as! AXValue
+                AXValueGetValue(value, .cgSize, &size)
+                
+                // Calculate center point
+                position.x += size.width / 2
+                position.y += size.height / 2
+            }
+            
+            // Convert direction and amount to scroll units
+            let scrollDeltaX: Int
+            let scrollDeltaY: Int
+            
+            switch direction {
+            case .up:
+                scrollDeltaX = 0
+                scrollDeltaY = -Int(amount * 10)
+            case .down:
+                scrollDeltaX = 0
+                scrollDeltaY = Int(amount * 10)
+            case .left:
+                scrollDeltaX = -Int(amount * 10)
+                scrollDeltaY = 0
+            case .right:
+                scrollDeltaX = Int(amount * 10)
+                scrollDeltaY = 0
+            }
+            
+            try simulateScrollWheel(at: position, deltaX: scrollDeltaX, deltaY: scrollDeltaY)
+        }
+    }
+    
+    /// Perform a specific accessibility action on an element by path
+    /// - Parameters:
+    ///   - path: The element path using ui:// notation
+    ///   - action: The accessibility action to perform (e.g., "AXPress", "AXPick")
+    ///   - appBundleId: Optional application bundle ID
+    public func performActionByPath(path: String, action: String, appBundleId: String?) async throws {
+        logger.debug("Performing accessibility action by path", metadata: [
+            "path": "\(path)",
+            "action": "\(action)",
+            "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil"
+        ])
+        
+        // Parse the path
+        let elementPath = try ElementPath.parse(path)
+        
+        // Resolve the path to get the AXUIElement
+        let element = try await elementPath.resolve(using: accessibilityService)
+        
+        // Perform the action
+        try performAction(element, action: action)
+    }
+    
+    // MARK: - Helper Methods for Path-Based Interaction
+    
+    /// Click an AXUIElement directly
+    /// - Parameter element: The AXUIElement to click
+    private func clickElementDirectly(_ element: AXUIElement) async throws {
+        // Check if the element supports AXPress action
+        var supportsPress = false
+        var availableActions: [String] = []
+
+        do {
+            availableActions = try getActionNames(for: element)
+            supportsPress = availableActions.contains(AXAttribute.Action.press)
+        } catch {
+            logger.warning("Failed to get actions for element, assuming AXPress not supported")
+            supportsPress = false
+        }
+
+        // Try AXPress first if supported, otherwise fallback to mouse click
+        if supportsPress {
+            do {
+                try performAction(element, action: AXAttribute.Action.press)
+                logger.debug("AXPress succeeded for path-based element")
+                return
+            } catch {
+                // AXPress failed, we'll fallback to mouse click below
+                let nsError = error as NSError
+                logger.warning("AXPress failed for path-based element, will try mouse simulation fallback", metadata: [
+                    "error": .string(error.localizedDescription),
+                    "code": .string("\(nsError.code)")
+                ])
+            }
+        } else {
+            logger.debug("Element doesn't support AXPress, will use mouse simulation",
+                        metadata: ["availableActions": .string(availableActions.joined(separator: ", "))])
+        }
+
+        // If we got here, either the element doesn't support AXPress or AXPress failed
+        // Fallback to mouse simulation by clicking at the center of the element
+        
+        // Get element position
+        var position = CGPoint.zero
+        var positionRef: CFTypeRef?
+        if AXUIElementCopyAttributeValue(element, "AXPosition" as CFString, &positionRef) == .success,
+           CFGetTypeID(positionRef!) == AXValueGetTypeID() {
+            let value = positionRef as! AXValue
+            AXValueGetValue(value, .cgPoint, &position)
+        }
+        
+        // Get element size to calculate center
+        var size = CGSize.zero
+        var sizeRef: CFTypeRef?
+        if AXUIElementCopyAttributeValue(element, "AXSize" as CFString, &sizeRef) == .success,
+           CFGetTypeID(sizeRef!) == AXValueGetTypeID() {
+            let value = sizeRef as! AXValue
+            AXValueGetValue(value, .cgSize, &size)
+        }
+        
+        // Calculate center point
+        let centerPoint = CGPoint(
+            x: position.x + size.width / 2,
+            y: position.y + size.height / 2
+        )
+        
+        logger.debug("Using mouse simulation fallback for path-based element",
+                    metadata: ["x": .string("\(centerPoint.x)"),
+                              "y": .string("\(centerPoint.y)")])
+        
+        do {
+            try simulateMouseClick(at: centerPoint)
+            logger.debug("Mouse simulation click succeeded for path-based element")
+        } catch {
+            // Both AXPress and mouse simulation failed
+            let nsError = error as NSError
+
+            logger.error("Both AXPress and mouse simulation failed for path-based element", metadata: [
+                "error": .string(error.localizedDescription),
+                "domain": .string(nsError.domain),
+                "code": .string("\(nsError.code)")
+            ])
+
+            // Create a more informative error with context
+            let context: [String: String] = [
+                "errorCode": "\(nsError.code)",
+                "errorDomain": nsError.domain,
+                "position": "{\(centerPoint.x), \(centerPoint.y)}",
+                "size": "{\(size.width), \(size.height)}"
+            ]
+
+            throw createInteractionError(
+                message: "Failed to click element by path - both AXPress and mouse simulation failed",
+                context: context,
+                underlyingError: error
+            )
+        }
+    }
+    
+    /// Double click an AXUIElement directly
+    /// - Parameter element: The AXUIElement to double click
+    private func doubleClickElementDirectly(_ element: AXUIElement) async throws {
+        // For double click, we check if the element has a dedicated action
+        let actions = try getActionNames(for: element)
+
+        if actions.contains("AXDoubleClick") {
+            // Use the dedicated action if available
+            try performAction(element, action: "AXDoubleClick")
+            logger.debug("AXDoubleClick succeeded for path-based element")
+            return
+        } else if actions.contains(AXAttribute.Action.press) {
+            // If AXPress is supported, use it twice in rapid succession
+            try performAction(element, action: AXAttribute.Action.press)
+            try await Task.sleep(for: .milliseconds(50))
+            try performAction(element, action: AXAttribute.Action.press)
+            logger.debug("Double AXPress succeeded for path-based element")
+            return
+        }
+        
+        // If neither AXDoubleClick nor AXPress is supported, fall back to mouse simulation
+        // Get element position
+        var position = CGPoint.zero
+        var positionRef: CFTypeRef?
+        if AXUIElementCopyAttributeValue(element, "AXPosition" as CFString, &positionRef) == .success,
+           CFGetTypeID(positionRef!) == AXValueGetTypeID() {
+            let value = positionRef as! AXValue
+            AXValueGetValue(value, .cgPoint, &position)
+        }
+        
+        // Get element size to calculate center
+        var size = CGSize.zero
+        var sizeRef: CFTypeRef?
+        if AXUIElementCopyAttributeValue(element, "AXSize" as CFString, &sizeRef) == .success,
+           CFGetTypeID(sizeRef!) == AXValueGetTypeID() {
+            let value = sizeRef as! AXValue
+            AXValueGetValue(value, .cgSize, &size)
+        }
+        
+        // Calculate center point
+        let centerPoint = CGPoint(
+            x: position.x + size.width / 2,
+            y: position.y + size.height / 2
+        )
+        
+        logger.debug("Element doesn't support AXDoubleClick or AXPress action, falling back to mouse simulation",
+                   metadata: ["x": .string("\(centerPoint.x)"),
+                             "y": .string("\(centerPoint.y)")])
+
+        // Simulate two mouse clicks in rapid succession
+        try simulateMouseClick(at: centerPoint)
+        try await Task.sleep(for: .milliseconds(50))
+        try simulateMouseClick(at: centerPoint)
+        logger.debug("Mouse simulation double-click succeeded for path-based element")
+    }
+    
+    /// Right click an AXUIElement directly
+    /// - Parameter element: The AXUIElement to right click
+    private func rightClickElementDirectly(_ element: AXUIElement) async throws {
+        // Check for a show menu action, which is typically equivalent to right-click
+        let actions = try getActionNames(for: element)
+        
+        if actions.contains(AXAttribute.Action.showMenu) {
+            try performAction(element, action: AXAttribute.Action.showMenu)
+            logger.debug("AXShowMenu succeeded for path-based element")
+            return
+        }
+        
+        // If no show menu action, get the position and simulate a right click
+        // Get element position
+        var position = CGPoint.zero
+        var positionRef: CFTypeRef?
+        if AXUIElementCopyAttributeValue(element, "AXPosition" as CFString, &positionRef) == .success,
+           CFGetTypeID(positionRef!) == AXValueGetTypeID() {
+            let value = positionRef as! AXValue
+            AXValueGetValue(value, .cgPoint, &position)
+        }
+        
+        // Get element size to calculate center
+        var size = CGSize.zero
+        var sizeRef: CFTypeRef?
+        if AXUIElementCopyAttributeValue(element, "AXSize" as CFString, &sizeRef) == .success,
+           CFGetTypeID(sizeRef!) == AXValueGetTypeID() {
+            let value = sizeRef as! AXValue
+            AXValueGetValue(value, .cgSize, &size)
+        }
+        
+        // Calculate center point
+        let centerPoint = CGPoint(
+            x: position.x + size.width / 2,
+            y: position.y + size.height / 2
+        )
+        
+        logger.debug("Element doesn't support AXShowMenu action, falling back to mouse simulation",
+                   metadata: ["x": .string("\(centerPoint.x)"),
+                             "y": .string("\(centerPoint.y)")])
+        
+        try simulateMouseRightClick(at: centerPoint)
+        logger.debug("Mouse simulation right-click succeeded for path-based element")
+    }
+}

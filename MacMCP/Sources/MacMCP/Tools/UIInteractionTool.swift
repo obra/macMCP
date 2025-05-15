@@ -74,9 +74,9 @@ public struct UIInteractionTool {
                         .string("scroll")
                     ])
                 ]),
-                "elementId": .object([
+                "elementPath": .object([
                     "type": .string("string"),
-                    "description": .string("The ID of the UI element to interact with")
+                    "description": .string("The path of the UI element to interact with (in ui:// path format)")
                 ]),
                 "appBundleId": .object([
                     "type": .string("string"),
@@ -90,9 +90,9 @@ public struct UIInteractionTool {
                     "type": .string("number"),
                     "description": .string("Y coordinate for positional actions (required for position-based clicking)")
                 ]),
-                "targetElementId": .object([
+                "targetElementPath": .object([
                     "type": .string("string"),
-                    "description": .string("Target element ID for drag action (required for drag action)")
+                    "description": .string("Target element path for drag action (required for drag action, in ui:// path format)")
                 ]),
                 "direction": .object([
                     "type": .string("string"),
@@ -138,7 +138,7 @@ public struct UIInteractionTool {
         // Extract and log the key parameters for debugging
         if let params = params {
             let action = params["action"]?.stringValue ?? "unknown"
-            let elementId = params["elementId"]?.stringValue ?? "none"
+            let elementPath = params["elementPath"]?.stringValue ?? "none"
             let appBundleId = params["appBundleId"]?.stringValue ?? "none"
             
             if action == "click" {
@@ -208,47 +208,51 @@ public struct UIInteractionTool {
     /// Handle click action
     private func handleClick(_ params: [String: Value]) async throws -> [Tool.Content] {
         
-        // Element ID click
-        if let elementId = params["elementId"]?.stringValue {
+        // Element path click
+        if let elementPath = params["elementPath"]?.stringValue {
             // Check if app bundle ID is provided
             let appBundleId = params["appBundleId"]?.stringValue
             
             // Before clicking, try to look up the element to verify it exists
             do {
-                // Use the accessibility service to search for the element
-                var foundElement: UIElement? = nil
+                // Try to parse the path first
+                let path = try ElementPath.parse(elementPath)
                 
-                if let bundleId = appBundleId {
-                    print("   - Searching in application with bundle ID: \(bundleId)")
-                    // Try finding in specific app first
-                    foundElement = try await accessibilityService.findElement(
-                        identifier: elementId,
-                        in: bundleId
-                    )
+                // Make sure the path is valid
+                if path.segments.isEmpty {
+                    print("⚠️ DEBUG: handleClick - WARNING: Invalid element path, no segments found")
                 }
                 
-                if foundElement == nil {
-                    print("   - Element not found in specified app, searching system-wide")
-                    // Fall back to system-wide search
-                    foundElement = try await accessibilityService.findElement(
-                        identifier: elementId,
-                        in: nil
-                    )
-                }
+                // Check if the path already specifies an application - if so, don't override with appBundleId
+                let firstSegment = path.segments[0]
+                let pathSpecifiesApp = firstSegment.role == "AXApplication" && 
+                                      (firstSegment.attributes["bundleIdentifier"] != nil || 
+                                       firstSegment.attributes["title"] != nil)
                 
-                if foundElement == nil {
-                    print("⚠️ DEBUG: handleClick - WARNING: Element NOT found before click operation. This may fail.")
+                // If path doesn't specify an app but appBundleId is provided, log a message
+                if !pathSpecifiesApp && appBundleId != nil {
+                    print("   - Note: Using provided appBundleId \(appBundleId!) alongside element path")
+                }
+
+                // Attempt to resolve the path to verify it exists
+                // This is just for validation - actual resolution happens in interactionService
+                do {
+                    _ = try await path.resolveProgressively(using: accessibilityService)
+                    print("   - Element path verified and resolved successfully")
+                } catch {
+                    print("⚠️ DEBUG: handleClick - WARNING: Element path did not resolve: \(error.localizedDescription)")
+                    print("   - Will still attempt click operation...")
                 }
             } catch {
-                print("⚠️ DEBUG: handleClick - Error validating element: \(error.localizedDescription)")
+                print("⚠️ DEBUG: handleClick - Error parsing or validating element path: \(error.localizedDescription)")
                 print("   - Will still attempt click operation...")
             }
             
             do {
-                try await interactionService.clickElement(identifier: elementId, appBundleId: appBundleId)
+                try await interactionService.clickElementByPath(path: elementPath, appBundleId: appBundleId)
                 
                 let bundleIdInfo = appBundleId != nil ? " in app \(appBundleId!)" : ""
-                return [.text("Successfully clicked element with ID: \(elementId)\(bundleIdInfo)")]
+                return [.text("Successfully clicked element with path: \(elementPath)\(bundleIdInfo)")]
             } catch {
                 print("❌ DEBUG: handleClick - Click operation failed: \(error.localizedDescription)")
                 let nsError = error as NSError
@@ -285,9 +289,9 @@ public struct UIInteractionTool {
             }
         }
         
-        print("❌ DEBUG: handleClick - Missing required parameters (elementId or x,y coordinates)")
+        print("❌ DEBUG: handleClick - Missing required parameters (elementPath or x,y coordinates)")
         throw createInteractionError(
-            message: "Click action requires either elementId or x,y coordinates",
+            message: "Click action requires either elementPath or x,y coordinates",
             context: [
                 "toolName": name,
                 "action": "click",
@@ -298,9 +302,9 @@ public struct UIInteractionTool {
     
     /// Handle double click action
     private func handleDoubleClick(_ params: [String: Value]) async throws -> [Tool.Content] {
-        guard let elementId = params["elementId"]?.stringValue else {
+        guard let elementPath = params["elementPath"]?.stringValue else {
             throw createInteractionError(
-                message: "Double click action requires elementId",
+                message: "Double click action requires elementPath",
                 context: [
                     "toolName": name,
                     "action": "double_click",
@@ -311,25 +315,16 @@ public struct UIInteractionTool {
         
         // Check if app bundle ID is provided
         let appBundleId = params["appBundleId"]?.stringValue
-        
-        if let appId = appBundleId {
-            // If we update doubleClickElement in the future to support appBundleId, use this
-            // try await interactionService.doubleClickElement(identifier: elementId, appBundleId: appId)
-            
-            // For now, we can't pass the bundle ID to doubleClickElement
-            logger.warning("appBundleId parameter is provided but not yet supported for double_click action", 
-                    metadata: ["elementId": "\(elementId)", "appBundleId": "\(appId)"])
-        }
-        
-        try await interactionService.doubleClickElement(identifier: elementId)
-        return [.text("Successfully double-clicked element with ID: \(elementId)")]
+                
+        try await interactionService.doubleClickElementByPath(path: elementPath, appBundleId: appBundleId)
+        return [.text("Successfully double-clicked element with path: \(elementPath)")]
     }
     
     /// Handle right click action
     private func handleRightClick(_ params: [String: Value]) async throws -> [Tool.Content] {
-        guard let elementId = params["elementId"]?.stringValue else {
+        guard let elementPath = params["elementPath"]?.stringValue else {
             throw createInteractionError(
-                message: "Right click action requires elementId",
+                message: "Right click action requires elementPath",
                 context: [
                     "toolName": name,
                     "action": "right_click",
@@ -338,17 +333,20 @@ public struct UIInteractionTool {
             ).asMCPError
         }
         
-        try await interactionService.rightClickElement(identifier: elementId)
-        return [.text("Successfully right-clicked element with ID: \(elementId)")]
+        // Check if app bundle ID is provided
+        let appBundleId = params["appBundleId"]?.stringValue
+        
+        try await interactionService.rightClickElementByPath(path: elementPath, appBundleId: appBundleId)
+        return [.text("Successfully right-clicked element with path: \(elementPath)")]
     }
     
     
     
     /// Handle drag action
     private func handleDrag(_ params: [String: Value]) async throws -> [Tool.Content] {
-        guard let sourceElementId = params["elementId"]?.stringValue else {
+        guard let sourceElementPath = params["elementPath"]?.stringValue else {
             throw createInteractionError(
-                message: "Drag action requires elementId (source)",
+                message: "Drag action requires elementPath (source)",
                 context: [
                     "toolName": name,
                     "action": "drag",
@@ -357,30 +355,34 @@ public struct UIInteractionTool {
             ).asMCPError
         }
         
-        guard let targetElementId = params["targetElementId"]?.stringValue else {
+        guard let targetElementPath = params["targetElementPath"]?.stringValue else {
             throw createInteractionError(
-                message: "Drag action requires targetElementId",
+                message: "Drag action requires targetElementPath",
                 context: [
                     "toolName": name,
                     "action": "drag",
-                    "sourceElementId": sourceElementId,
+                    "sourceElementPath": sourceElementPath,
                     "providedParams": "\(params.keys.joined(separator: ", "))"
                 ]
             ).asMCPError
         }
         
-        try await interactionService.dragElement(
-            sourceIdentifier: sourceElementId,
-            targetIdentifier: targetElementId
+        // Check if app bundle ID is provided
+        let appBundleId = params["appBundleId"]?.stringValue
+        
+        try await interactionService.dragElementByPath(
+            sourcePath: sourceElementPath,
+            targetPath: targetElementPath,
+            appBundleId: appBundleId
         )
-        return [.text("Successfully dragged from element \(sourceElementId) to element \(targetElementId)")]
+        return [.text("Successfully dragged from element \(sourceElementPath) to element \(targetElementPath)")]
     }
     
     /// Handle scroll action
     private func handleScroll(_ params: [String: Value]) async throws -> [Tool.Content] {
-        guard let elementId = params["elementId"]?.stringValue else {
+        guard let elementPath = params["elementPath"]?.stringValue else {
             throw createInteractionError(
-                message: "Scroll action requires elementId",
+                message: "Scroll action requires elementPath",
                 context: [
                     "toolName": name,
                     "action": "scroll",
@@ -396,7 +398,7 @@ public struct UIInteractionTool {
                 context: [
                     "toolName": name,
                     "action": "scroll",
-                    "elementId": elementId,
+                    "elementPath": elementPath,
                     "providedDirection": params["direction"]?.stringValue ?? "nil",
                     "validDirections": "up, down, left, right"
                 ]
@@ -409,18 +411,22 @@ public struct UIInteractionTool {
                 context: [
                     "toolName": name,
                     "action": "scroll",
-                    "elementId": elementId,
+                    "elementPath": elementPath,
                     "direction": directionString,
                     "providedAmount": params["amount"]?.doubleValue != nil ? "\(params["amount"]!.doubleValue!)" : "nil"
                 ]
             ).asMCPError
         }
         
-        try await interactionService.scrollElement(
-            identifier: elementId,
+        // Check if app bundle ID is provided
+        let appBundleId = params["appBundleId"]?.stringValue
+        
+        try await interactionService.scrollElementByPath(
+            path: elementPath,
             direction: direction,
-            amount: amount
+            amount: amount,
+            appBundleId: appBundleId
         )
-        return [.text("Successfully scrolled element \(elementId) in direction \(direction.rawValue)")]
+        return [.text("Successfully scrolled element \(elementPath) in direction \(direction.rawValue)")]
     }
 }

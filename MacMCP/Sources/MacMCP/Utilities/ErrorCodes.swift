@@ -61,6 +61,15 @@ public enum MacMCPErrorCode {
     /// Zero coordinates element
     public static let zeroCoordinatesElement = 2010
     
+    /// Invalid element path
+    public static let invalidElementPath = 2020
+    
+    /// Element path resolution failed 
+    public static let elementPathResolutionFailed = 2021
+    
+    /// Ambiguous element path
+    public static let ambiguousElementPath = 2022
+    
     /// Base error code for interaction errors
     public static let interactionBase = 3000
     

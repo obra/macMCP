@@ -315,7 +315,6 @@ This document outlines the next steps in our migration to exclusively use path-b
 ```
 
 **Verification**:
-- Update all tests to use path-based references
 - Verify all tools work correctly with path-based element identification
 - Test with real-world applications (Calculator, TextEdit)
 - Ensure backward compatibility with legacy identifiers where needed
@@ -324,6 +323,37 @@ This document outlines the next steps in our migration to exclusively use path-b
 - The `InterfaceExplorerToolTests.swift` file already has a test for path support: `testElementPathSupport()`
 - The `ElementPathInspectorTests.swift` file tests path generation in a UI context
 - More tests specific to each tool need to be implemented to validate path-based functionality
+
+## 5.5. Complete the Path-Based Transition
+
+**Context**: To fully standardize on path-based element identification, we need to update all tests and remove legacy element identifier code.
+
+**Task**: Update tests and remove legacy element identifier references throughout the codebase.
+
+```swift
+// Task for the LLM agent: Complete the path-based transition
+1. Update all test files:
+   - Change all tests to use path-based references instead of element identifiers
+   - Update mock objects and test fixtures to support path-based element identification
+   - Add specific tests for path-based functionality in each tool
+
+2. Remove elementId usage from the codebase:
+   - Remove backward compatibility methods in UI interaction tools
+   - Update all tools to use path-based methods exclusively
+   - Remove legacy elementId parameters from public APIs
+   - Clean up legacy code that uses element identifiers directly
+
+3. Update documentation and examples:
+   - Update code examples to show path-based usage
+   - Update API documentation to focus on path-based methods
+   - Add migration guide for users transitioning from element identifiers to paths
+```
+
+**Verification**:
+- All tests pass with path-based element identification
+- No references to element identifiers remain in the codebase
+- Legacy methods are fully removed
+- Documentation and examples are updated to reflect path-based usage
 
 ## 6. Implement Path Validation and Error Handling
 

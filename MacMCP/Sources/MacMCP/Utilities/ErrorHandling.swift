@@ -220,6 +220,51 @@ public func createZeroCoordinatesError(
     )
 }
 
+/// Create an invalid element path error
+public func createInvalidPathError(
+    message: String,
+    context: [String: String] = [:],
+    underlyingError: Swift.Error? = nil
+) -> MacMCPErrorInfo {
+    return MacMCPErrorInfo(
+        category: .element,
+        code: MacMCPErrorCode.invalidElementPath,
+        message: message,
+        context: context,
+        underlyingError: underlyingError
+    )
+}
+
+/// Create a path resolution failed error
+public func createPathResolutionError(
+    message: String,
+    context: [String: String] = [:],
+    underlyingError: Swift.Error? = nil
+) -> MacMCPErrorInfo {
+    return MacMCPErrorInfo(
+        category: .element,
+        code: MacMCPErrorCode.elementPathResolutionFailed,
+        message: message,
+        context: context,
+        underlyingError: underlyingError
+    )
+}
+
+/// Create an ambiguous element path error
+public func createAmbiguousPathError(
+    message: String,
+    context: [String: String] = [:],
+    underlyingError: Swift.Error? = nil
+) -> MacMCPErrorInfo {
+    return MacMCPErrorInfo(
+        category: .element,
+        code: MacMCPErrorCode.ambiguousElementPath,
+        message: message,
+        context: context,
+        underlyingError: underlyingError
+    )
+}
+
 /// Create a standard interaction error
 public func createInteractionError(
     message: String,
