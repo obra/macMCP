@@ -3,6 +3,7 @@
 
 import Foundation
 import AppKit
+import MacMCPUtilities
 
 /// Errors that can occur when working with element paths
 public enum ElementPathError: Error, CustomStringConvertible, Equatable {
@@ -36,6 +37,12 @@ public enum ElementPathError: Error, CustomStringConvertible, Equatable {
     /// Multiple elements match without distinguishing information
     case ambiguousMatch(String, matchCount: Int, atSegment: Int)
     
+    /// Enhanced error with detailed information about why resolution failed
+    case resolutionFailed(segment: String, index: Int, candidates: [String], reason: String)
+    
+    /// Application specified in path was not found
+    case applicationNotFound(String, details: String)
+    
     public var description: String {
         switch self {
         case .invalidPathSyntax(let path):
@@ -58,6 +65,18 @@ public enum ElementPathError: Error, CustomStringConvertible, Equatable {
             return "No elements match segment: \(segment) at index \(segmentIndex)"
         case .ambiguousMatch(let segment, let count, let segmentIndex):
             return "Ambiguous match: \(count) elements match segment \(segment) at index \(segmentIndex)"
+        case .resolutionFailed(let segment, let index, let candidates, let reason):
+            var details = "Failed to resolve segment: \(segment) at index \(index)\nReason: \(reason)"
+            if !candidates.isEmpty {
+                details += "\nPossible alternatives:"
+                for (i, candidate) in candidates.enumerated() {
+                    details += "\n  \(i+1). \(candidate)"
+                }
+                details += "\nConsider using one of these alternatives or add more specific attributes to your path."
+            }
+            return details
+        case .applicationNotFound(let appIdentifier, let details):
+            return "Application not found: \(appIdentifier). \(details)"
         }
     }
     
@@ -83,6 +102,11 @@ public enum ElementPathError: Error, CustomStringConvertible, Equatable {
             return lhsSegment == rhsSegment && lhsIndex == rhsIndex
         case (.ambiguousMatch(let lhsSegment, let lhsCount, let lhsIndex), .ambiguousMatch(let rhsSegment, let rhsCount, let rhsIndex)):
             return lhsSegment == rhsSegment && lhsCount == rhsCount && lhsIndex == rhsIndex
+        case (.resolutionFailed(let lhsSegment, let lhsIndex, let lhsCandidates, let lhsReason),
+              .resolutionFailed(let rhsSegment, let rhsIndex, let rhsCandidates, let rhsReason)):
+            return lhsSegment == rhsSegment && lhsIndex == rhsIndex && lhsCandidates == rhsCandidates && lhsReason == rhsReason
+        case (.applicationNotFound(let lhsApp, let lhsDetails), .applicationNotFound(let rhsApp, let rhsDetails)):
+            return lhsApp == rhsApp && lhsDetails == rhsDetails
         default:
             return false
         }
@@ -286,9 +310,37 @@ public struct ElementPath {
             
             // 1. Try by bundleIdentifier if provided
             if let bundleId = firstSegment.attributes["bundleIdentifier"] {
-                guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId).first else {
-                    throw ElementPathError.segmentResolutionFailed("Application not running: \(bundleId)", atSegment: 0)
+                let apps = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId)
+                
+                guard let app = apps.first else {
+                    // Get a list of running applications for better error messages
+                    let runningApps = NSWorkspace.shared.runningApplications
+                    var runningAppDetails: [String] = []
+                    
+                    for (i, app) in runningApps.prefix(10).enumerated() {
+                        var appInfo = "\(i+1). "
+                        if let name = app.localizedName {
+                            appInfo += "\(name)"
+                        } else {
+                            appInfo += "Unknown"
+                        }
+                        if let bundleId = app.bundleIdentifier {
+                            appInfo += " (bundleIdentifier: \(bundleId))"
+                        }
+                        runningAppDetails.append(appInfo)
+                    }
+                    
+                    if runningApps.count > 10 {
+                        runningAppDetails.append("...and \(runningApps.count - 10) more applications")
+                    }
+                    
+                    throw ElementPathError.applicationNotFound(
+                        bundleId,
+                        details: "Application with bundleIdentifier '\(bundleId)' is not running. Running applications are:\n" +
+                                runningAppDetails.joined(separator: "\n")
+                    )
                 }
+                
                 startElement = AXUIElementCreateApplication(app.processIdentifier)
             }
             // 2. Try by title/name if provided
@@ -297,13 +349,37 @@ public struct ElementPath {
                 let runningApps = NSWorkspace.shared.runningApplications
                 
                 // Find application with matching title
-                guard let app = runningApps.first(where: { 
+                if let app = runningApps.first(where: { 
                     $0.localizedName == title || $0.localizedName?.contains(title) == true 
-                }) else {
-                    throw ElementPathError.segmentResolutionFailed("Application not found with title: \(title)", atSegment: 0)
+                }) {
+                    startElement = AXUIElementCreateApplication(app.processIdentifier)
+                } else {
+                    // No exact match, gather information about running apps
+                    var runningAppDetails: [String] = []
+                    
+                    for (i, app) in runningApps.prefix(10).enumerated() {
+                        var appInfo = "\(i+1). "
+                        if let name = app.localizedName {
+                            appInfo += "\(name)"
+                        } else {
+                            appInfo += "Unknown"
+                        }
+                        if let bundleId = app.bundleIdentifier {
+                            appInfo += " (bundleIdentifier: \(bundleId))"
+                        }
+                        runningAppDetails.append(appInfo)
+                    }
+                    
+                    if runningApps.count > 10 {
+                        runningAppDetails.append("...and \(runningApps.count - 10) more applications")
+                    }
+                    
+                    throw ElementPathError.applicationNotFound(
+                        title,
+                        details: "Application with title '\(title)' not found. Running applications are:\n" +
+                                runningAppDetails.joined(separator: "\n")
+                    )
                 }
-                
-                startElement = AXUIElementCreateApplication(app.processIdentifier)
             }
             // 3. Use focused application as fallback
             else {
@@ -461,7 +537,51 @@ public struct ElementPath {
         // Handle based on number of matches and whether an index was specified
         if matches.isEmpty {
             print("DEBUG: No matches found for segment")
-            return nil
+            
+            // Gather information about available children for better diagnostics
+            var availableChildren: [String] = []
+            for (i, child) in children.prefix(5).enumerated() {
+                var childInfo = "Child \(i) (role: "
+                
+                // Get the role
+                var roleRef: CFTypeRef?
+                AXUIElementCopyAttributeValue(child, "AXRole" as CFString, &roleRef)
+                if let role = roleRef as? String {
+                    childInfo += role
+                } else {
+                    childInfo += "unknown"
+                }
+                
+                // Try to get identifiable attributes
+                for attr in ["AXTitle", "AXDescription", "AXIdentifier", "AXValue"] {
+                    var attrRef: CFTypeRef?
+                    let status = AXUIElementCopyAttributeValue(child, attr as CFString, &attrRef)
+                    if status == .success, let value = attrRef as? String, !value.isEmpty {
+                        childInfo += ", \(attr): \"\(value)\""
+                    }
+                }
+                
+                childInfo += ")"
+                availableChildren.append(childInfo)
+            }
+            
+            // If there are more children than we showed, indicate that
+            if children.count > 5 {
+                availableChildren.append("...and \(children.count - 5) more children")
+            }
+            
+            // If no children are found, indicate that
+            if availableChildren.isEmpty {
+                availableChildren.append("No children found in this element.")
+            }
+            
+            let segmentString = segment.toString()
+            throw ElementPathError.resolutionFailed(
+                segment: segmentString,
+                index: segmentIndex,
+                candidates: availableChildren,
+                reason: "No elements match this segment. Available children are shown below."
+            )
         } else if matches.count == 1 || segment.index != nil {
             // Single match or specific index requested
             
@@ -485,7 +605,46 @@ public struct ElementPath {
             // Multiple matches and no index specified - this is ambiguous
             let segmentString = segment.toString()
             print("DEBUG: Ambiguous match - \(matches.count) elements match segment")
-            throw ElementPathError.ambiguousMatch(segmentString, matchCount: matches.count, atSegment: segmentIndex)
+            
+            // Gather information about the ambiguous matches to help with diagnostics
+            var matchCandidates: [String] = []
+            for (i, match) in matches.prefix(5).enumerated() {
+                var description = "Element \(i) (role: "
+                
+                // Get the role
+                var roleRef: CFTypeRef?
+                AXUIElementCopyAttributeValue(match, "AXRole" as CFString, &roleRef)
+                if let role = roleRef as? String {
+                    description += role
+                } else {
+                    description += "unknown"
+                }
+                
+                // Try to get identifiable attributes
+                for attr in ["AXTitle", "AXDescription", "AXIdentifier", "AXValue"] {
+                    var attrRef: CFTypeRef?
+                    let status = AXUIElementCopyAttributeValue(match, attr as CFString, &attrRef)
+                    if status == .success, let value = attrRef as? String, !value.isEmpty {
+                        description += ", \(attr): \"\(value)\""
+                    }
+                }
+                
+                description += ")"
+                matchCandidates.append(description)
+            }
+            
+            // If there are more matches than we showed, indicate that
+            if matches.count > 5 {
+                matchCandidates.append("...and \(matches.count - 5) more matches")
+            }
+            
+            // Throw enhanced error with candidate information
+            throw ElementPathError.resolutionFailed(
+                segment: segmentString,
+                index: segmentIndex,
+                candidates: matchCandidates,
+                reason: "Multiple elements (\(matches.count)) match this segment. Add more specific attributes or use an index."
+            )
         }
     }
     
@@ -524,64 +683,78 @@ public struct ElementPath {
             return true
         }
         
-        // Check each attribute with resilient attribute access
+        // Check each attribute with resilient attribute access and fallbacks
         for (name, expectedValue) in segment.attributes {
             print("DEBUG: Match check - checking attribute: \(name), expected value: \(expectedValue)")
             
-            // Handle special cases for common attributes that might need special handling
-            switch name {
-            case "title":
-                // Try multiple approaches to get the title
-                if !matchAttribute(element, name: "AXTitle", expectedValue: expectedValue) {
-                    // If direct title doesn't match, try getting title another way
-                    // Check if there's a help attribute that might contain the title
-                    if !matchAttribute(element, name: "AXHelp", expectedValue: expectedValue) {
-                        // Check if there's a description that might match
-                        if !matchAttribute(element, name: "AXDescription", expectedValue: expectedValue) {
-                            // As a last resort, check if the value contains the title
-                            if !matchAttribute(element, name: "AXValue", expectedValue: expectedValue) {
-                                // No match found for title
-                                print("DEBUG: Match check - title match failed: no matching attribute values")
-                                return false
-                            }
-                        }
-                    }
+            // Get fallback attribute names for this attribute
+            let attributeVariants = getAttributeVariants(name)
+            
+            // Try all variants of the attribute name
+            var attributeMatched = false
+            for attributeName in attributeVariants {
+                if matchAttribute(element, name: attributeName, expectedValue: expectedValue) {
+                    attributeMatched = true
+                    print("DEBUG: Match check - attribute matched via variant: \(attributeName)")
+                    break
                 }
-                
-            case "description":
-                // Try multiple approaches to get the description
-                if !matchAttribute(element, name: "AXDescription", expectedValue: expectedValue) {
-                    // If direct description doesn't match, check other possible attributes
-                    if !matchAttribute(element, name: "AXHelp", expectedValue: expectedValue) {
-                        // As a fallback, check if the value matches
-                        if !matchAttribute(element, name: "AXValue", expectedValue: expectedValue) {
-                            // No match found for description
-                            print("DEBUG: Match check - description match failed: no matching attribute values")
-                            return false
-                        }
-                    }
-                }
-                
-            case "value":
-                // Value is often available in different attributes
-                if !matchAttribute(element, name: "AXValue", expectedValue: expectedValue) {
-                    // No match found for value
-                    print("DEBUG: Match check - value match failed: no matching value attribute")
-                    return false
-                }
-                
-            default:
-                // For all other attributes, use the direct attribute name
-                if !matchAttribute(element, name: name, expectedValue: expectedValue) {
-                    print("DEBUG: Match check - attribute \(name) match failed")
-                    return false
-                }
+            }
+            
+            // If none of the attribute variants matched, this element doesn't match
+            if !attributeMatched {
+                print("DEBUG: Match check - attribute \(name) match failed on all variants: \(attributeVariants)")
+                return false
             }
         }
         
         // All checks passed
         print("DEBUG: Match check - full match found")
         return true
+    }
+    
+    /// Get the variants of an attribute name to try when matching
+    /// - Parameter attributeName: The original attribute name
+    /// - Returns: An array of attribute name variants to try
+    private func getAttributeVariants(_ attributeName: String) -> [String] {
+        // Standard cases handled by the normalizer
+        let normalizedName = PathNormalizer.normalizeAttributeName(attributeName)
+        var variants = [normalizedName]
+        
+        // Add original name if different from normalized
+        if normalizedName != attributeName {
+            variants.append(attributeName)
+        }
+        
+        // Add common fallbacks based on attribute type
+        switch normalizedName {
+        case "AXTitle":
+            variants.append(contentsOf: ["AXValue", "AXHelp", "AXDescription", "AXLabel"])
+            
+        case "AXDescription":
+            variants.append(contentsOf: ["AXHelp", "AXValue", "AXLabel"])
+            
+        case "AXValue":
+            variants.append(contentsOf: ["AXTitle", "AXDescription", "AXLabel"])
+            
+        case "AXIdentifier":
+            variants.append(contentsOf: ["AXIdentifier", "id", "identifier", "AXDOMIdentifier"]) 
+            
+        case "AXLabel":
+            variants.append(contentsOf: ["AXDescription", "AXHelp", "AXTitle"])
+            
+        default:
+            // For attributes without special handling, try both with and without AX prefix
+            if normalizedName.hasPrefix("AX") {
+                // Add non-prefixed variant
+                let nonPrefixed = String(normalizedName.dropFirst(2))
+                variants.append(nonPrefixed.prefix(1).lowercased() + nonPrefixed.dropFirst())
+            } else {
+                // Add prefixed variant
+                variants.append("AX" + normalizedName.prefix(1).uppercased() + normalizedName.dropFirst())
+            }
+        }
+        
+        return variants
     }
     
     /// Match an attribute value against an expected value with robust error handling
@@ -650,25 +823,73 @@ public struct ElementPath {
                 print("DEBUG: Match check - attribute \(name) value mismatch (substring): expected relationship with \(expectedValue), got \(actualValue)")
             }
             return matches
+            
+        case .startsWith:
+            // Check if the actual value starts with the expected value
+            let matches = actualValue.localizedCaseInsensitiveCompare(expectedValue) == .orderedSame ||
+                          actualValue.localizedStandardRange(of: expectedValue)?.lowerBound == actualValue.startIndex
+            if !matches {
+                print("DEBUG: Match check - attribute \(name) value mismatch (startsWith): expected to start with \(expectedValue), got \(actualValue)")
+            }
+            return matches
         }
     }
     
     /// Determines how to match an attribute based on its type
     /// - Parameter attribute: The attribute name
     /// - Returns: The match type to use
-    private func determineMatchType(forAttribute attribute: String) -> MatchType {
-        switch attribute {
-        case "AXTitle", "title":
+    public func determineMatchType(forAttribute attribute: String) -> MatchType {
+        // Normalize the attribute name for consistent matching
+        let normalizedName = PathNormalizer.normalizeAttributeName(attribute)
+        
+        switch normalizedName {
+        case "AXTitle":
             // Title can sometimes be a substring or contain the attribute we're looking for
             return .substring
             
-        case "AXDescription", "description", "AXHelp":
+        case "AXDescription", "AXHelp":
             // Descriptions are often longer and might just contain the expected text
             return .contains
             
-        case "AXValue", "value":
+        case "AXValue":
             // Values can sometimes be partial matches
             return .substring
+            
+        case "AXLabel", "AXPlaceholderValue":
+            // Labels often contain the text we're looking for
+            return .contains
+            
+        case "AXRoleDescription":
+            // Role descriptions may contain what we're looking for
+            return .contains
+            
+        case "AXIdentifier":
+            // Identifiers should match exactly
+            return .exact
+            
+        case "bundleIdentifier", "AXBundleIdentifier":
+            // Bundle IDs should match exactly
+            return .exact
+            
+        case "AXRole":
+            // Roles should match exactly
+            return .exact
+            
+        case "AXSubrole":
+            // Subroles should match exactly
+            return .exact
+            
+        case "AXPath":
+            // Paths should match exactly
+            return .exact
+            
+        case "AXFrameInScreenCoordinates", "AXFrame", "AXPosition", "AXSize":
+            // Geometry attributes should match exactly
+            return .exact
+            
+        case "AXFilename", "AXName":
+            // Filenames often need startsWith matching for partial paths
+            return .startsWith
             
         default:
             // For most attributes, require exact match
@@ -677,7 +898,7 @@ public struct ElementPath {
     }
     
     /// Types of attribute matching strategies
-    private enum MatchType {
+    public enum MatchType {
         /// Require exact match between expected and actual values
         case exact
         
@@ -686,6 +907,9 @@ public struct ElementPath {
         
         /// Check if either value contains the other or they're equal
         case substring
+        
+        /// Check if actual value starts with expected value
+        case startsWith
     }
 }
 
