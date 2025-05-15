@@ -1170,6 +1170,19 @@ public class AccessibilityElement {
     public static func applicationElement(pid: pid_t) -> AXUIElement {
         return AXUIElementCreateApplication(pid)
     }
+    
+    /// Set a value for an attribute
+    /// - Parameters:
+    ///   - value: The value to set
+    ///   - attribute: The attribute name
+    ///   - element: The element to modify
+    public static func setValue(
+        _ value: Any,
+        forAttribute attribute: String,
+        ofElement element: AXUIElement
+    ) throws {
+        try setAttribute(element, attribute: attribute, value: value)
+    }
 
     /// Generate a path-based identifier for menu elements
     /// - Parameters:

@@ -493,19 +493,19 @@ public struct ElementPath {
         print("DEBUG: Found \(children.count) children of current element")
         
         // Log child roles to help with debugging
-        print("DEBUG: Child roles:")
+        // print("DEBUG: Child roles:")
         for (i, child) in children.enumerated() {
             var childRoleRef: CFTypeRef?
             let childRoleStatus = AXUIElementCopyAttributeValue(child, "AXRole" as CFString, &childRoleRef)
             if childRoleStatus == .success, let childRole = childRoleRef as? String {
-                print("DEBUG:   [\(i)] \(childRole)")
+                // print("DEBUG:   [\(i)] \(childRole)")
                 
                 // If the child matches our target segment role, check title too
                 if childRole == segment.role {
                     var childTitleRef: CFTypeRef?
                     let childTitleStatus = AXUIElementCopyAttributeValue(child, "AXTitle" as CFString, &childTitleRef)
                     if childTitleStatus == .success, let childTitle = childTitleRef as? String {
-                        print("DEBUG:     Title: \(childTitle)")
+                        // print("DEBUG:     Title: \(childTitle)")
                     }
                 }
             } else {
@@ -659,33 +659,33 @@ public struct ElementPath {
         let roleStatus = AXUIElementCopyAttributeValue(element, "AXRole" as CFString, &roleRef)
         
         if roleStatus != .success || roleRef == nil {
-            print("DEBUG: Match check - role not available, status: \(roleStatus.rawValue)")
+            // print("DEBUG: Match check - role not available, status: \(roleStatus.rawValue)")
             return false
         }
         
         guard let role = roleRef as? String else {
-            print("DEBUG: Match check - role not a string: \(String(describing: roleRef))")
+            // print("DEBUG: Match check - role not a string: \(String(describing: roleRef))")
             return false
         }
         
         // Log role
-        print("DEBUG: Match check - element role: \(role), expected: \(segment.role)")
+        // print("DEBUG: Match check - element role: \(role), expected: \(segment.role)")
         
         // Check role match
         guard role == segment.role else {
-            print("DEBUG: Match check - role mismatch")
+            // print("DEBUG: Match check - role mismatch")
             return false
         }
         
         // If there are no attributes to match, we're done
         if segment.attributes.isEmpty {
-            print("DEBUG: Match check - no attributes required, match found")
+            // print("DEBUG: Match check - no attributes required, match found")
             return true
         }
         
         // Check each attribute with resilient attribute access and fallbacks
         for (name, expectedValue) in segment.attributes {
-            print("DEBUG: Match check - checking attribute: \(name), expected value: \(expectedValue)")
+            // print("DEBUG: Match check - checking attribute: \(name), expected value: \(expectedValue)")
             
             // Get fallback attribute names for this attribute
             let attributeVariants = getAttributeVariants(name)
@@ -695,20 +695,20 @@ public struct ElementPath {
             for attributeName in attributeVariants {
                 if matchAttribute(element, name: attributeName, expectedValue: expectedValue) {
                     attributeMatched = true
-                    print("DEBUG: Match check - attribute matched via variant: \(attributeName)")
+                    // print("DEBUG: Match check - attribute matched via variant: \(attributeName)")
                     break
                 }
             }
             
             // If none of the attribute variants matched, this element doesn't match
             if !attributeMatched {
-                print("DEBUG: Match check - attribute \(name) match failed on all variants: \(attributeVariants)")
+                // print("DEBUG: Match check - attribute \(name) match failed on all variants: \(attributeVariants)")
                 return false
             }
         }
         
         // All checks passed
-        print("DEBUG: Match check - full match found")
+        // print("DEBUG: Match check - full match found")
         return true
     }
     
@@ -770,7 +770,7 @@ public struct ElementPath {
         
         // If we couldn't get the attribute, it doesn't match
         if attributeStatus != .success || attributeRef == nil {
-            print("DEBUG: Match check - attribute \(name) not available, status: \(attributeStatus.rawValue)")
+            // print("DEBUG: Match check - attribute \(name) not available, status: \(attributeStatus.rawValue)")
             return false
         }
         
@@ -779,17 +779,17 @@ public struct ElementPath {
         
         if let stringValue = attributeRef as? String {
             actualValue = stringValue
-            print("DEBUG: Match check - attribute \(name) value (string): \(actualValue)")
+            // print("DEBUG: Match check - attribute \(name) value (string): \(actualValue)")
         } else if let numberValue = attributeRef as? NSNumber {
             actualValue = numberValue.stringValue
-            print("DEBUG: Match check - attribute \(name) value (number): \(actualValue)")
+            // print("DEBUG: Match check - attribute \(name) value (number): \(actualValue)")
         } else if let boolValue = attributeRef as? Bool {
             actualValue = boolValue ? "true" : "false"
-            print("DEBUG: Match check - attribute \(name) value (bool): \(actualValue)")
+            // print("DEBUG: Match check - attribute \(name) value (bool): \(actualValue)")
         } else {
             // For other types, use description
             actualValue = String(describing: attributeRef!)
-            print("DEBUG: Match check - attribute \(name) value (other): \(actualValue)")
+            // print("DEBUG: Match check - attribute \(name) value (other): \(actualValue)")
         }
         
         // Check for partial matches in some cases
@@ -800,7 +800,7 @@ public struct ElementPath {
             // Exact match required
             let matches = (actualValue == expectedValue)
             if !matches {
-                print("DEBUG: Match check - attribute \(name) value mismatch (exact): expected \(expectedValue), got \(actualValue)")
+                // print("DEBUG: Match check - attribute \(name) value mismatch (exact): expected \(expectedValue), got \(actualValue)")
             }
             return matches
             
@@ -808,7 +808,7 @@ public struct ElementPath {
             // Check if the actual value contains the expected value
             let matches = actualValue.localizedCaseInsensitiveContains(expectedValue)
             if !matches {
-                print("DEBUG: Match check - attribute \(name) value mismatch (contains): expected to contain \(expectedValue), got \(actualValue)")
+                // print("DEBUG: Match check - attribute \(name) value mismatch (contains): expected to contain \(expectedValue), got \(actualValue)")
             }
             return matches
             
@@ -820,7 +820,7 @@ public struct ElementPath {
             
             let matches = exactMatch || containsExpected || expectedContainsActual
             if !matches {
-                print("DEBUG: Match check - attribute \(name) value mismatch (substring): expected relationship with \(expectedValue), got \(actualValue)")
+                // print("DEBUG: Match check - attribute \(name) value mismatch (substring): expected relationship with \(expectedValue), got \(actualValue)")
             }
             return matches
             
@@ -829,7 +829,7 @@ public struct ElementPath {
             let matches = actualValue.localizedCaseInsensitiveCompare(expectedValue) == .orderedSame ||
                           actualValue.localizedStandardRange(of: expectedValue)?.lowerBound == actualValue.startIndex
             if !matches {
-                print("DEBUG: Match check - attribute \(name) value mismatch (startsWith): expected to start with \(expectedValue), got \(actualValue)")
+                // print("DEBUG: Match check - attribute \(name) value mismatch (startsWith): expected to start with \(expectedValue), got \(actualValue)")
             }
             return matches
         }
