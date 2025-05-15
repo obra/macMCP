@@ -207,6 +207,19 @@ struct MCPAccessibilityInspector: ParsableCommand {
 
           # Get details for a specific menu
           mcp-ax-inspector --app-id com.apple.TextEdit --menu-path "File"
+
+        Path-related features:
+          # Show element paths for all UI elements
+          mcp-ax-inspector --app-id com.apple.calculator --show-paths
+
+          # Highlight paths to make them more visible
+          mcp-ax-inspector --app-id com.apple.calculator --highlight-paths
+
+          # Show paths only for interactive elements
+          mcp-ax-inspector --app-id com.apple.calculator --interactive-paths
+
+          # Filter elements by path pattern
+          mcp-ax-inspector --app-id com.apple.calculator --path-filter "AXButton[@description=\\"1\\"]"
         """
     )
     
@@ -265,6 +278,19 @@ struct MCPAccessibilityInspector: ParsableCommand {
     @Option(name: [.customLong("window-id")], help: "Get details for a specific window ID")
     var windowId: String?
     
+    // Path-related options
+    @Flag(name: [.customLong("show-paths")], help: "Show UI element paths for all elements")
+    var showPaths: Bool = false
+    
+    @Flag(name: [.customLong("highlight-paths")], help: "Highlight UI element paths in the output")
+    var highlightPaths: Bool = false
+    
+    @Option(name: [.customLong("path-filter")], help: "Filter elements by path pattern (e.g., \"AXButton[@description=1]\")")
+    var pathFilter: String?
+    
+    @Flag(name: [.customLong("interactive-paths")], help: "Highlight paths for interactive elements (buttons, links, etc.)")
+    var showInteractivePaths: Bool = false
+    
     // Need to implement a synchronous wrapper to execute async code
     func run() throws {
         print("Starting MCP Accessibility Inspector...")
@@ -282,6 +308,10 @@ struct MCPAccessibilityInspector: ParsableCommand {
         print("Show window controls: \(showWindowControls)")
         print("Show window contents: \(showWindowContents)")
         print("Verbose: \(verbose)")
+        print("Show paths: \(showPaths)")
+        print("Highlight paths: \(highlightPaths)")
+        print("Path filter: \(pathFilter ?? "Not specified")")
+        print("Show interactive paths: \(showInteractivePaths)")
         
         // Verify we have either appId or pid
         guard appId != nil || pid != nil else {
@@ -376,12 +406,20 @@ struct MCPAccessibilityInspector: ParsableCommand {
             visualizerOptions.showDetails = true // Always show details
             visualizerOptions.showAllAttributes = true // Always show all attributes
             
+            // Apply path-related options
+            visualizerOptions.highlightPaths = highlightPaths || showPaths
+            
             // Initialize visualizer
             let visualizer = MCPTreeVisualizer(options: visualizerOptions)
             
+            // Add interactive elements filter if requested
+            if showInteractivePaths {
+                filterDict["component-type"] = "interactive"
+            }
+            
             // Generate the visualization
             print("Generating visualization...")
-            let output = visualizer.visualize(rootElement, withFilters: filterDict)
+            let output = visualizer.visualize(rootElement, withFilters: filterDict, pathPattern: pathFilter)
 
             // Note: additionalOutput is already populated by the AsyncInspectionTask
 

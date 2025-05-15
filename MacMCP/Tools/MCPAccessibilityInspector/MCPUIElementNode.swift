@@ -28,6 +28,8 @@ class MCPUIElementNode {
     let isEnabled: Bool
     let isClickable: Bool
     let isVisible: Bool
+    let elementPath: String? // New property for UI element path
+    var parentPath: String? // Path of parent element (populated during traversal)
     
     init(jsonElement: [String: Any], index: Int) {
         self.index = index
@@ -132,6 +134,10 @@ class MCPUIElementNode {
         } else {
             self.attributes = [:]
         }
+        
+        // Extract path information if available
+        self.elementPath = jsonElement["path"] as? String
+        self.parentPath = nil
 
         // Initialize children as empty (will be populated by inspector)
         self.children = []
@@ -146,6 +152,11 @@ class MCPUIElementNode {
             for childJSON in childrenArray {
                 let childNode = MCPUIElementNode(jsonElement: childJSON, index: nextIndex)
                 nextIndex += 1
+                
+                // Set the parent path relationship to help understand the hierarchy
+                childNode.parentPath = self.elementPath
+                
+                // Add to children
                 self.children.append(childNode)
 
                 // Recursively populate grandchildren
@@ -154,5 +165,33 @@ class MCPUIElementNode {
         }
 
         return nextIndex
+    }
+    
+    /// Generate a synthetic element path if one wasn't provided
+    /// Used as a fallback when the element doesn't have a path attribute
+    func generateSyntheticPath() -> String? {
+        // Start with the parent path (if we have one) or start a new path
+        var pathBase = parentPath ?? "ui://"
+        
+        // Don't add a separator if we're starting a new path (ui://)
+        if !pathBase.hasSuffix("/") && pathBase != "ui://" {
+            pathBase += "/"
+        }
+        
+        // Create a path segment for this element
+        var segment = role
+        
+        // Add key attributes to make the path more specific
+        if let title = self.title, !title.isEmpty {
+            let escapedTitle = title.replacingOccurrences(of: "\"", with: "\\\"")
+            segment += "[@title=\"\(escapedTitle)\"]"
+        }
+        
+        if let description = self.description, !description.isEmpty {
+            let escapedDesc = description.replacingOccurrences(of: "\"", with: "\\\"")
+            segment += "[@description=\"\(escapedDesc)\"]"
+        }
+        
+        return pathBase + segment
     }
 }

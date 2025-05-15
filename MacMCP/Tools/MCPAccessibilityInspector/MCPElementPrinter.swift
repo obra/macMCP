@@ -42,8 +42,10 @@ class MCPElementPrinter {
     /// Formats a UI element for display
     /// - Parameter element: The element to format
     /// - Parameter showColor: Whether to use color in the output
+    /// - Parameter showAllData: Whether to show all detailed data
+    /// - Parameter highlightPath: Whether to highlight the element path prominently
     /// - Returns: A formatted string representation of the element
-    func formatElement(_ element: MCPUIElementNode, showColor: Bool = true, showAllData: Bool = true) -> String {
+    func formatElement(_ element: MCPUIElementNode, showColor: Bool = true, showAllData: Bool = true, highlightPath: Bool = false) -> String {
         var output = ""
         
         // Create a more informative header for interactive elements
@@ -74,6 +76,33 @@ class MCPElementPrinter {
         
         // SECTION 1: Basic identification and geometry
         output += "   Identifier: \(element.identifier)\n"
+        
+        // Display the element path with highlighting if requested
+        if highlightPath {
+            // If path is available directly from the element, show it
+            if let path = element.elementPath {
+                if showColor {
+                    output += "   \(TerminalColor.boldGreen.rawValue)Path: \(path)\(TerminalColor.reset.rawValue)\n"
+                } else {
+                    output += "   Path: \(path)\n"
+                }
+            } 
+            // Otherwise generate a synthetic path if possible
+            else if let syntheticPath = element.generateSyntheticPath() {
+                if showColor {
+                    output += "   \(TerminalColor.yellow.rawValue)Path (generated): \(syntheticPath)\(TerminalColor.reset.rawValue)\n"
+                } else {
+                    output += "   Path (generated): \(syntheticPath)\n"
+                }
+            }
+        } else {
+            // Standard path display when not highlighting
+            if let path = element.elementPath {
+                output += "   Path: \(path)\n"
+            } else if let syntheticPath = element.generateSyntheticPath() {
+                output += "   Path (generated): \(syntheticPath)\n"
+            }
+        }
         
         if let frame = element.frame {
             output += "   Frame: (x:\(Int(frame.origin.x)), y:\(Int(frame.origin.y)), w:\(Int(frame.size.width)), h:\(Int(frame.size.height)))\n"
@@ -139,6 +168,9 @@ class MCPElementPrinter {
         if element.hasParent {
             relationshipTokens.append("Has Parent")
         }
+        if element.attributes["AXWindow"] != nil {
+            relationshipTokens.append("Has Window")
+        }
         
         output += "   Relationships: " + relationshipTokens.joined(separator: ", ") + "\n"
         
@@ -162,7 +194,8 @@ class MCPElementPrinter {
             "focused", // Already shown in state section
             "selected", // Already shown in state section
             "clickable", // Already shown in state section
-            "visible" // Already shown in state section
+            "visible", // Already shown in state section
+            "path" // Already shown in path section
         ])
         
         // Filter attributes to find non-excluded ones

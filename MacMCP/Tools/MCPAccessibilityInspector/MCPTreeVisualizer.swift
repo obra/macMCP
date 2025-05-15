@@ -18,6 +18,7 @@ class MCPTreeVisualizer {
         var showColor: Bool = true
         var showDetails: Bool = false
         var showAllAttributes: Bool = false
+        var highlightPaths: Bool = false
         var indentSize: Int = 3
         var branchPrefix: String = "+"
     }
@@ -33,12 +34,13 @@ class MCPTreeVisualizer {
     /// - Parameters:
     ///   - rootElement: The root element of the tree
     ///   - withFilters: Optional filters to apply (key-value pairs)
+    ///   - pathPattern: Optional path pattern to filter elements by
     /// - Returns: A string representation of the tree
-    func visualize(_ rootElement: MCPUIElementNode, withFilters: [String: String] = [:]) -> String {
+    func visualize(_ rootElement: MCPUIElementNode, withFilters: [String: String] = [:], pathPattern: String? = nil) -> String {
         var output = ""
         
         // Format the root element
-        output += elementPrinter.formatElement(rootElement, showColor: options.showColor, showAllData: options.showAllAttributes)
+        output += elementPrinter.formatElement(rootElement, showColor: options.showColor, showAllData: options.showAllAttributes, highlightPath: options.highlightPaths)
         
         // If root has children, add a visual separator
         if !rootElement.children.isEmpty {
@@ -46,7 +48,7 @@ class MCPTreeVisualizer {
         }
         
         // Recursively visualize the children
-        visualizeChildren(rootElement.children, withFilters: withFilters, prefix: "", isLast: true, intoOutput: &output)
+        visualizeChildren(rootElement.children, withFilters: withFilters, pathPattern: pathPattern, prefix: "", isLast: true, intoOutput: &output)
         
         return output
     }
@@ -55,12 +57,13 @@ class MCPTreeVisualizer {
     /// - Parameters:
     ///   - children: The children to visualize
     ///   - withFilters: Filters to apply
+    ///   - pathPattern: Optional path pattern to filter elements by
     ///   - prefix: Current line prefix for indentation
     ///   - isLast: Whether this is the last child in its parent's children list
     ///   - output: Output string to append to
-    private func visualizeChildren(_ children: [MCPUIElementNode], withFilters: [String: String], prefix: String, isLast: Bool, intoOutput output: inout String) {
+    private func visualizeChildren(_ children: [MCPUIElementNode], withFilters: [String: String], pathPattern: String? = nil, prefix: String, isLast: Bool, intoOutput output: inout String) {
         // Filter children if needed
-        let filteredChildren = filterElements(children, withFilters: withFilters)
+        let filteredChildren = filterElements(children, withFilters: withFilters, pathPattern: pathPattern)
         
         // Process each child
         for (index, child) in filteredChildren.enumerated() {
@@ -71,7 +74,7 @@ class MCPTreeVisualizer {
             let childPrefix = prefix + "   " + branchChar + TreeSymbols.horizontal + options.branchPrefix
             
             // Add the formatted child with proper indentation
-            let elementOutput = elementPrinter.formatElement(child, showColor: options.showColor, showAllData: options.showAllAttributes)
+            let elementOutput = elementPrinter.formatElement(child, showColor: options.showColor, showAllData: options.showAllAttributes, highlightPath: options.highlightPaths)
             let indentedOutput = indentLines(elementOutput, withPrefix: childPrefix, continuationPrefix: prefix + (isLastChild ? "   " : "   " + TreeSymbols.vertical) + "   ")
             
             output += indentedOutput
@@ -83,7 +86,7 @@ class MCPTreeVisualizer {
             
             // Recursively visualize grandchildren
             let newPrefix = prefix + (isLastChild ? "   " : "   " + TreeSymbols.vertical)
-            visualizeChildren(child.children, withFilters: withFilters, prefix: newPrefix, isLast: isLastChild, intoOutput: &output)
+            visualizeChildren(child.children, withFilters: withFilters, pathPattern: pathPattern, prefix: newPrefix, isLast: isLastChild, intoOutput: &output)
         }
     }
     
@@ -91,13 +94,43 @@ class MCPTreeVisualizer {
     /// - Parameters:
     ///   - elements: The elements to filter
     ///   - withFilters: The filters to apply
+    ///   - pathPattern: Optional path pattern to filter elements by path
     /// - Returns: Filtered list of elements
-    private func filterElements(_ elements: [MCPUIElementNode], withFilters: [String: String]) -> [MCPUIElementNode] {
-        guard !withFilters.isEmpty else {
-            return elements // No filters, return all elements
+    private func filterElements(_ elements: [MCPUIElementNode], withFilters: [String: String], pathPattern: String? = nil) -> [MCPUIElementNode] {
+        // First check if we have any filters at all
+        let noStandardFilters = withFilters.isEmpty
+        let noPathFilter = pathPattern == nil || pathPattern!.isEmpty
+        
+        // If there are no filters of any kind, return all elements
+        if noStandardFilters && noPathFilter {
+            return elements
         }
         
         return elements.filter { element in
+            // Check path filter first if specified
+            if let pattern = pathPattern, !pattern.isEmpty {
+                // Get the element's path to match against
+                let elementPath = element.elementPath ?? element.generateSyntheticPath() ?? ""
+                
+                // Simple substring match for now (enhanced version would use pattern matching)
+                // We'll use case-insensitive matching for better usability
+                if !elementPath.lowercased().contains(pattern.lowercased()) {
+                    // No path match, check if we should include special elements regardless
+                    let isApplicationElement = element.role == "AXApplication"
+                    let isTopLevelWindow = element.role == "AXWindow"
+                    
+                    // Always keep application and top-level window elements for context
+                    if !isApplicationElement && !isTopLevelWindow {
+                        return false
+                    }
+                }
+            }
+            
+            // If there are no standard filters, at this point the element passed the path filter
+            if noStandardFilters {
+                return true
+            }
+            
             // Special case: Always include application elements regardless of visible/enabled state
             if element.role == "AXApplication" {
                 // For application elements, only apply filters other than visible/enabled
@@ -124,6 +157,13 @@ class MCPTreeVisualizer {
                             }
                         }
                         if !matchesAny {
+                            return false
+                        }
+                    }
+                    // Handle path filter
+                    else if keyLower == "path" {
+                        let elementPath = element.elementPath ?? element.generateSyntheticPath() ?? ""
+                        if !elementPath.lowercased().contains(value.lowercased()) {
                             return false
                         }
                     }
@@ -164,6 +204,13 @@ class MCPTreeVisualizer {
                             return false
                         }
                     }
+                    // Handle path filter
+                    else if keyLower == "path" {
+                        let elementPath = element.elementPath ?? element.generateSyntheticPath() ?? ""
+                        if !elementPath.lowercased().contains(value.lowercased()) {
+                            return false
+                        }
+                    }
                     // Handle all other filters
                     else if !applyStandardFilter(element, key: keyLower, value: value) {
                         return false
@@ -191,6 +238,13 @@ class MCPTreeVisualizer {
                         }
                     }
                     if !matchesAny {
+                        return false
+                    }
+                }
+                // Handle path filter
+                else if keyLower == "path" {
+                    let elementPath = element.elementPath ?? element.generateSyntheticPath() ?? ""
+                    if !elementPath.lowercased().contains(value.lowercased()) {
                         return false
                     }
                 }
@@ -266,7 +320,7 @@ class MCPTreeVisualizer {
     /// Checks if an element matches a specific component type
     /// - Parameters:
     ///   - element: The element to check
-    ///   - type: The component type to match ("menu", "window-controls", or "window-contents")
+    ///   - type: The component type to match ("menu", "window-controls", "window-contents", or "interactive")
     /// - Returns: Whether the element is of the specified component type
     private func isElementOfComponentType(_ element: MCPUIElementNode, type: String) -> Bool {
         switch type {
@@ -335,6 +389,49 @@ class MCPTreeVisualizer {
             
             // Include everything else
             return true
+            
+        case "interactive", "interactable":
+            // Check for common interactive element roles
+            let interactiveRoles = [
+                "AXButton", 
+                "AXCheckBox", 
+                "AXRadioButton", 
+                "AXPopUpButton", 
+                "AXMenuItem", 
+                "AXLink", 
+                "AXSlider",
+                "AXTextField",
+                "AXTextArea",
+                "AXComboBox"
+            ]
+            
+            // First check role
+            if interactiveRoles.contains(element.role) {
+                return true
+            }
+            
+            // Check clickable state
+            if element.isClickable {
+                return true
+            }
+            
+            // Check action capability
+            if element.actions.contains("AXPress") {
+                return true
+            }
+            
+            // Check general capabilities
+            if let capabilities = (element.attributes["capabilities"] as? [String]) ?? (element.attributes["capabilities"] as? String)?.components(separatedBy: ", ") {
+                let interactiveCapabilities = ["clickable", "editable", "toggleable", "selectable", "adjustable"]
+                for capability in interactiveCapabilities {
+                    if capabilities.contains(capability) {
+                        return true
+                    }
+                }
+            }
+            
+            // Not an interactive element
+            return false
             
         default:
             return false
