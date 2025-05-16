@@ -5,6 +5,9 @@ import Foundation
 
 /// Protocol defining the accessibility service interface
 public protocol AccessibilityServiceProtocol: Sendable {
+    /// Execute a function within the actor's isolated context
+    /// This method allows calling code to utilize the actor isolation to maintain Sendability
+    func run<T: Sendable>(_ operation: @Sendable () throws -> T) async rethrows -> T
     /// Get the system-wide UI element structure
     func getSystemUIElement(
         recursive: Bool,
@@ -40,65 +43,62 @@ public protocol AccessibilityServiceProtocol: Sendable {
         maxDepth: Int
     ) async throws -> [UIElement]
 
-    /// Find a UI element by identifier
-    func findElement(
-        identifier: String,
-        in bundleId: String?
+    /// Find a UI element by path
+    func findElementByPath(
+        path: String
     ) async throws -> UIElement?
 
     /// Perform a specific accessibility action on an element
     /// - Parameters:
     ///   - action: The accessibility action to perform (e.g., "AXPress", "AXPick")
-    ///   - identifier: The element identifier
-    ///   - bundleId: Optional bundle ID of the application containing the element
+    ///   - elementPath: The element path
     func performAction(
         action: String,
-        onElement identifier: String,
-        in bundleId: String?
+        onElementWithPath elementPath: String
     ) async throws
 
     /// Move a window to a new position
     func moveWindow(
-        withIdentifier identifier: String,
+        withPath path: String,
         to point: CGPoint
     ) async throws
 
     /// Resize a window
     func resizeWindow(
-        withIdentifier identifier: String,
+        withPath path: String,
         to size: CGSize
     ) async throws
 
     /// Minimize a window
     func minimizeWindow(
-        withIdentifier identifier: String
+        withPath path: String
     ) async throws
 
     /// Maximize (zoom) a window
     func maximizeWindow(
-        withIdentifier identifier: String
+        withPath path: String
     ) async throws
 
     /// Close a window
     func closeWindow(
-        withIdentifier identifier: String
+        withPath path: String
     ) async throws
 
     /// Activate (bring to front) a window
     func activateWindow(
-        withIdentifier identifier: String
+        withPath path: String
     ) async throws
 
     /// Set the window order (front, back, above, below)
     func setWindowOrder(
-        withIdentifier identifier: String,
+        withPath path: String,
         orderMode: WindowOrderMode,
-        referenceWindowId: String?
+        referenceWindowPath: String?
     ) async throws
 
     /// Focus a window (give it keyboard focus)
     func focusWindow(
-        withIdentifier identifier: String
+        withPath path: String
     ) async throws
 
     /// Navigate through menu path and activate a menu item

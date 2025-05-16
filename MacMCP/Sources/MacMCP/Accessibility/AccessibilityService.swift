@@ -19,6 +19,12 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
   public init(logger: Logger? = nil) {
     self.logger = logger ?? Logger(label: "mcp.accessibility")
   }
+  
+  /// Execute a function within the actor's isolated context
+  /// This method allows calling code to utilize the actor isolation to maintain Sendability
+  public func run<T: Sendable>(_ operation: @Sendable () throws -> T) async rethrows -> T {
+    return try operation()
+  }
 
   /// Get the system-wide UI element structure
   /// - Parameters:
@@ -60,61 +66,23 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
       throw AccessibilityPermissions.Error.permissionDenied
     }
 
-    // Find the application by bundle ID
-    let runningApps = NSRunningApplication.runningApplications(
-      withBundleIdentifier: bundleIdentifier)
-    guard let app = runningApps.first else {
-      logger.error("Application not running", metadata: ["bundleId": "\(bundleIdentifier)"])
+    // Find the running application
+    guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier).first else {
+      logger.error("Application not found", metadata: ["bundleId": .string(bundleIdentifier)])
       throw NSError(
         domain: "com.macos.mcp.accessibility",
-        code: 1001,
-        userInfo: [NSLocalizedDescriptionKey: "Application not running: \(bundleIdentifier)"]
+        code: MacMCPErrorCode.applicationNotFound,
+        userInfo: [NSLocalizedDescriptionKey: "Application with bundle ID '\(bundleIdentifier)' not found"]
       )
-    }
-
-    // Small delay to ensure app is ready for accessibility
-    if !app.isFinishedLaunching {
-      logger.info("Waiting for application to finish launching")
-      try await Task.sleep(for: .milliseconds(500))
     }
 
     // Get the application element
     let appElement = AccessibilityElement.applicationElement(pid: app.processIdentifier)
-
-    // Try to create a UIElement representing the app
-    do {
-      return try AccessibilityElement.convertToUIElement(
-        appElement,
-        recursive: recursive,
-        maxDepth: maxDepth
-      )
-    } catch {
-      // Log detailed error but try to recover
-      logger.error(
-        "Error converting application element",
-        metadata: [
-          "bundleId": "\(bundleIdentifier)",
-          "error": "\(error.localizedDescription)",
-        ])
-
-      // Try again with a simpler approach (less recursion, fewer attributes)
-      do {
-        logger.info("Retrying with simplified conversion")
-        return try AccessibilityElement.convertToUIElement(
-          appElement,
-          recursive: false,  // Don't try recursive conversion
-          maxDepth: 1  // Minimal depth
-        )
-      } catch {
-        // If even the simplified approach fails, rethrow the error
-        logger.error(
-          "Failed simplified conversion attempt",
-          metadata: [
-            "error": "\(error.localizedDescription)"
-          ])
-        throw error
-      }
-    }
+    return try AccessibilityElement.convertToUIElement(
+      appElement,
+      recursive: recursive,
+      maxDepth: maxDepth
+    )
   }
 
   /// Get the UI element for the currently focused application
@@ -132,37 +100,38 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
       throw AccessibilityPermissions.Error.permissionDenied
     }
 
+    // Get the system-wide element and find the focused application
     let systemElement = AccessibilityElement.systemWideElement()
-    let attributeResult = try AccessibilityElement.getAttribute(
+    
+    var focusedAppElement: AXUIElement?
+    let error = AXUIElementCopyAttributeValue(
       systemElement,
-      attribute: "AXFocusedApplication"
+      kAXFocusedApplicationAttribute as CFString,
+      &focusedAppElement
     )
-
-    // Check if we got an AXUIElement result
-    guard let focusedApp = attributeResult as? NSObject,
-      CFGetTypeID(focusedApp) == AXUIElementGetTypeID()
-    else {
-      logger.error("No focused application found")
+    
+    if error != .success || focusedAppElement == nil {
+      logger.error("Failed to get focused application", metadata: ["error": .string("\(error)")])
       throw NSError(
         domain: "com.macos.mcp.accessibility",
-        code: 1002,
-        userInfo: [NSLocalizedDescriptionKey: "No focused application found"]
+        code: MacMCPErrorCode.elementNotFound,
+        userInfo: [NSLocalizedDescriptionKey: "Failed to get focused application"]
       )
     }
-
-    // We need to cast it to AXUIElement for the conversion
-    let axElement = unsafeBitCast(focusedApp, to: AXUIElement.self)
-
+    
     return try AccessibilityElement.convertToUIElement(
-      axElement,
+      focusedAppElement!,
       recursive: recursive,
       maxDepth: maxDepth
     )
   }
 
   /// Get UI element at a specific screen position
-  /// - Parameter position: The screen position to query
-  /// - Returns: A UIElement at the specified position, if any
+  /// - Parameters:
+  ///   - position: The screen coordinates to check
+  ///   - recursive: Whether to recursively get children
+  ///   - maxDepth: Maximum depth for recursion
+  /// - Returns: A UIElement at the specified position, or nil if none exists
   public func getUIElementAtPosition(
     position: CGPoint,
     recursive: Bool = true,
@@ -174,26 +143,29 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
       throw AccessibilityPermissions.Error.permissionDenied
     }
 
+    // Get the system-wide element
     let systemElement = AccessibilityElement.systemWideElement()
-    var element: AXUIElement?
-
-    // Use AXUIElementCopyElementAtPosition to get the element at the position
+    
+    // Get the element at the position
+    var elementAtPosition: AXUIElement?
     let error = AXUIElementCopyElementAtPosition(
-      systemElement, Float(position.x), Float(position.y), &element)
-
-    guard error == .success, let element = element else {
-      logger.warning(
-        "No element found at position",
-        metadata: [
-          "x": "\(position.x)",
-          "y": "\(position.y)",
-          "error": "\(error.rawValue)",
-        ])
+      systemElement,
+      Float(position.x),
+      Float(position.y),
+      &elementAtPosition
+    )
+    
+    if error != .success || elementAtPosition == nil {
+      logger.debug("No element found at position", metadata: [
+        "x": .string("\(position.x)"),
+        "y": .string("\(position.y)"),
+        "error": .string("\(error)")
+      ])
       return nil
     }
-
+    
     return try AccessibilityElement.convertToUIElement(
-      element,
+      elementAtPosition!,
       recursive: recursive,
       maxDepth: maxDepth
     )
@@ -201,14 +173,16 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
 
   /// Find UI elements matching criteria
   /// - Parameters:
-  ///   - role: The accessibility role to match
-  ///   - titleContains: Optional substring to match against element titles
-  ///   - scope: The scope to search within (default is the system-wide element)
-  /// - Returns: An array of matching UIElements
+  ///   - role: Optional role to match (e.g., "AXButton", "AXTextField")
+  ///   - titleContains: Optional substring to match in element titles
+  ///   - scope: Search scope (system-wide, focused app, or specific app)
+  ///   - recursive: Whether to recursively search children
+  ///   - maxDepth: Maximum depth for recursion
+  /// - Returns: Array of matching UIElements
   public func findUIElements(
     role: String? = nil,
     titleContains: String? = nil,
-    scope: UIElementScope = .systemWide,
+    scope: UIElementScope = .focusedApplication,
     recursive: Bool = true,
     maxDepth: Int = AccessibilityService.defaultMaxDepth
   ) async throws -> [UIElement] {
@@ -218,112 +192,107 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
       throw AccessibilityPermissions.Error.permissionDenied
     }
 
-    // Get the root element based on the scope
+    // Get the root element based on scope
     let rootElement: AXUIElement
     switch scope {
     case .systemWide:
       rootElement = AccessibilityElement.systemWideElement()
     case .focusedApplication:
+      // Get the focused application
       let systemElement = AccessibilityElement.systemWideElement()
-      let attributeResult = try AccessibilityElement.getAttribute(
+      var focusedAppElement: AXUIElement?
+      let error = AXUIElementCopyAttributeValue(
         systemElement,
-        attribute: "AXFocusedApplication"
+        kAXFocusedApplicationAttribute as CFString,
+        &focusedAppElement
       )
-
-      // Check if we got an AXUIElement result
-      guard let focusedApp = attributeResult as? NSObject,
-        CFGetTypeID(focusedApp) == AXUIElementGetTypeID()
-      else {
+      
+      if error != .success || focusedAppElement == nil {
+        logger.error("Failed to get focused application", metadata: ["error": .string("\(error)")])
         throw NSError(
           domain: "com.macos.mcp.accessibility",
-          code: 1002,
-          userInfo: [NSLocalizedDescriptionKey: "No focused application found"]
+          code: MacMCPErrorCode.elementNotFound,
+          userInfo: [NSLocalizedDescriptionKey: "Failed to get focused application"]
         )
       }
-      // Use unsafeBitCast to properly convert NSObject to AXUIElement
-      rootElement = unsafeBitCast(focusedApp, to: AXUIElement.self)
+      
+      rootElement = focusedAppElement!
     case .application(let bundleIdentifier):
-      guard
-        let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier)
-          .first
-      else {
+      // Find the running application
+      guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier).first else {
+        logger.error("Application not found", metadata: ["bundleId": .string(bundleIdentifier)])
         throw NSError(
           domain: "com.macos.mcp.accessibility",
-          code: 1001,
-          userInfo: [NSLocalizedDescriptionKey: "Application not running: \(bundleIdentifier)"]
+          code: MacMCPErrorCode.applicationNotFound,
+          userInfo: [NSLocalizedDescriptionKey: "Application with bundle ID '\(bundleIdentifier)' not found"]
         )
       }
+      
       rootElement = AccessibilityElement.applicationElement(pid: app.processIdentifier)
     }
-
-    // Convert to our UIElement model
-    let uiElement = try AccessibilityElement.convertToUIElement(
+    
+    // Convert to UIElement
+    let rootUIElement = try AccessibilityElement.convertToUIElement(
       rootElement,
       recursive: recursive,
       maxDepth: maxDepth
     )
-
-    // Find elements matching criteria
-    return findMatchingElements(in: uiElement, role: role, titleContains: titleContains)
-  }
-
-  /// Recursively find elements matching criteria in a UIElement hierarchy
-  private func findMatchingElements(
-    in element: UIElement,
-    role: String?,
-    titleContains: String?
-  ) -> [UIElement] {
-    var results: [UIElement] = []
-
-    // Check if this element matches
-    var matches = true
-
-    // Check role if specified
-    if let role = role, element.role != role {
-      matches = false
+    
+    // Filter elements based on criteria
+    var matches: [UIElement] = []
+    
+    // Function to recursively find matching elements
+    func findMatches(in element: UIElement) {
+      var isMatch = true
+      
+      // Check role if specified
+      if let roleToMatch = role {
+        if element.role != roleToMatch {
+          isMatch = false
+        }
+      }
+      
+      // Check title if specified
+      if let titleSubstring = titleContains {
+        if let title = element.title {
+          if !title.localizedCaseInsensitiveContains(titleSubstring) {
+            isMatch = false
+          }
+        } else {
+          isMatch = false
+        }
+      }
+      
+      // Add to matches if all criteria match
+      if isMatch {
+        matches.append(element)
+      }
+      
+      // Recursively check children
+      for child in element.children ?? [] {
+        findMatches(in: child)
+      }
     }
-
-    // Check title if specified
-    if let titleContains = titleContains,
-      element.title?.localizedCaseInsensitiveContains(titleContains) != true
-    {
-      matches = false
-    }
-
-    // Add to results if all criteria matched
-    if matches {
-      results.append(element)
-    }
-
-    // Recursively check children
-    for child in element.children {
-      results.append(
-        contentsOf: findMatchingElements(
-          in: child,
-          role: role,
-          titleContains: titleContains
-        ))
-    }
-
-    return results
+    
+    // Start the search
+    findMatches(in: rootUIElement)
+    
+    return matches
   }
 
   /// Perform a specific accessibility action on an element
   /// - Parameters:
-  ///   - action: The accessibility action to perform (e.g., "AXPress", "AXPick")
-  ///   - identifier: The element identifier
-  ///   - bundleId: Optional bundle ID of the application containing the element
+  ///   - action: The accessibility action to perform
+  ///   - elementPath: The element path
   public func performAction(
     action: String,
-    onElement identifier: String,
-    in bundleId: String?
+    onElementWithPath elementPath: String
   ) async throws {
     logger.info(
       "Performing accessibility action",
       metadata: [
         "action": .string(action),
-        "identifier": .string(identifier),
-        "bundleId": bundleId.map { .string($0) } ?? "nil",
+        "elementPath": .string(elementPath)
       ])
 
     // First check permissions
@@ -333,19 +302,22 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
     }
 
     // Special handling for menu items with path-based identifiers
-    if identifier.hasPrefix("ui:menu:") && action == "AXPress" && bundleId != nil {
+    if elementPath.hasPrefix("ui:menu:") && action == "AXPress" {
       logger.info(
         "Detected menu item by path-based identifier, using hierarchical navigation",
         metadata: [
-          "identifier": .string(identifier),
-          "menuPath": .string(identifier.replacingOccurrences(of: "ui:menu:", with: "")),
+          "elementPath": .string(elementPath),
+          "menuPath": .string(elementPath.replacingOccurrences(of: "ui:menu:", with: "")),
         ])
 
-      if let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId!).first {
+      // Extract bundle ID from the path if it's a UI path
+      let bundleId = extractBundleId(from: elementPath)
+      if let bundleId = bundleId, 
+         let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId).first {
         let appElement = AccessibilityElement.applicationElement(pid: app.processIdentifier)
 
         try await directMenuItemActivation(
-          menuIdentifier: identifier,
+          menuIdentifier: elementPath,
           menuTitle: nil,  // We'll extract from path components
           appElement: appElement
         )
@@ -354,759 +326,44 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
       }
     }
 
-    // Element identifier methods have been removed
-    // This code needs to be updated to use findElementByPath instead
-    // For now, throw an error to prevent using legacy identifiers
-    logger.error(
-        "Legacy element identifier methods have been removed",
-        metadata: [
-          "identifier": .string(identifier),
-          "bundleId": bundleId.map { .string($0) } ?? "nil",
-        ])
-    throw NSError(
-        domain: "com.macos.mcp.accessibility",
-        code: MacMCPErrorCode.invalidElementId,
-        userInfo: [NSLocalizedDescriptionKey: "Legacy element identifiers are no longer supported. Use element paths instead."]
-    )
-
-    // Validate that the element has the required action
-    if !element.actions.contains(action) {
-      logger.error(
-        "Element does not support the requested action",
-        metadata: [
-          "identifier": .string(identifier),
-          "action": .string(action),
-          "availableActions": .string(element.actions.joined(separator: ", ")),
-        ])
-      throw NSError(
-        domain: "com.macos.mcp.accessibility",
-        code: MacMCPErrorCode.actionNotSupported,
-        userInfo: [
-          NSLocalizedDescriptionKey: "Element does not support action: \(action)",
-          "availableActions": element.actions,
-        ]
-      )
-    }
-
-    // Get the element's position to use with AXUIElementCopyElementAtPosition if needed
-    // For menu items with zero size, we need a special approach
-    let elementPosition: CGPoint
-    let hasZeroSize = element.frame.size.width == 0 && element.frame.size.height == 0
-
-    // Special handling for menu items with zero-sized frames - common in macOS
-    if hasZeroSize && element.role == "AXMenuItem" {
-      // For zero-sized menu items, we'll use a direct approach without relying on position
-      if action == "AXPress" && element.title != nil {
-        logger.info(
-          "Using title-based direct activation for zero-sized menu item",
-          metadata: [
-            "id": .string(identifier),
-            "title": .string(element.title ?? "unknown"),
-            "role": .string(element.role),
-          ])
-
-        // For AXMenuItem with zero-sized frames, we'll use direct action via raw AXUIElement
-        // Instead of trying to find the element by position, which is unreliable
-
-        // Get the app element
-        if let bundleId = bundleId,
-          let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId).first
-        {
-          let appElement = AccessibilityElement.applicationElement(pid: app.processIdentifier)
-
-          // Use direct AXPress without position-based lookup
-          // This approach is more reliable for menu items
-          try await directMenuItemActivation(
-            menuIdentifier: identifier,
-            menuTitle: element.title,
-            appElement: appElement
-          )
-
-          // Action performed successfully - return early
-          return
-        }
-      }
-
-      // If we can't use the direct approach, fall back to the position-based approach
-      elementPosition = element.frame.origin
-
-      logger.info(
-        "Using position-based handling for zero-sized menu item",
-        metadata: [
-          "id": .string(identifier),
-          "position": .string("\(elementPosition.x), \(elementPosition.y)"),
-        ])
-    } else {
-      // For normal elements, use the center point
-      elementPosition = CGPoint(
-        x: element.frame.origin.x + (element.frame.size.width / 2),
-        y: element.frame.origin.y + (element.frame.size.height / 2)
-      )
-    }
-
-    // Find the raw AXUIElement using the system element and position
-    let systemElement = AccessibilityElement.systemWideElement()
-    var rawElement: AXUIElement?
-    let positionError = AXUIElementCopyElementAtPosition(
-      systemElement,
-      Float(elementPosition.x),
-      Float(elementPosition.y),
-      &rawElement
-    )
-
-    // Check if we successfully got the element at position
-    if positionError != .success || rawElement == nil {
-      // For menu items with zero size, try a few different Y positions as a last resort
-      if hasZeroSize && element.role == "AXMenuItem" {
-        logger.info(
-          "Trying alternative positions for zero-sized menu item",
-          metadata: [
-            "originalPosition": .string("\(elementPosition.x), \(elementPosition.y)")
-          ])
-
-        // Try positions with slight offsets from the original Y
-        let alternativeOffsets = [5.0, 10.0, 15.0, 20.0, -5.0, -10.0, -15.0, -20.0]
-        for offset in alternativeOffsets {
-          let alternativePosition = CGPoint(x: elementPosition.x, y: elementPosition.y + offset)
-
-          let altPositionError = AXUIElementCopyElementAtPosition(
-            systemElement,
-            Float(alternativePosition.x),
-            Float(alternativePosition.y),
-            &rawElement
-          )
-
-          if altPositionError == .success && rawElement != nil {
-            logger.info(
-              "Found element at alternative position",
-              metadata: [
-                "x": .string("\(alternativePosition.x)"),
-                "y": .string("\(alternativePosition.y)"),
-                "offset": .string("\(offset)"),
-              ])
-            break
-          }
-        }
-      }
-
-      // If still not found, log the error and continue to fallback methods
-      if positionError != .success || rawElement == nil {
-        logger.error(
-          "Failed to get element at position",
-          metadata: [
-            "x": .string("\(elementPosition.x)"),
-            "y": .string("\(elementPosition.y)"),
-            "error": .string("\(positionError.rawValue)"),
-            "identifier": .string(identifier),
-            "elementRole": .string(element.role),
-            "elementTitle": .string(element.title ?? "nil"),
-            "elementFrame": .string(
-              "(\(element.frame.origin.x), \(element.frame.origin.y), \(element.frame.size.width), \(element.frame.size.height))"
-            ),
-            "frameSource": .string("\(element.frameSource)"),
-          ])
-      }
-
-      // Fall back to application element if we have a bundle ID
-      if let bundleId = bundleId,
-        let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId).first
-      {
-
-        logger.info(
-          "Falling back to application search",
-          metadata: [
-            "bundleId": .string(bundleId)
-          ])
-
-        // Get application element
-        let appElement = AccessibilityElement.applicationElement(pid: app.processIdentifier)
-
-        // Need to recursively search the app element for a matching element ID
-        // Do this by getting the app UI tree and searching for our target element
-        do {
-          let appUIElement = try await getApplicationUIElement(
-            bundleIdentifier: bundleId,
-            recursive: true,
-            maxDepth: 25
-          )
-
-          // Search for element by ID
-          if let foundElement = searchForElementWithId(
-            appUIElement, identifier: identifier, exact: true)
-          {
-            // Found the element, but we need the raw AXUIElement for the accessibility action
-            // For menu items, we can try a special approach: finding and activating by title
-
-            if foundElement.role == "AXMenuItem" && action == "AXPress" && foundElement.title != nil
-            {
-              logger.info(
-                "Using title-based activation for menu item",
-                metadata: [
-                  "identifier": .string(identifier),
-                  "title": .string(foundElement.title ?? "unknown"),
-                  "menuPath": .string(identifier.replacingOccurrences(of: "ui:menu:", with: "")),
-                ])
-
-              // Try to find parent menu elements to construct a path
-              var menuPathComponents: [String] = []
-              if let title = foundElement.title {
-                menuPathComponents.append(title)
-              }
-
-              var currentParent = foundElement.parent
-              while currentParent != nil
-                && (currentParent!.role == "AXMenu" || currentParent!.role == "AXMenuBarItem")
-              {
-                if let title = currentParent!.title, !title.isEmpty {
-                  menuPathComponents.insert(title, at: 0)
-                }
-                currentParent = currentParent!.parent
-              }
-
-              // If we constructed a path with at least two components (parent menu and item)
-              if menuPathComponents.count >= 2 {
-                let menuPath = menuPathComponents.joined(separator: " > ")
-                logger.info(
-                  "Attempting menu path activation",
-                  metadata: [
-                    "menuPath": .string(menuPath)
-                  ])
-
-                // Use our direct menu item activation method
-                try await directMenuItemActivation(
-                  menuIdentifier: identifier,
-                  menuTitle: foundElement.title,
-                  appElement: appElement,
-                  menuPath: menuPath
-                )
-              }
-            }
-
-            logger.error(
-              "Found element by ID but cannot get raw AXUIElement reference",
-              metadata: [
-                "identifier": .string(identifier),
-                "role": .string(foundElement.role),
-                "title": .string(foundElement.title ?? "nil"),
-                "frame": .string(
-                  "(\(foundElement.frame.origin.x), \(foundElement.frame.origin.y), \(foundElement.frame.size.width), \(foundElement.frame.size.height))"
-                ),
-                "parent": .string(foundElement.parent?.role ?? "nil"),
-                "position": .string(
-                  "\(foundElement.frame.origin.x + (foundElement.frame.size.width / 2)), \(foundElement.frame.origin.y + (foundElement.frame.size.height / 2))"
-                ),
-                "frameSource": .string("\(foundElement.frameSource)"),
-              ])
-
-            throw NSError(
-              domain: "com.macos.mcp.accessibility",
-              code: MacMCPErrorCode.actionFailed,
-              userInfo: [
-                NSLocalizedDescriptionKey:
-                  "Unable to get raw AXUIElement for action: \(identifier) (role: \(foundElement.role))"
-              ]
-            )
-          } else {
-            logger.error(
-              "Element not found in application",
-              metadata: [
-                "identifier": .string(identifier),
-                "bundleId": .string(bundleId),
-              ])
-
-            throw NSError(
-              domain: "com.macos.mcp.accessibility",
-              code: MacMCPErrorCode.elementNotFound,
-              userInfo: [
-                NSLocalizedDescriptionKey: "Element not found in application: \(identifier)"
-              ]
-            )
-          }
-        } catch {
-          logger.error(
-            "Error searching for element in application",
-            metadata: [
-              "error": .string(error.localizedDescription)
-            ])
-
-          throw NSError(
-            domain: "com.macos.mcp.accessibility",
-            code: MacMCPErrorCode.actionFailed,
-            userInfo: [
-              NSLocalizedDescriptionKey: "Error finding element: \(error.localizedDescription)"
-            ]
-          )
-        }
-      } else {
-        // No fallback available
-        throw NSError(
-          domain: "com.macos.mcp.accessibility",
-          code: MacMCPErrorCode.actionFailed,
-          userInfo: [
-            NSLocalizedDescriptionKey: "Failed to get element at position and no fallback available"
-          ]
-        )
-      }
-    }
-
-    // We have the raw element, now perform the action
-    guard let rawElement = rawElement else {
-      throw NSError(
-        domain: "com.macos.mcp.accessibility",
-        code: MacMCPErrorCode.actionFailed,
-        userInfo: [NSLocalizedDescriptionKey: "Raw element unavailable for action"]
-      )
-    }
-
+    // Use proper path-based element identification
     do {
-      // Attempt the action
-      try AccessibilityElement.performAction(rawElement, action: action)
-      logger.info(
-        "Successfully performed action",
-        metadata: [
-          "action": .string(action),
-          "identifier": .string(identifier),
-        ])
+      // Parse the path
+      let parsedPath = try ElementPath.parse(elementPath)
+      
+      // Resolve the path to get the AXUIElement
+      let axElement = try await parsedPath.resolve(using: self)
+      
+      // Perform the action
+      try AccessibilityElement.performAction(axElement, action: action)
+      return
     } catch {
       logger.error(
-        "Failed to perform action",
+        "Failed to perform action on element with path",
         metadata: [
+          "elementPath": .string(elementPath),
           "action": .string(action),
-          "identifier": .string(identifier),
-          "error": .string(error.localizedDescription),
+          "error": .string("\(error)")
         ])
-
       throw NSError(
         domain: "com.macos.mcp.accessibility",
-        code: MacMCPErrorCode.actionFailed,
-        userInfo: [
-          NSLocalizedDescriptionKey: "Failed to perform \(action): \(error.localizedDescription)"
-        ]
+        code: MacMCPErrorCode.invalidElementPath,
+        userInfo: [NSLocalizedDescriptionKey: "Failed to perform action on element with path: \(error.localizedDescription)"]
       )
     }
   }
-}
-
-/// Scope for UI element search operations
-public enum UIElementScope: Sendable {
-  /// The entire system (all applications)
-  case systemWide
-  /// The currently focused application
-  case focusedApplication
-  /// A specific application by bundle identifier
-  case application(bundleIdentifier: String)
-}
-
-extension AccessibilityService {
-  /// Navigate through menu path and activate a menu item
-  /// - Parameters:
-  ///   - path: The simplified menu path (e.g., "File > Open" or "View > Scientific")
-  ///   - bundleId: The bundle identifier of the application
-  /// This public method allows other services to use the menu navigation functionality
-  public func navigateMenu(path: String, in bundleId: String) async throws {
-    // Get the application element
-    let appElement = try await getApplicationUIElement(
-      bundleIdentifier: bundleId,
-      recursive: false
-    )
-
-    // Get the app using its bundle ID to get the pid
-    let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId)
-    guard let app = runningApps.first else {
-      throw NSError(
-        domain: "com.macos.mcp.accessibility",
-        code: 1001,
-        userInfo: [NSLocalizedDescriptionKey: "Application not running: \(bundleId)"]
-      )
-    }
-
-    // Use the internal activation method with the simplified path
-    try await directMenuItemActivation(
-      menuIdentifier: "ui:menu:" + path,
-      menuTitle: nil,
-      appElement: AccessibilityElement.applicationElement(pid: app.processIdentifier),
-      menuPath: path,
-      // Add flag to enable implicit menu traversal through MenuBar1 and Menu1
-      implicitTraversal: true
-    )
-  }
-
-  /// Activate a menu item directly via its path
-  /// - Parameters:
-  ///   - menuIdentifier: The menu item identifier
-  ///   - menuTitle: The menu item title
-  ///   - appElement: The application's AXUIElement
-  ///   - menuPath: Optional explicit path to use (default: parse from identifier)
-  ///   - implicitTraversal: Whether to handle MenuBar1/Menu1 traversal automatically
-  private func directMenuItemActivation(
-    menuIdentifier: String,
-    menuTitle: String?,
-    appElement: AXUIElement,
-    menuPath: String? = nil,
-    implicitTraversal: Bool = false
-  ) async throws {
-    // Extract or use the path from either the provided path or the identifier
-    let pathToUse: String
-    if let explicitPath = menuPath {
-      pathToUse = explicitPath
-    } else if menuIdentifier.hasPrefix("ui:menu:") {
-      pathToUse = menuIdentifier.replacingOccurrences(of: "ui:menu:", with: "")
-    } else {
-      throw NSError(
-        domain: "com.macos.mcp.accessibility",
-        code: MacMCPErrorCode.invalidActionParams,
-        userInfo: [NSLocalizedDescriptionKey: "Cannot determine menu path for activation"]
-      )
-    }
-
-    logger.info(
-      "Activating menu item using path-based navigation",
-      metadata: [
-        "path": .string(pathToUse),
-        "title": .string(menuTitle ?? "unknown"),
-      ])
-
-    // Split the path into components
-    let pathComponents = pathToUse.components(separatedBy: " > ")
-
-    // We need at least one component (the menu bar item) to continue
-    guard pathComponents.count >= 1 else {
-      throw NSError(
-        domain: "com.macos.mcp.accessibility",
-        code: MacMCPErrorCode.invalidActionParams,
-        userInfo: [NSLocalizedDescriptionKey: "Invalid menu path: \(pathToUse)"]
-      )
-    }
-
-    // Implement smart path traversal
-    // Automatically handle cases where there might be MenuBar1 and Menu1 layers
-    // This allows users to specify simple paths like "View > Scientific" and
-    // we'll handle the underlying complexity transparently
-
-    // Get the menu bar
-    var menuBarRef: CFTypeRef?
-    let menuBarStatus = AXUIElementCopyAttributeValue(
-      appElement, "AXMenuBar" as CFString, &menuBarRef)
-
-    if menuBarStatus != .success || menuBarRef == nil {
-      throw NSError(
-        domain: "com.macos.mcp.accessibility",
-        code: MacMCPErrorCode.elementNotFound,
-        userInfo: [NSLocalizedDescriptionKey: "Failed to get menu bar from application"]
-      )
-    }
-
-    let menuBar = menuBarRef as! AXUIElement
-
-    // Get the menu bar items
-    var menuBarItemsRef: CFTypeRef?
-    let menuBarItemsStatus = AXUIElementCopyAttributeValue(
-      menuBar, "AXChildren" as CFString, &menuBarItemsRef)
-
-    if menuBarItemsStatus != .success || menuBarItemsRef == nil {
-      throw NSError(
-        domain: "com.macos.mcp.accessibility",
-        code: MacMCPErrorCode.elementNotFound,
-        userInfo: [NSLocalizedDescriptionKey: "Failed to get menu bar items"]
-      )
-    }
-
-    guard let menuBarItems = menuBarItemsRef as? [AXUIElement] else {
-      throw NSError(
-        domain: "com.macos.mcp.accessibility",
-        code: MacMCPErrorCode.elementNotFound,
-        userInfo: [NSLocalizedDescriptionKey: "Menu bar items not in expected format"]
-      )
-    }
-
-    // Find the first component (menu bar item)
-    var currentElement: AXUIElement?
-
-    // Handle the case where the first component may or may not be "MenuBar1"
-    let firstComponent: String
-    if pathComponents[0].hasPrefix("MenuBar") {
-      // If the path already includes MenuBar1, use it as is
-      firstComponent = pathComponents[0]
-    } else {
-      // Otherwise, this is a simplified path - the first component is a menu name
-      // In this case, find any menu bar item that matches it
-      firstComponent = pathComponents[0]
-
-      // Log that we're handling a simplified path
-      logger.info(
-        "Processing simplified path without MenuBar prefix",
-        metadata: [
-          "component": .string(firstComponent)
-        ])
-
-      // Debug information for path traversal
-      logger.info(
-        "Starting menu path traversal",
-        metadata: [
-          "path": .string(pathToUse),
-          "implicitTraversal": .string("\(implicitTraversal)"),
-          "components": .string(pathComponents.joined(separator: ", ")),
-        ])
-    }
-
-    // Find the top-level menu, with automatic MenuBar traversal
-    for menuBarItem in menuBarItems {
-      var titleRef: CFTypeRef?
-      let titleStatus = AXUIElementCopyAttributeValue(menuBarItem, "AXTitle" as CFString, &titleRef)
-
-      if titleStatus == .success, let title = titleRef as? String {
-        // Match by exact title, or just "MenuBar" prefix for generic menu bar items
-        if title == firstComponent || (firstComponent.hasPrefix("MenuBar") && title.count > 0)
-          // For simplified paths, match the menu name directly
-          || (!firstComponent.hasPrefix("MenuBar") && title == firstComponent)
-        {
-          currentElement = menuBarItem
-          break
-        }
+  
+  /// Extract bundle ID from an element path
+  private func extractBundleId(from path: String) -> String? {
+    // For ui:// paths, try to extract bundleIdentifier attribute
+    if path.hasPrefix("ui://") {
+      if let bundleIdMatch = path.range(of: "@bundleIdentifier=\"([^\"]+)\"", options: .regularExpression) {
+        let bundleIdString = String(path[bundleIdMatch])
+        let bundleId = bundleIdString.replacingOccurrences(of: "@bundleIdentifier=\"", with: "").replacingOccurrences(of: "\"", with: "")
+        return bundleId
       }
     }
-
-    guard let menuBarItem = currentElement else {
-      throw NSError(
-        domain: "com.macos.mcp.accessibility",
-        code: MacMCPErrorCode.elementNotFound,
-        userInfo: [NSLocalizedDescriptionKey: "Could not find menu bar item: \(firstComponent)"]
-      )
-    }
-
-    // Open the top-level menu by performing AXPress
-    logger.info(
-      "Opening top-level menu",
-      metadata: [
-        "menuItem": .string(firstComponent)
-      ])
-
-    try AccessibilityElement.performAction(menuBarItem, action: "AXPress")
-    try await Task.sleep(nanoseconds: 300_000_000)  // 300ms delay
-
-    // Now we need to navigate through the rest of the path
-    currentElement = menuBarItem
-
-    // Process each path component after the menu bar item
-    for i in 1..<pathComponents.count {
-      let component = pathComponents[i]
-
-      // Get the children of the current element
-      var childrenRef: CFTypeRef?
-      var childrenStatus = AXUIElementCopyAttributeValue(
-        currentElement!, "AXChildren" as CFString, &childrenRef)
-
-      if childrenStatus != .success || childrenRef == nil {
-        // If we can't get children, check if there's an AXMenu child first
-        var menuRef: CFTypeRef?
-        let menuStatus = AXUIElementCopyAttributeValue(
-          currentElement!, "AXMenu" as CFString, &menuRef)
-
-        if menuStatus == .success && menuRef != nil {
-          // Use the menu as the current element
-          currentElement = menuRef as! AXUIElement
-
-          // Try to get children again
-          childrenStatus = AXUIElementCopyAttributeValue(
-            currentElement!, "AXChildren" as CFString, &childrenRef)
-        }
-
-        if childrenStatus != .success || childrenRef == nil {
-          throw NSError(
-            domain: "com.macos.mcp.accessibility",
-            code: MacMCPErrorCode.elementNotFound,
-            userInfo: [
-              NSLocalizedDescriptionKey: "Failed to get children for component: \(component)"
-            ]
-          )
-        }
-      }
-
-      guard var childrenArray = childrenRef as? [AXUIElement] else {
-        throw NSError(
-          domain: "com.macos.mcp.accessibility",
-          code: MacMCPErrorCode.elementNotFound,
-          userInfo: [
-            NSLocalizedDescriptionKey: "Children not in expected format for component: \(component)"
-          ]
-        )
-      }
-
-      // Check if we should handle Menu1 traversal
-      if implicitTraversal && !component.hasPrefix("Menu") {
-        // Look for AXMenu elements in the children
-        var menuElement: AXUIElement? = nil
-        var menuChildren: [AXUIElement]? = nil
-
-        for child in childrenArray {
-          var roleRef: CFTypeRef?
-          AXUIElementCopyAttributeValue(child, "AXRole" as CFString, &roleRef)
-
-          if let role = roleRef as? String, role == "AXMenu" {
-            // Get the children of this menu element
-            var menuChildrenRef: CFTypeRef?
-            let menuStatus = AXUIElementCopyAttributeValue(child, "AXChildren" as CFString, &menuChildrenRef)
-
-            if menuStatus == .success, let children = menuChildrenRef as? [AXUIElement], !children.isEmpty {
-              menuElement = child
-              menuChildren = children
-
-              // Log that we found a menu to traverse
-              var menuItemsInfo = ""
-              for menuChild in children {
-                var titleRef: CFTypeRef?
-                AXUIElementCopyAttributeValue(menuChild, "AXTitle" as CFString, &titleRef)
-                if let title = titleRef as? String {
-                  menuItemsInfo += "\(title), "
-                }
-              }
-
-              logger.info("Found Menu1 element to traverse implicitly", metadata: [
-                "component": .string(component),
-                "childCount": .string("\(children.count)"),
-                "items": .string(menuItemsInfo)
-              ])
-
-              break
-            }
-          }
-        }
-
-        // If we found a menu with children, use it as our current element
-        if let menu = menuElement, let children = menuChildren {
-          logger.info("Implicitly traversing Menu1 layer", metadata: [
-            "component": .string(component),
-            "menuChildren": .string("\(children.count)")
-          ])
-
-          // Update current element to the menu
-          currentElement = menu
-
-          // And use its children for matching
-          childrenArray = children
-        }
-      }
-
-      // Try to find the matching child element
-      var found = false
-
-      // First pass: Try exact title match
-      for child in childrenArray {
-        var titleRef: CFTypeRef?
-        let titleStatus = AXUIElementCopyAttributeValue(child, "AXTitle" as CFString, &titleRef)
-
-        if titleStatus == .success, let title = titleRef as? String {
-          // Match by exact title, or just "Menu" prefix for generic menu items
-          if title == component || (component.hasPrefix("Menu") && title.count > 0) {
-            currentElement = child
-            found = true
-
-            // If this is the last component, perform AXPress to activate it
-            if i == pathComponents.count - 1 {
-              logger.info(
-                "Activating final menu item",
-                metadata: [
-                  "component": .string(component),
-                  "title": .string(title),
-                ])
-
-              try AccessibilityElement.performAction(child, action: "AXPress")
-              try await Task.sleep(nanoseconds: 300_000_000)  // 300ms delay
-            } else {
-              // If it's an intermediate component, open the submenu
-              logger.info(
-                "Opening submenu",
-                metadata: [
-                  "component": .string(component),
-                  "title": .string(title),
-                ])
-
-              try AccessibilityElement.performAction(child, action: "AXPress")
-              try await Task.sleep(nanoseconds: 300_000_000)  // 300ms delay
-            }
-
-            break
-          }
-        }
-      }
-
-      // Second pass: Try a more flexible match if exact match failed
-      if !found {
-        for child in childrenArray {
-          var titleRef: CFTypeRef?
-          let titleStatus = AXUIElementCopyAttributeValue(child, "AXTitle" as CFString, &titleRef)
-
-          if titleStatus == .success, let title = titleRef as? String {
-            // Try more flexible matching options
-            if title.lowercased() == component.lowercased() || title.contains(component)
-              || component.contains(title)
-            {
-              currentElement = child
-              found = true
-
-              // If this is the last component, perform AXPress to activate it
-              if i == pathComponents.count - 1 {
-                logger.info(
-                  "Activating final menu item (flexible match)",
-                  metadata: [
-                    "component": .string(component),
-                    "matchedTitle": .string(title),
-                  ])
-
-                try AccessibilityElement.performAction(child, action: "AXPress")
-                try await Task.sleep(nanoseconds: 300_000_000)  // 300ms delay
-              } else {
-                // If it's an intermediate component, open the submenu
-                logger.info(
-                  "Opening submenu (flexible match)",
-                  metadata: [
-                    "component": .string(component),
-                    "matchedTitle": .string(title),
-                  ])
-
-                try AccessibilityElement.performAction(child, action: "AXPress")
-                try await Task.sleep(nanoseconds: 300_000_000)  // 300ms delay
-              }
-
-              break
-            }
-          }
-        }
-      }
-
-      if !found {
-        // If we still couldn't find a match, log details about available items for debugging
-        var availableItems: [String] = []
-        for child in childrenArray {
-          var titleRef: CFTypeRef?
-          if AXUIElementCopyAttributeValue(child, "AXTitle" as CFString, &titleRef) == .success,
-            let title = titleRef as? String
-          {
-            availableItems.append(title)
-          }
-        }
-
-        logger.error(
-          "Could not find menu component",
-          metadata: [
-            "component": .string(component),
-            "availableItems": .string(availableItems.joined(separator: ", ")),
-          ])
-
-        throw NSError(
-          domain: "com.macos.mcp.accessibility",
-          code: MacMCPErrorCode.elementNotFound,
-          userInfo: [NSLocalizedDescriptionKey: "Could not find menu component: \(component)"]
-        )
-      }
-    }
-
-    // If we reached this point, we successfully activated the menu item
-    logger.info(
-      "Successfully activated menu item using path-based navigation",
-      metadata: [
-        "path": .string(pathToUse)
-      ])
+    return nil
   }
 
   /// Find a UI element by its path using ElementPath
@@ -1130,17 +387,7 @@ extension AccessibilityService {
     do {
       let parsedPath = try ElementPath.parse(path)
       let axElement = try await parsedPath.resolve(using: self)
-      
-      // Convert the AXUIElement to a UIElement
-      let element = try AccessibilityElement.convertToUIElement(axElement)
-      
-      logger.debug("Successfully found element by path", metadata: [
-        "path": "\(path)",
-        "role": "\(element.role)",
-        "title": "\(element.title ?? "nil")"
-      ])
-      
-      return element
+      return try AccessibilityElement.convertToUIElement(axElement)
     } catch let pathError as ElementPathError {
       // Log specific information about path resolution errors
       logger.error("Path resolution error", metadata: [
@@ -1160,13 +407,4 @@ extension AccessibilityService {
       throw error
     }
   }
-  
-  /// Find a UI element by identifier
-  /// - Parameters:
-  ///   - identifier: The element identifier to search for
-  ///   - bundleId: Optional bundle ID of the app to search in
-  /// - Returns: The matching UIElement if found, nil otherwise
-  // Legacy element identifier methods have been removed
-
-  // Legacy element identifier methods have been removed
 }

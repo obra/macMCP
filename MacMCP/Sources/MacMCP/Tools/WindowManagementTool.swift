@@ -339,7 +339,7 @@ public struct WindowManagementTool: @unchecked Sendable {
         
         do {
             try await accessibilityService.moveWindow(
-                withIdentifier: windowId,
+                withPath: windowId,
                 to: CGPoint(x: x, y: y)
             )
             
@@ -384,7 +384,7 @@ public struct WindowManagementTool: @unchecked Sendable {
         
         do {
             try await accessibilityService.resizeWindow(
-                withIdentifier: windowId,
+                withPath: windowId,
                 to: CGSize(width: width, height: height)
             )
             
@@ -413,7 +413,7 @@ public struct WindowManagementTool: @unchecked Sendable {
         }
         
         do {
-            try await accessibilityService.minimizeWindow(withIdentifier: windowId)
+            try await accessibilityService.minimizeWindow(withPath: windowId)
             
             return [.text("""
                 {
@@ -436,7 +436,7 @@ public struct WindowManagementTool: @unchecked Sendable {
         }
         
         do {
-            try await accessibilityService.maximizeWindow(withIdentifier: windowId)
+            try await accessibilityService.maximizeWindow(withPath: windowId)
             
             return [.text("""
                 {
@@ -459,7 +459,7 @@ public struct WindowManagementTool: @unchecked Sendable {
         }
         
         do {
-            try await accessibilityService.closeWindow(withIdentifier: windowId)
+            try await accessibilityService.closeWindow(withPath: windowId)
             
             return [.text("""
                 {
@@ -482,7 +482,7 @@ public struct WindowManagementTool: @unchecked Sendable {
         }
         
         do {
-            try await accessibilityService.activateWindow(withIdentifier: windowId)
+            try await accessibilityService.activateWindow(withPath: windowId)
             
             return [.text("""
                 {
@@ -518,9 +518,9 @@ public struct WindowManagementTool: @unchecked Sendable {
         
         do {
             try await accessibilityService.setWindowOrder(
-                withIdentifier: windowId,
+                withPath: windowId,
                 orderMode: orderMode,
-                referenceWindowId: referenceWindowId
+                referenceWindowPath: referenceWindowId
             )
             
             let referenceInfo = referenceWindowId != nil ? """
@@ -550,7 +550,7 @@ public struct WindowManagementTool: @unchecked Sendable {
         }
         
         do {
-            try await accessibilityService.focusWindow(withIdentifier: windowId)
+            try await accessibilityService.focusWindow(withPath: windowId)
             
             return [.text("""
                 {
