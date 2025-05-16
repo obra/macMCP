@@ -8,7 +8,7 @@ import MacMCPUtilities
 /// Errors that can occur when working with element paths
 public enum ElementPathError: Error, CustomStringConvertible, Equatable {
     /// The path syntax is invalid
-    case invalidPathSyntax(String)
+    case invalidPathSyntax(String, details: String)
     
     /// The path prefix is missing or incorrect (should start with ui://)
     case invalidPathPrefix(String)
@@ -43,10 +43,31 @@ public enum ElementPathError: Error, CustomStringConvertible, Equatable {
     /// Application specified in path was not found
     case applicationNotFound(String, details: String)
     
+    /// Attribute format is invalid
+    case invalidAttributeFormat(String, expectedFormat: String, atSegment: Int)
+    
+    /// Path is too complex (too many segments, attributes, or depth)
+    case pathTooComplex(String, details: String)
+    
+    /// Path contains potential ambiguity issues
+    case potentialAmbiguity(String, details: String, atSegment: Int)
+    
+    /// Missing essential attribute for reliable resolution
+    case missingAttribute(String, suggestedAttribute: String, atSegment: Int)
+    
+    /// The segment resolution timed out
+    case resolutionTimeout(String, atSegment: Int)
+    
+    /// Accessibility permissions are insufficient for path resolution
+    case insufficientPermissions(String, details: String)
+    
+    /// A suggested validation warning rather than a hard error
+    case validationWarning(String, suggestion: String)
+    
     public var description: String {
         switch self {
-        case .invalidPathSyntax(let path):
-            return "Invalid path syntax: \(path)"
+        case .invalidPathSyntax(let path, let details):
+            return "Invalid path syntax: \(path)\nDetails: \(details)"
         case .invalidPathPrefix(let prefix):
             return "Invalid path prefix: \(prefix), should start with ui://"
         case .invalidSegmentRole(let role):
@@ -77,6 +98,20 @@ public enum ElementPathError: Error, CustomStringConvertible, Equatable {
             return details
         case .applicationNotFound(let appIdentifier, let details):
             return "Application not found: \(appIdentifier). \(details)"
+        case .invalidAttributeFormat(let attribute, let expectedFormat, let segmentIndex):
+            return "Invalid attribute format: \(attribute) at segment \(segmentIndex). Expected format: \(expectedFormat)"
+        case .pathTooComplex(let path, let details):
+            return "Path is too complex: \(path).\nDetails: \(details)"
+        case .potentialAmbiguity(let segment, let details, let segmentIndex):
+            return "Potential ambiguity in segment \(segmentIndex): \(segment).\nDetails: \(details)\nConsider adding more specific attributes or an index."
+        case .missingAttribute(let segment, let suggestedAttribute, let segmentIndex):
+            return "Missing essential attribute in segment \(segmentIndex): \(segment).\nConsider adding \(suggestedAttribute) for more reliable resolution."
+        case .resolutionTimeout(let segment, let segmentIndex):
+            return "Resolution timeout for segment \(segmentIndex): \(segment).\nThe UI hierarchy might be too deep or complex."
+        case .insufficientPermissions(let feature, let details):
+            return "Insufficient accessibility permissions for: \(feature).\n\(details)"
+        case .validationWarning(let message, let suggestion):
+            return "Warning: \(message).\nSuggestion: \(suggestion)"
         }
     }
     
@@ -84,8 +119,8 @@ public enum ElementPathError: Error, CustomStringConvertible, Equatable {
         switch (lhs, rhs) {
         case (.emptyPath, .emptyPath):
             return true
-        case (.invalidPathSyntax(let lhsPath), .invalidPathSyntax(let rhsPath)):
-            return lhsPath == rhsPath
+        case (.invalidPathSyntax(let lhsPath, let lhsDetails), .invalidPathSyntax(let rhsPath, let rhsDetails)):
+            return lhsPath == rhsPath && lhsDetails == rhsDetails
         case (.invalidPathPrefix(let lhsPrefix), .invalidPathPrefix(let rhsPrefix)):
             return lhsPrefix == rhsPrefix
         case (.invalidSegmentRole(let lhsRole), .invalidSegmentRole(let rhsRole)):
@@ -107,6 +142,25 @@ public enum ElementPathError: Error, CustomStringConvertible, Equatable {
             return lhsSegment == rhsSegment && lhsIndex == rhsIndex && lhsCandidates == rhsCandidates && lhsReason == rhsReason
         case (.applicationNotFound(let lhsApp, let lhsDetails), .applicationNotFound(let rhsApp, let rhsDetails)):
             return lhsApp == rhsApp && lhsDetails == rhsDetails
+        case (.invalidAttributeFormat(let lhsAttr, let lhsFormat, let lhsIndex),
+              .invalidAttributeFormat(let rhsAttr, let rhsFormat, let rhsIndex)):
+            return lhsAttr == rhsAttr && lhsFormat == rhsFormat && lhsIndex == rhsIndex
+        case (.pathTooComplex(let lhsPath, let lhsDetails), .pathTooComplex(let rhsPath, let rhsDetails)):
+            return lhsPath == rhsPath && lhsDetails == rhsDetails
+        case (.potentialAmbiguity(let lhsSegment, let lhsDetails, let lhsIndex),
+              .potentialAmbiguity(let rhsSegment, let rhsDetails, let rhsIndex)):
+            return lhsSegment == rhsSegment && lhsDetails == rhsDetails && lhsIndex == rhsIndex
+        case (.missingAttribute(let lhsSegment, let lhsAttr, let lhsIndex),
+              .missingAttribute(let rhsSegment, let rhsAttr, let rhsIndex)):
+            return lhsSegment == rhsSegment && lhsAttr == rhsAttr && lhsIndex == rhsIndex
+        case (.resolutionTimeout(let lhsSegment, let lhsIndex), .resolutionTimeout(let rhsSegment, let rhsIndex)):
+            return lhsSegment == rhsSegment && lhsIndex == rhsIndex
+        case (.insufficientPermissions(let lhsFeature, let lhsDetails),
+              .insufficientPermissions(let rhsFeature, let rhsDetails)):
+            return lhsFeature == rhsFeature && lhsDetails == rhsDetails
+        case (.validationWarning(let lhsMessage, let lhsSuggestion),
+              .validationWarning(let rhsMessage, let rhsSuggestion)):
+            return lhsMessage == rhsMessage && lhsSuggestion == rhsSuggestion
         default:
             return false
         }
@@ -444,19 +498,19 @@ public struct ElementPath: Sendable {
     /// - Returns: The resolved element matching the segment, or nil if no match is found
     /// - Throws: ElementPathError if there's an error resolving the segment
     public func resolveSegment(element: AXUIElement, segment: PathSegment, segmentIndex: Int) async throws -> AXUIElement? {
-        print("DEBUG: Resolving segment \(segmentIndex): \(segment.toString())")
+        // print("DEBUG: Resolving segment \(segmentIndex): \(segment.toString())")
         
         // Get information about the current element
         var roleRef: CFTypeRef?
         let roleStatus = AXUIElementCopyAttributeValue(element, "AXRole" as CFString, &roleRef)
         if roleStatus == .success, let role = roleRef as? String {
-            print("DEBUG: Current element role: \(role)")
+            // print("DEBUG: Current element role: \(role)")
             
             // Get title if available
             var titleRef: CFTypeRef?
             let titleStatus = AXUIElementCopyAttributeValue(element, "AXTitle" as CFString, &titleRef)
             if titleStatus == .success, let title = titleRef as? String {
-                print("DEBUG: Current element title: \(title)")
+              //  print("DEBUG: Current element title: \(title)")
             }
         }
         
@@ -464,17 +518,17 @@ public struct ElementPath: Sendable {
         var childrenRef: CFTypeRef?
         let status = AXUIElementCopyAttributeValue(element, "AXChildren" as CFString, &childrenRef)
         
-        print("DEBUG: AXUIElementCopyAttributeValue status for AXChildren: \(status.rawValue)")
+        // print("DEBUG: AXUIElementCopyAttributeValue status for AXChildren: \(status.rawValue)")
         
         // Check if we could get children
         if status != .success || childrenRef == nil {
-            print("DEBUG: Failed to get children - status: \(status.rawValue), childrenRef: \(String(describing: childrenRef))")
+            // print("DEBUG: Failed to get children - status: \(status.rawValue), childrenRef: \(String(describing: childrenRef))")
             
             // If this is the first segment (application), allow the element itself to match
             if segmentIndex == 0 {
                 // Check if this element itself matches the segment
                 if try await elementMatchesSegment(element, segment: segment) {
-                    print("DEBUG: First segment matches element itself")
+                    // print("DEBUG: First segment matches element itself")
                     return element
                 }
             }
@@ -485,12 +539,12 @@ public struct ElementPath: Sendable {
         
         // Cast to array of elements
         guard let children = childrenRef as? [AXUIElement] else {
-            print("DEBUG: Failed to cast children to [AXUIElement] - type: \(type(of: childrenRef))")
+            // print("DEBUG: Failed to cast children to [AXUIElement] - type: \(type(of: childrenRef))")
             let segmentString = segment.toString()
             throw ElementPathError.segmentResolutionFailed("Children not in expected format for segment: \(segmentString)", atSegment: segmentIndex)
         }
         
-        print("DEBUG: Found \(children.count) children of current element")
+        // print("DEBUG: Found \(children.count) children of current element")
         
         // Log child roles to help with debugging
         // print("DEBUG: Child roles:")
@@ -504,12 +558,12 @@ public struct ElementPath: Sendable {
                 if childRole == segment.role {
                     var childTitleRef: CFTypeRef?
                     let childTitleStatus = AXUIElementCopyAttributeValue(child, "AXTitle" as CFString, &childTitleRef)
-                    if childTitleStatus == .success, let childTitle = childTitleRef as? String {
+                    if childTitleStatus == .success, let _ = childTitleRef as? String {
                         // print("DEBUG:     Title: \(childTitle)")
                     }
                 }
             } else {
-                print("DEBUG:   [\(i)] Unknown role, status: \(childRoleStatus.rawValue)")
+                 // print("DEBUG:   [\(i)] Unknown role, status: \(childRoleStatus.rawValue)")
             }
         }
         
@@ -523,20 +577,20 @@ public struct ElementPath: Sendable {
             }
         }
         
-        print("DEBUG: Found \(matches.count) matches for segment \(segment.toString())")
+        // print("DEBUG: Found \(matches.count) matches for segment \(segment.toString())")
         
         // Special case for when the parent element itself matches
         if segmentIndex == 0 && matches.isEmpty {
             // Check if the root element matches
             if try await elementMatchesSegment(element, segment: segment) {
-                print("DEBUG: Root element matches first segment")
+                // print("DEBUG: Root element matches first segment")
                 return element
             }
         }
         
         // Handle based on number of matches and whether an index was specified
         if matches.isEmpty {
-            print("DEBUG: No matches found for segment")
+            // print("DEBUG: No matches found for segment")
             
             // Gather information about available children for better diagnostics
             var availableChildren: [String] = []
@@ -590,21 +644,21 @@ public struct ElementPath: Sendable {
                 // Make sure the index is valid
                 if index < 0 || index >= matches.count {
                     let segmentString = segment.toString()
-                    print("DEBUG: Index out of range: \(index) for matches.count: \(matches.count)")
+                    // print("DEBUG: Index out of range: \(index) for matches.count: \(matches.count)")
                     throw ElementPathError.segmentResolutionFailed("Index out of range: \(index) for segment: \(segmentString)", atSegment: segmentIndex)
                 }
                 
-                print("DEBUG: Returning match at specified index \(index)")
+                // print("DEBUG: Returning match at specified index \(index)")
                 return matches[index]
             }
             
             // Otherwise return the single match
-            print("DEBUG: Returning single match")
+            // print("DEBUG: Returning single match")
             return matches[0]
         } else {
             // Multiple matches and no index specified - this is ambiguous
             let segmentString = segment.toString()
-            print("DEBUG: Ambiguous match - \(matches.count) elements match segment")
+            // print("DEBUG: Ambiguous match - \(matches.count) elements match segment")
             
             // Gather information about the ambiguous matches to help with diagnostics
             var matchCandidates: [String] = []
@@ -688,11 +742,9 @@ public struct ElementPath: Sendable {
             // print("DEBUG: Match check - checking attribute: \(name), expected value: \(expectedValue)")
             
             // Get fallback attribute names for this attribute
-            let attributeVariants = getAttributeVariants(name)
-            
             // Try all variants of the attribute name
             var attributeMatched = false
-            for attributeName in attributeVariants {
+            for attributeName in self.getAttributeVariants(name) {
                 if matchAttribute(element, name: attributeName, expectedValue: expectedValue) {
                     attributeMatched = true
                     // print("DEBUG: Match check - attribute matched via variant: \(attributeName)")
@@ -793,7 +845,7 @@ public struct ElementPath: Sendable {
         }
         
         // Check for partial matches in some cases
-        let matchType: MatchType = determineMatchType(forAttribute: name)
+        let matchType: ElementPath.MatchType = self.determineMatchType(forAttribute: name)
         
         switch matchType {
         case .exact:
@@ -913,6 +965,212 @@ public struct ElementPath: Sendable {
     }
 }
 
+extension ElementPath {
+    /// Validates an element path string to check for common issues and syntax errors
+    /// - Parameters:
+    ///   - pathString: The path string to validate
+    ///   - strict: Whether to use strict validation (more checks)
+    /// - Returns: A tuple containing a boolean indicating success and an array of validation warnings
+    /// - Throws: ElementPathError if validation fails
+    public static func validatePath(_ pathString: String, strict: Bool = false) throws -> (isValid: Bool, warnings: [ElementPathError]) {
+        var warnings: [ElementPathError] = []
+        
+        // Check if the path starts with the expected prefix
+        guard pathString.hasPrefix(pathPrefix) else {
+            throw ElementPathError.invalidPathPrefix(pathString)
+        }
+        
+        // Remove the prefix
+        let pathWithoutPrefix = String(pathString.dropFirst(pathPrefix.count))
+        
+        // Split the path into segments
+        let segmentStrings = pathWithoutPrefix.split(separator: "/")
+        
+        // Make sure we have at least one segment
+        guard !segmentStrings.isEmpty else {
+            throw ElementPathError.emptyPath
+        }
+        
+        // Check for path complexity
+        if segmentStrings.count > 15 && strict {
+            warnings.append(ElementPathError.validationWarning(
+                "Path has \(segmentStrings.count) segments, which might be excessive",
+                suggestion: "Consider using a shorter path if possible"
+            ))
+        }
+        
+        // Validate each segment
+        for (i, segmentString) in segmentStrings.enumerated() {
+            // First, try to parse the segment to validate syntax
+            do {
+                let segment = try parseSegment(String(segmentString), segmentIndex: i)
+                
+                // Check for segment-specific warnings
+                warnings.append(contentsOf: validateSegment(segment, index: i, strict: strict))
+            } catch let error as ElementPathError {
+                throw error  // Re-throw any parsing errors
+            } catch {
+                throw ElementPathError.invalidPathSyntax(String(segmentString), details: "Unknown error parsing segment at index \(i)")
+            }
+        }
+        
+        // Validate first segment (should typically be AXApplication)
+        let firstSegmentString = segmentStrings[0]
+        do {
+            let firstSegment = try parseSegment(String(firstSegmentString), segmentIndex: 0)
+            
+            if strict {
+                if firstSegment.role != "AXApplication" && firstSegment.role != "AXSystemWide" {
+                    warnings.append(ElementPathError.validationWarning(
+                        "First segment role is '\(firstSegment.role)' rather than 'AXApplication' or 'AXSystemWide'",
+                        suggestion: "Paths typically start with AXApplication for targeting specific applications"
+                    ))
+                }
+                
+                if firstSegment.role == "AXApplication" {
+                    // Check if bundleIdentifier or title is provided for the application
+                    let hasBundleId = firstSegment.attributes["bundleIdentifier"] != nil
+                    let hasTitle = firstSegment.attributes["title"] != nil || firstSegment.attributes["AXTitle"] != nil
+                    
+                    if !hasBundleId && !hasTitle {
+                        warnings.append(ElementPathError.missingAttribute(
+                            String(firstSegmentString),
+                            suggestedAttribute: "bundleIdentifier or title",
+                            atSegment: 0
+                        ))
+                    }
+                }
+            }
+        } catch {
+            // Error already thrown in the general segment validation
+        }
+        
+        // Check for ambiguity issues across the path
+        checkForAmbiguityIssues(segmentStrings, warnings: &warnings, strict: strict)
+        
+        return (true, warnings)
+    }
+    
+    /// Validates a single path segment and returns any warnings
+    /// - Parameters:
+    ///   - segment: The segment to validate
+    ///   - index: The index of the segment in the path
+    ///   - strict: Whether to use strict validation
+    /// - Returns: Array of validation warnings
+    private static func validateSegment(_ segment: PathSegment, index: Int, strict: Bool) -> [ElementPathError] {
+        var warnings: [ElementPathError] = []
+        
+        // Check for common role validation issues
+        if segment.role.isEmpty {
+            warnings.append(ElementPathError.validationWarning(
+                "Empty role in segment at index \(index)",
+                suggestion: "Specify a valid accessibility role like 'AXButton', 'AXTextField', etc."
+            ))
+        }
+        
+        // Role should typically start with AX for standard elements
+        if !segment.role.hasPrefix("AX") && strict {
+            warnings.append(ElementPathError.validationWarning(
+                "Role '\(segment.role)' doesn't have the standard 'AX' prefix",
+                suggestion: "Consider using standard accessibility roles like 'AXButton', 'AXTextField', etc."
+            ))
+        }
+        
+        // Check for empty attributes or invalid formats
+        for (key, value) in segment.attributes {
+            if value.isEmpty && strict {
+                warnings.append(ElementPathError.validationWarning(
+                    "Empty value for attribute '\(key)' in segment at index \(index)",
+                    suggestion: "Consider removing the empty attribute or providing a meaningful value"
+                ))
+            }
+            
+            // Validate attribute name
+            if key.isEmpty {
+                warnings.append(ElementPathError.validationWarning(
+                    "Empty attribute name in segment at index \(index)",
+                    suggestion: "Specify a valid attribute name"
+                ))
+            }
+        }
+        
+        // If it's a common UI element, check if it has the right attributes for reliable identification
+        if index > 0 && segment.attributes.isEmpty && segment.index == nil && strict {
+            switch segment.role {
+            case "AXButton", "AXMenuItem", "AXRadioButton", "AXCheckBox":
+                warnings.append(ElementPathError.missingAttribute(
+                    segment.toString(),
+                    suggestedAttribute: "AXTitle or AXDescription",
+                    atSegment: index
+                ))
+                
+            case "AXTextField", "AXTextArea":
+                warnings.append(ElementPathError.missingAttribute(
+                    segment.toString(),
+                    suggestedAttribute: "AXPlaceholderValue or AXIdentifier",
+                    atSegment: index
+                ))
+                
+            case "AXTable", "AXGrid", "AXList", "AXOutline":
+                warnings.append(ElementPathError.missingAttribute(
+                    segment.toString(),
+                    suggestedAttribute: "AXIdentifier",
+                    atSegment: index
+                ))
+                
+            default:
+                break
+            }
+        }
+        
+        return warnings
+    }
+    
+    /// Checks for potential ambiguity issues in the path
+    /// - Parameters:
+    ///   - segmentStrings: The string segments of the path
+    ///   - warnings: The array of warnings to append to
+    ///   - strict: Whether to use strict validation
+    private static func checkForAmbiguityIssues(_ segmentStrings: [Substring], warnings: inout [ElementPathError], strict: Bool) {
+        // Count segments with the same role in sequence
+        var consecutiveSegments: [String: Int] = [:]
+        var previousRole = ""
+        
+        for (i, segmentString) in segmentStrings.enumerated() {
+            do {
+                let segment = try parseSegment(String(segmentString), segmentIndex: i)
+                
+                if segment.role == previousRole {
+                    consecutiveSegments[segment.role, default: 1] += 1
+                    
+                    // If we have multiple segments with the same role in a row and no index is specified, warn about ambiguity
+                    if consecutiveSegments[segment.role, default: 1] > 1 && segment.index == nil && strict {
+                        warnings.append(ElementPathError.potentialAmbiguity(
+                            segment.toString(),
+                            details: "Multiple consecutive '\(segment.role)' segments without index specification",
+                            atSegment: i
+                        ))
+                    }
+                } else {
+                    consecutiveSegments[segment.role] = 1
+                    previousRole = segment.role
+                }
+                
+                // Warn about common generic roles without sufficient disambiguation
+                if ["AXGroup", "AXBox", "AXGeneric"].contains(segment.role) && segment.attributes.isEmpty && segment.index == nil && strict {
+                    warnings.append(ElementPathError.potentialAmbiguity(
+                        segment.toString(),
+                        details: "Generic role '\(segment.role)' without attributes or index may match multiple elements",
+                        atSegment: i
+                    ))
+                }
+            } catch {
+                // Skip segments that couldn't be parsed - they'll have errors thrown elsewhere
+            }
+        }
+    }
+}
+
 extension String {
     /// Find all ranges matching a regular expression
     /// - Parameter pattern: The regular expression pattern
@@ -933,11 +1191,159 @@ extension String {
             return startIndex..<endIndex
         }
     }
+    
+    /// Creates a new string by repeating this string a specified number of times
+    /// - Parameter count: The number of times to repeat the string
+    /// - Returns: A new string containing the original string repeated count times
+    func repeating(_ count: Int) -> String {
+        return String(repeating: self, count: count)
+    }
 }
 
 // MARK: - Element Scoring for Progressive Resolution
 
 extension ElementPath {
+    /// Diagnoses issues with a path resolution and provides detailed troubleshooting information
+    /// - Parameters:
+    ///   - pathString: The path string to diagnose
+    ///   - accessibilityService: The accessibility service to use for resolution attempts
+    /// - Returns: A diagnostic report with details about the issue and suggested solutions
+    /// - Throws: ElementPathError if there's a critical error during diagnosis
+    public static func diagnosePathResolutionIssue(_ pathString: String, using accessibilityService: AccessibilityServiceProtocol) async throws -> String {
+        var diagnosis = "Path Resolution Diagnosis for: \(pathString)\n"
+        diagnosis += "=".repeating(80) + "\n\n"
+        
+        // Step 1: Validate the path syntax
+        do {
+            let (_, warnings) = try validatePath(pathString, strict: true)
+            
+            if !warnings.isEmpty {
+                diagnosis += "VALIDATION WARNINGS:\n"
+                for (i, warning) in warnings.enumerated() {
+                    diagnosis += "  \(i+1). \(warning.description)\n"
+                }
+                diagnosis += "\n"
+            } else {
+                diagnosis += "Path syntax validation: ✅ No syntax warnings\n\n"
+            }
+        } catch let error as ElementPathError {
+            diagnosis += "SYNTAX ERROR: \(error.description)\n"
+            diagnosis += "Fix the syntax error before continuing with resolution.\n\n"
+            return diagnosis
+        } catch {
+            diagnosis += "UNKNOWN ERROR: \(error.localizedDescription)\n\n"
+            return diagnosis
+        }
+        
+        // Step 2: Try progressive path resolution
+        do {
+            let path = try parse(pathString)
+            
+            // Use progressive resolution to get detailed segment-by-segment diagnostics
+            // Resolve progressively
+            let resolutionResult = await path.resolvePathProgressively(using: accessibilityService)
+            
+            if resolutionResult.success {
+                diagnosis += "PATH RESOLUTION: ✅ Success\n"
+                diagnosis += "The path resolves successfully to a UI element.\n\n"
+            } else {
+                diagnosis += "PATH RESOLUTION: ❌ Failed\n"
+                if let error = resolutionResult.error {
+                    diagnosis += "Error: \(error)\n"
+                }
+                diagnosis += "\n"
+                
+                // Detailed segment-by-segment analysis
+                diagnosis += "SEGMENT ANALYSIS:\n"
+                for (i, segment) in resolutionResult.segments.enumerated() {
+                    diagnosis += "  Segment \(i): \(segment.segment)\n"
+                    
+                    if segment.success {
+                        diagnosis += "    Resolution: ✅ Success\n"
+                    } else {
+                        diagnosis += "    Resolution: ❌ Failed\n"
+                        if let reason = segment.failureReason {
+                            diagnosis += "    Reason: \(reason)\n"
+                        }
+                        
+                        // List alternative candidates
+                        if !segment.candidates.isEmpty {
+                            diagnosis += "    Available alternatives:\n"
+                            for (j, candidate) in segment.candidates.prefix(5).enumerated() {
+                                diagnosis += "      \(j+1). \(candidate.description) (match score: \(String(format: "%.2f", candidate.match)))\n"
+                            }
+                            if segment.candidates.count > 5 {
+                                diagnosis += "      ... and \(segment.candidates.count - 5) more alternatives\n"
+                            }
+                        } else {
+                            diagnosis += "    No matching elements found\n"
+                        }
+                    }
+                    diagnosis += "\n"
+                }
+                
+                // If we know which segment failed, provide specific guidance
+                if let failureIndex = resolutionResult.failureIndex {
+                    diagnosis += "SUGGESTIONS FOR SEGMENT \(failureIndex):\n"
+                    
+                    let failedSegment = resolutionResult.segments[failureIndex]
+                    
+                    if !failedSegment.candidates.isEmpty {
+                        // Case 1: We have alternatives - suggest ways to match them
+                        if failedSegment.candidates.count > 1 {
+                            diagnosis += "  • Too many matching elements - add more specific attributes or use an index:\n"
+                            
+                            // Suggest using an index
+                            diagnosis += "    - Add index to select a specific element, e.g.: [...][0]\n"
+                            
+                            // Suggest attributes based on candidate information
+                            let topCandidate = failedSegment.candidates.first!
+                            var suggestedAttributes = ""
+                            
+                            for (key, value) in topCandidate.attributes {
+                                if !value.isEmpty && key != "role" {
+                                    suggestedAttributes += "    - Add attribute: [@\(key)=\"\(value)\"]\n"
+                                }
+                            }
+                            
+                            if !suggestedAttributes.isEmpty {
+                                diagnosis += suggestedAttributes
+                            }
+                        } else if failedSegment.failureReason?.contains("high-quality") == true {
+                            // Case 2: We have matches but they're low quality
+                            diagnosis += "  • Found possible matches, but none with high confidence:\n"
+                            diagnosis += "    - Try using more specific attribute values\n"
+                            diagnosis += "    - Consider using exact matches for critical attributes\n"
+                        }
+                    } else {
+                        // Case 3: No matches found at all
+                        diagnosis += "  • No matching elements found in the UI hierarchy:\n"
+                        diagnosis += "    - Verify the element exists in the application's UI\n"
+                        diagnosis += "    - Check if the role '\(failedSegment.segment.split(separator: "[")[0])' is correct\n"
+                        diagnosis += "    - Consider using a more general role (e.g., 'AXGroup' instead of a specific control type)\n"
+                    }
+                    
+                    diagnosis += "\n"
+                }
+                
+                // General improvement suggestions
+                diagnosis += "GENERAL IMPROVEMENTS:\n"
+                diagnosis += "  • Use the application's bundleIdentifier in the first segment for precise targeting\n"
+                diagnosis += "  • Add more specific attributes to ambiguous segments\n"
+                diagnosis += "  • Use indexes when multiple identical elements exist\n"
+                diagnosis += "  • Consider shorter paths when possible to reduce resolution complexity\n"
+                diagnosis += "  • Test with more generic attribute matching (e.g., substring instead of exact)\n"
+            }
+        } catch let error as ElementPathError {
+            diagnosis += "PATH PARSING ERROR: \(error.description)\n"
+            diagnosis += "Fix the path structure before attempting resolution.\n"
+        } catch {
+            diagnosis += "UNEXPECTED ERROR: \(error.localizedDescription)\n"
+        }
+        
+        return diagnosis
+    }
+    
     /// Score how well an element matches a path segment
     /// - Parameters:
     ///   - element: The element to score
@@ -987,7 +1393,9 @@ extension ElementPath {
         
         return score
     }
+}
     
+    extension ElementPath {
     /// Score how well an attribute matches its expected value
     /// - Parameters:
     ///   - element: The element containing the attribute
@@ -996,7 +1404,7 @@ extension ElementPath {
     /// - Returns: A score between 0.0 (no match) and 1.0 (perfect match)
     private func scoreAttributeMatch(_ element: AXUIElement, attributeName: String, expectedValue: String) -> Double {
         // Try different variants of the attribute name
-        let attributeVariants = getAttributeVariants(attributeName)
+        let attributeVariants = self.getAttributeVariants(attributeName)
         var bestScore = 0.0
         
         for attributeKey in attributeVariants {
@@ -1020,8 +1428,8 @@ extension ElementPath {
             }
             
             // Determine match type for this attribute
-            let matchType = determineMatchType(forAttribute: attributeKey)
-            let currentScore = calculateAttributeScore(expected: expectedValue, actual: actualValue, matchType: matchType)
+            let matchType = self.determineMatchType(forAttribute: attributeKey)
+            let currentScore = self.calculateAttributeScore(expected: expectedValue, actual: actualValue, matchType: matchType)
             
             // Keep the best score among attribute variants
             if currentScore > bestScore {
@@ -1611,9 +2019,8 @@ extension ElementPath {
                 failureReason: "Multiple elements (\(highQualityMatches.count)) match this segment. Add more specific attributes or use an index."
             )
         }
-    }
+	}
 }
-
 /// Result of a progressive path resolution operation
 public struct PathResolutionResult: Sendable {
     /// Whether the full path resolution was successful
