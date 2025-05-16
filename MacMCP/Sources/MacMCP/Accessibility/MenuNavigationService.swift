@@ -3,7 +3,7 @@
 
 import Foundation
 import Logging
-import ApplicationServices
+@preconcurrency import ApplicationServices
 
 /// Errors specific to menu navigation
 public enum MenuNavigationError: Error, CustomStringConvertible {

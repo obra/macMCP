@@ -237,7 +237,7 @@ public struct UIInteractionTool {
                 // Attempt to resolve the path to verify it exists
                 // This is just for validation - actual resolution happens in interactionService
                 do {
-                    _ = try await path.resolveProgressively(using: accessibilityService)
+                    _ = try await path.resolve(using: accessibilityService)
                     print("   - Element path verified and resolved successfully")
                 } catch {
                     print("⚠️ DEBUG: handleClick - WARNING: Element path did not resolve: \(error.localizedDescription)")

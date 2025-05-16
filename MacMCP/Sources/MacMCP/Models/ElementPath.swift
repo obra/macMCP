@@ -2,7 +2,7 @@
 // ABOUTME: It includes path parsing, generation, and validation logic for UIElement paths.
 
 import Foundation
-import AppKit
+@preconcurrency import AppKit
 import MacMCPUtilities
 
 /// Errors that can occur when working with element paths

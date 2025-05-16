@@ -2,7 +2,7 @@
 // ABOUTME: It uses native macOS APIs to capture images of various UI regions.
 
 import Foundation
-import AppKit
+@preconcurrency import AppKit
 import Logging
 
 /// Service for capturing screenshots

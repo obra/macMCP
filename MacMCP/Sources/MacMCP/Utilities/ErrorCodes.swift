@@ -82,6 +82,9 @@ public enum MacMCPErrorCode {
     /// Invalid action parameters
     public static let invalidActionParams = 3003
     
+    /// Generic accessibility API error
+    public static let accessibilityError = 3004
+    
     /// Base error code for screenshot errors
     public static let screenshotBase = 4000
     

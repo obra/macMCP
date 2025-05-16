@@ -2,9 +2,9 @@
 // ABOUTME: It provides methods for manipulating window position, size, and state.
 
 import Foundation
-import AppKit
+@preconcurrency import AppKit
 import Logging
-import ApplicationServices // Required for AXUIElement and AXValue functions
+@preconcurrency import ApplicationServices // Required for AXUIElement and AXValue functions
 
 /// Extension to AccessibilityService for window management operations
 extension AccessibilityService {

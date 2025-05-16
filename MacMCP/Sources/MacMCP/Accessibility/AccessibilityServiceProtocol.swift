@@ -7,7 +7,7 @@ import Foundation
 public protocol AccessibilityServiceProtocol: Sendable {
     /// Execute a function within the actor's isolated context
     /// This method allows calling code to utilize the actor isolation to maintain Sendability
-    func run<T: Sendable>(_ operation: @Sendable () throws -> T) async rethrows -> T
+    func run<T: Sendable>(_ operation: @Sendable () async throws -> T) async rethrows -> T
     /// Get the system-wide UI element structure
     func getSystemUIElement(
         recursive: Bool,

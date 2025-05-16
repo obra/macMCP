@@ -22,8 +22,8 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
   
   /// Execute a function within the actor's isolated context
   /// This method allows calling code to utilize the actor isolation to maintain Sendability
-  public func run<T: Sendable>(_ operation: @Sendable () throws -> T) async rethrows -> T {
-    return try operation()
+  public func run<T: Sendable>(_ operation: @Sendable () async throws -> T) async rethrows -> T {
+    return try await operation()
   }
 
   /// Get the system-wide UI element structure
@@ -364,6 +364,15 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
       }
     }
     return nil
+  }
+  
+  /// Navigate through menu path and activate a menu item
+  /// - Parameters:
+  ///   - path: The simplified menu path (e.g., "File > Open" or "View > Scientific")
+  ///   - bundleId: The bundle identifier of the application
+  public func navigateMenu(path: String, in bundleId: String) async throws {
+    // Delegate to MenuNavigationService
+    try await MenuNavigationService.shared.navigateMenu(path: path, in: bundleId, using: self)
   }
 
   /// Find a UI element by its path using ElementPath
