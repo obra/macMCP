@@ -17,6 +17,24 @@ public enum AccessibilityPermissionStatus: String, Codable {
 public class MockAccessibilityService: @unchecked Sendable, AccessibilityServiceProtocol {
     // MARK: - Protocol Required Methods
     
+    public func run<T: Sendable>(_ operation: @Sendable () async throws -> T) async rethrows -> T {
+        return try await operation()
+    }
+    
+    public func findElementByPath(path: String) async throws -> UIElement? {
+        // Mock implementation - create a fake element based on the path
+        let parts = path.split(separator: "/")
+        if let lastPart = parts.last {
+            let role = String(lastPart.split(separator: "[").first ?? "AXUnknown")
+            return createMockUIElement(identifier: "path_element", role: role, title: "Path Element")
+        }
+        return nil
+    }
+    
+    public func performAction(action: String, onElementWithPath elementPath: String) async throws {
+        // Mock implementation - do nothing
+    }
+    
     public func getSystemUIElement(recursive: Bool, maxDepth: Int) async throws -> UIElement {
         return createMockUIElement(identifier: "system", role: "AXApplication", title: "System")
     }
@@ -42,35 +60,35 @@ public class MockAccessibilityService: @unchecked Sendable, AccessibilityService
     
     // Legacy element identifier methods have been removed
     
-    public func moveWindow(withIdentifier identifier: String, to point: CGPoint) async throws {
+    public func moveWindow(withPath path: String, to point: CGPoint) async throws {
         // Do nothing in mock
     }
     
-    public func resizeWindow(withIdentifier identifier: String, to size: CGSize) async throws {
+    public func resizeWindow(withPath path: String, to size: CGSize) async throws {
         // Do nothing in mock
     }
     
-    public func minimizeWindow(withIdentifier identifier: String) async throws {
+    public func minimizeWindow(withPath path: String) async throws {
         // Do nothing in mock
     }
     
-    public func maximizeWindow(withIdentifier identifier: String) async throws {
+    public func maximizeWindow(withPath path: String) async throws {
         // Do nothing in mock
     }
     
-    public func closeWindow(withIdentifier identifier: String) async throws {
+    public func closeWindow(withPath path: String) async throws {
         // Do nothing in mock
     }
     
-    public func activateWindow(withIdentifier identifier: String) async throws {
+    public func activateWindow(withPath path: String) async throws {
         // Do nothing in mock
     }
     
-    public func setWindowOrder(withIdentifier identifier: String, orderMode: WindowOrderMode, referenceWindowId: String?) async throws {
+    public func setWindowOrder(withPath path: String, orderMode: WindowOrderMode, referenceWindowPath: String?) async throws {
         // Do nothing in mock
     }
     
-    public func focusWindow(withIdentifier identifier: String) async throws {
+    public func focusWindow(withPath path: String) async throws {
         // Do nothing in mock
     }
     
@@ -126,7 +144,8 @@ public class MockAccessibilityService: @unchecked Sendable, AccessibilityService
     // MARK: - Helper Methods
     
     private func createMockUIElement(identifier: String, role: String, title: String? = nil) -> UIElement {
-        return UIElement(
+        let path = "ui://AXApplication[@AXRole=\"AXApplication\"]/\(role)[@identifier=\"\(identifier)\"]"
+        let element = UIElement(
             identifier: identifier,
             role: role,
             title: title,
@@ -137,6 +156,8 @@ public class MockAccessibilityService: @unchecked Sendable, AccessibilityService
             attributes: ["enabled": true, "visible": true],
             actions: ["AXPress"]
         )
+        element.path = path
+        return element
     }
 }
 

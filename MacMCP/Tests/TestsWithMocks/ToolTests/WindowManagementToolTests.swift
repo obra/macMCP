@@ -64,6 +64,28 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable, Acc
     
     // MARK: - AccessibilityServiceProtocol Implementation
     
+    func run<T: Sendable>(_ operation: @Sendable () async throws -> T) async rethrows -> T {
+        return try await operation()
+    }
+    
+    func findElementByPath(path: String) async throws -> UIElement? {
+        findElementCalled = true
+        
+        if shouldFailOperations {
+            throw errorToThrow ?? MCPError.internalError("Mock error")
+        }
+        
+        return mockFoundElement
+    }
+    
+    func performAction(action: String, onElementWithPath elementPath: String) async throws {
+        // Add tracking properties if needed
+        
+        if shouldFailOperations {
+            throw errorToThrow ?? MCPError.internalError("Mock error")
+        }
+    }
+    
     func getSystemUIElement(recursive: Bool, maxDepth: Int) async throws -> UIElement {
         getSystemUIElementCalled = true
         
@@ -118,9 +140,9 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable, Acc
     
     // MARK: - Window Management Methods
     
-    func moveWindow(withIdentifier identifier: String, to point: CGPoint) async throws {
+    func moveWindow(withPath path: String, to point: CGPoint) async throws {
         moveWindowCalled = true
-        moveWindowIdentifier = identifier
+        moveWindowIdentifier = path
         moveWindowPoint = point
         
         if shouldFailOperations {
@@ -128,9 +150,9 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable, Acc
         }
     }
     
-    func resizeWindow(withIdentifier identifier: String, to size: CGSize) async throws {
+    func resizeWindow(withPath path: String, to size: CGSize) async throws {
         resizeWindowCalled = true
-        resizeWindowIdentifier = identifier
+        resizeWindowIdentifier = path
         resizeWindowSize = size
         
         if shouldFailOperations {
@@ -138,69 +160,66 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable, Acc
         }
     }
     
-    func minimizeWindow(withIdentifier identifier: String) async throws {
+    func minimizeWindow(withPath path: String) async throws {
         minimizeWindowCalled = true
-        minimizeWindowIdentifier = identifier
+        minimizeWindowIdentifier = path
         
         if shouldFailOperations {
             throw errorToThrow ?? MCPError.internalError("Mock error")
         }
     }
     
-    func maximizeWindow(withIdentifier identifier: String) async throws {
+    func maximizeWindow(withPath path: String) async throws {
         maximizeWindowCalled = true
-        maximizeWindowIdentifier = identifier
+        maximizeWindowIdentifier = path
         
         if shouldFailOperations {
             throw errorToThrow ?? MCPError.internalError("Mock error")
         }
     }
     
-    func closeWindow(withIdentifier identifier: String) async throws {
+    func closeWindow(withPath path: String) async throws {
         closeWindowCalled = true
-        closeWindowIdentifier = identifier
+        closeWindowIdentifier = path
         
         if shouldFailOperations {
             throw errorToThrow ?? MCPError.internalError("Mock error")
         }
     }
     
-    func activateWindow(withIdentifier identifier: String) async throws {
+    func activateWindow(withPath path: String) async throws {
         activateWindowCalled = true
-        activateWindowIdentifier = identifier
+        activateWindowIdentifier = path
         
         if shouldFailOperations {
             throw errorToThrow ?? MCPError.internalError("Mock error")
         }
     }
     
-    func setWindowOrder(withIdentifier identifier: String, orderMode: WindowOrderMode, referenceWindowId: String?) async throws {
+    func setWindowOrder(withPath path: String, orderMode: WindowOrderMode, referenceWindowPath: String?) async throws {
         setWindowOrderCalled = true
-        setWindowOrderIdentifier = identifier
+        setWindowOrderIdentifier = path
         setWindowOrderMode = orderMode
-        setWindowOrderReferenceWindowId = referenceWindowId
+        setWindowOrderReferenceWindowId = referenceWindowPath
         
         if shouldFailOperations {
             throw errorToThrow ?? MCPError.internalError("Mock error")
         }
     }
     
-    func focusWindow(withIdentifier identifier: String) async throws {
+    func focusWindow(withPath path: String) async throws {
         focusWindowCalled = true
-        focusWindowIdentifier = identifier
+        focusWindowIdentifier = path
 
         if shouldFailOperations {
             throw errorToThrow ?? MCPError.internalError("Mock error")
         }
     }
 
-    func performAction(action: String, onElement identifier: String, in bundleId: String?) async throws {
-        // Add tracking properties if needed in the future
-
-        if shouldFailOperations {
-            throw errorToThrow ?? MCPError.internalError("Mock error")
-        }
-    }
+    // Legacy method removed
+    // func performAction(action: String, onElement identifier: String, in bundleId: String?) async throws {
+        // Method removed
+    // }
 
     func navigateMenu(path: String, in bundleId: String) async throws {
         // Mock implementation for menu navigation

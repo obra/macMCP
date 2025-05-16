@@ -131,7 +131,7 @@ extension AccessibilityService {
         let windowElement = try await findWindowElement(withPath: path)
         
         // Look up the AXPress action on the zoom button
-        var zoomButtonRef: AXUIElement?
+        var zoomButtonRef: CFTypeRef?
         let zoomButtonError = AXUIElementCopyAttributeValue(
             windowElement,
             kAXZoomButtonAttribute as CFString,
@@ -140,7 +140,7 @@ extension AccessibilityService {
         
         if zoomButtonError == .success && zoomButtonRef != nil {
             // Perform the AXPress action on the zoom button
-            let pressError = AXUIElementPerformAction(zoomButtonRef!, kAXPressAction as CFString)
+            let pressError = AXUIElementPerformAction(zoomButtonRef as! AXUIElement, kAXPressAction as CFString)
             if pressError != .success {
                 logger.error("Failed to press zoom button", metadata: [
                     "path": .string(path),
@@ -177,7 +177,7 @@ extension AccessibilityService {
         let windowElement = try await findWindowElement(withPath: path)
         
         // Look up the AXPress action on the close button
-        var closeButtonRef: AXUIElement?
+        var closeButtonRef: CFTypeRef?
         let closeButtonError = AXUIElementCopyAttributeValue(
             windowElement,
             kAXCloseButtonAttribute as CFString,
@@ -186,7 +186,7 @@ extension AccessibilityService {
         
         if closeButtonError == .success && closeButtonRef != nil {
             // Perform the AXPress action on the close button
-            let pressError = AXUIElementPerformAction(closeButtonRef!, kAXPressAction as CFString)
+            let pressError = AXUIElementPerformAction(closeButtonRef as! AXUIElement, kAXPressAction as CFString)
             if pressError != .success {
                 logger.error("Failed to press close button", metadata: [
                     "path": .string(path),
@@ -219,7 +219,7 @@ extension AccessibilityService {
         let windowElement = try await findWindowElement(withPath: path)
         
         // Get the application element that contains this window
-        var appElement: AXUIElement?
+        var appElement: CFTypeRef?
         let appError = AXUIElementCopyAttributeValue(
             windowElement,
             kAXParentAttribute as CFString,
@@ -229,7 +229,7 @@ extension AccessibilityService {
         if appError == .success && appElement != nil {
             // Activate the application first
             var pid: pid_t = 0
-            let pidError = AXUIElementGetPid(appElement!, &pid)
+            let pidError = AXUIElementGetPid(appElement as! AXUIElement, &pid)
             if pidError == .success {
                 let app = NSRunningApplication(processIdentifier: pid)
                 app?.activate(options: [.activateIgnoringOtherApps])

@@ -2,7 +2,8 @@
 // ABOUTME: It provides methods to interact with UI elements through accessibility APIs.
 
 import Foundation
-import AppKit
+@preconcurrency import AppKit
+@preconcurrency import ApplicationServices
 import Logging
 
 /// Service for interacting with UI elements
@@ -72,11 +73,17 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
             }
         }.value
         
-        if let element = elementAtPosition, let path = element.path {
-            // If we found an element with a path, use the path-based method
-            try await clickElementByPath(path: path, appBundleId: nil)
+        if let element = elementAtPosition {
+            if let axElement = element.axElement {
+                // Use AXPress directly on the element
+                try AccessibilityElement.performAction(axElement, action: "AXPress")
+                return
+            }
+            
+            // Fallback to position-based clicking
+            try simulateMouseClick(at: position)
         } else {
-            // If no element found or no path available, use the lower-level mouse event API
+            // If no element found, use the lower-level mouse event API
             try simulateMouseClick(at: position)
         }
     }
@@ -702,7 +709,9 @@ extension UIInteractionService {
         // Resolve the path to get the AXUIElement
         let element: AXUIElement
         do {
-            element = try await elementPath.resolve(using: accessibilityService)
+            element = try await accessibilityService.run {
+                try await elementPath.resolve(using: accessibilityService)
+            }
         } catch {
             logger.error("Failed to resolve element path", metadata: [
                 "path": .string(path),
@@ -733,7 +742,9 @@ extension UIInteractionService {
         let elementPath = try ElementPath.parse(path)
         
         // Resolve the path to get the AXUIElement
-        let element = try await elementPath.resolve(using: accessibilityService)
+        let element = try await accessibilityService.run {
+            try await elementPath.resolve(using: accessibilityService)
+        }
         
         // Perform the double click using the AXUIElement directly
         try await doubleClickElementDirectly(element)
@@ -753,7 +764,9 @@ extension UIInteractionService {
         let elementPath = try ElementPath.parse(path)
         
         // Resolve the path to get the AXUIElement
-        let element = try await elementPath.resolve(using: accessibilityService)
+        let element = try await accessibilityService.run {
+            try await elementPath.resolve(using: accessibilityService)
+        }
         
         // Perform the right click using the AXUIElement directly
         try await rightClickElementDirectly(element)
@@ -775,7 +788,9 @@ extension UIInteractionService {
         let elementPath = try ElementPath.parse(path)
         
         // Resolve the path to get the AXUIElement
-        let element = try await elementPath.resolve(using: accessibilityService)
+        let element = try await accessibilityService.run {
+            try await elementPath.resolve(using: accessibilityService)
+        }
         
         // Get the element's role to determine how to handle text input
         let role = try AccessibilityElement.getAttribute(element, attribute: AXAttribute.role) as? String
@@ -829,8 +844,12 @@ extension UIInteractionService {
         let targetElementPath = try ElementPath.parse(targetPath)
         
         // Resolve the paths to get the AXUIElements
-        let sourceElement = try await sourceElementPath.resolve(using: accessibilityService)
-        let targetElement = try await targetElementPath.resolve(using: accessibilityService)
+        let sourceElement = try await accessibilityService.run {
+            try await sourceElementPath.resolve(using: accessibilityService)
+        }
+        let targetElement = try await accessibilityService.run {
+            try await targetElementPath.resolve(using: accessibilityService)
+        }
         
         // Get positions for drag operation
         var sourcePosition = CGPoint.zero
@@ -900,7 +919,9 @@ extension UIInteractionService {
         let elementPath = try ElementPath.parse(path)
         
         // Resolve the path to get the AXUIElement
-        let element = try await elementPath.resolve(using: accessibilityService)
+        let element = try await accessibilityService.run {
+            try await elementPath.resolve(using: accessibilityService)
+        }
         
         // Check for scroll actions
         let actions = try getActionNames(for: element)
@@ -995,7 +1016,9 @@ extension UIInteractionService {
         let elementPath = try ElementPath.parse(path)
         
         // Resolve the path to get the AXUIElement
-        let element = try await elementPath.resolve(using: accessibilityService)
+        let element = try await accessibilityService.run {
+            try await elementPath.resolve(using: accessibilityService)
+        }
         
         // Perform the action
         try performAction(element, action: action)

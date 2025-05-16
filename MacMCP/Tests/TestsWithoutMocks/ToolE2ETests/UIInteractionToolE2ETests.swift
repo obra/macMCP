@@ -722,6 +722,10 @@ final class UIInteractionToolE2ETests: XCTestCase {
         }
         print("Found text area with identifier: \(textArea.identifier)")
         
+        // Create a path to the text area for path-based element identification
+        let textAreaPath = "ui://AXApplication[@bundleIdentifier=\"\(textEditHelper.app.bundleId)\"]/AXWindow/AXTextArea[@identifier=\"\(textArea.identifier)\"]"
+        print("Using text area path: \(textAreaPath)")
+        
         // Get initial document content position information
         // We'll check this to verify that scrolling actually worked
         let initialDocText = try await textEditHelper.app.getText()

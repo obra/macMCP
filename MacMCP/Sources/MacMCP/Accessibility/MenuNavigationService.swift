@@ -52,6 +52,21 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
         self.logger = logger ?? Logger(label: "mcp.menu_navigation")
     }
     
+    /// Navigate through menu path and activate a menu item
+    /// - Parameters:
+    ///   - path: The simplified menu path (e.g., "File > Open" or "View > Scientific")
+    ///   - bundleId: The bundle identifier of the application
+    ///   - sender: The accessibility service that initiated the request
+    public func navigateMenu(path: String, in bundleId: String, using sender: AccessibilityServiceProtocol) async throws {
+        // Basic implementation - just uses path-based approach directly
+        let elementPath = "ui://AXApplication[@bundleIdentifier=\"\(bundleId)\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"\(path)\"]"
+        let parsedPath = try ElementPath.parse(elementPath)
+        let axElement = try await accessibilityService.run {
+            try await parsedPath.resolve(using: accessibilityService)
+        }
+        try AccessibilityElement.performAction(axElement, action: "AXPress")
+    }
+    
     /// Get all top-level menus for an application
     /// - Parameter bundleIdentifier: The bundle identifier of the application
     /// - Returns: An array of menu descriptors

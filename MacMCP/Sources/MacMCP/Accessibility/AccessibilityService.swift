@@ -1,7 +1,8 @@
 // ABOUTME: This file provides the AccessibilityService for getting UI element information.
 // ABOUTME: It coordinates interactions with the macOS accessibility API.
 
-import AppKit
+@preconcurrency import AppKit
+@preconcurrency import ApplicationServices
 import Foundation
 import Logging
 import MCP
@@ -103,14 +104,14 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
     // Get the system-wide element and find the focused application
     let systemElement = AccessibilityElement.systemWideElement()
     
-    var focusedAppElement: AXUIElement?
+    var focusedAppElement: CFTypeRef?
     let error = AXUIElementCopyAttributeValue(
       systemElement,
       kAXFocusedApplicationAttribute as CFString,
       &focusedAppElement
     )
     
-    if error != .success || focusedAppElement == nil {
+    if error != AXError.success || focusedAppElement == nil {
       logger.error("Failed to get focused application", metadata: ["error": .string("\(error)")])
       throw NSError(
         domain: "com.macos.mcp.accessibility",
@@ -120,7 +121,7 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
     }
     
     return try AccessibilityElement.convertToUIElement(
-      focusedAppElement!,
+      focusedAppElement as! AXUIElement,
       recursive: recursive,
       maxDepth: maxDepth
     )
@@ -200,14 +201,14 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
     case .focusedApplication:
       // Get the focused application
       let systemElement = AccessibilityElement.systemWideElement()
-      var focusedAppElement: AXUIElement?
+      var focusedAppElement: CFTypeRef?
       let error = AXUIElementCopyAttributeValue(
         systemElement,
         kAXFocusedApplicationAttribute as CFString,
         &focusedAppElement
       )
       
-      if error != .success || focusedAppElement == nil {
+      if error != AXError.success || focusedAppElement == nil {
         logger.error("Failed to get focused application", metadata: ["error": .string("\(error)")])
         throw NSError(
           domain: "com.macos.mcp.accessibility",
@@ -216,7 +217,7 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
         )
       }
       
-      rootElement = focusedAppElement!
+      rootElement = focusedAppElement as! AXUIElement
     case .application(let bundleIdentifier):
       // Find the running application
       guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier).first else {
@@ -269,7 +270,7 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
       }
       
       // Recursively check children
-      for child in element.children ?? [] {
+      for child in element.children {
         findMatches(in: child)
       }
     }
@@ -310,20 +311,7 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
           "menuPath": .string(elementPath.replacingOccurrences(of: "ui:menu:", with: "")),
         ])
 
-      // Extract bundle ID from the path if it's a UI path
-      let bundleId = extractBundleId(from: elementPath)
-      if let bundleId = bundleId, 
-         let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId).first {
-        let appElement = AccessibilityElement.applicationElement(pid: app.processIdentifier)
-
-        try await directMenuItemActivation(
-          menuIdentifier: elementPath,
-          menuTitle: nil,  // We'll extract from path components
-          appElement: appElement
-        )
-
-        return
-      }
+      // Special case handling is no longer needed with path-based approach
     }
 
     // Use proper path-based element identification
@@ -332,7 +320,9 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
       let parsedPath = try ElementPath.parse(elementPath)
       
       // Resolve the path to get the AXUIElement
-      let axElement = try await parsedPath.resolve(using: self)
+      let axElement = try await run {
+        try await parsedPath.resolve(using: self)
+      }
       
       // Perform the action
       try AccessibilityElement.performAction(axElement, action: action)
@@ -371,8 +361,9 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
   ///   - path: The simplified menu path (e.g., "File > Open" or "View > Scientific")
   ///   - bundleId: The bundle identifier of the application
   public func navigateMenu(path: String, in bundleId: String) async throws {
-    // Delegate to MenuNavigationService
-    try await MenuNavigationService.shared.navigateMenu(path: path, in: bundleId, using: self)
+    // Create a menu navigation service instance for this operation
+    let menuNavigationService = MenuNavigationService(accessibilityService: self)
+    try await menuNavigationService.navigateMenu(path: path, in: bundleId, using: self)
   }
 
   /// Find a UI element by its path using ElementPath
@@ -395,7 +386,9 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
     // Parse and resolve the path
     do {
       let parsedPath = try ElementPath.parse(path)
-      let axElement = try await parsedPath.resolve(using: self)
+      let axElement = try await run {
+        try await parsedPath.resolve(using: self)
+      }
       return try AccessibilityElement.convertToUIElement(axElement)
     } catch let pathError as ElementPathError {
       // Log specific information about path resolution errors

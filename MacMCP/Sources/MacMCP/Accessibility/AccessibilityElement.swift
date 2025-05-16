@@ -2,7 +2,8 @@
 // ABOUTME: It provides methods to convert AXUIElement objects to our UIElement model.
 
 import Foundation
-import AppKit
+@preconcurrency import AppKit
+@preconcurrency import ApplicationServices
 import CryptoKit
 
 /// Utility for working with AXUIElement objects
@@ -390,7 +391,7 @@ public class AccessibilityElement {
         }
         
         // Create a new element with the same properties but with children
-        return UIElement(
+        let uiElement = UIElement(
             identifier: identifier,
             role: role,
             title: title,
@@ -405,6 +406,16 @@ public class AccessibilityElement {
             attributes: attributes,
             actions: actions
         )
+        
+        // Store the AXUIElement for reference
+        uiElement.axElement = axElement
+        
+        // Set the path if we have one
+        if !path.isEmpty {
+            uiElement.path = path
+        }
+        
+        return uiElement
     }
     
     /// Prioritize children for traversal to find interactive elements more quickly

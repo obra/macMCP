@@ -2,7 +2,8 @@
 // ABOUTME: It includes properties for the element's attributes, relationships, and serialization methods.
 
 import Foundation
-import AppKit
+@preconcurrency import AppKit
+@preconcurrency import ApplicationServices
 import MCP
 import MacMCPUtilities
 
@@ -146,6 +147,9 @@ public enum FrameSource: String, Codable {
 
     /// The underlying AXUIElement (if available)
     public var axElement: AXUIElement?
+    
+    /// The UI path representation of this element (if available)
+    public var path: String?
     
     // MARK: - Capability Properties
     

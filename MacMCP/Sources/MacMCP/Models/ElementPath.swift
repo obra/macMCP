@@ -114,7 +114,7 @@ public enum ElementPathError: Error, CustomStringConvertible, Equatable {
 }
 
 /// A segment in an element path, representing a single level in the hierarchy
-public struct PathSegment {
+public struct PathSegment: Sendable {
     /// The accessibility role of the element (e.g., "AXButton")
     public let role: String
     
@@ -157,7 +157,7 @@ public struct PathSegment {
 }
 
 /// A path to a UI element in the accessibility hierarchy
-public struct ElementPath {
+public struct ElementPath: Sendable {
     /// The path ID prefix (ui://)
     public static let pathPrefix = "ui://"
     
@@ -1615,7 +1615,7 @@ extension ElementPath {
 }
 
 /// Result of a progressive path resolution operation
-public struct PathResolutionResult {
+public struct PathResolutionResult: Sendable {
     /// Whether the full path resolution was successful
     public let success: Bool
     
@@ -1633,7 +1633,7 @@ public struct PathResolutionResult {
 }
 
 /// Result of a single segment resolution attempt
-public struct SegmentResolutionResult {
+public struct SegmentResolutionResult: Sendable {
     /// The segment string that was resolved
     public let segment: String
     
@@ -1648,7 +1648,7 @@ public struct SegmentResolutionResult {
 }
 
 /// A candidate element that might match a path segment
-public struct CandidateElement {
+public struct CandidateElement: Sendable {
     /// The UI element
     public let element: AXUIElement
     

@@ -296,6 +296,10 @@ class UIInteractionServiceStub: UIInteractionServiceProtocol {
         // No-op for testing
     }
     
+    func doubleClickAtPosition(position: CGPoint) async throws {
+        // No-op for testing
+    }
+    
     func rightClickElementByPath(path: String, appBundleId: String?) async throws {
         // No-op for testing
     }
