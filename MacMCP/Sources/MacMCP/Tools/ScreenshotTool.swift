@@ -45,11 +45,11 @@ public struct ScreenshotTool {
         // 3. Documenting current UI state
         // 4. Visual debugging of layout issues
         //
-        // IMPORTANT: For element screenshots, first use InterfaceExplorerTool to discover element IDs.
+        // IMPORTANT: For element screenshots, first use InterfaceExplorerTool to discover element paths.
         //
         // Best practices:
         // - For window screenshots, use the window region with app's bundle ID (e.g., com.apple.calculator)
-        // - For UI elements, first use InterfaceExplorerTool to get the element ID, then capture with element region
+        // - For UI elements, first use InterfaceExplorerTool to get the element path, then capture with element region
         // - Full screen screenshots are useful for overall context, but may be large
 
         self.annotations = .init(
@@ -73,7 +73,7 @@ public struct ScreenshotTool {
             "properties": .object([
                 "region": .object([
                     "type": .string("string"),
-                    "description": .string("The region to capture: full (entire screen), area (specific coordinates), window (app window by bundleId), element (UI element by elementId from InterfaceExplorerTool)"),
+                    "description": .string("The region to capture: full (entire screen), area (specific coordinates), window (app window by bundleId), element (UI element by elementPath from InterfaceExplorerTool)"),
                     "enum": .array([
                         .string("full"),
                         .string("area"),
@@ -101,9 +101,9 @@ public struct ScreenshotTool {
                     "type": .string("string"),
                     "description": .string("The bundle identifier of the application window to capture (required when region is 'window') - e.g., 'com.apple.calculator' for Calculator")
                 ]),
-                "elementId": .object([
+                "elementPath": .object([
                     "type": .string("string"),
-                    "description": .string("The ID of the UI element to capture (required when region is 'element') - MUST be obtained from InterfaceExplorerTool first")
+                    "description": .string("The path of the UI element to capture (required when region is 'element') - e.g., ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXButton[@title=\"1\"]")
                 ])
             ]),
             "required": .array([.string("region")]),
@@ -133,8 +133,8 @@ public struct ScreenshotTool {
     ///
     /// Screenshot workflow for element screenshots:
     /// 1. User discovers UI elements with InterfaceExplorerTool
-    /// 2. User gets element IDs from the explorer results
-    /// 3. User uses ScreenshotTool with region=element and elementId=<discovered ID>
+    /// 2. User gets element paths from the explorer results
+    /// 3. User uses ScreenshotTool with region=element and elementPath=<element path>
     /// 4. Service finds the element (with several fallback approaches for reliability)
     /// 5. Service captures the element with padding to ensure the full element is visible
     /// 6. Result is returned as base64-encoded PNG with metadata
@@ -211,10 +211,10 @@ public struct ScreenshotTool {
             )
             
         case "element":
-            // Extract required element ID
-            guard let elementId = params["elementId"]?.stringValue else {
+            // Extract required element path
+            guard let elementPath = params["elementPath"]?.stringValue else {
                 throw createScreenshotError(
-                    message: "Element screenshots require an elementId parameter",
+                    message: "Element screenshots require an elementPath parameter",
                     context: [
                         "toolName": name,
                         "region": regionValue,
@@ -223,8 +223,8 @@ public struct ScreenshotTool {
                 ).asMCPError
             }
             
-            result = try await screenshotService.captureElement(
-                elementId: elementId
+            result = try await screenshotService.captureElementByPath(
+                elementPath: elementPath
             )
             
         default:
@@ -268,7 +268,7 @@ private class MockScreenshotService: ScreenshotServiceProtocol {
         fatalError("This is a stub that should never be called")
     }
     
-    func captureElement(elementId: String) async throws -> ScreenshotResult {
+    func captureElementByPath(elementPath: String) async throws -> ScreenshotResult {
         fatalError("This is a stub that should never be called")
     }
 }

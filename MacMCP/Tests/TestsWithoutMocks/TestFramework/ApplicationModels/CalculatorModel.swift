@@ -459,12 +459,12 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
     /// - Parameter button: The button identifier
     /// - Returns: True if the button was successfully pressed
     public func pressButtonViaAccessibility(_ button: String) async throws -> Bool {
-        // Get the exact ID mapping for this button directly from our map
-        let exactId: String
-        if let mappedId = Button.buttonMappings[button] {
-            exactId = mappedId
+        // Get the exact path mapping for this button directly from our map
+        let path: String
+        if let mappedPath = Button.buttonMappings[button] {
+            path = mappedPath
         } else {
-            // If button doesn't have a mapped ID, try to find it via UI
+            // If button doesn't have a mapped path, try to find it via UI
             guard let buttonElement = try await findButton(button) else {
                 throw NSError(
                     domain: "CalculatorModel",
@@ -473,15 +473,22 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
                 )
             }
 
-            exactId = buttonElement.identifier
+            guard let elementPath = buttonElement.path else {
+                throw NSError(
+                    domain: "CalculatorModel",
+                    code: 1001,
+                    userInfo: [NSLocalizedDescriptionKey: "Button found but has no path: \(button)"]
+                )
+            }
+            
+            path = elementPath
         }
 
-        // Use the direct approach for clicking rather than the handler
-        // This is more reliable and bypasses any potential parameter handling issues
+        // Use the direct approach for clicking with path
         do {
-            // Use toolChain.interactionService.clickElement directly
-            try await toolChain.interactionService.clickElement(
-                identifier: exactId,
+            // Use toolChain.interactionService.clickElementByPath directly
+            try await toolChain.interactionService.clickElementByPath(
+                path: path,
                 appBundleId: bundleId
             )
 
@@ -494,7 +501,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
             // Create the parameters with explicit values for safety
             let params: [String: Value] = [
                 "action": .string("click"),
-                "elementId": .string(exactId),
+                "elementPath": .string(path),
                 "appBundleId": .string(bundleId)
             ]
 

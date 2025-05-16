@@ -250,7 +250,7 @@ public struct OnboardingTool: @unchecked Sendable {
             ```json
             {
               "scope": "element",
-              "elementId": "ui:AXGroup:12345",
+              "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.example.app\"]/AXWindow/AXGroup",
               "maxDepth": 10
             }
             ```
@@ -381,7 +381,7 @@ public struct OnboardingTool: @unchecked Sendable {
             ```json
             {
               "scope": "element",
-              "elementId": "ui:AXGroup:12345",
+              "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.example.app\"]/AXWindow/AXGroup",
               "maxDepth": 10
             }
             ```
@@ -421,17 +421,17 @@ public struct OnboardingTool: @unchecked Sendable {
             
             ## Best Practices for Clicking
             
-            ### 1. Element ID-Based Clicking (Preferred)
+            ### 1. Element Path-Based Clicking (Preferred)
             
             ```json
             {
               "action": "click",
-              "elementId": "ui:AXButton:save_button",
+              "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.example.app\"]/AXWindow/AXButton[@AXTitle=\"Save\"]",
               "appBundleId": "com.example.app"
             }
             ```
             
-            This is the most reliable method, as it uses accessibility identifiers that are stable even if the UI changes position.
+            This is the most reliable method, as it uses path-based identifiers that describe the element's position in the accessibility hierarchy and are stable even if the UI position changes.
             
             ### 2. Position-Based Clicking (Fallback)
             
@@ -450,14 +450,14 @@ public struct OnboardingTool: @unchecked Sendable {
             ```json
             {
               "action": "double_click",
-              "elementId": "ui:AXStaticText:filename"
+              "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.apple.finder\"]/AXWindow/AXStaticText[@AXValue=\"filename\"]"
             }
             ```
             
             ```json
             {
               "action": "right_click",
-              "elementId": "ui:AXButton:options_button"
+              "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.example.app\"]/AXWindow/AXButton[@AXTitle=\"Options\"]"
             }
             ```
             
@@ -465,7 +465,8 @@ public struct OnboardingTool: @unchecked Sendable {
             
             1. **Element Not Found**: 
                - Verify the element exists using InterfaceExplorerTool
-               - Check if the element ID is correct
+               - Check if the element path is correctly formatted and valid
+               - Ensure the path attributes match the actual element attributes
                - Ensure the application is focused
             
             2. **Click Not Registering**:
@@ -499,7 +500,7 @@ public struct OnboardingTool: @unchecked Sendable {
                ```json
                {
                  "action": "click",
-                 "elementId": "ui:AXTextField:document_title"
+                 "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.apple.TextEdit\"]/AXWindow/AXTextField[@AXIdentifier=\"document_title\"]"
                }
                ```
             
@@ -586,8 +587,8 @@ public struct OnboardingTool: @unchecked Sendable {
             ```json
             {
               "action": "drag",
-              "elementId": "ui:AXElement:source_item",
-              "targetElementId": "ui:AXElement:target_container",
+              "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.example.app\"]/AXWindow/AXElement[@AXIdentifier=\"source_item\"]",
+              "targetElementPath": "ui://AXApplication[@bundleIdentifier=\"com.example.app\"]/AXWindow/AXElement[@AXIdentifier=\"target_container\"]",
               "appBundleId": "com.example.app"
             }
             ```
@@ -662,7 +663,7 @@ public struct OnboardingTool: @unchecked Sendable {
             ```json
             {
               "action": "scroll",
-              "elementId": "ui:AXScrollArea:content_view",
+              "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.example.app\"]/AXWindow/AXScrollArea[@AXIdentifier=\"content_view\"]",
               "direction": "down",
               "amount": 0.5,
               "appBundleId": "com.example.app"
@@ -747,7 +748,7 @@ public struct OnboardingTool: @unchecked Sendable {
             ```json
             {
               "action": "click",
-              "elementId": "ui:AXButton:save_button",
+              "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.example.app\"]/AXWindow/AXButton[@AXTitle=\"Save\"]",
               "appBundleId": "com.example.app"
             }
             ```
@@ -772,8 +773,8 @@ public struct OnboardingTool: @unchecked Sendable {
             ```json
             {
               "action": "drag",
-              "elementId": "ui:AXElement:source_item",
-              "targetElementId": "ui:AXElement:target_container"
+              "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.example.app\"]/AXWindow/AXElement[@AXIdentifier=\"source_item\"]",
+              "targetElementPath": "ui://AXApplication[@bundleIdentifier=\"com.example.app\"]/AXWindow/AXElement[@AXIdentifier=\"target_container\"]"
             }
             ```
             
@@ -782,7 +783,7 @@ public struct OnboardingTool: @unchecked Sendable {
             ```json
             {
               "action": "scroll",
-              "elementId": "ui:AXScrollArea:content_view",
+              "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.example.app\"]/AXWindow/AXScrollArea[@AXIdentifier=\"content_view\"]",
               "direction": "down",
               "amount": 0.5
             }
@@ -864,7 +865,7 @@ public struct OnboardingTool: @unchecked Sendable {
             ```json
             {
               "action": "click",
-              "elementId": "ui:AXImage:slide_thumbnail_2"
+              "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.apple.keynote\"]/AXWindow/AXImage[@AXDescription=\"Slide 2\"]"
             }
             ```
             
@@ -877,8 +878,8 @@ public struct OnboardingTool: @unchecked Sendable {
             ```json
             {
               "action": "drag",
-              "elementId": "ui:AXImage:slide_thumbnail_2",
-              "targetElementId": "ui:AXImage:slide_thumbnail_5"
+              "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.apple.keynote\"]/AXWindow/AXImage[@AXDescription=\"Slide 2\"]",
+              "targetElementPath": "ui://AXApplication[@bundleIdentifier=\"com.apple.keynote\"]/AXWindow/AXImage[@AXDescription=\"Slide 5\"]"
             }
             ```
             
@@ -983,7 +984,7 @@ public struct OnboardingTool: @unchecked Sendable {
                ```json
                {
                  "action": "click",
-                 "elementId": "ui:AXTextField:text_box_1"
+                 "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.apple.keynote\"]/AXWindow/AXTextField[@AXIdentifier=\"text_box_1\"]"
                }
                ```
             
@@ -991,7 +992,7 @@ public struct OnboardingTool: @unchecked Sendable {
                ```json
                {
                  "action": "click",
-                 "elementId": "ui:AXTextField:text_box_1"
+                 "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.apple.keynote\"]/AXWindow/AXTextField[@AXIdentifier=\"text_box_1\"]"
                }
                ```
             
@@ -1142,7 +1143,7 @@ public struct OnboardingTool: @unchecked Sendable {
             ```json
             {
               "action": "click",
-              "elementId": "ui:AXImage:image_1"
+              "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.apple.keynote\"]/AXWindow/AXImage[@AXIdentifier=\"image_1\"]"
             }
             ```
             
@@ -1151,8 +1152,8 @@ public struct OnboardingTool: @unchecked Sendable {
             ```json
             {
               "action": "drag",
-              "elementId": "ui:AXImage:image_1",
-              "targetElementId": "ui:AXCanvas:slide_canvas"
+              "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.apple.keynote\"]/AXWindow/AXImage[@AXIdentifier=\"image_1\"]",
+              "targetElementPath": "ui://AXApplication[@bundleIdentifier=\"com.apple.keynote\"]/AXWindow/AXCanvas"
             }
             ```
             
@@ -1165,8 +1166,8 @@ public struct OnboardingTool: @unchecked Sendable {
             ```json
             {
               "action": "drag",
-              "elementId": "ui:AXButton:resize_handle",
-              "targetElementId": "ui:AXCanvas:slide_canvas"
+              "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.apple.keynote\"]/AXWindow/AXButton[@AXRole=\"resize_handle\"]",
+              "targetElementPath": "ui://AXApplication[@bundleIdentifier=\"com.apple.keynote\"]/AXWindow/AXCanvas"
             }
             ```
             
@@ -1347,7 +1348,7 @@ public struct OnboardingTool: @unchecked Sendable {
            ```json
            {
              "action": "click",
-             "elementId": "ui:AXTextArea:document_body"
+             "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.apple.TextEdit\"]/AXWindow/AXTextArea"
            }
            ```
         
@@ -1454,7 +1455,7 @@ public struct OnboardingTool: @unchecked Sendable {
            ```json
            {
              "action": "click",
-             "elementId": "ui:AXCell:documents_sidebar_item"
+             "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"Documents\"]"
            }
            ```
         
@@ -1462,7 +1463,7 @@ public struct OnboardingTool: @unchecked Sendable {
            ```json
            {
              "action": "double_click",
-             "elementId": "ui:AXCell:projects_folder"
+             "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"Projects\"]"
            }
            ```
         
@@ -1485,7 +1486,7 @@ public struct OnboardingTool: @unchecked Sendable {
            ```json
            {
              "action": "click",
-             "elementId": "ui:AXCell:document_file"
+             "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"Document.pdf\"]"
            }
            ```
         
@@ -1493,8 +1494,8 @@ public struct OnboardingTool: @unchecked Sendable {
            ```json
            {
              "action": "drag",
-             "elementId": "ui:AXCell:document_file",
-             "targetElementId": "ui:AXCell:target_folder"
+             "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"Document.pdf\"]",
+             "targetElementPath": "ui://AXApplication[@bundleIdentifier=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"Projects\"]"
            }
            ```
         
@@ -1610,7 +1611,7 @@ public struct OnboardingTool: @unchecked Sendable {
            ```json
            {
              "action": "click",
-             "elementId": "ui:AXTextField:url_field"
+             "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXToolbar/AXTextField[@AXSubrole=\"AXURLField\"]"
            }
            ```
            Then type the URL:
@@ -1635,7 +1636,7 @@ public struct OnboardingTool: @unchecked Sendable {
            ```json
            {
              "action": "click",
-             "elementId": "ui:AXButton:back_button"
+             "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXToolbar/AXButton[@AXDescription=\"back\"]"
            }
            ```
         
@@ -1671,7 +1672,7 @@ public struct OnboardingTool: @unchecked Sendable {
            ```json
            {
              "action": "click",
-             "elementId": "ui:AXTabGroup:tab_2"
+             "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXTabGroup/AXRadioButton[2]"
            }
            ```
         
@@ -1694,7 +1695,7 @@ public struct OnboardingTool: @unchecked Sendable {
            ```json
            {
              "action": "click",
-             "elementId": "ui:AXLink:example_link"
+             "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXWebArea/AXLink[@AXTitle=\"Example link\"]"
            }
            ```
         
@@ -1702,7 +1703,7 @@ public struct OnboardingTool: @unchecked Sendable {
            ```json
            {
              "action": "click",
-             "elementId": "ui:AXTextField:username_field"
+             "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXWebArea/AXTextField[@AXPlaceholderValue=\"Username\"]"
            }
            ```
            Then type:
@@ -1717,7 +1718,7 @@ public struct OnboardingTool: @unchecked Sendable {
            ```json
            {
              "action": "scroll",
-             "elementId": "ui:AXWebArea:webpage",
+             "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXWebArea",
              "direction": "down",
              "amount": 0.5
            }
@@ -1799,7 +1800,7 @@ public struct OnboardingTool: @unchecked Sendable {
            ```json
            {
              "scope": "element",
-             "elementId": "ui:AXGroup:tools_panel",
+             "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.example.app\"]/AXWindow/AXGroup[@AXIdentifier=\"tools_panel\"]",
              "maxDepth": 10
            }
            ```

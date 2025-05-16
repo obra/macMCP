@@ -307,23 +307,23 @@ public final class ToolChain: @unchecked Sendable {
     
     // MARK: - UI Interaction Operations
     
-    /// Click on a UI element
+    /// Click on a UI element using its path
     /// - Parameters:
-    ///   - elementId: Identifier of the element to click
+    ///   - elementPath: Path of the element to click in ui:// format
     ///   - bundleId: Optional bundle identifier of the application
     /// - Returns: True if the click was successful
     public func clickElement(
-        elementId: String,
+        elementPath: String,
         bundleId: String? = nil
     ) async throws -> Bool {
         // Create parameters for the tool
         var params: [String: Value] = [
             "action": .string("click"),
-            "elementId": .string(elementId)
+            "elementPath": .string(elementPath)
         ]
         
         if let bundleId = bundleId {
-            params["bundleId"] = .string(bundleId)
+            params["appBundleId"] = .string(bundleId)
         }
         
         // Call the UI interaction tool
@@ -361,21 +361,27 @@ public final class ToolChain: @unchecked Sendable {
         return false
     }
     
-    /// Type text into a UI element
+    /// Type text into a UI element using its path
     /// - Parameters:
-    ///   - elementId: Identifier of the element to type into
+    ///   - elementPath: Path of the element to type into in ui:// format
     ///   - text: Text to type
+    ///   - bundleId: Optional bundle identifier of the application
     /// - Returns: True if the text was successfully typed
     public func typeText(
-        elementId: String,
-        text: String
+        elementPath: String,
+        text: String,
+        bundleId: String? = nil
     ) async throws -> Bool {
         // Create parameters for the tool
-        let params: [String: Value] = [
+        var params: [String: Value] = [
             "action": .string("type"),
-            "elementId": .string(elementId),
+            "elementPath": .string(elementPath),
             "text": .string(text)
         ]
+        
+        if let bundleId = bundleId {
+            params["appBundleId"] = .string(bundleId)
+        }
         
         // Call the UI interaction tool
         let result = try await uiInteractionTool.handler(params)
@@ -493,9 +499,9 @@ public final class ToolChain: @unchecked Sendable {
 
     /// Explore UI elements using the InterfaceExplorerTool
     /// - Parameters:
-    ///   - scope: Scope of the search ("system", "application", "focused", "position", "element")
+    ///   - scope: Scope of the search ("system", "application", "focused", "position", "path")
     ///   - bundleId: Bundle identifier for application scope
-    ///   - elementId: Element ID for element scope
+    ///   - elementPath: Element path for path scope (using ui:// notation)
     ///   - position: Position (x,y) for position scope
     ///   - filter: Optional filter criteria for elements
     ///   - elementTypes: Types of elements to find
@@ -506,7 +512,7 @@ public final class ToolChain: @unchecked Sendable {
     public func exploreInterface(
         scope: String,
         bundleId: String? = nil,
-        elementId: String? = nil,
+        elementPath: String? = nil,
         position: CGPoint? = nil,
         filter: [String: String]? = nil,
         elementTypes: [String]? = nil,
@@ -527,8 +533,8 @@ public final class ToolChain: @unchecked Sendable {
             params["bundleId"] = .string(bundleId)
         }
 
-        if let elementId = elementId {
-            params["elementId"] = .string(elementId)
+        if let elementPath = elementPath {
+            params["elementPath"] = .string(elementPath)
         }
 
         if let position = position {

@@ -284,7 +284,7 @@ class UIInteractionServiceStub: UIInteractionServiceProtocol {
     var keyPressCount = 0
     var usedModifiers = false
     
-    func clickElement(identifier: String, appBundleId: String?) async throws {
+    func clickElementByPath(path: String, appBundleId: String?) async throws {
         // No-op for testing
     }
     
@@ -292,15 +292,15 @@ class UIInteractionServiceStub: UIInteractionServiceProtocol {
         // No-op for testing
     }
     
-    func doubleClickElement(identifier: String) async throws {
+    func doubleClickElementByPath(path: String, appBundleId: String?) async throws {
         // No-op for testing
     }
     
-    func rightClickElement(identifier: String) async throws {
+    func rightClickElementByPath(path: String, appBundleId: String?) async throws {
         // No-op for testing
     }
     
-    func typeText(elementIdentifier: String, text: String) async throws {
+    func typeTextByPath(path: String, text: String, appBundleId: String?) async throws {
         // No-op for testing
     }
     
@@ -311,15 +311,15 @@ class UIInteractionServiceStub: UIInteractionServiceProtocol {
         }
     }
     
-    func dragElement(sourceIdentifier: String, targetIdentifier: String) async throws {
+    func dragElementByPath(sourcePath: String, targetPath: String, appBundleId: String?) async throws {
         // No-op for testing
     }
     
-    func scrollElement(identifier: String, direction: ScrollDirection, amount: Double) async throws {
+    func scrollElementByPath(path: String, direction: ScrollDirection, amount: Double, appBundleId: String?) async throws {
         // No-op for testing
     }
 
-    func performAction(identifier: String, action: String, appBundleId: String?) async throws {
+    func performActionByPath(path: String, action: String, appBundleId: String?) async throws {
         // No-op for testing
     }
 }

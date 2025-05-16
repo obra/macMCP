@@ -18,26 +18,18 @@ extension AccessibilityService {
             throw AccessibilityPermissions.Error.permissionDenied
         }
 
-        // Try to find the window element using the identifier
-        guard let element = try await findElement(identifier: identifier, in: nil) else {
-            throw createElementError(
-                message: "Window with identifier \(identifier) not found",
-                context: ["windowId": identifier]
-            ).asMCPError
-        }
-
-        // Verify it's a window
-        guard element.role == AXAttribute.Role.window else {
-            throw createElementError(
-                message: "Element is not a window",
-                context: ["windowId": identifier, "actualRole": element.role]
-            ).asMCPError
-        }
-
-        // We already found the element with the correct identifier above
-        let axElement = element.axElement!
-
-        return axElement
+        // Element identifier methods have been removed
+        // This code needs to be updated to use findElementByPath instead
+        // For now, throw an error to prevent using legacy identifiers
+        logger.error(
+            "Legacy element identifier methods have been removed",
+            metadata: ["identifier": .string(identifier)]
+        )
+        throw NSError(
+            domain: "com.macos.mcp.accessibility",
+            code: MacMCPErrorCode.invalidElementId,
+            userInfo: [NSLocalizedDescriptionKey: "Legacy element identifiers are no longer supported. Use window paths instead of window identifiers."]
+        )
     }
     
     /// Move a window to a new position

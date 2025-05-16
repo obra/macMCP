@@ -167,7 +167,7 @@ You can combine the path-related options with other inspector features for more 
 The paths displayed by the inspector can be used directly with MCP UI interaction tools:
 
 1. Use the inspector to find the path of the element you want to interact with
-2. Use that path as the `elementId` in UI interaction tools
+2. Use that path as the `elementPath` in UI interaction tools
 3. The path provides a more stable reference than direct element IDs
 
 For example, after finding a button's path:
@@ -180,7 +180,7 @@ You can use it with the UI interaction tool:
 // In MCP automation code
 macos_ui_interact({
   action: "click",
-  elementId: "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"7\"]"
+  elementPath: "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"7\"]"
 });
 ```
 

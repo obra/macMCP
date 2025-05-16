@@ -78,46 +78,4 @@ public protocol UIInteractionServiceProtocol {
     ///   - keyCode: The key code to press
     ///   - modifiers: Optional modifier flags to apply
     func pressKey(keyCode: Int, modifiers: CGEventFlags?) async throws
-
-    // MARK: - Legacy Element Interaction Methods
-    
-    /// Click on a UI element by its identifier (legacy)
-    /// - Parameters:
-    ///   - identifier: The UI element identifier
-    ///   - appBundleId: Optional bundle ID of the application containing the element
-    func clickElement(identifier: String, appBundleId: String?) async throws
-    
-    /// Double click on a UI element (legacy)
-    /// - Parameter identifier: The UI element identifier
-    func doubleClickElement(identifier: String) async throws
-    
-    /// Right click on a UI element (legacy)
-    /// - Parameter identifier: The UI element identifier
-    func rightClickElement(identifier: String) async throws
-    
-    /// Type text into a UI element (legacy)
-    /// - Parameters:
-    ///   - elementIdentifier: The UI element identifier
-    ///   - text: The text to type
-    func typeText(elementIdentifier: String, text: String) async throws
-    
-    /// Drag and drop from one element to another (legacy)
-    /// - Parameters:
-    ///   - sourceIdentifier: The source element identifier
-    ///   - targetIdentifier: The target element identifier
-    func dragElement(sourceIdentifier: String, targetIdentifier: String) async throws
-    
-    /// Scroll a UI element (legacy)
-    /// - Parameters:
-    ///   - identifier: The UI element identifier
-    ///   - direction: The scroll direction
-    ///   - amount: The amount to scroll (normalized 0-1)
-    func scrollElement(identifier: String, direction: ScrollDirection, amount: Double) async throws
-    
-    /// Perform a specific accessibility action on an element (legacy)
-    /// - Parameters:
-    ///   - identifier: The element identifier
-    ///   - action: The accessibility action to perform (e.g., "AXPress", "AXPick")
-    ///   - appBundleId: Optional application bundle ID
-    func performAction(identifier: String, action: String, appBundleId: String?) async throws
 }

@@ -141,32 +141,48 @@ final class UIInteractionToolE2ETests: XCTestCase {
 
         // Click each button in sequence with increased wait times
         print("Clicking button '1'")
+        guard let onePath = oneButton.path else {
+            XCTFail("No path available for '1' button")
+            return
+        }
         let clickOneSuccess = try await calculatorHelper.toolChain.clickElement(
-            elementId: oneButton.identifier,
+            elementPath: onePath,
             bundleId: calculatorHelper.app.bundleId
         )
         XCTAssertTrue(clickOneSuccess, "Should click '1' button successfully")
         try await Task.sleep(for: .milliseconds(1000))
 
         print("Clicking button '+'")
+        guard let addPath = addButton.path else {
+            XCTFail("No path available for '+' button")
+            return
+        }
         let clickPlusSuccess = try await calculatorHelper.toolChain.clickElement(
-            elementId: addButton.identifier,
+            elementPath: addPath,
             bundleId: calculatorHelper.app.bundleId
         )
         XCTAssertTrue(clickPlusSuccess, "Should click '+' button successfully")
         try await Task.sleep(for: .milliseconds(1000))
 
         print("Clicking button '2'")
+        guard let twoPath = twoButton.path else {
+            XCTFail("No path available for '2' button")
+            return
+        }
         let clickTwoSuccess = try await calculatorHelper.toolChain.clickElement(
-            elementId: twoButton.identifier,
+            elementPath: twoPath,
             bundleId: calculatorHelper.app.bundleId
         )
         XCTAssertTrue(clickTwoSuccess, "Should click '2' button successfully")
         try await Task.sleep(for: .milliseconds(1000))
 
         print("Clicking button '='")
+        guard let eqPath = eqButton.path else {
+            XCTFail("No path available for '=' button")
+            return
+        }
         let clickEqualsSuccess = try await calculatorHelper.toolChain.clickElement(
-            elementId: eqButton.identifier,
+            elementPath: eqPath,
             bundleId: calculatorHelper.app.bundleId
         )
         XCTAssertTrue(clickEqualsSuccess, "Should click '=' button successfully")
@@ -177,16 +193,20 @@ final class UIInteractionToolE2ETests: XCTestCase {
         try await calculatorHelper.assertDisplayValue("3", message: "Display should show '3' after clicking buttons")
         
         // Test direct UIInteractionTool interface to verify proper passing of parameters
+        guard let onePath = oneButton.path else {
+            XCTFail("No path available for '1' button")
+            return
+        }
         let result = try await calculatorHelper.toolChain.uiInteractionTool.handler([
             "action": .string("click"),
-            "elementId": .string(oneButton.identifier),
+            "elementPath": .string(onePath),
             "appBundleId": .string(calculatorHelper.app.bundleId)
         ])
         
         XCTAssertFalse(result.isEmpty, "Handler should return non-empty result")
         if case .text(let message) = result.first {
             XCTAssertTrue(message.contains("Successfully clicked"), "Success message should indicate click was successful")
-            XCTAssertTrue(message.contains(oneButton.identifier), "Success message should include element ID")
+            XCTAssertTrue(message.contains(onePath), "Success message should include element path")
         } else {
             XCTFail("Handler should return text content")
         }
@@ -357,9 +377,13 @@ final class UIInteractionToolE2ETests: XCTestCase {
         }
         
         // Try double-click through the handler
+        guard let newTextAreaPath = newTextArea.path else {
+            XCTFail("No path available for text area")
+            return
+        }
         let doubleClickParams: [String: Value] = [
             "action": .string("double_click"),
-            "elementId": .string(newTextArea.identifier)
+            "elementPath": .string(newTextAreaPath)
         ]
         
         let doubleClickResult = try await textEditHelper.toolChain.uiInteractionTool.handler(doubleClickParams)
@@ -409,9 +433,13 @@ final class UIInteractionToolE2ETests: XCTestCase {
         }
         
         // Use the UIInteractionTool handler directly to test right-click
+        guard let textAreaPath = textArea.path else {
+            XCTFail("No path available for text area")
+            return
+        }
         let rightClickParams: [String: Value] = [
             "action": .string("right_click"),
-            "elementId": .string(textArea.identifier)
+            "elementPath": .string(textAreaPath)
         ]
         
         let rightClickResult = try await textEditHelper.toolChain.uiInteractionTool.handler(rightClickParams)
@@ -468,22 +496,26 @@ final class UIInteractionToolE2ETests: XCTestCase {
         // without a proper source and target that make sense to drag between
         
         // TEST PARAMETER VALIDATION
-        // Test missing targetElementId
+        // Test missing targetElementPath
         do {
+            guard let textAreaPath = textArea.path else {
+                XCTFail("No path available for text area")
+                return
+            }
             let invalidParams: [String: Value] = [
                 "action": .string("drag"),
-                "elementId": .string(textArea.identifier)
-                // Missing targetElementId
+                "elementPath": .string(textAreaPath)
+                // Missing targetElementPath
             ]
             
             _ = try await textEditHelper.toolChain.uiInteractionTool.handler(invalidParams)
-            XCTFail("Should throw an error when targetElementId is missing")
+            XCTFail("Should throw an error when targetElementPath is missing")
         } catch {
             // Expected error - success
             let errorMessage = error.localizedDescription.lowercased()
             XCTAssertTrue(
                 errorMessage.contains("target") || errorMessage.contains("missing"),
-                "Error should indicate missing targetElementId parameter"
+                "Error should indicate missing targetElementPath parameter"
             )
         }
     }
@@ -648,9 +680,13 @@ final class UIInteractionToolE2ETests: XCTestCase {
             print("Found Open button with ID: \(openButton.identifier)")
 
             // Click the Open button
+            guard let openButtonPath = openButton.path else {
+                XCTFail("No path available for Open button")
+                return
+            }
             let clickParams: [String: Value] = [
                 "action": .string("click"),
-                "elementId": .string(openButton.identifier)
+                "elementPath": .string(openButtonPath)
             ]
 
             _ = try await textEditHelper.toolChain.uiInteractionTool.handler(clickParams)
@@ -763,7 +799,7 @@ final class UIInteractionToolE2ETests: XCTestCase {
         print("Testing scroll down operation...")
         let scrollDownParams: [String: Value] = [
             "action": .string("scroll"),
-            "elementId": .string(textArea.identifier),
+            "elementPath": .string(textAreaPath),
             "direction": .string("down"),
             "amount": .double(0.9) // Scroll almost to the bottom
         ]
@@ -780,7 +816,7 @@ final class UIInteractionToolE2ETests: XCTestCase {
         print("Testing scroll up operation...")
         let scrollUpParams: [String: Value] = [
             "action": .string("scroll"),
-            "elementId": .string(textArea.identifier),
+            "elementPath": .string(textAreaPath),
             "direction": .string("up"),
             "amount": .double(0.9) // Scroll almost to the top
         ]
@@ -836,11 +872,17 @@ final class UIInteractionToolE2ETests: XCTestCase {
             }
         }
 
+        // Get the path for text area
+        guard let textAreaPath = textArea.path else {
+            XCTFail("No path available for text area")
+            return
+        }
+
         // Test missing direction
         try await testInvalidParams(
             [
                 "action": .string("scroll"),
-                "elementId": .string(textArea.identifier),
+                "elementPath": .string(textAreaPath),
                 "amount": .double(0.5)
                 // Missing direction
             ],
@@ -852,7 +894,7 @@ final class UIInteractionToolE2ETests: XCTestCase {
         try await testInvalidParams(
             [
                 "action": .string("scroll"),
-                "elementId": .string(textArea.identifier),
+                "elementPath": .string(textAreaPath),
                 "direction": .string("invalid"),
                 "amount": .double(0.5)
             ],
@@ -864,7 +906,7 @@ final class UIInteractionToolE2ETests: XCTestCase {
         try await testInvalidParams(
             [
                 "action": .string("scroll"),
-                "elementId": .string(textArea.identifier),
+                "elementPath": .string(textAreaPath),
                 "direction": .string("down")
                 // Missing amount
             ],
@@ -876,7 +918,7 @@ final class UIInteractionToolE2ETests: XCTestCase {
         try await testInvalidParams(
             [
                 "action": .string("scroll"),
-                "elementId": .string(textArea.identifier),
+                "elementPath": .string(textAreaPath),
                 "direction": .string("down"),
                 "amount": .double(1.5) // Out of range
             ],
@@ -917,8 +959,12 @@ final class UIInteractionToolE2ETests: XCTestCase {
         }
 
         // 1. First click in text area to ensure it has focus
+        guard let textAreaPath = textArea.path else {
+            XCTFail("No path available for text area")
+            return
+        }
         let clickResult = try await textEditHelper.toolChain.clickElement(
-            elementId: textArea.identifier,
+            elementPath: textAreaPath,
             bundleId: textEditHelper.app.bundleId
         )
         XCTAssertTrue(clickResult, "Should click text area successfully")
@@ -1000,7 +1046,7 @@ final class UIInteractionToolE2ETests: XCTestCase {
 
         do {
             _ = try await calculatorHelper.toolChain.clickElement(
-                elementId: nonExistentId,
+                elementPath: nonExistentId,
                 bundleId: calculatorHelper.app.bundleId
             )
             XCTFail("Should throw an error for non-existent element")
@@ -1022,7 +1068,7 @@ final class UIInteractionToolE2ETests: XCTestCase {
         do {
             let nonExistentParams: [String: Value] = [
                 "action": .string("click"),
-                "elementId": .string(nonExistentId),
+                "elementPath": .string(nonExistentId),
                 "appBundleId": .string(calculatorHelper.app.bundleId)
             ]
             
@@ -1052,7 +1098,7 @@ final class UIInteractionToolE2ETests: XCTestCase {
         do {
             let invalidParams: [String: Value] = [
                 "action": .string("invalid_action"),
-                "elementId": .string("some_element_id")
+                "elementPath": .string("ui://AXApplication/AXButton")
             ]
             
             _ = try await calculatorHelper.toolChain.uiInteractionTool.handler(invalidParams)
@@ -1070,7 +1116,7 @@ final class UIInteractionToolE2ETests: XCTestCase {
         // Test with missing action
         do {
             let invalidParams: [String: Value] = [
-                "elementId": .string("some_element_id")
+                "elementPath": .string("ui://AXApplication/AXButton")
                 // Missing action
             ]
             

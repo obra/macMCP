@@ -369,22 +369,23 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
             "properties": .object([
                 "scope": .object([
                     "type": .string("string"),
-                    "description": .string("The scope of UI elements to retrieve: system (all apps, very broad), application (specific app by bundleId), focused (currently active app, RECOMMENDED), position (element at screen coordinates), element (specific element by ID)"),
+                    "description": .string("The scope of UI elements to retrieve: system (all apps, very broad), application (specific app by bundleId), focused (currently active app, RECOMMENDED), position (element at screen coordinates), element (specific element by ID), path (element by path)"),
                     "enum": .array([
                         .string("system"),
                         .string("application"),
                         .string("focused"),
                         .string("position"),
-                        .string("element")
+                        .string("element"),
+                        .string("path")
                     ])
                 ]),
                 "bundleId": .object([
                     "type": .string("string"),
                     "description": .string("The bundle identifier of the application to retrieve (required for 'application' scope)")
                 ]),
-                "elementId": .object([
+                "elementPath": .object([
                     "type": .string("string"),
-                    "description": .string("The ID of a specific element to retrieve (required for 'element' scope)")
+                    "description": .string("The path of a specific element to retrieve using ui:// notation (required for 'path' scope)")
                 ]),
                 "x": .object([
                     "type": .array([.string("number"), .string("integer")]),
@@ -580,16 +581,34 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
             
         case "element":
             // Validate element ID
-            guard let elementId = params["elementId"]?.stringValue else {
-                throw MCPError.invalidParams("elementId is required when scope is 'element'")
+            guard let elementPath = params["elementPath"]?.stringValue else {
+                throw MCPError.invalidParams("elementPath is required when scope is 'element'")
             }
             
             // Bundle ID is optional for element scope
             let bundleId = params["bundleId"]?.stringValue
             
             return try await handleElementScope(
-                elementId: elementId,
+                elementPath: elementPath,
                 bundleId: bundleId,
+                maxDepth: maxDepth,
+                includeHidden: includeHidden,
+                limit: limit,
+                role: role,
+                titleContains: titleContains,
+                valueContains: valueContains,
+                descriptionContains: descriptionContains,
+                elementTypes: elementTypes
+            )
+            
+        case "path":
+            // Validate element path
+            guard let elementPath = params["elementPath"]?.stringValue else {
+                throw MCPError.invalidParams("elementPath is required when scope is 'path'")
+            }
+            
+            return try await handlePathScope(
+                elementPath: elementPath,
                 maxDepth: maxDepth,
                 includeHidden: includeHidden,
                 limit: limit,
@@ -829,7 +848,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
     
     /// Handle element scope
     private func handleElementScope(
-        elementId: String,
+        elementPath: String,
         bundleId: String?,
         maxDepth: Int,
         includeHidden: Bool,
@@ -840,43 +859,28 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
         descriptionContains: String?,
         elementTypes: [String]
     ) async throws -> [Tool.Content] {
-        // Determine the search scope
-        let searchScope: UIElementScope
-        if let bundleId = bundleId {
-            searchScope = .application(bundleIdentifier: bundleId)
-        } else {
-            searchScope = .systemWide
+        // First check if the path is valid
+        guard ElementPath.isElementPath(elementPath) else {
+            throw MCPError.invalidParams("Invalid element path format: \(elementPath)")
         }
         
-        // Find the specified element
-        let elements = try await accessibilityService.findUIElements(
-            role: nil,
-            titleContains: nil,
-            scope: searchScope,
-            recursive: true,
-            maxDepth: maxDepth
-        ).filter { $0.identifier == elementId }
-        
-        guard let element = elements.first else {
-            if let bundleId = bundleId {
-                throw MCPError.internalError("Element with ID \(elementId) not found in application \(bundleId)")
-            } else {
-                throw MCPError.internalError("Element with ID \(elementId) not found")
-            }
-        }
-        
-        // If we're searching within this element, we need to apply filters to its children
-        var resultElements: [UIElement] = []
-        
-        if role != nil || titleContains != nil || valueContains != nil || descriptionContains != nil || !elementTypes.contains("any") {
-            // For filtering, we need to process the element and its descendants
-            // Find the element by identifier
-            let foundElement = try await accessibilityService.findElement(
-                identifier: elementId,
-                in: bundleId
+        // Parse and resolve the path
+        do {
+            let parsedPath = try ElementPath.parse(elementPath)
+            let axElement = try await parsedPath.resolve(using: accessibilityService)
+            
+            // Convert to UIElement
+            let element = try AccessibilityElement.convertToUIElement(
+                axElement,
+                recursive: true,
+                maxDepth: maxDepth
             )
-
-            if let element = foundElement {
+            
+            // If we're searching within this element, we need to apply filters to its children
+            var resultElements: [UIElement] = []
+            
+            if role != nil || titleContains != nil || valueContains != nil || descriptionContains != nil || !elementTypes.contains("any") {
+                // For filtering, we need to process the element and its descendants
                 // Now search within this element for matching elements
                 resultElements = findMatchingDescendants(
                     in: element,
@@ -890,26 +894,104 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
                     limit: limit
                 )
             } else {
-                resultElements = []
-            }
-        } else {
-            // If no filters, just use the element as is
-            resultElements = [element]
+                // If no filters, just use the element as is
+                resultElements = [element]
             
-            // Apply hidden filter if specified
-            if !includeHidden {
-                resultElements = filterVisibleElements(resultElements)
+                // Apply hidden filter if specified
+                if !includeHidden {
+                    resultElements = filterVisibleElements(resultElements)
+                }
             }
+            
+            // Convert to enhanced element descriptors
+            let descriptors = convertToEnhancedDescriptors(elements: resultElements, maxDepth: maxDepth)
+            
+            // Apply limit
+            let limitedDescriptors = descriptors.prefix(limit)
+            
+            // Return formatted response
+            return try formatResponse(Array(limitedDescriptors))
+        } catch let pathError as ElementPathError {
+            // If there's a path resolution error, provide specific information
+            throw MCPError.internalError("Failed to resolve element path: \(pathError.description)")
+        } catch {
+            // For other errors
+            throw MCPError.internalError("Error finding element by path: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Handle path scope
+    private func handlePathScope(
+        elementPath: String,
+        maxDepth: Int,
+        includeHidden: Bool,
+        limit: Int,
+        role: String?,
+        titleContains: String?,
+        valueContains: String?,
+        descriptionContains: String?,
+        elementTypes: [String]
+    ) async throws -> [Tool.Content] {
+        // First check if the path is valid
+        guard ElementPath.isElementPath(elementPath) else {
+            throw MCPError.invalidParams("Invalid element path format: \(elementPath)")
         }
         
-        // Convert to enhanced element descriptors
-        let descriptors = convertToEnhancedDescriptors(elements: resultElements, maxDepth: maxDepth)
-        
-        // Apply limit
-        let limitedDescriptors = descriptors.prefix(limit)
-        
-        // Return formatted response
-        return try formatResponse(Array(limitedDescriptors))
+        // Parse and resolve the path
+        do {
+            let parsedPath = try ElementPath.parse(elementPath)
+            let axElement = try await parsedPath.resolve(using: accessibilityService)
+            
+            // Convert to UIElement
+            let element = try AccessibilityElement.convertToUIElement(
+                axElement,
+                recursive: true,
+                maxDepth: maxDepth
+            )
+            
+            // If we're searching within this element, apply filters to it and its children
+            var resultElements: [UIElement] = []
+            
+            if role != nil || titleContains != nil || valueContains != nil || 
+               descriptionContains != nil || !elementTypes.contains("any") {
+                // Find matching elements within the hierarchy
+                resultElements = findMatchingDescendants(
+                    in: element,
+                    role: role,
+                    titleContains: titleContains,
+                    valueContains: valueContains,
+                    descriptionContains: descriptionContains,
+                    elementTypes: elementTypes,
+                    includeHidden: includeHidden,
+                    maxDepth: maxDepth,
+                    limit: limit
+                )
+            } else {
+                // If no filters, just use the element itself
+                resultElements = [element]
+                
+                // Apply visibility filter if needed
+                if !includeHidden {
+                    resultElements = filterVisibleElements(resultElements)
+                }
+            }
+            
+            // Convert to enhanced element descriptors
+            let descriptors = convertToEnhancedDescriptors(elements: resultElements, maxDepth: maxDepth)
+            
+            // Apply limit
+            let limitedDescriptors = descriptors.prefix(limit)
+            
+            // Return formatted response
+            return try formatResponse(Array(limitedDescriptors))
+            
+        } catch let pathError as ElementPathError {
+            // If there's a path resolution error, provide specific information
+            throw MCPError.internalError("Failed to resolve element path: \(pathError.description)")
+        } catch {
+            // For other errors
+            throw MCPError.internalError("Error finding element by path: \(error.localizedDescription)")
+        }
     }
     
     /// Find matching descendants in an element hierarchy

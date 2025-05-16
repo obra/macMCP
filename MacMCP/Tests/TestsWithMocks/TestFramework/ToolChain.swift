@@ -38,13 +38,9 @@ public class MockAccessibilityService: @unchecked Sendable, AccessibilityService
         return []
     }
     
-    public func findElement(identifier: String, in bundleId: String?) async throws -> UIElement? {
-        return createMockUIElement(identifier: identifier, role: "AXButton", title: "Mock Element")
-    }
+    // Legacy element identifier methods have been removed
     
-    public func performAction(action: String, onElement identifier: String, in bundleId: String?) async throws {
-        // Do nothing in mock
-    }
+    // Legacy element identifier methods have been removed
     
     public func moveWindow(withIdentifier identifier: String, to point: CGPoint) async throws {
         // Do nothing in mock
@@ -89,10 +85,7 @@ public class MockAccessibilityService: @unchecked Sendable, AccessibilityService
         return nil
     }
     
-    public func getUIElement(elementId: String, refresh: Bool) async throws -> UIElement? {
-        // Return nil for simplified mock
-        return nil
-    }
+    // Legacy element identifier methods have been removed
     
     public func getUIElementFrame(_ element: AccessibilityElement) -> CGRect {
         return .zero

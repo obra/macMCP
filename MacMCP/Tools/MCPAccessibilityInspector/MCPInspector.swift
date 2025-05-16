@@ -212,11 +212,11 @@ class MCPInspector {
         // Start MCP server if needed
         try await startMCPIfNeeded()
             
-        // Create the request parameters for the InterfaceExplorerTool with element parameter
+        // Create the request parameters for the InterfaceExplorerTool with element path parameter
         let arguments: [String: Value] = [
-            "scope": .string("element"),
+            "scope": .string("path"),
             "bundleId": .string(bundleIdentifier),
-            "elementId": .string(path), // Use the path as the element ID
+            "elementPath": .string(path), // Use the path parameter for path-based lookup
             "maxDepth": .int(maxDepth),
             "includeHidden": .bool(true) // Include all elements for completeness
         ]

@@ -114,15 +114,7 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable, Acc
         return mockFoundElements
     }
     
-    func findElement(identifier: String, in bundleId: String?) async throws -> UIElement? {
-        findElementCalled = true
-        
-        if shouldFailOperations {
-            throw errorToThrow ?? MCPError.internalError("Mock error")
-        }
-        
-        return mockFoundElement
-    }
+    // Legacy element identifier methods have been removed
     
     // MARK: - Window Management Methods
     

@@ -68,7 +68,7 @@ The Screenshot Tool allows you to capture images of the screen, windows, or spec
 - `region`: The region to capture (`full`, `area`, `window`, `element`)
 - `x`, `y`, `width`, `height`: Coordinates and dimensions for area screenshots (required for `area` region)
 - `bundleId`: The bundle identifier of the application window to capture (required for `window` region)
-- `elementId`: The ID of the UI element to capture (required for `element` region)
+- `elementPath`: The path of the UI element to capture (required for `element` region)
 
 ### Example Usage
 ```json
@@ -98,12 +98,12 @@ The UI Interaction Tool allows direct interaction with UI elements. It's the pri
 
 ### Parameters
 - `action`: The interaction action to perform (`click`, `double_click`, `right_click`, `type`, `press_key`, `drag`, `scroll`)
-- `elementId`: The ID of the UI element to interact with (required for most actions)
+- `elementPath`: The path of the UI element to interact with (required for most actions)
 - `appBundleId`: Optional bundle ID of the application containing the element
 - `x` and `y`: Coordinates for position-based clicking
 - `text`: Text to type (required for `type` action)
 - `keyCode`: Key code to press (required for `press_key` action)
-- `targetElementId`: Target element ID for drag action (required for `drag` action)
+- `targetElementPath`: Target element path for drag action (required for `drag` action)
 - `direction`: Scroll direction (required for `scroll` action)
 - `amount`: Scroll amount from 0.0 to 1.0 (required for `scroll` action)
 
@@ -111,7 +111,7 @@ The UI Interaction Tool allows direct interaction with UI elements. It's the pri
 ```json
 {
   "action": "click",
-  "elementId": "AXButton:12345",
+  "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXButton[@AXTitle=\"Back\"]",
   "appBundleId": "com.apple.safari"
 }
 ```
@@ -119,13 +119,13 @@ The UI Interaction Tool allows direct interaction with UI elements. It's the pri
 ```json
 {
   "action": "type",
-  "elementId": "AXTextField:67890",
+  "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXTextField[@AXSubrole=\"AXURLField\"]",
   "text": "Hello, world!"
 }
 ```
 
 ### Tips
-- Get element IDs first using the UI State Tool or Interactive Elements Discovery Tool
+- Get element paths first using the UI State Tool or Interactive Elements Discovery Tool
 - For complex interactions, break them down into a sequence of simpler actions
 - Specifying `appBundleId` can help resolve ambiguities when multiple applications are open
 - Position-based clicking should be used as a last resort if element-based clicking doesn't work
@@ -267,7 +267,7 @@ The Interactive Elements Discovery Tool helps find interactive UI elements like 
 - `scope`: The scope of elements to search (`application`, `window`, `element`)
 - `bundleId`: The bundle identifier of the application (required for `application` and `window` scopes)
 - `windowId`: The ID of the window to search (required for `window` scope)
-- `elementId`: The ID of the element to search within (required for `element` scope)
+- `elementPath`: The path of the element to search within (required for `element` scope)
 - `types`: Types of interactive elements to find (e.g., `button`, `checkbox`, `textfield`, etc., or `any` for all types)
 - `maxDepth`: Maximum depth to search (default: 10)
 - `includeHidden`: Whether to include hidden elements (default: false)
@@ -306,7 +306,7 @@ The Element Capabilities Tool provides detailed information about what actions c
 - To get detailed properties of an element
 
 ### Parameters
-- `elementId`: The ID of the element to get capabilities for
+- `elementPath`: The path of the element to get capabilities for
 - `bundleId`: The bundle identifier of the application containing the element
 - `includeChildren`: Whether to include children in the result (default: false)
 - `childrenDepth`: Depth of children to include if includeChildren is true (default: 1)
@@ -314,7 +314,7 @@ The Element Capabilities Tool provides detailed information about what actions c
 ### Example Usage
 ```json
 {
-  "elementId": "AXButton:12345",
+  "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXButton[@AXTitle=\"Back\"]",
   "bundleId": "com.apple.safari",
   "includeChildren": true
 }
@@ -330,7 +330,7 @@ The Element Capabilities Tool provides detailed information about what actions c
 ## Best Practices for Using MCP Tools
 
 1. **Start with UI State or Interactive Elements** to discover elements before interacting with them.
-2. **Use element IDs rather than coordinates** whenever possible for more reliable interactions.
+2. **Use element paths rather than coordinates** whenever possible for more reliable interactions.
 3. **Chain tools together** in a logical sequence: open application → get UI state → interact with elements.
 4. **Verify after interactions** using screenshots or UI state checks.
 5. **Use the most specific scope possible** to improve performance and reduce data volume.

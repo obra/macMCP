@@ -55,7 +55,7 @@ public enum MacMCPErrorCode {
     /// Element not interactive
     public static let elementNotInteractive = 2003
     
-    /// Invalid element identifier
+    /// Invalid element identifier (legacy - use invalidElementPath instead)
     public static let invalidElementId = 2004
     
     /// Zero coordinates element

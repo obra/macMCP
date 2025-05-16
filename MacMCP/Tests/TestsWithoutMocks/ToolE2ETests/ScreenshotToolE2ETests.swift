@@ -264,7 +264,7 @@ final class ScreenshotToolE2ETests: XCTestCase {
                     // Create parameters for element screenshot
                     let elementParams: [String: Value] = [
                         "region": .string("element"),
-                        "elementId": .string(element.identifier)
+                        "elementPath": .string(element.path ?? "ui://AXApplication[@bundleIdentifier=\"\(calculatorBundleId)\"]/AXWindow/AXButton")
                     ]
 
                     // Capture the element screenshot
@@ -324,7 +324,7 @@ final class ScreenshotToolE2ETests: XCTestCase {
                 // Create parameters for element screenshot
                 let elementParams: [String: Value] = [
                     "region": .string("element"),
-                    "elementId": .string(windowElementId)
+                    "elementPath": .string(windowElements[0].path ?? "ui://AXApplication[@bundleIdentifier=\"\(calculatorBundleId)\"]/AXWindow")
                 ]
 
                 // Capture the window element screenshot
@@ -457,10 +457,10 @@ final class ScreenshotToolE2ETests: XCTestCase {
     
     /// Test behavior when element cannot be found
     func testNonExistentElement() async throws {
-        // Create parameters for the screenshot tool with a non-existent element ID
+        // Create parameters for the screenshot tool with a non-existent element path
         let params: [String: Value] = [
             "region": .string("element"),
-            "elementId": .string("ui:non:existent:element:id")
+            "elementPath": .string("ui://AXApplication[@title=\"NonExistentApp\"]/AXWindow/AXButton")
         ]
         
         // Expect an error

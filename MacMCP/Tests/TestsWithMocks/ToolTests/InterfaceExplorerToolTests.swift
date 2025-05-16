@@ -178,33 +178,16 @@ final class InterfaceExplorerToolTests: XCTestCase {
             logger: nil
         )
         
-        // First, we need to get a specific element ID from the Calculator
-        // Get the application element first
-        let appElement = try await toolChain.accessibilityService.getApplicationUIElement(
-            bundleIdentifier: "com.apple.calculator",
-            recursive: true,
-            maxDepth: 3 // Get windows but not too deep
-        )
+        // First, we need to construct an element path for the Calculator window
+        // Instead of relying on element IDs, we'll use a path-based approach
         
-        // Find a window element to use as our test subject
-        var windowId: String? = nil
-        for child in appElement.children {
-            if child.role == "AXWindow" {
-                windowId = child.identifier
-                break
-            }
-        }
+        // Create a path to the Calculator window
+        let elementPath = "ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow"
         
-        // Skip test if no window found
-        guard let elementId = windowId else {
-            throw XCTSkip("No window element found in Calculator for element scope test")
-        }
-        
-        // Create parameters for element scope
+        // Create parameters for path scope
         let params: [String: Value] = [
-            "scope": .string("element"),
-            "elementId": .string(elementId),
-            "bundleId": .string("com.apple.calculator"),
+            "scope": .string("path"),
+            "elementPath": .string(elementPath),
             "maxDepth": .int(5)
         ]
         
@@ -223,10 +206,16 @@ final class InterfaceExplorerToolTests: XCTestCase {
             // Verify we got UI elements back
             XCTAssertFalse(elements.isEmpty, "Should receive UI elements")
             
-            // Verify the element we got back is the window we requested
+            // Verify the element we got back matches our path
             let element = elements[0]
-            XCTAssertEqual(element["id"] as? String, elementId, "Should get back the requested element")
             XCTAssertEqual(element["role"] as? String, "AXWindow", "Element should be a window")
+            
+            // Verify path was returned and matches our expected format
+            XCTAssertNotNil(element["path"], "Element should have a path")
+            if let path = element["path"] as? String {
+                XCTAssertTrue(path.hasPrefix("ui://AXApplication"), "Path should start with ui://AXApplication")
+                XCTAssertTrue(path.contains("AXWindow"), "Path should include AXWindow")
+            }
             
             // Verify children were also returned
             XCTAssertNotNil(element["children"], "Element should have children")

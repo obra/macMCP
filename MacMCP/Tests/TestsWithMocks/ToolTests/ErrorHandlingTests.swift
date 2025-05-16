@@ -66,9 +66,10 @@ struct ErrorHandlingTests {
             ("Missing action", [:]),
             ("Invalid action", ["action": .string("invalid_action")]),
             ("Click missing targets", ["action": .string("click")]),
-            ("Type missing element", ["action": .string("type")]),
-            ("Type missing text", ["action": .string("type"), "elementId": .string("test-id")]),
-            ("Scroll missing direction", ["action": .string("scroll"), "elementId": .string("test-id")])
+            ("Scroll missing element path", ["action": .string("scroll")]),
+            ("Scroll missing direction", ["action": .string("scroll"), "elementPath": .string("ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow")]),
+            ("Drag missing source path", ["action": .string("drag")]),
+            ("Drag missing target path", ["action": .string("drag"), "elementPath": .string("ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow")])
         ]
         
         // Run tests - these should fail because of parameter validation, not because of mocks

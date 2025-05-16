@@ -354,20 +354,20 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
       }
     }
 
-    // Find the target element
-    guard let element = try await findElement(identifier: identifier, in: bundleId) else {
-      logger.error(
-        "Element not found",
+    // Element identifier methods have been removed
+    // This code needs to be updated to use findElementByPath instead
+    // For now, throw an error to prevent using legacy identifiers
+    logger.error(
+        "Legacy element identifier methods have been removed",
         metadata: [
           "identifier": .string(identifier),
           "bundleId": bundleId.map { .string($0) } ?? "nil",
         ])
-      throw NSError(
+    throw NSError(
         domain: "com.macos.mcp.accessibility",
-        code: MacMCPErrorCode.elementNotFound,
-        userInfo: [NSLocalizedDescriptionKey: "Element not found: \(identifier)"]
-      )
-    }
+        code: MacMCPErrorCode.invalidElementId,
+        userInfo: [NSLocalizedDescriptionKey: "Legacy element identifiers are no longer supported. Use element paths instead."]
+    )
 
     // Validate that the element has the required action
     if !element.actions.contains(action) {
@@ -497,7 +497,7 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
             "x": .string("\(elementPosition.x)"),
             "y": .string("\(elementPosition.y)"),
             "error": .string("\(positionError.rawValue)"),
-            "elementId": .string(identifier),
+            "identifier": .string(identifier),
             "elementRole": .string(element.role),
             "elementTitle": .string(element.title ?? "nil"),
             "elementFrame": .string(
@@ -1109,174 +1109,64 @@ extension AccessibilityService {
       ])
   }
 
+  /// Find a UI element by its path using ElementPath
+  /// - Parameters:
+  ///   - path: The path to the element in ui:// notation
+  /// - Returns: The UIElement if found, nil otherwise
+  public func findElementByPath(path: String) async throws -> UIElement? {
+    logger.debug("Finding element by path", metadata: ["path": "\(path)"])
+    
+    // First check if the path is valid
+    guard ElementPath.isElementPath(path) else {
+      logger.error("Invalid element path format", metadata: ["path": "\(path)"])
+      throw NSError(
+        domain: "com.macos.mcp.accessibility",
+        code: MacMCPErrorCode.invalidActionParams,
+        userInfo: [NSLocalizedDescriptionKey: "Invalid element path format: \(path)"]
+      )
+    }
+    
+    // Parse and resolve the path
+    do {
+      let parsedPath = try ElementPath.parse(path)
+      let axElement = try await parsedPath.resolve(using: self)
+      
+      // Convert the AXUIElement to a UIElement
+      let element = try AccessibilityElement.convertToUIElement(axElement)
+      
+      logger.debug("Successfully found element by path", metadata: [
+        "path": "\(path)",
+        "role": "\(element.role)",
+        "title": "\(element.title ?? "nil")"
+      ])
+      
+      return element
+    } catch let pathError as ElementPathError {
+      // Log specific information about path resolution errors
+      logger.error("Path resolution error", metadata: [
+        "path": "\(path)",
+        "error": "\(pathError.description)"
+      ])
+      throw NSError(
+        domain: "com.macos.mcp.accessibility",
+        code: MacMCPErrorCode.elementNotFound,
+        userInfo: [NSLocalizedDescriptionKey: "Failed to resolve element path: \(pathError.description)"]
+      )
+    } catch {
+      logger.error("Error finding element by path", metadata: [
+        "path": "\(path)",
+        "error": "\(error.localizedDescription)"
+      ])
+      throw error
+    }
+  }
+  
   /// Find a UI element by identifier
   /// - Parameters:
   ///   - identifier: The element identifier to search for
   ///   - bundleId: Optional bundle ID of the app to search in
   /// - Returns: The matching UIElement if found, nil otherwise
-  public func findElement(identifier: String, in bundleId: String? = nil) async throws -> UIElement?
-  {
+  // Legacy element identifier methods have been removed
 
-    // This is similar to UIInteractionService.findUIElement but with more logging
-    var foundElement: UIElement? = nil
-
-    // Strategy 1: Try to find in specified app if provided
-    if let bundleId = bundleId {
-      print("   - Searching in application with bundle ID: \(bundleId)")
-      do {
-        let appElement = try await getApplicationUIElement(
-          bundleIdentifier: bundleId,
-          recursive: true,
-          maxDepth: 25
-        )
-
-        // Look for the element with the exact ID first
-        foundElement = searchForElementWithId(appElement, identifier: identifier, exact: true)
-
-        if foundElement != nil {
-          print("   - Found element with exact ID match in specified app")
-        } else {
-          // Try partial ID matching
-          print("   - No exact match found, trying partial ID matching in app")
-          foundElement = searchForElementWithId(appElement, identifier: identifier, exact: false)
-
-          if foundElement != nil {
-            print("   - Found element with partial ID match in specified app")
-          }
-        }
-      } catch {
-        print("   - Error accessing app: \(error.localizedDescription)")
-      }
-    }
-
-    // Strategy 2: If not found in specified app or no app ID provided, check focused app
-    if foundElement == nil {
-      print("   - Searching in focused application")
-      do {
-        let focusedApp = try await getFocusedApplicationUIElement(
-          recursive: true,
-          maxDepth: 25
-        )
-
-        // Look for exact match first
-        foundElement = searchForElementWithId(focusedApp, identifier: identifier, exact: true)
-
-        if foundElement != nil {
-          print("   - Found element with exact ID match in focused app")
-        } else {
-          // Try partial matching
-          print("   - No exact match found, trying partial ID matching in focused app")
-          foundElement = searchForElementWithId(focusedApp, identifier: identifier, exact: false)
-
-          if foundElement != nil {
-            print("   - Found element with partial ID match in focused app")
-          }
-        }
-      } catch {
-        print("   - Error accessing focused app: \(error.localizedDescription)")
-      }
-    }
-
-    // Strategy 3: As last resort, try system-wide search
-    if foundElement == nil {
-      print("   - Searching system-wide (this may be slow)")
-      do {
-        let systemElement = try await getSystemUIElement(
-          recursive: true,
-          maxDepth: 25
-        )
-
-        // Look for exact match first
-        foundElement = searchForElementWithId(systemElement, identifier: identifier, exact: true)
-
-        if foundElement != nil {
-          print("   - Found element with exact ID match in system-wide search")
-        } else {
-          // Try partial matching but limit depth to prevent too much searching
-          print("   - No exact match found, trying partial ID matching system-wide")
-          foundElement = searchForElementWithId(
-            systemElement, identifier: identifier, exact: false, maxDepth: 10)
-
-          if foundElement != nil {
-            print("   - Found element with partial ID match in system-wide search")
-          }
-        }
-      } catch {
-        print("   - Error in system-wide search: \(error.localizedDescription)")
-      }
-    }
-
-    if foundElement == nil {
-      print("❌ DEBUG: AccessibilityService.findElement - Element not found with ID: \(identifier)")
-    }
-
-    return foundElement
-  }
-
-  /// Search for an element with a specific ID in a hierarchy
-  private func searchForElementWithId(
-    _ element: UIElement, identifier: String, exact: Bool, maxDepth: Int = 25, currentDepth: Int = 0
-  ) -> UIElement? {
-    // Check depth limit
-    if currentDepth > maxDepth {
-      return nil
-    }
-
-    // Check if this element matches
-    if exact {
-      // Exact match
-      if element.identifier == identifier {
-        return element
-      }
-    } else {
-      // Partial match - check for structured IDs first
-      if identifier.hasPrefix("ui:") && element.identifier.hasPrefix("ui:") {
-        let idParts = identifier.split(separator: ":")
-        let elementIdParts = element.identifier.split(separator: ":")
-
-        if idParts.count >= 2 && elementIdParts.count >= 2 {
-          // Match by descriptive part
-          if idParts[1] == elementIdParts[1] {
-            return element
-          }
-
-          // Match by hash part if available
-          if idParts.count > 2 && elementIdParts.count > 2 && idParts[2] == elementIdParts[2] {
-            return element
-          }
-        }
-      }
-
-      // For button-like elements, check title and description
-      if element.role == "AXButton" || element.role == "AXMenuItem" || element.role == "AXCheckBox"
-        || element.role == "AXRadioButton"
-      {
-
-        if let title = element.title, title == identifier {
-          return element
-        }
-
-        if let desc = element.elementDescription, desc == identifier {
-          return element
-        }
-      }
-
-      // Check for ID contains match if the ID is substantial enough
-      if element.identifier.contains(identifier) && identifier.count > 3 {
-        return element
-      }
-    }
-
-    // Search through children
-    for child in element.children {
-      if let found = searchForElementWithId(
-        child, identifier: identifier, exact: exact, maxDepth: maxDepth,
-        currentDepth: currentDepth + 1)
-      {
-        return found
-      }
-    }
-
-    return nil
-  }
+  // Legacy element identifier methods have been removed
 }
