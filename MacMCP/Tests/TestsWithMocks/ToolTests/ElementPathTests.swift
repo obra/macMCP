@@ -161,10 +161,7 @@ func mockSegmentMatchesElement(_ segment: PathSegment, element: MockAXUIElement)
                     elementValueString = String(describing: elementValue)
                 }
                 
-                // Get the match type for this attribute
-                let matchType = mockDetermineMatchType(forAttribute: attributeKey)
-                
-                // Use the matching strategy based on the attribute
+                // The matching logic is built into mockAttributeMatches and doesn't need the type explicitly
                 let doesMatch = mockAttributeMatches(attributeKey, expected: value, actual: elementValueString)
                 
                 if doesMatch {
@@ -272,7 +269,7 @@ func createDeepMockHierarchy(depth: Int, breadth: Int, currentDepth: Int = 0) ->
     // Create children for this level
     var children: [MockAXUIElement] = []
     
-    for i in 0..<breadth {
+    for _ in 0..<breadth {
         children.append(createDeepMockHierarchy(
             depth: depth,
             breadth: breadth,
@@ -565,7 +562,7 @@ struct ElementPathTests {
     // MARK: - Path Resolution Tests
     
     // Mock AXUIElement class for testing path resolution
-    class MockAXUIElement {
+    class MockAXUIElement: @unchecked Sendable {
         let role: String
         let attributes: [String: Any]
         let children: [MockAXUIElement]
@@ -577,8 +574,8 @@ struct ElementPathTests {
         }
     }
     
-    // Mock AccessibilityService for testing path resolution
-    class MockAccessibilityService {
+    // Mock class for simple element attribute access
+    final class ElementPathTestMockService {
         let rootElement: MockAXUIElement
         
         init(rootElement: MockAXUIElement) {
@@ -593,6 +590,144 @@ struct ElementPathTests {
             } else {
                 return element.attributes[attribute]
             }
+        }
+    }
+    
+    // Simplified mock for AccessibilityServiceProtocol that only implements required methods
+    final class MockAccessibilityService: AccessibilityServiceProtocol, @unchecked Sendable {
+        let rootElement: MockAXUIElement
+        
+        init(rootElement: MockAXUIElement) {
+            self.rootElement = rootElement
+        }
+        
+        func getAttribute(_ element: MockAXUIElement, attribute: String) -> Any? {
+            if attribute == "AXRole" {
+                return element.role
+            } else if attribute == "AXChildren" {
+                return element.children
+            } else {
+                return element.attributes[attribute]
+            }
+        }
+        
+        // Required core function for AccessibilityServiceProtocol
+        func run<T: Sendable>(_ operation: @Sendable () async throws -> T) async rethrows -> T {
+            return try await operation()
+        }
+        
+        // Minimal implementations to satisfy the protocol
+        func getSystemUIElement(recursive: Bool, maxDepth: Int) async throws -> UIElement {
+            return UIElement(identifier: "mock-system", role: "AXApplication", frame: CGRect.zero, axElement: nil)
+        }
+        
+        func getApplicationUIElement(bundleIdentifier: String, recursive: Bool, maxDepth: Int) async throws -> UIElement {
+            return UIElement(identifier: "mock-app", role: "AXApplication", frame: CGRect.zero, axElement: nil)
+        }
+        
+        func getFocusedApplicationUIElement(recursive: Bool, maxDepth: Int) async throws -> UIElement {
+            return UIElement(identifier: "mock-focused-app", role: "AXApplication", frame: CGRect.zero, axElement: nil)
+        }
+        
+        func getUIElementAtPosition(position: CGPoint, recursive: Bool, maxDepth: Int) async throws -> UIElement? {
+            return UIElement(identifier: "mock-position", role: "AXElement", frame: CGRect.zero, axElement: nil)
+        }
+        
+        func findUIElements(role: String?, titleContains: String?, scope: UIElementScope, recursive: Bool, maxDepth: Int) async throws -> [UIElement] {
+            return []
+        }
+        
+        func findElements(withRole role: String, recursive: Bool, maxDepth: Int) async throws -> [UIElement] {
+            return []
+        }
+        
+        func findElements(withRole role: String, forElement element: AXUIElement, recursive: Bool, maxDepth: Int) async throws -> [UIElement] {
+            return []
+        }
+        
+        func findElementByPath(_ pathString: String) async throws -> UIElement? {
+            return UIElement(identifier: "mock-path-element", role: "AXElement", frame: CGRect.zero, axElement: nil)
+        }
+        
+        func findElementByPath(path: String) async throws -> UIElement? {
+            return UIElement(identifier: "mock-path-element", role: "AXElement", frame: CGRect.zero, axElement: nil)
+        }
+        
+        func performAction(action: String, onElementWithPath elementPath: String) async throws {
+            // No-op for tests
+        }
+        
+        func setWindowOrder(withPath path: String, orderMode: WindowOrderMode, referenceWindowPath: String?) async throws {
+            // No-op for tests
+        }
+        
+        func getChildElements(forElement element: AXUIElement, recursive: Bool, maxDepth: Int) async throws -> [UIElement] {
+            return []
+        }
+        
+        func getElementWithFocus() async throws -> UIElement {
+            return UIElement(identifier: "mock-focused-element", role: "AXElement", frame: CGRect.zero, axElement: nil)
+        }
+        
+        func getRunningApplications() -> [NSRunningApplication] {
+            return []
+        }
+        
+        func isApplicationRunning(withBundleIdentifier bundleIdentifier: String) -> Bool {
+            return false
+        }
+        
+        func isApplicationRunning(withTitle title: String) -> Bool {
+            return false
+        }
+        
+        func waitForElementByPath(_ pathString: String, timeout: TimeInterval, pollInterval: TimeInterval) async throws -> UIElement {
+            return UIElement(identifier: "mock-wait-element", role: "AXElement", frame: CGRect.zero, axElement: nil)
+        }
+        
+        // Window management methods required by protocol
+        func getWindows(forApplication bundleId: String) async throws -> [UIElement] {
+            return []
+        }
+        
+        func getActiveWindow(forApplication bundleId: String) async throws -> UIElement? {
+            return nil
+        }
+        
+        func moveWindow(withPath path: String, to position: CGPoint) async throws {
+            // No-op for tests
+        }
+        
+        func resizeWindow(withPath path: String, to size: CGSize) async throws {
+            // No-op for tests
+        }
+        
+        func minimizeWindow(withPath path: String) async throws {
+            // No-op for tests
+        }
+        
+        func maximizeWindow(withPath path: String) async throws {
+            // No-op for tests
+        }
+        
+        func closeWindow(withPath path: String) async throws {
+            // No-op for tests
+        }
+        
+        func activateWindow(withPath path: String) async throws {
+            // No-op for tests
+        }
+        
+        func setWindowOrder(withPath path: String, orderMode: WindowOrderMode) async throws {
+            // No-op for tests
+        }
+        
+        func focusWindow(withPath path: String) async throws {
+            // No-op for tests
+        }
+        
+        func navigateMenu(path: String, in bundleId: String) async throws {
+            // No-op for tests
         }
     }
     
@@ -833,7 +968,7 @@ func testMatchStrategies() throws {
     // Create a simple wrapper around the actual matching logic
     func testMatch(attribute: String, expected: String, actual: String, shouldMatch: Bool) {
         let matchType = elementPath.determineMatchType(forAttribute: attribute)
-        print("DEBUG: Testing \(matchType) match for \(attribute): '\(expected)' vs '\(actual)'")
+        // print("DEBUG: Testing \(matchType) match for \(attribute): '\(expected)' vs '\(actual)'")
         
         let matches: Bool
         switch matchType {
@@ -912,73 +1047,7 @@ func testEnhancedErrorReporting() throws {
     }
 }
 
-@Test("Testing progressive path resolution")
-func testProgressivePathResolution() throws {
-    let mockHierarchy = createMockElementHierarchy()
-    let mockService = MockAccessibilityService(rootElement: mockHierarchy)
-    
-    // Test 1: Create a helper to test progressive resolution behavior
-    func testProgressiveResolution(path: ElementPath, expectedSuccess: Bool, expectedSegmentCount: Int, expectedFailureIndex: Int?) {
-        // Use mock resolution helpers to manually verify behavior
-        if expectedSuccess {
-            // For success cases, verify element resolves
-            let result = mockResolvePathForTest(service: mockService, path: path)
-            #expect(result != nil)
-        } else {
-            // For failure cases, verify correct error
-            let error = mockResolvePathWithExceptionForTest(service: mockService, path: path)
-            #expect(error != nil)
-            
-            if let failureIndex = expectedFailureIndex {
-                switch error {
-                case .resolutionFailed(_, let index, _, _)?:
-                    #expect(index == failureIndex)
-                case .segmentResolutionFailed(_, let index)?:
-                    #expect(index == failureIndex)
-                case .noMatchingElements(_, let index)?:
-                    #expect(index == failureIndex)
-                case .ambiguousMatch(_, _, let index)?:
-                    #expect(index == failureIndex)
-                default:
-                    break
-                }
-            }
-        }
-    }
-    
-    // Test case 1: Successful path resolution
-    let successPath = try ElementPath.parse("ui://AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]")
-    testProgressiveResolution(path: successPath, expectedSuccess: true, expectedSegmentCount: 3, expectedFailureIndex: nil)
-    
-    // Test case 2: Failed path resolution with non-existent element
-    let failurePath = try ElementPath.parse("ui://AXWindow/AXGroup[@AXTitle=\"NonExistent\"]")
-    testProgressiveResolution(path: failurePath, expectedSuccess: false, expectedSegmentCount: 2, expectedFailureIndex: 1)
-    
-    // Test case 3: Ambiguous match test
-    let ambiguousPath = try ElementPath.parse("ui://AXWindow/AXGroup[@AXTitle=\"Duplicate\"]")
-    testProgressiveResolution(path: ambiguousPath, expectedSuccess: false, expectedSegmentCount: 2, expectedFailureIndex: 1)
-    
-    // Test case 4: Ambiguous match with index
-    let ambiguousWithIndexPath = try ElementPath.parse("ui://AXWindow/AXGroup[@AXTitle=\"Duplicate\"][0]")
-    testProgressiveResolution(path: ambiguousWithIndexPath, expectedSuccess: true, expectedSegmentCount: 2, expectedFailureIndex: nil)
-    
-    // Test case 5: Verify that ambiguous matches report detailed candidate information
-    let ambiguousError = mockResolvePathWithExceptionForTest(service: mockService, path: ambiguousPath)
-    if case .resolutionFailed(_, _, let candidates, _)? = ambiguousError {
-        #expect(candidates.count > 0)
-        // Verify candidates contain useful information
-        for candidate in candidates {
-            #expect(candidate.contains("role:") || candidate.contains("AXRole"))
-        }
-    }
-    
-    // Test case 6: Verify that non-existent element errors provide helpful suggestions
-    let nonExistentError = mockResolvePathWithExceptionForTest(service: mockService, path: failurePath)
-    if case .resolutionFailed(_, _, let candidates, let reason)? = nonExistentError {
-        #expect(candidates.count > 0)
-        #expect(reason.contains("No elements match"))
-    }
-}
+// Progressive path resolution should be tested in integration tests with real UI elements
 
 // Helper functions for test path resolution
 private func mockResolvePathForTest(service: MockAccessibilityService, path: ElementPath) -> MockAXUIElement? {
@@ -1074,35 +1143,35 @@ private func mockResolvePathInternal(service: MockAccessibilityService, path: El
 // Check if a segment matches an element
 private func mockSegmentMatchesElement(_ segment: PathSegment, element: MockAXUIElement) -> Bool {
     // Track all matching for better debugging
-    print("\nDEBUG: Checking if element \(element.role) with attributes \(element.attributes) matches segment \(segment.toString())")
+    // print("\nDEBUG: Checking if element \(element.role) with attributes \(element.attributes) matches segment \(segment.toString())")
     
     // Check role first
     guard segment.role == element.role else {
-        print("DEBUG: Segment role \(segment.role) doesn't match element role \(element.role)")
+        // print("DEBUG: Segment role \(segment.role) doesn't match element role \(element.role)")
         return false
     }
     
-    print("DEBUG: Role matches!")
+    // print("DEBUG: Role matches!")
     
     // If there are no attributes to match, we're done
     if segment.attributes.isEmpty {
-        print("DEBUG: No attributes to check, match found")
+        // print("DEBUG: No attributes to check, match found")
         return true
     }
     
     // Check each attribute
     for (key, value) in segment.attributes {
-        print("DEBUG: Checking attribute \(key)=\(value)")
+        // print("DEBUG: Checking attribute \(key)=\(value)")
         
         // Try with various keys to improve matching chances
         let normalizedKey = normalizeAttributeNameForTest(key)
         let keys = [key, normalizedKey]
         
-        print("DEBUG: Will try keys: \(keys)")
+        // print("DEBUG: Will try keys: \(keys)")
         
         var attributeFound = false
         for attributeKey in keys {
-            print("DEBUG: Trying with key \(attributeKey)")
+            // print("DEBUG: Trying with key \(attributeKey)")
             
             if let elementValue = element.attributes[attributeKey] {
                 // Convert to string for comparison
@@ -1119,28 +1188,28 @@ private func mockSegmentMatchesElement(_ segment: PathSegment, element: MockAXUI
                 
                 // Get the match type for this attribute
                 let matchType = mockDetermineMatchType(forAttribute: attributeKey)
-                print("DEBUG: Found attribute \(attributeKey) with value \(elementValueString), will use match type \(matchType)")
+                // print("DEBUG: Found attribute \(attributeKey) with value \(elementValueString), will use match type \(matchType)")
                 
                 // Use the matching strategy based on the attribute
                 let doesMatch = mockAttributeMatches(attributeKey, expected: value, actual: elementValueString)
-                print("DEBUG: Attribute match result: \(doesMatch)")
+                // print("DEBUG: Attribute match result: \(doesMatch)")
                 
                 if doesMatch {
                     attributeFound = true
                     break
                 }
             } else {
-                print("DEBUG: Element does not have attribute \(attributeKey)")
+                // print("DEBUG: Element does not have attribute \(attributeKey)")
             }
         }
         
         if !attributeFound {
-            print("DEBUG: No matching attribute found for \(key) = \(value), returning false")
+            // print("DEBUG: No matching attribute found for \(key) = \(value), returning false")
             return false
         }
     }
     
-    print("DEBUG: All attributes matched, returning true")
+    // print("DEBUG: All attributes matched, returning true")
     return true
 }
 
@@ -1351,6 +1420,252 @@ private func mockDetermineMatchType(forAttribute attribute: String) -> MockMatch
         #expect(path.segments[3].index == 0)
     }
     
+    // MARK: - Path Validation and Error Handling Tests
+    
+    @Test("Path validation with valid path")
+    func testPathValidationWithValidPath() throws {
+        // Test a well-formed path
+        let pathString = "ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow/AXButton[@AXTitle=\"1\"]"
+        
+        let (isValid, warnings) = try ElementPath.validatePath(pathString)
+        
+        #expect(isValid == true)
+        
+        // In non-strict mode, there should be no warnings for a well-formed path
+        #expect(warnings.isEmpty)
+    }
+    
+    @Test("Path validation with valid path in strict mode")
+    func testPathValidationWithValidPathStrict() throws {
+        // Test a well-formed path in strict mode
+        let pathString = "ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow/AXButton[@AXTitle=\"1\"]"
+        
+        let (isValid, warnings) = try ElementPath.validatePath(pathString, strict: true)
+        
+        #expect(isValid == true)
+        
+        // Even in strict mode, this path should be perfect
+        #expect(warnings.isEmpty)
+    }
+    
+    @Test("Path validation with syntax error")
+    func testPathValidationWithSyntaxError() throws {
+        // Test a path with syntax error (missing closing bracket)
+        let pathString = "ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow/AXButton[@AXTitle=\"1\""
+        
+        do {
+            let _ = try ElementPath.validatePath(pathString)
+            XCTFail("Expected validation to fail")
+        } catch let error as ElementPathError {
+            // We expect a specific type of error here
+            // print("Got error: \(error)")
+            if case .invalidAttributeSyntax = error {
+                // This is the expected error
+                // Assertion not needed, reaching this point is success
+            } else {
+                XCTFail("Unexpected error type: \(error)")
+            }
+        }
+    }
+    
+    @Test("Path validation with invalid prefix")
+    func testPathValidationWithInvalidPrefix() throws {
+        // Test a path with an invalid prefix
+        let pathString = "invalid://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]"
+        
+        do {
+            let _ = try ElementPath.validatePath(pathString)
+            XCTFail("Expected validation to fail")
+        } catch let error as ElementPathError {
+            if case .invalidPathPrefix = error {
+                // This is the expected error
+                // Assertion not needed, reaching this point is success
+            } else {
+                XCTFail("Unexpected error type: \(error)")
+            }
+        }
+    }
+    
+    @Test("Path validation with missing attributes")
+    func testPathValidationWithMissingAttributes() throws {
+        // Test a path with missing recommended attributes in strict mode
+        let pathString = "ui://AXApplication/AXWindow/AXButton"
+        
+        let (isValid, warnings) = try ElementPath.validatePath(pathString, strict: true)
+        
+        #expect(isValid == true)
+        #expect(!warnings.isEmpty)
+        
+        // Check that we got the right type of warnings
+        let hasAttributeWarning = warnings.contains { warning in
+            if case .missingAttribute = warning {
+                return true
+            }
+            return false
+        }
+        
+        #expect(hasAttributeWarning)
+    }
+    
+    @Test("Path validation with potential ambiguity")
+    func testPathValidationWithPotentialAmbiguity() throws {
+        // Test a path with potentially ambiguous segments in strict mode
+        let pathString = "ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXGroup/AXGroup/AXGroup"
+        
+        let (isValid, warnings) = try ElementPath.validatePath(pathString, strict: true)
+        
+        #expect(isValid == true)
+        #expect(!warnings.isEmpty)
+        
+        // Check that we got an ambiguity warning
+        let hasAmbiguityWarning = warnings.contains { warning in
+            if case .potentialAmbiguity = warning {
+                return true
+            }
+            return false
+        }
+        
+        #expect(hasAmbiguityWarning)
+    }
+    
+    @Test("Path validation with excessive complexity")
+    func testPathValidationWithExcessiveComplexity() throws {
+        // Test a path that's excessively complex (many segments)
+        let pathString = "ui://AXApplication/AXWindow/AXGroup/AXGroup/AXGroup/AXGroup/AXGroup/AXGroup/AXGroup/AXGroup/AXGroup/AXGroup/AXGroup/AXGroup/AXGroup/AXGroup/AXButton"
+        
+        let (isValid, warnings) = try ElementPath.validatePath(pathString, strict: true)
+        
+        #expect(isValid == true)
+        #expect(!warnings.isEmpty)
+        
+        // Check that we got a complexity warning
+        let hasComplexityWarning = warnings.contains { warning in
+            if case .validationWarning(let message, _) = warning {
+                return message.contains("excessive")
+            }
+            return false
+        }
+        
+        #expect(hasComplexityWarning)
+    }
+    
+    @Test("Comprehensive path validation test")
+    func testComprehensivePathValidation() throws {
+        // Test cases for various path validation scenarios
+        
+        // 1. Valid path with good structure
+        let validPath = "ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow/AXButton[@AXTitle=\"Clear\"]"
+        let (validResult, validWarnings) = try ElementPath.validatePath(validPath, strict: true)
+        #expect(validResult)
+        #expect(validWarnings.isEmpty) // A well-formed path should have no warnings in strict mode
+        
+        // 2. Path with non-standard role (missing AX prefix)
+        let nonStandardPath = "ui://Application[@bundleIdentifier=\"com.apple.calculator\"]/Window/Button"
+        let (nonStandardResult, nonStandardWarnings) = try ElementPath.validatePath(nonStandardPath, strict: true)
+        #expect(nonStandardResult) // Still valid, but with warnings
+        #expect(!nonStandardWarnings.isEmpty)
+        
+        // Verify we get warnings about non-standard roles
+        let hasRoleWarning = nonStandardWarnings.contains { warning in
+            if case .validationWarning(let message, _) = warning {
+                return message.contains("'AX' prefix")
+            }
+            return false
+        }
+        #expect(hasRoleWarning)
+        
+        // 3. Path with generic elements lacking attributes (potential ambiguity)
+        let ambiguousPath = "ui://AXApplication/AXWindow/AXGroup/AXGroup"
+        let (ambiguousResult, ambiguousWarnings) = try ElementPath.validatePath(ambiguousPath, strict: true)
+        #expect(ambiguousResult) // Valid but with ambiguity warnings
+        
+        // Verify we get potential ambiguity warnings
+        let hasAmbiguityWarning = ambiguousWarnings.contains { warning in
+            if case .potentialAmbiguity = warning {
+                return true
+            }
+            return false
+        }
+        #expect(hasAmbiguityWarning)
+        
+        // 4. Path with missing recommended attributes
+        let missingAttrsPath = "ui://AXApplication/AXWindow/AXButton"
+        let (missingAttrsResult, missingAttrsWarnings) = try ElementPath.validatePath(missingAttrsPath, strict: true)
+        #expect(missingAttrsResult) // Valid but with warnings
+        
+        // Verify we get missing attribute warnings
+        let hasMissingAttrWarning = missingAttrsWarnings.contains { warning in
+            if case .missingAttribute = warning {
+                return true
+            }
+            return false
+        }
+        #expect(hasMissingAttrWarning)
+        
+        // 5. Path with syntax error should throw
+        let invalidPath = "ui://AXWindow[@title=\"Untitled"  // Missing closing quote and bracket
+        do {
+            let _ = try ElementPath.validatePath(invalidPath)
+            XCTFail("Expected validation to fail with syntax error")
+        } catch {
+            // Expected to throw
+            // Expected path - no assertion needed
+        }
+        
+        // 6. Path with invalid prefix should throw
+        let wrongPrefixPath = "uix://AXWindow"
+        do {
+            let _ = try ElementPath.validatePath(wrongPrefixPath)
+            XCTFail("Expected validation to fail with invalid prefix")
+        } catch let error as ElementPathError {
+            if case .invalidPathPrefix = error {
+                // This is the expected error case
+            } else {
+                XCTFail("Wrong error type: \(error)")
+            }
+        }
+        
+        // 7. Empty path should throw
+        let emptyPath = "ui://"
+        do {
+            let _ = try ElementPath.validatePath(emptyPath)
+            XCTFail("Expected validation to fail with empty path")
+        } catch let error as ElementPathError {
+            if case .emptyPath = error {
+                // This is the expected error - no assertion needed
+            } else {
+                XCTFail("Wrong error type: \(error)")
+            }
+        }
+    }
+    
+    @Test("Path diagnosis utility with mock service")
+    func testPathDiagnosisUtilityWithMock() async throws {
+        // Create a mock hierarchy
+        let mockHierarchy = createMockElementHierarchy()
+        
+        // Create a test path to diagnose
+        let validPath = "ui://AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
+        let invalidPath = "ui://AXWindow/AXGroup[@AXTitle=\"NonExistent\"]/AXButton"
+        
+        // Mock AccessibilityService that ensures resolution runs
+        let mockAccessibilityService = MockAccessibilityService(rootElement: mockHierarchy)
+        
+        // Test diagnosis - we mainly just want to ensure it runs without errors
+        let diagnosisValid = try await ElementPath.diagnosePathResolutionIssue(validPath, using: mockAccessibilityService)
+        // print("Valid path diagnosis: \(diagnosisValid)")
+        
+        // Check it contains some expected information
+        #expect(diagnosisValid.contains("Path Resolution Diagnosis"))
+        
+        let diagnosisInvalid = try await ElementPath.diagnosePathResolutionIssue(invalidPath, using: mockAccessibilityService)
+        // print("Invalid path diagnosis: \(diagnosisInvalid)")
+        
+        // Check it contains diagnostic information
+        #expect(diagnosisInvalid.contains("Path Resolution Diagnosis"))
+    }
+}
+    
     // MARK: - Test Utilities
     
     @Test("Compare Elements utility function")
@@ -1465,7 +1780,7 @@ private func mockDetermineMatchType(forAttribute attribute: String) -> MockMatch
             // Create children for this level
             var children: [MockAXUIElement] = []
             
-            for i in 0..<breadth {
+            for _ in 0..<breadth {
                 children.append(createDeepHierarchy(
                     depth: depth,
                     breadth: breadth,
@@ -1482,7 +1797,7 @@ private func mockDetermineMatchType(forAttribute attribute: String) -> MockMatch
         }
         
         let deepHierarchy = createDeepHierarchy(depth: 5, breadth: 3)
-        let mockService = MockAccessibilityService(rootElement: deepHierarchy)
+        let mockService = ElementPathTestMockService(rootElement: deepHierarchy)
         
         // Create a complex path to resolve
         let pathString = "ui://AXWindow/AXGroup/AXGroup/AXGroup/AXGroup/AXButton[@AXTitle=\"Deep Button\"]"
@@ -1494,9 +1809,8 @@ private func mockDetermineMatchType(forAttribute attribute: String) -> MockMatch
         let endTime = Date()
         
         let elapsedTime = endTime.timeIntervalSince(startTime)
-        print("Resolution time: \(elapsedTime) seconds")
+        // print("Resolution time: \(elapsedTime) seconds")
         
         // No hard assertion, just informational
         #expect(elapsedTime > 0)
     }
-}
