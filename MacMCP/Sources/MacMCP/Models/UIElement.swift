@@ -255,6 +255,142 @@ public enum FrameSource: String, Codable {
         return (attributes["selected"] as? Bool) ?? false
     }
     
+    /// Initialize a UIElement from a path string
+    /// - Parameters:
+    ///   - path: The path string to resolve (must conform to ElementPath syntax)
+    ///   - accessibilityService: The AccessibilityService to use for resolution
+    /// - Throws: ElementPathError if the path cannot be resolved
+    public convenience init(fromPath path: String, accessibilityService: AccessibilityServiceProtocol) async throws {
+        // Parse the path string into an ElementPath
+        let elementPath = try ElementPath.parse(path)
+        
+        // Initialize from the parsed path
+        try await self.init(fromElementPath: elementPath, accessibilityService: accessibilityService)
+    }
+    
+    /// Initialize a UIElement from an ElementPath
+    /// - Parameters:
+    ///   - elementPath: The ElementPath to resolve
+    ///   - accessibilityService: The AccessibilityService to use for resolution
+    /// - Throws: ElementPathError if the path cannot be resolved
+    public convenience init(fromElementPath elementPath: ElementPath, accessibilityService: AccessibilityServiceProtocol) async throws {
+        // Resolve the path to an AXUIElement
+        let axElement = try await elementPath.resolve(using: accessibilityService)
+        
+        // Get essential properties for UIElement initialization
+        var identifier = ""
+        var role = ""
+        var title: String? = nil
+        var value: String? = nil
+        var elementDescription: String? = nil
+        var frame = CGRect.zero
+        var attributes: [String: Any] = [:]
+        var actions: [String] = []
+        
+        // Get the role
+        var roleRef: CFTypeRef?
+        let roleStatus = AXUIElementCopyAttributeValue(axElement, AXAttribute.role as CFString, &roleRef)
+        if roleStatus == .success, let roleValue = roleRef as? String {
+            role = roleValue
+        } else {
+            throw ElementPathError.segmentResolutionFailed("Could not determine element role", atSegment: 0)
+        }
+        
+        // Get the title if available
+        var titleRef: CFTypeRef?
+        let titleStatus = AXUIElementCopyAttributeValue(axElement, AXAttribute.title as CFString, &titleRef)
+        if titleStatus == .success, let titleValue = titleRef as? String {
+            title = titleValue
+        }
+        
+        // Get the value if available
+        var valueRef: CFTypeRef?
+        let valueStatus = AXUIElementCopyAttributeValue(axElement, AXAttribute.value as CFString, &valueRef)
+        if valueStatus == .success {
+            if let stringValue = valueRef as? String {
+                value = stringValue
+            } else if let numberValue = valueRef as? NSNumber {
+                value = numberValue.stringValue
+            } else if let boolValue = valueRef as? Bool {
+                value = boolValue ? "true" : "false"
+            }
+        }
+        
+        // Get the description if available
+        var descriptionRef: CFTypeRef?
+        let descriptionStatus = AXUIElementCopyAttributeValue(axElement, AXAttribute.description as CFString, &descriptionRef)
+        if descriptionStatus == .success, let descriptionValue = descriptionRef as? String {
+            elementDescription = descriptionValue
+        }
+        
+        // Get the frame
+        var frameRef: CFTypeRef?
+        let frameStatus = AXUIElementCopyAttributeValue(axElement, AXAttribute.frame as CFString, &frameRef)
+        if frameStatus == .success, let frameValue = frameRef as? CGRect {
+            frame = frameValue
+        } else {
+            // Try getting position and size separately
+            var positionRef: CFTypeRef?
+            let positionStatus = AXUIElementCopyAttributeValue(axElement, AXAttribute.position as CFString, &positionRef)
+            var sizeRef: CFTypeRef?
+            let sizeStatus = AXUIElementCopyAttributeValue(axElement, AXAttribute.size as CFString, &sizeRef)
+            
+            if positionStatus == .success, let positionValue = positionRef as? CGPoint,
+               sizeStatus == .success, let sizeValue = sizeRef as? CGSize {
+                frame = CGRect(origin: positionValue, size: sizeValue)
+            }
+        }
+        
+        // Get available actions
+        var actionsRef: CFTypeRef?
+        let actionsStatus = AXUIElementCopyAttributeValue(axElement, AXAttribute.actions as CFString, &actionsRef)
+        if actionsStatus == .success, let actionsArray = actionsRef as? [String] {
+            actions = actionsArray
+        }
+        
+        // Check for enabled state
+        var enabledRef: CFTypeRef?
+        let enabledStatus = AXUIElementCopyAttributeValue(axElement, AXAttribute.enabled as CFString, &enabledRef)
+        if enabledStatus == .success, let enabledValue = enabledRef as? Bool {
+            attributes["enabled"] = enabledValue
+        }
+        
+        // Check for focused state
+        var focusedRef: CFTypeRef?
+        let focusedStatus = AXUIElementCopyAttributeValue(axElement, AXAttribute.focused as CFString, &focusedRef)
+        if focusedStatus == .success, let focusedValue = focusedRef as? Bool {
+            attributes["focused"] = focusedValue
+        }
+        
+        // Check for selected state
+        var selectedRef: CFTypeRef?
+        let selectedStatus = AXUIElementCopyAttributeValue(axElement, AXAttribute.selected as CFString, &selectedRef)
+        if selectedStatus == .success, let selectedValue = selectedRef as? Bool {
+            attributes["selected"] = selectedValue
+        }
+        
+        // Generate a unique identifier
+        // For path-initialized elements, we include the resolved path as the identifier
+        identifier = elementPath.toString()
+        
+        // Initialize the UIElement instance
+        self.init(
+            identifier: identifier,
+            role: role,
+            title: title,
+            value: value,
+            elementDescription: elementDescription,
+            frame: frame,
+            frameSource: .direct,
+            attributes: attributes,
+            actions: actions,
+            axElement: axElement
+        )
+        
+        // Store the path used to create this element
+        self.path = elementPath.toString()
+    }
+
     /// Create a new UI element
     /// - Parameters:
     ///   - identifier: Unique identifier for the element
@@ -406,6 +542,39 @@ public enum FrameSource: String, Codable {
     
     override public var hash: Int {
         return identifier.hashValue
+    }
+    
+    /// Compare two path strings to determine if they refer to the same UI element
+    /// - Parameters:
+    ///   - path1: The first path string
+    ///   - path2: The second path string
+    ///   - accessibilityService: The AccessibilityService to use for resolution
+    /// - Returns: True if both paths resolve to the same element, false otherwise
+    /// - Throws: ElementPathError if either path cannot be resolved
+    public static func areSameElement(path1: String, path2: String, accessibilityService: AccessibilityServiceProtocol) async throws -> Bool {
+        // Parse the path strings
+        let elementPath1 = try ElementPath.parse(path1)
+        let elementPath2 = try ElementPath.parse(path2)
+        
+        return try await areSameElement(elementPath1: elementPath1, elementPath2: elementPath2, accessibilityService: accessibilityService)
+    }
+    
+    /// Compare two ElementPaths to determine if they refer to the same UI element
+    /// - Parameters:
+    ///   - elementPath1: The first ElementPath
+    ///   - elementPath2: The second ElementPath
+    ///   - accessibilityService: The AccessibilityService to use for resolution
+    /// - Returns: True if both paths resolve to the same element, false otherwise
+    /// - Throws: ElementPathError if either path cannot be resolved
+    public static func areSameElement(elementPath1: ElementPath, elementPath2: ElementPath, accessibilityService: AccessibilityServiceProtocol) async throws -> Bool {
+        // Resolve both paths
+        let element1 = try await elementPath1.resolve(using: accessibilityService)
+        let element2 = try await elementPath2.resolve(using: accessibilityService)
+        
+        // Compare the raw AXUIElements for equality
+        // Note: This comparison is implementation-defined and may not be reliable across all macOS versions
+        // It relies on the system's notion of element equality
+        return CFEqual(element1, element2)
     }
     
     /// Generate a path-based identifier for this element

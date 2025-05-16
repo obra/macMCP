@@ -129,18 +129,40 @@ The ElementPath resolution functionality has been successfully implemented with 
 - Fallback strategies ensure robust application element resolution
 - Real-world integration tests verify the solution works with actual macOS applications
 
-### Step 6: Extend UIElement with Path-based Initialization
+### Step 6: Extend UIElement with Path-based Initialization (Partially Completed)
 
 **Implementation Tasks:**
-1. Add tests for initializing UIElements from paths
-2. Implement: `UIElement.init(fromPath: String, accessibilityService: AccessibilityService) async throws`
-3. Add static comparison methods to determine if two paths reference the same element
-4. Ensure path resolution handles edge cases properly
+1. ✅ Add tests for initializing UIElements from paths (tests created but need improvement)
+2. ✅ Implement: `UIElement.init(fromPath: String, accessibilityService: AccessibilityService) async throws`
+3. ✅ Add static comparison methods to determine if two paths reference the same element:
+   - `UIElement.areSameElement(path1:path2:accessibilityService:) async throws -> Bool`
+   - `UIElement.areSameElement(elementPath1:elementPath2:accessibilityService:) async throws -> Bool`
+4. ✅ Ensure path resolution handles edge cases properly
 
 **Key Requirements:**
-- Handle multi-step path resolution
-- Support both absolute and relative paths
-- Provide useful error messages when paths cannot be resolved
+- ✅ Handle multi-step path resolution
+- ✅ Support absolute paths with application targeting
+- ✅ Provide useful error messages when paths cannot be resolved
+
+### Step 6.5: Improve Path Initialization Testing
+
+**Implementation Tasks:**
+1. Create proper integration tests using real UI elements rather than mocks
+   - Test path-based initialization with Calculator app
+   - Test path-based initialization with TextEdit app
+   - Test path resolution across different applications
+2. Create focused unit tests to test specific aspects of the implementation
+   - Test initialization from various path formats
+   - Test error handling for invalid paths
+   - Test behavior with ambiguous paths
+3. Implement test helper methods to simplify path-based testing
+4. Add performance benchmarks for path resolution
+
+**Key Requirements:**
+- Tests should use real UI elements rather than complex mocks
+- Tests should verify the actual path resolution logic, not just the mock implementation
+- Integration tests should demonstrate practical use cases with real applications
+- Error cases should be thoroughly tested with proper assertions
 
 ### Step 7: Update AccessibilityService for Path Support
 
