@@ -246,7 +246,7 @@ func dumpElement(_ element: AXUIElement, indent: String = "") {
     }
 }
 
-// Find all elements with a specific ID
+// Find all elements with a specific ID or path
 func findElementsWithID(_ element: AXUIElement, id: String, results: inout [AXUIElement], depth: Int = 0, maxDepth: Int = 25) {
     if depth > maxDepth {
         return
@@ -254,6 +254,14 @@ func findElementsWithID(_ element: AXUIElement, id: String, results: inout [AXUI
     
     if let elementID = getIdentifier(element), elementID == id {
         results.append(element)
+    }
+    
+    // Check if this is a UI path (starts with ui://)
+    if id.hasPrefix("ui://") {
+        // Note: Full path resolution would require more complex code
+        // This is a simplified check for demonstration purposes
+        print("Note: UI path searching requires more complex implementation")
+        // In a complete implementation, we would parse the path and resolve it
     }
     
     if let children = getChildren(element) {
