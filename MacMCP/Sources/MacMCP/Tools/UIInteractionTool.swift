@@ -143,7 +143,7 @@ public struct UIInteractionTool {
             
             if action == "click" {
                 if let x = params["x"]?.doubleValue, let y = params["y"]?.doubleValue {
-                    print("   - Position: (\(x), \(y))")
+                    handlerLogger.debug("Position details", metadata: ["x": "\(x)", "y": "\(y)"])
                 }
             }
         }
@@ -153,11 +153,13 @@ public struct UIInteractionTool {
             
             return result
         } catch {
-            print("❌ DEBUG: UIInteractionTool.handler error: \(error.localizedDescription)")
             let nsError = error as NSError
-            print("   - Error domain: \(nsError.domain)")
-            print("   - Error code: \(nsError.code)")
-            print("   - Error info: \(nsError.userInfo)")
+            handlerLogger.error("UIInteractionTool.handler error", metadata: [
+                "error": "\(error.localizedDescription)",
+                "domain": "\(nsError.domain)",
+                "code": "\(nsError.code)",
+                "info": "\(nsError.userInfo)"
+            ])
             throw error
         }
     }
@@ -220,7 +222,7 @@ public struct UIInteractionTool {
                 
                 // Make sure the path is valid
                 if path.segments.isEmpty {
-                    print("⚠️ DEBUG: handleClick - WARNING: Invalid element path, no segments found")
+                    logger.warning("Invalid element path, no segments found")
                 }
                 
                 // Check if the path already specifies an application - if so, don't override with appBundleId
@@ -231,21 +233,19 @@ public struct UIInteractionTool {
                 
                 // If path doesn't specify an app but appBundleId is provided, log a message
                 if !pathSpecifiesApp && appBundleId != nil {
-                    print("   - Note: Using provided appBundleId \(appBundleId!) alongside element path")
+                    logger.info("Using provided appBundleId alongside element path", metadata: ["appBundleId": "\(appBundleId!)"])
                 }
 
                 // Attempt to resolve the path to verify it exists
                 // This is just for validation - actual resolution happens in interactionService
                 do {
                     _ = try await path.resolve(using: accessibilityService)
-                    print("   - Element path verified and resolved successfully")
+                    logger.debug("Element path verified and resolved successfully")
                 } catch {
-                    print("⚠️ DEBUG: handleClick - WARNING: Element path did not resolve: \(error.localizedDescription)")
-                    print("   - Will still attempt click operation...")
+                    logger.warning("Element path did not resolve, but will still attempt click operation", metadata: ["error": "\(error.localizedDescription)"])
                 }
             } catch {
-                print("⚠️ DEBUG: handleClick - Error parsing or validating element path: \(error.localizedDescription)")
-                print("   - Will still attempt click operation...")
+                logger.warning("Error parsing or validating element path, but will still attempt click operation", metadata: ["error": "\(error.localizedDescription)"])
             }
             
             do {
@@ -254,10 +254,12 @@ public struct UIInteractionTool {
                 let bundleIdInfo = appBundleId != nil ? " in app \(appBundleId!)" : ""
                 return [.text("Successfully clicked element with path: \(elementPath)\(bundleIdInfo)")]
             } catch {
-                print("❌ DEBUG: handleClick - Click operation failed: \(error.localizedDescription)")
                 let nsError = error as NSError
-                print("   - Error domain: \(nsError.domain)")
-                print("   - Error code: \(nsError.code)")
+                logger.error("Click operation failed", metadata: [
+                    "error": "\(error.localizedDescription)",
+                    "domain": "\(nsError.domain)",
+                    "code": "\(nsError.code)"
+                ])
                 throw error
             }
         }
@@ -272,7 +274,7 @@ public struct UIInteractionTool {
                 try await interactionService.clickAtPosition(position: CGPoint(x: x, y: y))
                 return [.text("Successfully clicked at position (\(x), \(y))")]
             } catch {
-                print("❌ DEBUG: handleClick - Position click operation failed: \(error.localizedDescription)")
+                logger.error("Position click operation failed", metadata: ["error": "\(error.localizedDescription)"])
                 throw error
             }
         } else if let xInt = params["x"]?.intValue, let yInt = params["y"]?.intValue {
@@ -284,12 +286,12 @@ public struct UIInteractionTool {
                 try await interactionService.clickAtPosition(position: CGPoint(x: x, y: y))
                 return [.text("Successfully clicked at position (\(x), \(y))")]
             } catch {
-                print("❌ DEBUG: handleClick - Position click operation failed: \(error.localizedDescription)")
+                logger.error("Position click operation failed", metadata: ["error": "\(error.localizedDescription)"])
                 throw error
             }
         }
         
-        print("❌ DEBUG: handleClick - Missing required parameters (elementPath or x,y coordinates)")
+        logger.error("Missing required parameters", metadata: ["details": "Click action requires either elementPath or x,y coordinates"])
         throw createInteractionError(
             message: "Click action requires either elementPath or x,y coordinates",
             context: [

@@ -4,6 +4,10 @@
 import Foundation
 @preconcurrency import AppKit
 import MacMCPUtilities
+import Logging
+
+// Logger for element path operations
+private let logger = Logger(label: "mcp.models.element_path")
 
 /// Errors that can occur when working with element paths
 public enum ElementPathError: Error, CustomStringConvertible, Equatable {
@@ -539,17 +543,19 @@ public struct ElementPath: Sendable {
         var depth = 0
         
         // Add detailed logging
-        // print("\n==== BFS PATH RESOLUTION DEBUG ====")
-        // print("Starting BFS path resolution for path: \(toString())")
-        // print("Start segment index: \(startIndex)")
-        // print("Total segments: \(segments.count)")
-        // print("Queue initialized with 1 node: \(segments[0].toString())")
+        logger.trace("==== BFS PATH RESOLUTION DEBUG ====")
+        logger.trace("BFS path resolution starting", metadata: [
+            "path": "\(toString())",
+            "startIndex": "\(startIndex)",
+            "totalSegments": "\(segments.count)",
+            "initialSegment": "\(segments[0].toString())"
+        ])
         
         // Breadth-first search loop
         while !queue.isEmpty && depth < maxDepth {
             // Track depth for timeout detection
             depth += 1
-            // print("\nDEBUG: Processing depth \(depth), queue size: \(queue.count)")
+            logger.trace("BFS processing", metadata: ["depth": "\(depth)", "queueSize": "\(queue.count)"])
             
             // Dequeue the next node to process
             let node = queue.removeFirst()
@@ -559,27 +565,27 @@ public struct ElementPath: Sendable {
             let roleStatus = AXUIElementCopyAttributeValue(node.element, "AXRole" as CFString, &roleRef)
             let role = (roleStatus == .success) ? (roleRef as? String ?? "unknown") : "unknown"
             
-            // print("DEBUG: Exploring node: segmentIndex=\(node.segmentIndex), role=\(role), path=\(node.pathSoFar)")
+            logger.trace("Exploring node", metadata: ["segmentIndex": "\(node.segmentIndex)", "role": "\(role)", "path": "\(node.pathSoFar)"])
             
             // Track visited nodes by memory address to avoid cycles
             let elementID = UInt(bitPattern: Unmanaged.passUnretained(node.element).toOpaque())
             if visited.contains(elementID) {
-                // print("DEBUG: Skipping already visited element with ID \(elementID)")
+                logger.trace("Skipping visited element", metadata: ["elementID": "\(elementID)"])
                 continue
             }
             visited.insert(elementID)
-            // print("DEBUG: Marked element \(elementID) as visited, total visited: \(visited.count)")
+            logger.trace("Marked element as visited", metadata: ["elementID": "\(elementID)", "totalVisited": "\(visited.count)"])
             
             // Check if we've reached the end of the path
             if node.segmentIndex >= segments.count {
-                // print("DEBUG: SUCCESS - Reached end of path! All segments matched.")
-                // print("==== END BFS DEBUG ====\n")
+                logger.trace("SUCCESS - Reached end of path! All segments matched.")
+                logger.trace("==== END BFS DEBUG ====\n")
                 return node.element
             }
             
             // Get the current segment we're trying to match
             let currentSegment = segments[node.segmentIndex]
-            // print("DEBUG: Current segment [\(node.segmentIndex)]: \(currentSegment.toString())")
+            logger.trace("Current segment", metadata: ["index": "\(node.segmentIndex)", "segment": "\(currentSegment.toString())"])
             
             // Update the failed segment index to the deepest segment we've tried
             failedSegmentIndex = max(failedSegmentIndex, node.segmentIndex)

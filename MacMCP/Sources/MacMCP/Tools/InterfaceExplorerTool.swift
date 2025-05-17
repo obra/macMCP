@@ -6,6 +6,9 @@ import MCP
 import Logging
 import MacMCPUtilities
 
+// Logger for EnhancedElementDescriptor
+private let elementDescriptorLogger = Logger(label: "mcp.models.enhanced_element_descriptor")
+
 /// A descriptor for UI elements with enhanced information about states and capabilities
 public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     /// Unique identifier for the element
@@ -142,7 +145,7 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
                 // If the element already has a path (e.g., from path-based filtering),
                 // use it directly instead of calculating a new one
                 path = existingPath
-                print("DEBUG: Using pre-set path on element: \(existingPath)")
+                elementDescriptorLogger.debug("Using pre-set path on element", metadata: ["path": "\(existingPath)"])
             } else {
                 // No pre-existing path, so we need to generate one
                 do {
@@ -1070,7 +1073,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
                     // For path-based filtering, set the full path directly from the filter
                     // This is more reliable than trying to calculate a new path
                     resultElement.path = elementPath
-                    print("DEBUG: PATH FILTER - Using original filter path: \(elementPath)")
+                    self.logger.debug("PATH FILTER - Using original filter path", metadata: ["path": "\(elementPath)"])
                 }
             } else {
                 // If no filters, just use the element itself
@@ -1087,7 +1090,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
                     // Set the full path from the element path parameter directly
                     // This preserves the hierarchical path information
                     resultElement.path = elementPath
-                    print("DEBUG: Path filter - setting path: \(elementPath)")
+                    self.logger.debug("Path filter - setting path", metadata: ["path": "\(elementPath)"])
                 }
             }
             
@@ -1355,7 +1358,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
             } else {
                 // Element already has a path (likely from path filtering)
                 // Log it to help with debugging
-                print("DEBUG: Element already has path before descriptor conversion: \(element.path!)")
+                elementDescriptorLogger.debug("Element already has path before descriptor conversion", metadata: ["path": "\(element.path!)"])
             }
             
             // Convert the element to an enhanced descriptor with its path included

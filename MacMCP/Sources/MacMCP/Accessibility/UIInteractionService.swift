@@ -277,7 +277,7 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
                 ])
             }
         } else {
-            print("⚠️ DEBUG: UIInteractionService.performAction - WARNING: Failed to get actions list")
+            logger.warning("Failed to get actions list for element")
         }
         
         // Try to get element role to see what we're working with
@@ -288,7 +288,7 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
                 "role": "\(role as? String ?? "unknown")"
             ])
         } else {
-            print("⚠️ DEBUG: UIInteractionService.performAction - WARNING: Failed to get element role")
+            logger.warning("Failed to get element role")
         }
         
         // Try to get element's enabled state
@@ -298,14 +298,13 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
             let isEnabled = enabled as? Bool ?? false
             
             if !isEnabled {
-                print("⚠️ DEBUG: UIInteractionService.performAction - WARNING: Element is disabled, action may fail")
+                logger.warning("Element is disabled, action may fail")
             }
         }
         
         // Set a longer timeout for the action
         let timeoutResult = AXUIElementSetMessagingTimeout(element, 1.0) // 1 second timeout
         if timeoutResult != .success {
-            print("⚠️ DEBUG: UIInteractionService.performAction - WARNING: Failed to set messaging timeout")
             logger.warning("Failed to set messaging timeout", metadata: [
                 "error": "\(timeoutResult.rawValue)"
             ])
@@ -328,19 +327,19 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
             // Print specific advice based on error code
             switch error {
             case .illegalArgument:
-                print("   - Error detail: Illegal argument - The action name might be incorrect")
+                logger.error("Illegal argument - The action name might be incorrect")
             case .invalidUIElement:
-                print("   - Error detail: Invalid UI element - The element might no longer exist or be invalid")
+                logger.error("Invalid UI element - The element might no longer exist or be invalid")
             case .cannotComplete:
-                print("   - Error detail: Cannot complete - The operation timed out or could not be completed")
+                logger.error("Cannot complete - The operation timed out or could not be completed")
             case .actionUnsupported:
-                print("   - Error detail: Action unsupported - The element does not support this action")
+                logger.error("Action unsupported - The element does not support this action")
             case .notImplemented:
-                print("   - Error detail: Not implemented - The application has not implemented this action")
+                logger.error("Not implemented - The application has not implemented this action")
             case .apiDisabled:
-                print("   - Error detail: API disabled - Accessibility permissions might be missing")
+                logger.error("API disabled - Accessibility permissions might be missing")
             default:
-                print("   - Error detail: Unknown error code - Consult macOS Accessibility API documentation")
+                logger.error("Unknown error code - Consult macOS Accessibility API documentation")
             }
             
             // If action not supported, try fallback to mouse click for button elements
@@ -354,9 +353,10 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
                     availableActions = "none"
                 }
                 
-                print("⚠️ DEBUG: UIInteractionService.performAction - Element does not support the requested action")
-                print("   - Role: \(role as? String ?? "unknown")")
-                print("   - Available actions: \(availableActions)")
+                logger.warning("Element does not support the requested action", metadata: [
+                    "role": "\(role as? String ?? "unknown")",
+                    "availableActions": "\(availableActions)"
+                ])
                 
                 logger.error("Element does not support AXPress action and no fallback is allowed", metadata: [
                     "role": .string(role as? String ?? "unknown"),
