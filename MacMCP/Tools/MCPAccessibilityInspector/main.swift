@@ -10,6 +10,115 @@ import MCP  // Import MCP for Value type
 // Configure a logger for the inspector
 let logger = Logger(label: "com.anthropic.mac-mcp.mcp-ax-inspector")
 
+/// A class to handle JSON fetching tasks in a way that can be used with a semaphore
+/// This solves the issue of capturing state in Task closures
+@available(macOS 12.0, *)
+final class JsonFetcher: @unchecked Sendable {
+    private let inspector: MCPInspector
+    private let appId: String?
+    private let inspectPath: String?
+    private let maxDepth: Int
+    private let onComplete: (String) -> Void
+    private let onError: (Swift.Error) -> Void
+    
+    init(
+        inspector: MCPInspector, 
+        appId: String?, 
+        inspectPath: String?,
+        maxDepth: Int,
+        onComplete: @escaping (String) -> Void,
+        onError: @escaping (Swift.Error) -> Void
+    ) {
+        self.inspector = inspector
+        self.appId = appId
+        self.inspectPath = inspectPath
+        self.maxDepth = maxDepth
+        self.onComplete = onComplete
+        self.onError = onError
+    }
+    
+    func fetch() async {
+        do {
+            let result = try await getOriginalJsonOutput()
+            onComplete(result)
+        } catch {
+            onError(error)
+        }
+    }
+    
+    /// Get the original JSON output directly from the MCP server
+    private func getOriginalJsonOutput() async throws -> String {
+        guard let client = inspector.mcpClient else {
+            throw InspectionError.unexpectedError("MCP client not initialized")
+        }
+        
+        guard let bundleId = appId else {
+            throw InspectionError.unexpectedError("Bundle ID required for raw JSON output")
+        }
+        
+        // Create the request parameters based on whether we're doing a path-based lookup
+        let arguments: [String: Value]
+        
+        if let path = inspectPath, path.hasPrefix("ui://") {
+            // Path-based inspection
+            arguments = [
+                "scope": .string("path"),
+                "bundleId": .string(bundleId),
+                "elementPath": .string(path),
+                "maxDepth": .int(maxDepth),
+                "includeHidden": .bool(true)
+            ]
+            print("Fetching raw JSON for path: \(path)")
+        } else {
+            // Standard application inspection
+            arguments = [
+                "scope": .string("application"),
+                "bundleId": .string(bundleId),
+                "maxDepth": .int(maxDepth),
+                "includeHidden": .bool(true)
+            ]
+            print("Fetching raw JSON for application: \(bundleId)")
+        }
+        
+        // Call the MCP server
+        let (content, isError) = try await client.callTool(
+            name: "macos_interface_explorer",
+            arguments: arguments
+        )
+        
+        if let isError = isError, isError {
+            throw InspectionError.unexpectedError("Error from MCP tool: \(content)")
+        }
+        
+        // Extract the JSON content
+        guard let firstContent = content.first, case let .text(jsonString) = firstContent else {
+            throw InspectionError.unexpectedError("Invalid response format from MCP: missing text content")
+        }
+        
+        // Try to pretty-print the JSON for better readability
+        do {
+            // Parse the JSON into an object
+            guard let jsonData = jsonString.data(using: .utf8) else {
+                return jsonString // Return the original if conversion fails
+            }
+            
+            let jsonObject = try JSONSerialization.jsonObject(with: jsonData, options: [])
+            
+            // Convert back to a pretty-printed JSON string
+            let prettyData = try JSONSerialization.data(withJSONObject: jsonObject, options: [.prettyPrinted])
+            
+            if let prettyString = String(data: prettyData, encoding: .utf8) {
+                return prettyString
+            } else {
+                return jsonString // Return the original if conversion fails
+            }
+        } catch {
+            // If pretty-printing fails, return the original JSON string
+            return jsonString
+        }
+    }
+}
+
 /// A class to handle asynchronous inspection tasks in a way that can be used with a semaphore
 /// This solves the issue of capturing state in Task closures
 @available(macOS 12.0, *)
@@ -248,6 +357,13 @@ struct MCPAccessibilityInspector: ParsableCommand {
           
           # Inspect a specific element directly by its path
           mcp-ax-inspector --app-id com.apple.calculator --inspect-path "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXButton[@description=\"1\"]"
+          
+        Output options:
+          # Output raw JSON response instead of tree visualization
+          mcp-ax-inspector --app-id com.apple.calculator --raw-json
+          
+          # Output raw JSON for a specific element path
+          mcp-ax-inspector --app-id com.apple.calculator --inspect-path "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow" --raw-json
         """
     )
     
@@ -325,6 +441,10 @@ struct MCPAccessibilityInspector: ParsableCommand {
     @Option(name: [.customLong("inspect-path")], help: "Directly inspect an element by its full path (e.g., \"ui://AXApplication[@title=\\\"Calculator\\\"]/AXWindow/AXButton\")")
     var inspectPath: String?
     
+    // Raw output option
+    @Flag(name: [.customLong("raw-json")], help: "Output the raw JSON response instead of rendering the tree")
+    var rawJson: Bool = false
+    
     // Need to implement a synchronous wrapper to execute async code
     func run() throws {
         print("Starting MCP Accessibility Inspector...")
@@ -388,7 +508,7 @@ struct MCPAccessibilityInspector: ParsableCommand {
             ])
             
             // Check if app ID is required but not provided
-            if let inspectPath = inspectPath, appId == nil {
+            if let _ = inspectPath, appId == nil {
                 logger.error("--app-id must be specified with --inspect-path")
                 print("Error: --app-id must be specified with --inspect-path")
                 throw ValidationError("--app-id must be specified with --inspect-path")
@@ -441,6 +561,54 @@ struct MCPAccessibilityInspector: ParsableCommand {
             // Process results
             guard let rootElement = resultRootElement else {
                 print("No UI elements returned")
+                return
+            }
+            
+            // If raw JSON output is requested, set up a way to get the raw JSON
+            if rawJson {
+                // Create a semaphore and result holders
+                let jsonSemaphore = DispatchSemaphore(value: 0)
+                var jsonResult: String?
+                var jsonError: Swift.Error?
+                
+                // Create the fetcher object with the top-level JsonFetcher class
+                let fetcher = JsonFetcher(
+                    inspector: inspector,
+                    appId: appId,
+                    inspectPath: effectiveInspectPath,
+                    maxDepth: maxDepth,
+                    onComplete: { result in
+                        jsonResult = result
+                        jsonSemaphore.signal()
+                    },
+                    onError: { error in
+                        jsonError = error
+                        jsonSemaphore.signal()
+                    }
+                )
+                
+                // Start the fetch task
+                Task {
+                    await fetcher.fetch()
+                }
+                
+                // Wait for the task to complete
+                jsonSemaphore.wait()
+                
+                // Check for errors
+                if let error = jsonError {
+                    throw error
+                }
+                
+                // Print the JSON result
+                if let jsonOutput = jsonResult {
+                    print(jsonOutput)
+                } else {
+                    print("No JSON output available")
+                }
+                
+                // Cleanup resources
+                inspector.cleanupSync()
                 return
             }
             
@@ -561,6 +729,8 @@ struct MCPAccessibilityInspector: ParsableCommand {
             return path
         }
     }
+    
+    // We've moved the getOriginalJsonOutput function to the JsonFetcher class
 
     /// Get detailed menu information using MenuNavigationTool
     private func getMenuDetails(inspector: MCPInspector, bundleId: String) async throws -> String {

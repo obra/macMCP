@@ -15,7 +15,7 @@ import System
 private let inspectorLogger = Logger(label: "com.anthropic.mac-mcp.mcp-inspector")
 
 /// The main inspector class responsible for accessibility tree traversal using MCP tools
-class MCPInspector {
+class MCPInspector: @unchecked Sendable {
     let appId: String? // Changed to public access for menu and window helpers
     private let pid: Int?
     private let maxDepth: Int
