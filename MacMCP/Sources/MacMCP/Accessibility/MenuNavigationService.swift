@@ -157,7 +157,7 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
             // We need to activate the menu before we can see its items
             try await accessibilityService.performAction(
                 action: "AXPress",
-                onElementWithPath: menuBarItem.identifier
+                onElementWithPath: menuBarItem.path
             )
             
             // Wait for the menu to open
@@ -193,7 +193,7 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
             // Always dismiss the menu by pressing Escape
             try? await accessibilityService.performAction(
                 action: "AXCancel",
-                onElementWithPath: updatedMenuItem.identifier
+                onElementWithPath: updatedMenuItem.path
             )
         }
         

@@ -158,7 +158,7 @@ public class AccessibilityElement {
         
         // Create the element first (without children)
         let element = UIElement(
-            identifier: identifier,
+            path: identifier,
             role: role,
             title: title,
             value: value, 
@@ -312,7 +312,7 @@ public class AccessibilityElement {
         
         // Create a new element with the same properties but with children
         let uiElement = UIElement(
-            identifier: identifier,
+            path: identifier,
             role: role,
             title: title,
             value: value,
@@ -463,9 +463,9 @@ public class AccessibilityElement {
             case "image":
                 // Consider groups that contain images or have image-like names
                 return element.role == AXAttribute.Role.group && 
-                       (element.identifier.lowercased().contains("image") || 
-                        element.identifier.lowercased().contains("icon") ||
-                        element.identifier.lowercased().contains("picture"))
+                       (element.path.lowercased().contains("image") || 
+                        element.path.lowercased().contains("icon") ||
+                        element.path.lowercased().contains("picture"))
                 
             case "any":
                 return true
@@ -600,7 +600,7 @@ public class AccessibilityElement {
         
         // Create minimal element - no children, empty attributes and actions 
         let element = UIElement(
-            identifier: elementPath,
+            path: elementPath,
             role: role,
             title: title,
             value: nil,

@@ -106,9 +106,6 @@ public enum FrameSource: String, Codable {
 
 /// Represents a UI element in the accessibility hierarchy
 @objc public class UIElement: NSObject, Identifiable, @unchecked Sendable {
-    /// Unique identifier for the element
-    public let identifier: String
-    
     /// The accessibility role of the element (e.g., "button", "textField", etc.)
     public let role: String
     
@@ -148,8 +145,8 @@ public enum FrameSource: String, Codable {
     /// The underlying AXUIElement (if available)
     public var axElement: AXUIElement?
     
-    /// The UI path representation of this element (if available)
-    public var path: String?
+    /// The UI path representation of this element (XPath-inspired format)
+    public var path: String
     
     // MARK: - Capability Properties
     
@@ -263,7 +260,7 @@ public enum FrameSource: String, Codable {
         let axElement = try await elementPath.resolve(using: accessibilityService)
         
         // Get essential properties for UIElement initialization
-        var identifier = ""
+        var pathString = ""
         var role = ""
         var title: String? = nil
         var value: String? = nil
@@ -354,13 +351,12 @@ public enum FrameSource: String, Codable {
             attributes["selected"] = selectedValue
         }
         
-        // Generate a unique identifier
-        // For path-initialized elements, we include the resolved path as the identifier
-        identifier = elementPath.toString()
+        // Generate the path string
+        pathString = elementPath.toString()
         
         // Initialize the UIElement instance
         self.init(
-            identifier: identifier,
+            path: pathString,
             role: role,
             title: title,
             value: value,
@@ -372,13 +368,12 @@ public enum FrameSource: String, Codable {
             axElement: axElement
         )
         
-        // Store the path used to create this element
-        self.path = elementPath.toString()
+        // Path is already set in constructor
     }
 
     /// Create a new UI element
     /// - Parameters:
-    ///   - identifier: Unique identifier for the element
+    ///   - path: Path-based identifier for the element
     ///   - role: The accessibility role
     ///   - title: The title or label (optional)
     ///   - value: The current value (optional)
@@ -392,7 +387,7 @@ public enum FrameSource: String, Codable {
     ///   - attributes: Additional attributes (default is empty)
     ///   - actions: Available actions (default is empty)
     public init(
-        identifier: String,
+        path: String,
         role: String,
         title: String? = nil,
         value: String? = nil,
@@ -407,7 +402,7 @@ public enum FrameSource: String, Codable {
         actions: [String] = [],
         axElement: AXUIElement? = nil
     ) {
-        self.identifier = identifier
+        self.path = path
         self.role = role
         self.title = title
         self.value = value
@@ -427,7 +422,7 @@ public enum FrameSource: String, Codable {
     /// - Returns: A dictionary with the element's properties
     public func toJSON() throws -> [String: Any] {
         var json: [String: Any] = [
-            "identifier": identifier,
+            "path": path,
             "role": role,
         ]
         
@@ -444,15 +439,16 @@ public enum FrameSource: String, Codable {
             json["description"] = elementDescription
         }
         
-        // Generate and include a fully qualified path
+        // Path is already included in the base properties
+        // But we can try to regenerate it to get a more complete path if possible
         do {
-            let absolutePath = try generatePath()
-            json["path"] = absolutePath
-        } catch {
-            // If path generation fails, use existing path if available
-            if let existingPath = self.path {
-                json["path"] = existingPath
+            let generatedPath = try generatePath()
+            // Use the generated path if it's different from the existing one
+            if generatedPath != self.path {
+                json["generatedPath"] = generatedPath
             }
+        } catch {
+            // If path generation fails, we already have the basic path included
         }
         
         // Add frame information
@@ -527,17 +523,17 @@ public enum FrameSource: String, Codable {
     // MARK: - NSObject overrides
     
     override public var description: String {
-        return "\(role): \(title ?? "<no title>") [\(identifier)]"
+        return "\(role): \(title ?? "<no title>") [\(path)]"
     }
     
     // MARK: - Hashable
     
     public static func == (lhs: UIElement, rhs: UIElement) -> Bool {
-        return lhs.identifier == rhs.identifier
+        return lhs.path == rhs.path
     }
     
     override public var hash: Int {
-        return identifier.hashValue
+        return path.hashValue
     }
     
     /// Compare two path strings to determine if they refer to the same UI element

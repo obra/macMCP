@@ -141,12 +141,12 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
         let path: String?
         if includePath {
             // First check if the element already has a path set
-            if let existingPath = element.path {
-                // If the element already has a path (e.g., from path-based filtering),
-                // use it directly instead of calculating a new one
-                path = existingPath
-                elementDescriptorLogger.debug("Using pre-set path on element", metadata: ["path": "\(existingPath)"])
-            } else {
+            // Use the element's already set path
+            path = element.path
+            elementDescriptorLogger.debug("Using pre-set path on element", metadata: ["path": .string(path ?? "<nil>")])
+            
+            // Check if we need to generate a more detailed path
+            if false { // Skipping this branch but keeping for structure
                 // No pre-existing path, so we need to generate one
                 do {
                     // Always generate a fully qualified path from root to current element
@@ -227,7 +227,9 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
                     path = elementPath.toString()
                     
                     // Store the path on the element itself so that child elements can access it
-                    element.path = path
+                    if let unwrappedPath = path {
+                        element.path = unwrappedPath
+                    }
                 } catch {
                     // If path generation fails, we'll still return the descriptor without a path
                     path = nil
@@ -255,7 +257,7 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
         }
         
         return EnhancedElementDescriptor(
-            id: element.identifier,
+            id: element.path,
             role: element.role,
             name: name,
             title: element.title,
@@ -1346,7 +1348,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
     private func convertToEnhancedDescriptors(elements: [UIElement], maxDepth: Int) -> [EnhancedElementDescriptor] {
         return elements.map { element in
             // Before converting to descriptor, ensure the element has a properly calculated path
-            if element.path == nil {
+            if element.path.isEmpty {
                 do {
                     // Generate a path based on the element's position in the hierarchy
                     // This uses parent relationships to build a fully qualified path
@@ -1358,7 +1360,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
             } else {
                 // Element already has a path (likely from path filtering)
                 // Log it to help with debugging
-                elementDescriptorLogger.debug("Element already has path before descriptor conversion", metadata: ["path": "\(element.path!)"])
+                elementDescriptorLogger.debug("Element already has path before descriptor conversion", metadata: ["path": .string(element.path)])
             }
             
             // Convert the element to an enhanced descriptor with its path included

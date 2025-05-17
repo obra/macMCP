@@ -193,10 +193,10 @@ public struct ElementDescriptor: Codable, Sendable, Identifiable {
             path = nil
         }
         
-        // Always use the original stable identifier
+        // Always use the element path for uniqueness
         // This ensures uniqueness even when multiple elements have the same title
         return ElementDescriptor(
-            id: element.identifier,
+            id: element.path,
             name: name,
             role: element.role,
             title: element.title,
@@ -341,7 +341,7 @@ public struct WindowDescriptor: Codable, Sendable, Identifiable {
         }
         
         return WindowDescriptor(
-            id: element.identifier,
+            id: element.path,
             name: name,
             title: element.title,
             isMain: isMain,
@@ -473,20 +473,14 @@ public struct MenuItemDescriptor: Codable, Sendable, Identifiable {
             if let shortcut = shortcut, !shortcut.isEmpty {
                 name += " (\(shortcut))"
             }
-        } else if let identifier = element.identifier.split(separator: ":").last,
-                  !identifier.isEmpty && !identifier.contains(where: { $0.isNumber }) {
-            // Use the last part of the ID if it looks like a name and not a hash
-            name = String(identifier)
         } else {
-            // Fallback to a generic name with the ID
-            name = "Menu Item \(element.identifier)"
+            // Fallback to a generic name with the role
+            name = "Menu Item (\(element.role))"
         }
 
-        // For identifiers, we want to preserve the path-based ID structure
-        // The AccessibilityElement.swift already generates path-based IDs
-        // for menu items (ui:menu:Path > To > Item), so we'll use that directly
+        // Always use the element path as the ID
         return MenuItemDescriptor(
-            id: element.identifier,
+            id: element.path,
             name: name,
             title: element.title,
             isEnabled: isEnabled,
