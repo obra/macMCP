@@ -141,8 +141,9 @@ final class UIInteractionToolE2ETests: XCTestCase {
 
         // Click each button in sequence with increased wait times
         print("Clicking button '1'")
-        guard let onePath = oneButton.path else {
-            XCTFail("No path available for '1' button")
+        let onePath = oneButton.path
+        if onePath.isEmpty {
+            XCTFail("Empty path for '1' button")
             return
         }
         let clickOneSuccess = try await calculatorHelper.toolChain.clickElement(
@@ -153,8 +154,9 @@ final class UIInteractionToolE2ETests: XCTestCase {
         try await Task.sleep(for: .milliseconds(1000))
 
         print("Clicking button '+'")
-        guard let addPath = addButton.path else {
-            XCTFail("No path available for '+' button")
+        let addPath = addButton.path
+        if addPath.isEmpty {
+            XCTFail("Empty path for '+' button")
             return
         }
         let clickPlusSuccess = try await calculatorHelper.toolChain.clickElement(
@@ -165,8 +167,9 @@ final class UIInteractionToolE2ETests: XCTestCase {
         try await Task.sleep(for: .milliseconds(1000))
 
         print("Clicking button '2'")
-        guard let twoPath = twoButton.path else {
-            XCTFail("No path available for '2' button")
+        let twoPath = twoButton.path
+        if twoPath.isEmpty {
+            XCTFail("Empty path for '2' button") 
             return
         }
         let clickTwoSuccess = try await calculatorHelper.toolChain.clickElement(
@@ -177,8 +180,9 @@ final class UIInteractionToolE2ETests: XCTestCase {
         try await Task.sleep(for: .milliseconds(1000))
 
         print("Clicking button '='")
-        guard let eqPath = eqButton.path else {
-            XCTFail("No path available for '=' button")
+        let eqPath = eqButton.path
+        if eqPath.isEmpty {
+            XCTFail("Empty path for '=' button")
             return
         }
         let clickEqualsSuccess = try await calculatorHelper.toolChain.clickElement(
@@ -193,8 +197,9 @@ final class UIInteractionToolE2ETests: XCTestCase {
         try await calculatorHelper.assertDisplayValue("3", message: "Display should show '3' after clicking buttons")
         
         // Test direct UIInteractionTool interface to verify proper passing of parameters
-        guard let onePath = oneButton.path else {
-            XCTFail("No path available for '1' button")
+        // onePath is already defined above, so we'll reuse it
+        if oneButton.path.isEmpty {
+            XCTFail("Empty path for '1' button")
             return
         }
         let result = try await calculatorHelper.toolChain.uiInteractionTool.handler([
@@ -377,8 +382,9 @@ final class UIInteractionToolE2ETests: XCTestCase {
         }
         
         // Try double-click through the handler
-        guard let newTextAreaPath = newTextArea.path else {
-            XCTFail("No path available for text area")
+        let newTextAreaPath = newTextArea.path
+        if newTextAreaPath.isEmpty {
+            XCTFail("Empty path for text area")
             return
         }
         let doubleClickParams: [String: Value] = [
@@ -433,8 +439,9 @@ final class UIInteractionToolE2ETests: XCTestCase {
         }
         
         // Use the UIInteractionTool handler directly to test right-click
-        guard let textAreaPath = textArea.path else {
-            XCTFail("No path available for text area")
+        let textAreaPath = textArea.path
+        if textAreaPath.isEmpty {
+            XCTFail("Empty path for text area")
             return
         }
         let rightClickParams: [String: Value] = [
@@ -498,8 +505,9 @@ final class UIInteractionToolE2ETests: XCTestCase {
         // TEST PARAMETER VALIDATION
         // Test missing targetElementPath
         do {
-            guard let textAreaPath = textArea.path else {
-                XCTFail("No path available for text area")
+            let textAreaPath = textArea.path
+            if textAreaPath.isEmpty {
+                XCTFail("Empty path for text area")
                 return
             }
             let invalidParams: [String: Value] = [
@@ -620,7 +628,7 @@ final class UIInteractionToolE2ETests: XCTestCase {
             )
 
             if openButton != nil {
-                print("Found button with title 'Open': \(openButton!.identifier)")
+                print("Found button with title 'Open': \(openButton!.path)")
                 break
             }
         }
@@ -639,9 +647,9 @@ final class UIInteractionToolE2ETests: XCTestCase {
 
                 // Look for buttons with "OKButton" in their ID
                 for button in buttons {
-                    if button.identifier.contains("OKButton") {
+                    if button.path.contains("OKButton") {
                         openButton = button
-                        print("Found button with ID containing 'OKButton': \(button.identifier)")
+                        print("Found button with path containing 'OKButton': \(button.path)")
                         break
                     }
                 }
@@ -670,18 +678,19 @@ final class UIInteractionToolE2ETests: XCTestCase {
                 )
 
                 if openButton != nil {
-                    print("Found button with title containing 'Open': \(openButton!.identifier)")
+                    print("Found button with title containing 'Open': \(openButton!.path)")
                     break
                 }
             }
         }
 
         if let openButton = openButton {
-            print("Found Open button with ID: \(openButton.identifier)")
+            print("Found Open button with path: \(openButton.path)")
 
             // Click the Open button
-            guard let openButtonPath = openButton.path else {
-                XCTFail("No path available for Open button")
+            let openButtonPath = openButton.path
+            if openButtonPath.isEmpty {
+                XCTFail("Empty path for Open button")
                 return
             }
             let clickParams: [String: Value] = [
@@ -720,10 +729,10 @@ final class UIInteractionToolE2ETests: XCTestCase {
             XCTFail("Failed to find TextEdit text area")
             return
         }
-        print("Found text area with identifier: \(textArea.identifier)")
+        print("Found text area with path: \(textArea.path)")
         
         // Create a path to the text area for path-based element identification
-        let textAreaPath = "ui://AXApplication[@bundleIdentifier=\"\(textEditHelper.app.bundleId)\"]/AXWindow/AXTextArea[@identifier=\"\(textArea.identifier)\"]"
+        let textAreaPath = "ui://AXApplication[@bundleIdentifier=\"\(textEditHelper.app.bundleId)\"]/AXWindow/AXTextArea"
         print("Using text area path: \(textAreaPath)")
         
         // Get initial document content position information
@@ -739,7 +748,7 @@ final class UIInteractionToolE2ETests: XCTestCase {
 
         print("===== TextArea Element Details =====")
         print("Role: \(textArea.role)")
-        print("ID: \(textArea.identifier)")
+        print("Path: \(textArea.path)")
         if let desc = textArea.elementDescription {
             print("Description: \(desc)")
         } else {
@@ -768,7 +777,7 @@ final class UIInteractionToolE2ETests: XCTestCase {
         print("Found \(allTextAreas.count) text areas")
         for (i, area) in allTextAreas.enumerated() {
             print("TextArea \(i):")
-            print("  ID: \(area.identifier)")
+            print("  Path: \(area.path)")
             print("  Role: \(area.role)")
             print("  Frame: \(area.frame)")
             print("  Actions: \(area.actions.joined(separator: ", "))")
@@ -790,7 +799,7 @@ final class UIInteractionToolE2ETests: XCTestCase {
         print("Found \(potentialTextGroups.count) potential text groups")
         for (i, group) in potentialTextGroups.enumerated() {
             print("Group \(i):")
-            print("  ID: \(group.identifier)")
+            print("  Path: \(group.path)")
             print("  Role: \(group.role)")
             print("  Frame: \(group.frame)")
             print("  Editable: \(group.isEditable)")
@@ -876,11 +885,12 @@ final class UIInteractionToolE2ETests: XCTestCase {
             }
         }
 
-        // Get the path for text area
-        guard let textAreaPath = textArea.path else {
-            XCTFail("No path available for text area")
+        // Check the path for text area
+        if textArea.path.isEmpty {
+            XCTFail("Empty path for text area")
             return
         }
+        // We already have textAreaPath defined above
 
         // Test missing direction
         try await testInvalidParams(
@@ -963,12 +973,13 @@ final class UIInteractionToolE2ETests: XCTestCase {
         }
 
         // 1. First click in text area to ensure it has focus
-        guard let textAreaPath = textArea.path else {
-            XCTFail("No path available for text area")
+        let keyboardTextAreaPath = textArea.path
+        if keyboardTextAreaPath.isEmpty {
+            XCTFail("Empty path for text area") 
             return
         }
         let clickResult = try await textEditHelper.toolChain.clickElement(
-            elementPath: textAreaPath,
+            elementPath: keyboardTextAreaPath,
             bundleId: textEditHelper.app.bundleId
         )
         XCTAssertTrue(clickResult, "Should click text area successfully")

@@ -693,7 +693,7 @@ public final class ToolChain: @unchecked Sendable {
 
         // Create and return the UI element
         return UIElement(
-            identifier: identifier,
+            path: identifier,
             role: role,
             title: title,
             value: stringValue,
