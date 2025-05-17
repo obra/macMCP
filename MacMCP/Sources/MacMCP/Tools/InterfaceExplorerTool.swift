@@ -137,89 +137,98 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
         // Generate absolute path if requested
         let path: String?
         if includePath {
-            do {
-                // Always generate a fully qualified path from root to current element
-                // Start with the complete path segments
-                var pathSegments: [PathSegment] = []
-                
-                // Collect all elements from current to root
-                var elementsChain: [UIElement] = []
-                var currentElement: UIElement? = element
-                
-                // Build chain of elements from current to root
-                while let elem = currentElement {
-                    elementsChain.insert(elem, at: 0)
-                    currentElement = elem.parent
-                }
-                
-                // Make sure we include the application at the root if not already in chain
-                if !elementsChain.isEmpty && elementsChain[0].role != "AXApplication" {
-                    // Try to get the application from the chain's parent links
-                    var foundApp = false
-                    currentElement = element.parent
+            // First check if the element already has a path set
+            if let existingPath = element.path {
+                // If the element already has a path (e.g., from path-based filtering),
+                // use it directly instead of calculating a new one
+                path = existingPath
+                print("DEBUG: Using pre-set path on element: \(existingPath)")
+            } else {
+                // No pre-existing path, so we need to generate one
+                do {
+                    // Always generate a fully qualified path from root to current element
+                    // Start with the complete path segments
+                    var pathSegments: [PathSegment] = []
+                    
+                    // Collect all elements from current to root
+                    var elementsChain: [UIElement] = []
+                    var currentElement: UIElement? = element
+                    
+                    // Build chain of elements from current to root
                     while let elem = currentElement {
-                        if elem.role == "AXApplication" {
-                            elementsChain.insert(elem, at: 0)
-                            foundApp = true
-                            break
-                        }
+                        elementsChain.insert(elem, at: 0)
                         currentElement = elem.parent
                     }
                     
-                    // If we still don't have an app, create a generic application segment
-                    if !foundApp {
-                        var appAttributes: [String: String] = [:]
-                        if let bundleId = element.attributes["bundleIdentifier"] as? String {
-                            appAttributes["bundleIdentifier"] = bundleId
-                        } else if let appTitle = element.attributes["applicationTitle"] as? String {
-                            appAttributes["AXTitle"] = PathNormalizer.escapeAttributeValue(appTitle)
+                    // Make sure we include the application at the root if not already in chain
+                    if !elementsChain.isEmpty && elementsChain[0].role != "AXApplication" {
+                        // Try to get the application from the chain's parent links
+                        var foundApp = false
+                        currentElement = element.parent
+                        while let elem = currentElement {
+                            if elem.role == "AXApplication" {
+                                elementsChain.insert(elem, at: 0)
+                                foundApp = true
+                                break
+                            }
+                            currentElement = elem.parent
                         }
-                        pathSegments.append(PathSegment(role: "AXApplication", attributes: appAttributes))
-                    }
-                }
-                
-                // Process each element in the chain to create path segments
-                for elem in elementsChain {
-                    // Create appropriate attributes for this segment
-                    var attributes: [String: String] = [:]
-                    
-                    // Add useful identifying attributes
-                    if let title = elem.title, !title.isEmpty {
-                        attributes["AXTitle"] = PathNormalizer.escapeAttributeValue(title)
-                    }
-                    
-                    if let desc = elem.elementDescription, !desc.isEmpty {
-                        attributes["AXDescription"] = PathNormalizer.escapeAttributeValue(desc)
-                    }
-                    
-                    // Include identifier if available
-                    if let identifier = elem.attributes["identifier"] as? String, !identifier.isEmpty {
-                        attributes["AXIdentifier"] = identifier
-                    }
-                    
-                    // For applications, include bundle identifier if available
-                    if elem.role == "AXApplication" {
-                        if let bundleId = elem.attributes["bundleIdentifier"] as? String, !bundleId.isEmpty {
-                            attributes["bundleIdentifier"] = bundleId
+                        
+                        // If we still don't have an app, create a generic application segment
+                        if !foundApp {
+                            var appAttributes: [String: String] = [:]
+                            if let bundleId = element.attributes["bundleIdentifier"] as? String {
+                                appAttributes["bundleIdentifier"] = bundleId
+                            } else if let appTitle = element.attributes["applicationTitle"] as? String {
+                                appAttributes["AXTitle"] = PathNormalizer.escapeAttributeValue(appTitle)
+                            }
+                            pathSegments.append(PathSegment(role: "AXApplication", attributes: appAttributes))
                         }
                     }
                     
-                    // Create the path segment with proper attributes
-                    let segment = PathSegment(role: elem.role, attributes: attributes)
-                    pathSegments.append(segment)
+                    // Process each element in the chain to create path segments
+                    for elem in elementsChain {
+                        // Create appropriate attributes for this segment
+                        var attributes: [String: String] = [:]
+                        
+                        // Add useful identifying attributes
+                        if let title = elem.title, !title.isEmpty {
+                            attributes["AXTitle"] = PathNormalizer.escapeAttributeValue(title)
+                        }
+                        
+                        if let desc = elem.elementDescription, !desc.isEmpty {
+                            attributes["AXDescription"] = PathNormalizer.escapeAttributeValue(desc)
+                        }
+                        
+                        // Include identifier if available
+                        if let identifier = elem.attributes["identifier"] as? String, !identifier.isEmpty {
+                            attributes["AXIdentifier"] = identifier
+                        }
+                        
+                        // For applications, include bundle identifier if available
+                        if elem.role == "AXApplication" {
+                            if let bundleId = elem.attributes["bundleIdentifier"] as? String, !bundleId.isEmpty {
+                                attributes["bundleIdentifier"] = bundleId
+                            }
+                        }
+                        
+                        // Create the path segment with proper attributes
+                        let segment = PathSegment(role: elem.role, attributes: attributes)
+                        pathSegments.append(segment)
+                    }
+                    
+                    // Create the ElementPath
+                    let elementPath = try ElementPath(segments: pathSegments)
+                    
+                    // Convert to string
+                    path = elementPath.toString()
+                    
+                    // Store the path on the element itself so that child elements can access it
+                    element.path = path
+                } catch {
+                    // If path generation fails, we'll still return the descriptor without a path
+                    path = nil
                 }
-                
-                // Create the ElementPath
-                let elementPath = try ElementPath(segments: pathSegments)
-                
-                // Convert to string
-                path = elementPath.toString()
-                
-                // Store the path on the element itself so that child elements can access it
-                element.path = path
-            } catch {
-                // If path generation fails, we'll still return the descriptor without a path
-                path = nil
             }
         } else {
             path = nil
@@ -1343,6 +1352,10 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
                     // Log any path generation errors but continue
                     logger.warning("Could not generate path for element: \(error.localizedDescription)")
                 }
+            } else {
+                // Element already has a path (likely from path filtering)
+                // Log it to help with debugging
+                print("DEBUG: Element already has path before descriptor conversion: \(element.path!)")
             }
             
             // Convert the element to an enhanced descriptor with its path included
