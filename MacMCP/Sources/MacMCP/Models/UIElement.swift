@@ -159,21 +159,6 @@ public enum FrameSource: String, Codable {
         if actions.contains(AXAttribute.Action.press) {
             return true
         }
-       /* 
-        // For Calculator and other apps that might not correctly report actions,
-        // consider button-like elements as clickable even without explicit actions
-        if role == AXAttribute.Role.button || 
-           role == AXAttribute.Role.checkbox || 
-           role == AXAttribute.Role.radioButton || 
-           role == AXAttribute.Role.menuItem || 
-           role == AXAttribute.Role.popUpButton {
-            // Exclude obviously disabled buttons
-            if let enabled = attributes["enabled"] as? Bool, !enabled {
-                return false
-            }
-            return true
-        }
-       */ 
         return false
     }
     

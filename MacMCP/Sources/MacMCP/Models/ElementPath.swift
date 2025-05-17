@@ -212,6 +212,17 @@ public struct PathSegment: Sendable {
 
 /// A path to a UI element in the accessibility hierarchy
 public struct ElementPath: Sendable {
+    /// Path node to track traversal progress during breadth-first search
+    private struct PathNode: Sendable {
+        /// The UI element being traversed
+        let element: AXUIElement
+        
+        /// Current segment index in the path segments array
+        let segmentIndex: Int
+        
+        /// Path from root to this node for debugging
+        let pathSoFar: String
+    }
     /// The path ID prefix (ui://)
     public static let pathPrefix = "ui://"
     
@@ -353,8 +364,26 @@ public struct ElementPath: Sendable {
     /// - Throws: ElementPathError if there's an error resolving the path
     public func resolve(using accessibilityService: AccessibilityServiceProtocol) async throws -> AXUIElement {
         // Get the application element as starting point
-        let startElement: AXUIElement
+        let startElement = try await getApplicationElement(accessibilityService)
         
+        // Skip the first segment if it's an application (we've already matched it)
+        let skipFirstSegment = segments[0].role == "AXApplication"
+        let startSegmentIndex = skipFirstSegment ? 1 : 0
+        
+        // For simple cases (only the application), return immediately
+        if segments.count == 1 || (skipFirstSegment && segments.count == 2) {
+            return startElement
+        }
+        
+        // Use BFS for path resolution
+        return try await resolveBFS(startElement: startElement, startIndex: startSegmentIndex)
+    }
+    
+    /// Get the application element that serves as the starting point for path resolution
+    /// - Parameter accessibilityService: The accessibility service to use
+    /// - Returns: The application element to start path traversal from
+    /// - Throws: ElementPathError if the application cannot be found or accessed
+    private func getApplicationElement(_ accessibilityService: AccessibilityServiceProtocol) async throws -> AXUIElement {
         // First segment should be the application or window element
         let firstSegment = segments[0]
         
@@ -395,7 +424,7 @@ public struct ElementPath: Sendable {
                     )
                 }
                 
-                startElement = AXUIElementCreateApplication(app.processIdentifier)
+                return AXUIElementCreateApplication(app.processIdentifier)
             }
             // 2. Try by title/name if provided
             else if let title = firstSegment.attributes["title"] {
@@ -406,7 +435,7 @@ public struct ElementPath: Sendable {
                 if let app = runningApps.first(where: { 
                     $0.localizedName == title || $0.localizedName?.contains(title) == true 
                 }) {
-                    startElement = AXUIElementCreateApplication(app.processIdentifier)
+                    return AXUIElementCreateApplication(app.processIdentifier)
                 } else {
                     // No exact match, gather information about running apps
                     var runningAppDetails: [String] = []
@@ -446,48 +475,111 @@ public struct ElementPath: Sendable {
                         throw ElementPathError.segmentResolutionFailed("Could not get focused application element", atSegment: 0)
                     }
                     
-                    startElement = axElement
+                    return axElement
                 } catch {
                     // If that fails, try to get the frontmost application using NSWorkspace
                     guard let frontApp = NSWorkspace.shared.frontmostApplication else {
                         throw ElementPathError.segmentResolutionFailed("Could not determine frontmost application", atSegment: 0)
                     }
                     
-                    startElement = AXUIElementCreateApplication(frontApp.processIdentifier)
+                    return AXUIElementCreateApplication(frontApp.processIdentifier)
                 }
             }
         } 
         // For system-wide operations or other special starting points
         else if firstSegment.role == "AXSystemWide" {
-            startElement = AXUIElementCreateSystemWide()
+            return AXUIElementCreateSystemWide()
         }
         // For any other element type as the first segment
         else {
             // Get the system-wide element as starting point for a broader search
-            startElement = AXUIElementCreateSystemWide()
+            return AXUIElementCreateSystemWide()
+        }
+    }
+    
+    /// Helper method to get child elements of a given element
+    /// - Parameter element: The element to get children for
+    /// - Returns: Array of child elements, or nil if children couldn't be accessed
+    private func getChildElements(of element: AXUIElement) -> [AXUIElement]? {
+        var childrenRef: CFTypeRef?
+        let status = AXUIElementCopyAttributeValue(element, "AXChildren" as CFString, &childrenRef)
+        
+        // Skip if we couldn't get children
+        if status != .success || childrenRef == nil {
+            return nil
         }
         
-        // Now we have our starting point, traverse the path
-        var currentElement = startElement
+        // Convert to array of elements
+        guard let children = childrenRef as? [AXUIElement] else {
+            return nil
+        }
         
-        // Iterate through each segment starting from the first
-        for (index, segment) in segments.enumerated() {
-            // If we're at the first segment and we already got an application directly, skip to next
-            if index == 0 && firstSegment.role == "AXApplication" {
+        return children
+    }
+    
+    /// Resolves a path using breadth-first search to handle ambiguities
+    /// - Parameters:
+    ///   - startElement: The element to start the search from
+    ///   - startIndex: The segment index to start from
+    /// - Returns: The matched element at the end of the path
+    /// - Throws: ElementPathError if no matching element is found
+    private func resolveBFS(startElement: AXUIElement, startIndex: Int) async throws -> AXUIElement {
+        // Create a queue for BFS
+        var queue = [PathNode(element: startElement, 
+                             segmentIndex: startIndex, 
+                             pathSoFar: segments[0].toString())]
+        
+        // Set to track visited elements and avoid cycles
+        var visited = Set<UInt>()
+        
+        // Breadth-first search loop
+        while !queue.isEmpty {
+            // Dequeue the next node to process
+            let node = queue.removeFirst()
+            
+            // Track visited nodes by memory address to avoid cycles
+            let elementID = UInt(bitPattern: Unmanaged.passUnretained(node.element).toOpaque())
+            if visited.contains(elementID) {
+                continue
+            }
+            visited.insert(elementID)
+            
+            // Check if we've reached the end of the path
+            if node.segmentIndex >= segments.count {
+                return node.element
+            }
+            
+            // Get the current segment we're trying to match
+            let currentSegment = segments[node.segmentIndex]
+            
+            // Get children of the current element to explore
+            guard let children = getChildElements(of: node.element) else {
                 continue
             }
             
-            // Resolve this segment
-            guard let nextElement = try await resolveSegment(element: currentElement, segment: segment, segmentIndex: index) else {
-                let segmentString = segment.toString()
-                throw ElementPathError.noMatchingElements(segmentString, atSegment: index)
+            // Filter children by those matching the current segment
+            for child in children {
+                if try await elementMatchesSegment(child, segment: currentSegment) {
+                    // Create path to this point for debugging
+                    let newPath = node.pathSoFar + "/" + currentSegment.toString()
+                    
+                    // If this is the last segment, we've found our match
+                    if node.segmentIndex == segments.count - 1 {
+                        return child
+                    }
+                    
+                    // Otherwise, add child to queue with next segment index
+                    queue.append(PathNode(
+                        element: child,
+                        segmentIndex: node.segmentIndex + 1,
+                        pathSoFar: newPath
+                    ))
+                }
             }
-            
-            // Update current element for next iteration
-            currentElement = nextElement
         }
         
-        return currentElement
+        // If we've explored all possibilities and found no match, throw an error
+        throw ElementPathError.noMatchingElements("Failed to find a matching path after exploring all possibilities", atSegment: 0)
     }
     
     /// Resolve a single segment of a path starting from a given element
@@ -713,54 +805,46 @@ public struct ElementPath: Sendable {
         let roleStatus = AXUIElementCopyAttributeValue(element, "AXRole" as CFString, &roleRef)
         
         if roleStatus != .success || roleRef == nil {
-            // print("DEBUG: Match check - role not available, status: \(roleStatus.rawValue)")
             return false
         }
         
         guard let role = roleRef as? String else {
-            // print("DEBUG: Match check - role not a string: \(String(describing: roleRef))")
             return false
         }
         
-        // Log role
-        // print("DEBUG: Match check - element role: \(role), expected: \(segment.role)")
+        // Check role match - be more tolerant with role matching (optionally strip 'AX' prefix)
+        let normalizedSegmentRole = segment.role.hasPrefix("AX") ? segment.role : "AX\(segment.role)"
+        let normalizedElementRole = role.hasPrefix("AX") ? role : "AX\(role)"
         
-        // Check role match
-        guard role == segment.role else {
-            // print("DEBUG: Match check - role mismatch")
+        if role != segment.role && normalizedElementRole != normalizedSegmentRole {
             return false
         }
         
         // If there are no attributes to match, we're done
         if segment.attributes.isEmpty {
-            // print("DEBUG: Match check - no attributes required, match found")
             return true
         }
         
-        // Check each attribute with resilient attribute access and fallbacks
+        // Check each attribute - ALL must match for a successful match
         for (name, expectedValue) in segment.attributes {
-            // print("DEBUG: Match check - checking attribute: \(name), expected value: \(expectedValue)")
-            
-            // Get fallback attribute names for this attribute
-            // Try all variants of the attribute name
+            // Try attribute name variants
             var attributeMatched = false
-            for attributeName in self.getAttributeVariants(name) {
-                if matchAttribute(element, name: attributeName, expectedValue: expectedValue) {
+            
+            // Try all variants of the attribute name
+            for attributeName in getAttributeVariants(name) {
+                if attributeMatchesValue(element, name: attributeName, expectedValue: expectedValue) {
                     attributeMatched = true
-                    // print("DEBUG: Match check - attribute matched via variant: \(attributeName)")
                     break
                 }
             }
             
-            // If none of the attribute variants matched, this element doesn't match
+            // If attribute didn't match, this element doesn't match
             if !attributeMatched {
-                // print("DEBUG: Match check - attribute \(name) match failed on all variants: \(attributeVariants)")
                 return false
             }
         }
         
         // All checks passed
-        // print("DEBUG: Match check - full match found")
         return true
     }
     
@@ -809,20 +893,19 @@ public struct ElementPath: Sendable {
         return variants
     }
     
-    /// Match an attribute value against an expected value with robust error handling
+    /// Match an attribute value against an expected value with boolean matching
     /// - Parameters:
     ///   - element: The AXUIElement to check
     ///   - name: The attribute name
     ///   - expectedValue: The expected attribute value
     /// - Returns: True if the attribute matches the expected value
-    private func matchAttribute(_ element: AXUIElement, name: String, expectedValue: String) -> Bool {
+    private func attributeMatchesValue(_ element: AXUIElement, name: String, expectedValue: String) -> Bool {
         // Get the attribute value
         var attributeRef: CFTypeRef?
         let attributeStatus = AXUIElementCopyAttributeValue(element, name as CFString, &attributeRef)
         
         // If we couldn't get the attribute, it doesn't match
         if attributeStatus != .success || attributeRef == nil {
-            // print("DEBUG: Match check - attribute \(name) not available, status: \(attributeStatus.rawValue)")
             return false
         }
         
@@ -831,138 +914,39 @@ public struct ElementPath: Sendable {
         
         if let stringValue = attributeRef as? String {
             actualValue = stringValue
-            // print("DEBUG: Match check - attribute \(name) value (string): \(actualValue)")
         } else if let numberValue = attributeRef as? NSNumber {
             actualValue = numberValue.stringValue
-            // print("DEBUG: Match check - attribute \(name) value (number): \(actualValue)")
         } else if let boolValue = attributeRef as? Bool {
             actualValue = boolValue ? "true" : "false"
-            // print("DEBUG: Match check - attribute \(name) value (bool): \(actualValue)")
         } else {
-            // For other types, use description
             actualValue = String(describing: attributeRef!)
-            // print("DEBUG: Match check - attribute \(name) value (other): \(actualValue)")
         }
         
-        // Check for partial matches in some cases
-        let matchType: ElementPath.MatchType = self.determineMatchType(forAttribute: name)
-        
-        switch matchType {
-        case .exact:
-            // Exact match required
-            let matches = (actualValue == expectedValue)
-            if !matches {
-                // print("DEBUG: Match check - attribute \(name) value mismatch (exact): expected \(expectedValue), got \(actualValue)")
-            }
-            return matches
-            
-        case .contains:
-            // Check if the actual value contains the expected value
-            let matches = actualValue.localizedCaseInsensitiveContains(expectedValue)
-            if !matches {
-                // print("DEBUG: Match check - attribute \(name) value mismatch (contains): expected to contain \(expectedValue), got \(actualValue)")
-            }
-            return matches
-            
-        case .substring:
-            // Check both directions - exact match, contains, or is contained by
-            let exactMatch = (actualValue == expectedValue)
-            let containsExpected = actualValue.localizedCaseInsensitiveContains(expectedValue)
-            let expectedContainsActual = expectedValue.localizedCaseInsensitiveContains(actualValue)
-            
-            let matches = exactMatch || containsExpected || expectedContainsActual
-            if !matches {
-                // print("DEBUG: Match check - attribute \(name) value mismatch (substring): expected relationship with \(expectedValue), got \(actualValue)")
-            }
-            return matches
-            
-        case .startsWith:
-            // Check if the actual value starts with the expected value
-            let matches = actualValue.localizedCaseInsensitiveCompare(expectedValue) == .orderedSame ||
-                          actualValue.localizedStandardRange(of: expectedValue)?.lowerBound == actualValue.startIndex
-            if !matches {
-                // print("DEBUG: Match check - attribute \(name) value mismatch (startsWith): expected to start with \(expectedValue), got \(actualValue)")
-            }
-            return matches
+        // Empty check - if either value is empty, handle specially
+        if actualValue.isEmpty || expectedValue.isEmpty {
+            return actualValue.isEmpty && expectedValue.isEmpty
         }
+        
+        // Check for exact match first
+        if actualValue == expectedValue {
+            return true
+        }
+        
+        // Then case-insensitive match
+        if actualValue.localizedCaseInsensitiveCompare(expectedValue) == .orderedSame {
+            return true
+        }
+        
+        // Then check contains relationships
+        if actualValue.localizedCaseInsensitiveContains(expectedValue) || 
+           expectedValue.localizedCaseInsensitiveContains(actualValue) {
+            return true
+        }
+        
+        // No match
+        return false
     }
     
-    /// Determines how to match an attribute based on its type
-    /// - Parameter attribute: The attribute name
-    /// - Returns: The match type to use
-    public func determineMatchType(forAttribute attribute: String) -> MatchType {
-        // Normalize the attribute name for consistent matching
-        let normalizedName = PathNormalizer.normalizeAttributeName(attribute)
-        
-        switch normalizedName {
-        case "AXTitle":
-            // Title can sometimes be a substring or contain the attribute we're looking for
-            return .substring
-            
-        case "AXDescription", "AXHelp":
-            // Descriptions are often longer and might just contain the expected text
-            return .contains
-            
-        case "AXValue":
-            // Values can sometimes be partial matches
-            return .substring
-            
-        case "AXLabel", "AXPlaceholderValue":
-            // Labels often contain the text we're looking for
-            return .contains
-            
-        case "AXRoleDescription":
-            // Role descriptions may contain what we're looking for
-            return .contains
-            
-        case "AXIdentifier":
-            // Identifiers should match exactly
-            return .exact
-            
-        case "bundleIdentifier", "AXBundleIdentifier":
-            // Bundle IDs should match exactly
-            return .exact
-            
-        case "AXRole":
-            // Roles should match exactly
-            return .exact
-            
-        case "AXSubrole":
-            // Subroles should match exactly
-            return .exact
-            
-        case "AXPath":
-            // Paths should match exactly
-            return .exact
-            
-        case "AXFrameInScreenCoordinates", "AXFrame", "AXPosition", "AXSize":
-            // Geometry attributes should match exactly
-            return .exact
-            
-        case "AXFilename", "AXName":
-            // Filenames often need startsWith matching for partial paths
-            return .startsWith
-            
-        default:
-            // For most attributes, require exact match
-            return .exact
-        }
-    }
-    
-    /// Types of attribute matching strategies
-    public enum MatchType {
-        /// Require exact match between expected and actual values
-        case exact
-        
-        /// Check if actual value contains expected value
-        case contains
-        
-        /// Check if either value contains the other or they're equal
-        case substring
-        
-        /// Check if actual value starts with expected value
-        case startsWith
-    }
 }
 
 extension ElementPath {
@@ -1200,8 +1184,6 @@ extension String {
     }
 }
 
-// MARK: - Element Scoring for Progressive Resolution
-
 extension ElementPath {
     /// Diagnoses issues with a path resolution and provides detailed troubleshooting information
     /// - Parameters:
@@ -1210,10 +1192,11 @@ extension ElementPath {
     /// - Returns: A diagnostic report with details about the issue and suggested solutions
     /// - Throws: ElementPathError if there's a critical error during diagnosis
     public static func diagnosePathResolutionIssue(_ pathString: String, using accessibilityService: AccessibilityServiceProtocol) async throws -> String {
+        // Start with path validation
         var diagnosis = "Path Resolution Diagnosis for: \(pathString)\n"
         diagnosis += "=".repeating(80) + "\n\n"
         
-        // Step 1: Validate the path syntax
+        // Validate path syntax (keep existing validation code)
         do {
             let (_, warnings) = try validatePath(pathString, strict: true)
             
@@ -1235,836 +1218,89 @@ extension ElementPath {
             return diagnosis
         }
         
-        // Step 2: Try progressive path resolution
+        // Parse the path
+        let path = try parse(pathString)
+        
+        // Try to resolve each segment in sequence and report where it fails
+        var currentElement: AXUIElement?
+        
+        // Start with the application element
         do {
-            let path = try parse(pathString)
+            currentElement = try await path.getApplicationElement(accessibilityService)
+            diagnosis += "✅ Successfully resolved application element\n\n"
+        } catch let error as ElementPathError {
+            diagnosis += "❌ Failed to resolve application element: \(error.description)\n"
+            return diagnosis
+        } catch {
+            diagnosis += "❌ Unexpected error resolving application element: \(error.localizedDescription)\n"
+            return diagnosis
+        }
+        
+        // Now try each segment in sequence
+        for (i, segment) in path.segments.enumerated().dropFirst() { // Skip first segment (app)
+            diagnosis += "Segment \(i): \(segment.toString())\n"
             
-            // Use progressive resolution to get detailed segment-by-segment diagnostics
-            // Resolve progressively
-            let resolutionResult = await path.resolvePathProgressively(using: accessibilityService)
+            guard let element = currentElement else {
+                diagnosis += "❌ No element to continue from\n\n"
+                break
+            }
             
-            if resolutionResult.success {
-                diagnosis += "PATH RESOLUTION: ✅ Success\n"
-                diagnosis += "The path resolves successfully to a UI element.\n\n"
-            } else {
-                diagnosis += "PATH RESOLUTION: ❌ Failed\n"
-                if let error = resolutionResult.error {
-                    diagnosis += "Error: \(error)\n"
+            // Get children
+            guard let children = path.getChildElements(of: element) else {
+                diagnosis += "❌ Couldn't get children of current element\n\n"
+                break
+            }
+            
+            // Find matching children
+            var matchingChildren: [AXUIElement] = []
+            for child in children {
+                if try await path.elementMatchesSegment(child, segment: segment) {
+                    matchingChildren.append(child)
+                }
+            }
+            
+            if matchingChildren.isEmpty {
+                diagnosis += "❌ No children match this segment\n"
+                
+                // List a few available children to help debugging
+                diagnosis += "Available children (sample):\n"
+                for (j, child) in children.prefix(3).enumerated() {
+                    var roleRef: CFTypeRef?
+                    AXUIElementCopyAttributeValue(child, "AXRole" as CFString, &roleRef)
+                    let role = roleRef as? String ?? "unknown"
+                    diagnosis += "  Child \(j): role=\(role)\n"
                 }
                 diagnosis += "\n"
-                
-                // Detailed segment-by-segment analysis
-                diagnosis += "SEGMENT ANALYSIS:\n"
-                for (i, segment) in resolutionResult.segments.enumerated() {
-                    diagnosis += "  Segment \(i): \(segment.segment)\n"
-                    
-                    if segment.success {
-                        diagnosis += "    Resolution: ✅ Success\n"
-                    } else {
-                        diagnosis += "    Resolution: ❌ Failed\n"
-                        if let reason = segment.failureReason {
-                            diagnosis += "    Reason: \(reason)\n"
-                        }
-                        
-                        // List alternative candidates
-                        if !segment.candidates.isEmpty {
-                            diagnosis += "    Available alternatives:\n"
-                            for (j, candidate) in segment.candidates.prefix(5).enumerated() {
-                                diagnosis += "      \(j+1). \(candidate.description) (match score: \(String(format: "%.2f", candidate.match)))\n"
-                            }
-                            if segment.candidates.count > 5 {
-                                diagnosis += "      ... and \(segment.candidates.count - 5) more alternatives\n"
-                            }
-                        } else {
-                            diagnosis += "    No matching elements found\n"
-                        }
-                    }
-                    diagnosis += "\n"
-                }
-                
-                // If we know which segment failed, provide specific guidance
-                if let failureIndex = resolutionResult.failureIndex {
-                    diagnosis += "SUGGESTIONS FOR SEGMENT \(failureIndex):\n"
-                    
-                    let failedSegment = resolutionResult.segments[failureIndex]
-                    
-                    if !failedSegment.candidates.isEmpty {
-                        // Case 1: We have alternatives - suggest ways to match them
-                        if failedSegment.candidates.count > 1 {
-                            diagnosis += "  • Too many matching elements - add more specific attributes or use an index:\n"
-                            
-                            // Suggest using an index
-                            diagnosis += "    - Add index to select a specific element, e.g.: [...][0]\n"
-                            
-                            // Suggest attributes based on candidate information
-                            let topCandidate = failedSegment.candidates.first!
-                            var suggestedAttributes = ""
-                            
-                            for (key, value) in topCandidate.attributes {
-                                if !value.isEmpty && key != "role" {
-                                    suggestedAttributes += "    - Add attribute: [@\(key)=\"\(value)\"]\n"
-                                }
-                            }
-                            
-                            if !suggestedAttributes.isEmpty {
-                                diagnosis += suggestedAttributes
-                            }
-                        } else if failedSegment.failureReason?.contains("high-quality") == true {
-                            // Case 2: We have matches but they're low quality
-                            diagnosis += "  • Found possible matches, but none with high confidence:\n"
-                            diagnosis += "    - Try using more specific attribute values\n"
-                            diagnosis += "    - Consider using exact matches for critical attributes\n"
-                        }
-                    } else {
-                        // Case 3: No matches found at all
-                        diagnosis += "  • No matching elements found in the UI hierarchy:\n"
-                        diagnosis += "    - Verify the element exists in the application's UI\n"
-                        diagnosis += "    - Check if the role '\(failedSegment.segment.split(separator: "[")[0])' is correct\n"
-                        diagnosis += "    - Consider using a more general role (e.g., 'AXGroup' instead of a specific control type)\n"
-                    }
-                    
-                    diagnosis += "\n"
-                }
-                
-                // General improvement suggestions
-                diagnosis += "GENERAL IMPROVEMENTS:\n"
-                diagnosis += "  • Use the application's bundleIdentifier in the first segment for precise targeting\n"
-                diagnosis += "  • Add more specific attributes to ambiguous segments\n"
-                diagnosis += "  • Use indexes when multiple identical elements exist\n"
-                diagnosis += "  • Consider shorter paths when possible to reduce resolution complexity\n"
-                diagnosis += "  • Test with more generic attribute matching (e.g., substring instead of exact)\n"
+                break
+            } else if matchingChildren.count > 1 {
+                diagnosis += "⚠️ Multiple children (\(matchingChildren.count)) match this segment\n"
+                // Continue with first match for now
+                currentElement = matchingChildren[0]
+                diagnosis += "✅ Continuing with first matching child\n\n"
+            } else {
+                diagnosis += "✅ One child matches this segment\n\n"
+                currentElement = matchingChildren[0]
             }
-        } catch let error as ElementPathError {
-            diagnosis += "PATH PARSING ERROR: \(error.description)\n"
-            diagnosis += "Fix the path structure before attempting resolution.\n"
-        } catch {
-            diagnosis += "UNEXPECTED ERROR: \(error.localizedDescription)\n"
+        }
+        
+        // Final summary
+        if let finalElement = currentElement {
+            var roleRef: CFTypeRef?
+            AXUIElementCopyAttributeValue(finalElement, "AXRole" as CFString, &roleRef)
+            let role = roleRef as? String ?? "unknown"
+            diagnosis += "Final result: ✅ Resolved to \(role) element\n"
+        } else {
+            diagnosis += "Final result: ❌ Failed to resolve complete path\n"
         }
         
         return diagnosis
     }
     
-    /// Score how well an element matches a path segment
-    /// - Parameters:
-    ///   - element: The element to score
-    ///   - segment: The path segment to match against
-    /// - Returns: A score between 0.0 (no match) and 1.0 (perfect match)
-    private func scoreElementMatch(_ element: AXUIElement, segment: PathSegment) async -> Double {
-        // Get the role and compare it
-        var roleRef: CFTypeRef?
-        let roleStatus = AXUIElementCopyAttributeValue(element, "AXRole" as CFString, &roleRef)
-        
-        // Role must match exactly or we immediately return 0
-        if roleStatus != .success || roleRef == nil {
-            return 0.0
-        }
-        
-        guard let role = roleRef as? String else {
-            return 0.0
-        }
-        
-        if role != segment.role {
-            return 0.0
-        }
-        
-        // Start with a base score for matching role
-        var score = 0.5
-        
-        // If there are no attributes to match, return the base score
-        if segment.attributes.isEmpty {
-            return score
-        }
-        
-        // For each matching attribute, increase the score
-        let maxAttributeScore = 0.5 // Maximum score contribution from attributes
-        var attributeScoreSum = 0.0
-        
-        for (name, expectedValue) in segment.attributes {
-            let attributeScore = scoreAttributeMatch(element, attributeName: name, expectedValue: expectedValue)
-            attributeScoreSum += attributeScore
-        }
-        
-        // Normalize the attribute score based on number of attributes
-        let attributeCount = Double(segment.attributes.count)
-        let normalizedAttributeScore = attributeScoreSum / attributeCount
-        
-        // Combine the scores: 50% for role match, 50% for attribute matches
-        score += normalizedAttributeScore * maxAttributeScore
-        
-        return score
-    }
 }
     
     extension ElementPath {
-    /// Score how well an attribute matches its expected value
-    /// - Parameters:
-    ///   - element: The element containing the attribute
-    ///   - attributeName: The name of the attribute
-    ///   - expectedValue: The expected value of the attribute
-    /// - Returns: A score between 0.0 (no match) and 1.0 (perfect match)
-    private func scoreAttributeMatch(_ element: AXUIElement, attributeName: String, expectedValue: String) -> Double {
-        // Try different variants of the attribute name
-        let attributeVariants = self.getAttributeVariants(attributeName)
-        var bestScore = 0.0
-        
-        for attributeKey in attributeVariants {
-            var attributeRef: CFTypeRef?
-            let status = AXUIElementCopyAttributeValue(element, attributeKey as CFString, &attributeRef)
-            
-            if status != .success || attributeRef == nil {
-                continue
-            }
-            
-            // Convert attribute value to string for comparison
-            let actualValue: String
-            if let stringValue = attributeRef as? String {
-                actualValue = stringValue
-            } else if let numberValue = attributeRef as? NSNumber {
-                actualValue = numberValue.stringValue
-            } else if let boolValue = attributeRef as? Bool {
-                actualValue = boolValue ? "true" : "false"
-            } else {
-                actualValue = String(describing: attributeRef!)
-            }
-            
-            // Determine match type for this attribute
-            let matchType = self.determineMatchType(forAttribute: attributeKey)
-            let currentScore = self.calculateAttributeScore(expected: expectedValue, actual: actualValue, matchType: matchType)
-            
-            // Keep the best score among attribute variants
-            if currentScore > bestScore {
-                bestScore = currentScore
-            }
-        }
-        
-        return bestScore
-    }
     
-    /// Calculate a score for how well an attribute value matches its expected value
-    /// - Parameters:
-    ///   - expected: The expected value
-    ///   - actual: The actual value
-    ///   - matchType: The type of matching to perform
-    /// - Returns: A score between 0.0 (no match) and 1.0 (perfect match)
-    private func calculateAttributeScore(expected: String, actual: String, matchType: MatchType) -> Double {
-        switch matchType {
-        case .exact:
-            // Exact match: 1.0 for match, 0.0 for no match
-            return actual == expected ? 1.0 : 0.0
-            
-        case .contains:
-            // Contains: 1.0 for exact match, 0.7 for contains, 0.0 for no match
-            if actual == expected {
-                return 1.0
-            } else if actual.localizedCaseInsensitiveContains(expected) {
-                // Calculate how significant the match is based on length ratio
-                let matchRatio = Double(expected.count) / Double(actual.count)
-                return 0.7 + (0.3 * matchRatio) // 0.7-1.0 depending on match quality
-            }
-            return 0.0
-            
-        case .substring:
-            // Substring: 1.0 for exact match, 0.7-0.9 for contains/contained by
-            if actual == expected {
-                return 1.0
-            } else if actual.localizedCaseInsensitiveContains(expected) {
-                // Calculate how significant the match is based on length ratio
-                let matchRatio = Double(expected.count) / Double(actual.count)
-                return 0.7 + (0.2 * matchRatio) // 0.7-0.9 depending on match quality
-            } else if expected.localizedCaseInsensitiveContains(actual) {
-                // The expected value contains the actual value
-                let matchRatio = Double(actual.count) / Double(expected.count)
-                return 0.6 + (0.3 * matchRatio) // 0.6-0.9 depending on match quality
-            }
-            return 0.0
-            
-        case .startsWith:
-            // StartsWith: 1.0 for exact match, 0.8 for startsWith, 0.0 for no match
-            if actual == expected {
-                return 1.0
-            } else if actual.localizedStandardRange(of: expected)?.lowerBound == actual.startIndex {
-                // Calculate how significant the match is based on length ratio
-                let matchRatio = Double(expected.count) / Double(actual.count)
-                return 0.8 + (0.2 * matchRatio) // 0.8-1.0 depending on match quality
-            }
-            return 0.0
-        }
-    }
     
-    /// Get summary information about an element for diagnostic purposes
-    /// - Parameter element: The AXUIElement to describe
-    /// - Returns: A descriptive string and a dictionary of key attributes
-    private func getElementDescription(_ element: AXUIElement) -> (description: String, attributes: [String: String]) {
-        var description = ""
-        var attributes: [String: String] = [:]
-        
-        // Try to get the role
-        var roleRef: CFTypeRef?
-        let roleStatus = AXUIElementCopyAttributeValue(element, "AXRole" as CFString, &roleRef)
-        if roleStatus == .success, let role = roleRef as? String {
-            description += role
-            attributes["AXRole"] = role
-        } else {
-            description += "Unknown"
-        }
-        
-        // Try to get other identifying attributes
-        for attrName in ["AXTitle", "AXDescription", "AXIdentifier", "AXValue"] {
-            var attrRef: CFTypeRef?
-            let status = AXUIElementCopyAttributeValue(element, attrName as CFString, &attrRef)
-            if status == .success {
-                if let stringValue = attrRef as? String, !stringValue.isEmpty {
-                    description += ", \(attrName): \"\(stringValue)\""
-                    attributes[attrName] = stringValue
-                } else if let numberValue = attrRef as? NSNumber {
-                    description += ", \(attrName): \(numberValue)"
-                    attributes[attrName] = numberValue.stringValue
-                } else if let boolValue = attrRef as? Bool {
-                    description += ", \(attrName): \(boolValue)"
-                    attributes[attrName] = boolValue ? "true" : "false"
-                }
-            }
-        }
-        
-        return (description, attributes)
-    }
     
-    /// Resolve this path progressively, providing detailed information about each step
-    /// - Parameter accessibilityService: The AccessibilityService to use for accessing the accessibility API
-    /// - Returns: A PathResolutionResult containing detailed information about the resolution process
-    public func resolvePathProgressively(
-        using accessibilityService: AccessibilityServiceProtocol
-    ) async -> PathResolutionResult {
-        var segmentResults: [SegmentResolutionResult] = []
-        var currentElement: AXUIElement?
-        var failureIndex: Int?
-        var errorMessage: String?
-        
-        // Get the application element as starting point
-        let startElement: AXUIElement
-        
-        // Try to resolve the first segment (application or system-wide element)
-        do {
-            let firstSegment = segments[0]
-            
-            // First segment should be the application or window element
-            if firstSegment.role == "AXApplication" {
-                // Try different approaches to find the application element
-                if let bundleId = firstSegment.attributes["bundleIdentifier"] {
-                    let apps = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId)
-                    
-                    if let app = apps.first {
-                        startElement = AXUIElementCreateApplication(app.processIdentifier)
-                        // Skip to next segment since we resolved this one directly
-                        let segmentInfo = SegmentResolutionResult(
-                            segment: firstSegment.toString(),
-                            success: true,
-                            candidates: [
-                                CandidateElement(
-                                    element: startElement, 
-                                    match: 1.0,
-                                    description: "Application: \(app.localizedName ?? bundleId)",
-                                    attributes: ["bundleIdentifier": bundleId]
-                                )
-                            ],
-                            failureReason: nil
-                        )
-                        segmentResults.append(segmentInfo)
-                        currentElement = startElement
-                    } else {
-                        // Application not found - gather running apps for diagnostics
-                        let runningApps = NSWorkspace.shared.runningApplications
-                        let appCandidates: [CandidateElement] = runningApps.prefix(5).compactMap { app in
-                            guard let appElement = app.processIdentifier != 0 ? 
-                                  AXUIElementCreateApplication(app.processIdentifier) : nil else {
-                                return nil
-                            }
-                            
-                            let appBundleId = app.bundleIdentifier ?? "unknown"
-                            let match = bundleId == appBundleId ? 1.0 : 0.0
-                            return CandidateElement(
-                                element: appElement,
-                                match: match,
-                                description: "Application: \(app.localizedName ?? "Unknown") (\(appBundleId))",
-                                attributes: ["bundleIdentifier": appBundleId]
-                            )
-                        }
-                        
-                        let reason = "Application with bundleIdentifier '\(bundleId)' is not running"
-                        let segmentInfo = SegmentResolutionResult(
-                            segment: firstSegment.toString(),
-                            success: false,
-                            candidates: appCandidates,
-                            failureReason: reason
-                        )
-                        segmentResults.append(segmentInfo)
-                        failureIndex = 0
-                        errorMessage = reason
-                        
-                        // Return early with failure
-                        return PathResolutionResult(
-                            success: false,
-                            resolvedElement: nil,
-                            segments: segmentResults,
-                            failureIndex: failureIndex,
-                            error: errorMessage
-                        )
-                    }
-                }
-                // Try by title/name if provided
-                else if let title = firstSegment.attributes["title"] {
-                    // Get all running applications
-                    let runningApps = NSWorkspace.shared.runningApplications
-                    
-                    // Find application with matching title
-                    if let app = runningApps.first(where: { 
-                        $0.localizedName == title || $0.localizedName?.contains(title) == true 
-                    }) {
-                        startElement = AXUIElementCreateApplication(app.processIdentifier)
-                        
-                        // Skip to next segment since we resolved this one directly
-                        let segmentInfo = SegmentResolutionResult(
-                            segment: firstSegment.toString(),
-                            success: true,
-                            candidates: [
-                                CandidateElement(
-                                    element: startElement, 
-                                    match: 1.0,
-                                    description: "Application: \(app.localizedName ?? title)",
-                                    attributes: ["title": title]
-                                )
-                            ],
-                            failureReason: nil
-                        )
-                        segmentResults.append(segmentInfo)
-                        currentElement = startElement
-                    } else {
-                        // No match found - gather apps for diagnostics
-                        let runningApps = NSWorkspace.shared.runningApplications
-                        let appCandidates: [CandidateElement] = runningApps.prefix(5).compactMap { app in
-                            guard let appElement = app.processIdentifier != 0 ? 
-                                  AXUIElementCreateApplication(app.processIdentifier) : nil,
-                                  let appName = app.localizedName else {
-                                return nil
-                            }
-                            
-                            // Calculate match score based on title similarity
-                            let matchScore: Double
-                            if appName == title {
-                                matchScore = 1.0
-                            } else if appName.localizedCaseInsensitiveContains(title) {
-                                matchScore = 0.7
-                            } else if title.localizedCaseInsensitiveContains(appName) {
-                                matchScore = 0.5
-                            } else {
-                                matchScore = 0.0
-                            }
-                            
-                            return CandidateElement(
-                                element: appElement,
-                                match: matchScore,
-                                description: "Application: \(appName) (\(app.bundleIdentifier ?? "unknown"))",
-                                attributes: ["title": appName]
-                            )
-                        }
-                        
-                        // Sort candidates by match score
-                        let sortedCandidates = appCandidates.sorted { $0.match > $1.match }
-                        
-                        let reason = "Application with title '\(title)' not found"
-                        let segmentInfo = SegmentResolutionResult(
-                            segment: firstSegment.toString(),
-                            success: false,
-                            candidates: sortedCandidates,
-                            failureReason: reason
-                        )
-                        segmentResults.append(segmentInfo)
-                        failureIndex = 0
-                        errorMessage = reason
-                        
-                        // Return early with failure
-                        return PathResolutionResult(
-                            success: false,
-                            resolvedElement: nil,
-                            segments: segmentResults,
-                            failureIndex: failureIndex,
-                            error: errorMessage
-                        )
-                    }
-                }
-                // Use focused application as fallback
-                else {
-                    do {
-                        // Get the focused application from the accessibility service
-                        let focusedElement = try await accessibilityService.getFocusedApplicationUIElement(recursive: false, maxDepth: 1)
-                        
-                        // Check if we got a valid element
-                        guard let axElement = focusedElement.axElement else {
-                            throw ElementPathError.segmentResolutionFailed("Could not get focused application element", atSegment: 0)
-                        }
-                        
-                        startElement = axElement
-                        
-                        // Add segment info for the focused app
-                        let segmentInfo = SegmentResolutionResult(
-                            segment: firstSegment.toString(),
-                            success: true,
-                            candidates: [
-                                CandidateElement(
-                                    element: startElement, 
-                                    match: 1.0,
-                                    description: "Focused application",
-                                    attributes: ["focused": "true"]
-                                )
-                            ],
-                            failureReason: nil
-                        )
-                        segmentResults.append(segmentInfo)
-                        currentElement = startElement
-                    } catch {
-                        // If that fails, try to get the frontmost application using NSWorkspace
-                        guard let frontApp = NSWorkspace.shared.frontmostApplication else {
-                            let reason = "Could not determine frontmost application"
-                            let segmentInfo = SegmentResolutionResult(
-                                segment: firstSegment.toString(),
-                                success: false,
-                                candidates: [],
-                                failureReason: reason
-                            )
-                            segmentResults.append(segmentInfo)
-                            failureIndex = 0
-                            errorMessage = reason
-                            
-                            // Return early with failure
-                            return PathResolutionResult(
-                                success: false,
-                                resolvedElement: nil,
-                                segments: segmentResults,
-                                failureIndex: failureIndex,
-                                error: errorMessage
-                            )
-                        }
-                        
-                        startElement = AXUIElementCreateApplication(frontApp.processIdentifier)
-                        
-                        // Add segment info for the frontmost app
-                        let segmentInfo = SegmentResolutionResult(
-                            segment: firstSegment.toString(),
-                            success: true,
-                            candidates: [
-                                CandidateElement(
-                                    element: startElement, 
-                                    match: 1.0,
-                                    description: "Frontmost application: \(frontApp.localizedName ?? "Unknown")",
-                                    attributes: ["frontmost": "true"]
-                                )
-                            ],
-                            failureReason: nil
-                        )
-                        segmentResults.append(segmentInfo)
-                        currentElement = startElement
-                    }
-                }
-            } 
-            // For system-wide operations or other special starting points
-            else if firstSegment.role == "AXSystemWide" {
-                startElement = AXUIElementCreateSystemWide()
-                
-                // Add segment info for the system-wide element
-                let segmentInfo = SegmentResolutionResult(
-                    segment: firstSegment.toString(),
-                    success: true,
-                    candidates: [
-                        CandidateElement(
-                            element: startElement, 
-                            match: 1.0,
-                            description: "System-wide element",
-                            attributes: [:]
-                        )
-                    ],
-                    failureReason: nil
-                )
-                segmentResults.append(segmentInfo)
-                currentElement = startElement
-            }
-            // For any other element type as the first segment
-            else {
-                // Get the system-wide element as starting point for a broader search
-                startElement = AXUIElementCreateSystemWide()
-                
-                // Try to resolve the first segment using the system-wide element
-                let segmentResult = await resolveSegmentProgressively(
-                    element: startElement,
-                    segment: firstSegment,
-                    segmentIndex: 0
-                )
-                
-                segmentResults.append(segmentResult)
-                
-                if segmentResult.success, let bestCandidate = segmentResult.candidates.first {
-                    currentElement = bestCandidate.element
-                } else {
-                    // First segment resolution failed
-                    failureIndex = 0
-                    errorMessage = segmentResult.failureReason ?? "Could not resolve first segment"
-                    
-                    // Return early with failure
-                    return PathResolutionResult(
-                        success: false,
-                        resolvedElement: nil,
-                        segments: segmentResults,
-                        failureIndex: failureIndex,
-                        error: errorMessage
-                    )
-                }
-            }
-            
-            // Now we have our starting point, traverse the remaining segments
-            for (index, segment) in segments.enumerated() {
-                // Skip the first segment if we already resolved it
-                if index == 0 && currentElement != nil {
-                    continue
-                }
-                
-                // Make sure we have a current element to work with
-                guard let element = currentElement else {
-                    let reason = "No element available to resolve segment"
-                    let segmentInfo = SegmentResolutionResult(
-                        segment: segment.toString(),
-                        success: false,
-                        candidates: [],
-                        failureReason: reason
-                    )
-                    segmentResults.append(segmentInfo)
-                    failureIndex = index
-                    errorMessage = reason
-                    break
-                }
-                
-                // Resolve this segment
-                let segmentResult = await resolveSegmentProgressively(
-                    element: element,
-                    segment: segment,
-                    segmentIndex: index
-                )
-                
-                segmentResults.append(segmentResult)
-                
-                if segmentResult.success, let bestCandidate = segmentResult.candidates.first {
-                    currentElement = bestCandidate.element
-                } else {
-                    // Segment resolution failed
-                    failureIndex = index
-                    errorMessage = segmentResult.failureReason ?? "Could not resolve segment"
-                    currentElement = nil
-                    break
-                }
-            }
-            
-            // Build the final result
-            return PathResolutionResult(
-                success: currentElement != nil,
-                resolvedElement: currentElement,
-                segments: segmentResults,
-                failureIndex: failureIndex,
-                error: errorMessage
-            )
-        }
-    }
     
-    /// Resolve a single segment with detailed information about the matching process
-    /// - Parameters:
-    ///   - element: The starting element
-    ///   - segment: The segment to resolve
-    ///   - segmentIndex: The index of the segment in the path
-    /// - Returns: Detailed information about the resolution attempt
-    private func resolveSegmentProgressively(
-        element: AXUIElement,
-        segment: PathSegment,
-        segmentIndex: Int
-    ) async -> SegmentResolutionResult {
-        // Get children of the element
-        var childrenRef: CFTypeRef?
-        let status = AXUIElementCopyAttributeValue(element, "AXChildren" as CFString, &childrenRef)
-        
-        // Check if we could get children
-        if status != .success || childrenRef == nil {
-            // If this is the first segment, check if the element itself matches
-            if segmentIndex == 0 {
-                let score = await scoreElementMatch(element, segment: segment)
-                if score > 0 {
-                    let (description, attributes) = getElementDescription(element)
-                    let candidate = CandidateElement(
-                        element: element,
-                        match: score,
-                        description: description,
-                        attributes: attributes
-                    )
-                    return SegmentResolutionResult(
-                        segment: segment.toString(),
-                        success: true,
-                        candidates: [candidate],
-                        failureReason: nil
-                    )
-                }
-            }
-            
-            return SegmentResolutionResult(
-                segment: segment.toString(),
-                success: false,
-                candidates: [],
-                failureReason: "Could not get children for element"
-            )
-        }
-        
-        // Cast to array of elements
-        guard let children = childrenRef as? [AXUIElement] else {
-            return SegmentResolutionResult(
-                segment: segment.toString(),
-                success: false,
-                candidates: [],
-                failureReason: "Children not in expected format"
-            )
-        }
-        
-        // Evaluate all children and calculate match scores
-        var candidates: [CandidateElement] = []
-        
-        for child in children {
-            let score = await scoreElementMatch(child, segment: segment)
-            if score > 0 {
-                let (description, attributes) = getElementDescription(child)
-                candidates.append(CandidateElement(
-                    element: child,
-                    match: score,
-                    description: description,
-                    attributes: attributes
-                ))
-            }
-        }
-        
-        // Special case for when the parent element itself matches
-        if segmentIndex == 0 {
-            let score = await scoreElementMatch(element, segment: segment)
-            if score > 0 {
-                let (description, attributes) = getElementDescription(element)
-                candidates.append(CandidateElement(
-                    element: element,
-                    match: score,
-                    description: description,
-                    attributes: attributes
-                ))
-            }
-        }
-        
-        // Sort candidates by match score (highest first)
-        candidates.sort { $0.match > $1.match }
-        
-        // Handle based on number of high-quality matches
-        let highQualityThreshold = 0.8
-        let highQualityMatches = candidates.filter { $0.match >= highQualityThreshold }
-        
-        if candidates.isEmpty {
-            // No matches at all
-            return SegmentResolutionResult(
-                segment: segment.toString(),
-                success: false,
-                candidates: [],
-                failureReason: "No elements match this segment"
-            )
-        } else if highQualityMatches.isEmpty && !candidates.isEmpty {
-            // We have matches, but none with high confidence
-            return SegmentResolutionResult(
-                segment: segment.toString(),
-                success: false,
-                candidates: candidates,
-                failureReason: "No high-quality matches found"
-            )
-        } else if highQualityMatches.count == 1 || segment.index != nil {
-            // We have a single high-quality match or an index was specified
-            
-            // If index was specified, use it to select
-            if let index = segment.index {
-                if index < 0 || index >= highQualityMatches.count {
-                    return SegmentResolutionResult(
-                        segment: segment.toString(),
-                        success: false,
-                        candidates: highQualityMatches,
-                        failureReason: "Index out of range: \(index)"
-                    )
-                }
-                
-                // The matching candidates are already sorted by score
-                return SegmentResolutionResult(
-                    segment: segment.toString(),
-                    success: true,
-                    candidates: highQualityMatches,
-                    failureReason: nil
-                )
-            }
-            
-            // No index specified, but we have a single high-quality match
-            return SegmentResolutionResult(
-                segment: segment.toString(),
-                success: true,
-                candidates: highQualityMatches,
-                failureReason: nil
-            )
-        } else {
-            // Multiple high-quality matches and no index - ambiguous
-            return SegmentResolutionResult(
-                segment: segment.toString(),
-                success: false,
-                candidates: highQualityMatches,
-                failureReason: "Multiple elements (\(highQualityMatches.count)) match this segment. Add more specific attributes or use an index."
-            )
-        }
-	}
-}
-/// Result of a progressive path resolution operation
-public struct PathResolutionResult: Sendable {
-    /// Whether the full path resolution was successful
-    public let success: Bool
-    
-    /// The final resolved element if successful
-    public let resolvedElement: AXUIElement?
-    
-    /// Per-segment resolution results
-    public let segments: [SegmentResolutionResult]
-    
-    /// Index where resolution failed, if any
-    public let failureIndex: Int?
-    
-    /// Error message if resolution failed
-    public let error: String?
-}
-
-/// Result of a single segment resolution attempt
-public struct SegmentResolutionResult: Sendable {
-    /// The segment string that was resolved
-    public let segment: String
-    
-    /// Whether this segment was successfully resolved
-    public let success: Bool
-    
-    /// Potential matching elements (ranked by match quality)
-    public let candidates: [CandidateElement]
-    
-    /// Reason why resolution failed, if applicable
-    public let failureReason: String?
-}
-
-/// A candidate element that might match a path segment
-public struct CandidateElement: Sendable {
-    /// The UI element
-    public let element: AXUIElement
-    
-    /// Match score (0.0 to 1.0 with 1.0 being a perfect match)
-    public let match: Double
-    
-    /// Description of the element for debugging
-    public let description: String
-    
-    /// Key attributes that identify this element
-    public let attributes: [String: String]
 }

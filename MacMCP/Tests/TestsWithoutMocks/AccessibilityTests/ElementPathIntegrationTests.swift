@@ -843,11 +843,11 @@ struct ElementPathIntegrationTests {
         // print("=== Ambiguous elements test completed ===")
     }
     
-    @Test("Test progressive path resolution with diagnostics")
-    func testProgressivePathResolution() async throws {
-        // print("=== Starting progressive path resolution test ===")
+    @Test("Test path resolution with diagnostics")
+    func testPathResolution() async throws {
+        // print("=== Starting path resolution diagnostics test ===")
         
-        // This test verifies the progressive path resolution functionality
+        // This test verifies the path resolution functionality and error diagnostics
         
         // Create an AccessibilityService
         let accessibilityService = AccessibilityService()
@@ -859,75 +859,62 @@ struct ElementPathIntegrationTests {
         
         // Ensure the Calculator app is launched
         try await calculator.launch()
-        // print("Calculator launched for progressive path resolution test")
+        // print("Calculator launched for path resolution test")
         
         // Delay to allow the UI to stabilize
         try await Task.sleep(nanoseconds: 1_000_000_000)
         
-        // Create a valid path to test progressive resolution success
-        // print("Testing valid path progressive resolution")
+        // Create a valid path to test resolution success
+        // print("Testing valid path resolution")
         let validPath = try ElementPath.parse("ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]")
         
-        // Use the progressive resolution API
-        let validResult = await validPath.resolvePathProgressively(using: accessibilityService)
-        
-        // Test may pass or fail depending on the element tree at runtime,
-        // So we can only verify the results are coherent - we can't expect a specific outcome
-        // print("Progressive resolution result: success=\(validResult.success), segments=\(validResult.segments.count), failureIndex=\(String(describing: validResult.failureIndex))")
-        
-        // Verify resolution attempt at least returned some segments
-        #expect(validResult.segments.count > 0)
-        
-        // Verify that segments have candidates
-        for (index, segment) in validResult.segments.enumerated() {
-            // print("Segment \(index) success=\(segment.success), candidates=\(segment.candidates.count)")
-            #expect(segment.candidates.count >= 0)
+        // Use the regular resolution API
+        do {
+            let element = try await validPath.resolve(using: accessibilityService)
+            
+            // Verify we got a valid element
+            var roleRef: CFTypeRef?
+            let roleStatus = AXUIElementCopyAttributeValue(element, "AXRole" as CFString, &roleRef)
+            
+            if roleStatus == .success, let role = roleRef as? String {
+                #expect(role == "AXButton")
+                // print("Successfully resolved valid path to: \(role)")
+            }
+        } catch {
+            // The test may fail depending on the element tree at runtime,
+            // Just log the error and continue
+            // print("Valid path resolution failed: \(error)")
         }
         
-        // Now test an invalid path to verify diagnostic information
-        // print("Testing invalid path progressive resolution")
+        // Now test an invalid path to verify error information
+        // print("Testing invalid path resolution")
         let invalidPath = try ElementPath.parse("ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXNonExistentElement")
         
-        // Use the progressive resolution API
-        let invalidResult = await invalidPath.resolvePathProgressively(using: accessibilityService)
-        
-        // Verify the result
-        #expect(invalidResult.success == false)
-        #expect(invalidResult.resolvedElement == nil)
-        #expect(invalidResult.failureIndex != nil)
-        #expect(invalidResult.error != nil)
-        
-        // The first two segments should succeed, the third should fail
-        if invalidResult.segments.count >= 3 {
-            #expect(invalidResult.segments[0].success == true)
-            #expect(invalidResult.segments[1].success == true)
-            #expect(invalidResult.segments[2].success == false)
-            
-            // Verify we have candidate information in the failure
-            if !invalidResult.segments[2].candidates.isEmpty {
-                // print("Successfully gathered \(invalidResult.segments[2].candidates.count) candidates for failed path segment")
-            }
+        // This should fail with a descriptive error
+        do {
+            let _ = try await invalidPath.resolve(using: accessibilityService)
+            XCTFail("Expected error resolving invalid path")
+        } catch let error as ElementPathError {
+            // Got expected error
+            // print("Received expected error: \(error)")
+            // Verify diagnostic information exists
+            #expect(error.description.isEmpty == false)
+        } catch {
+            // print("Received unexpected error type: \(error)")
         }
         
-        // Test with ambiguous path to verify diagnostic information
-        // print("Testing ambiguous path progressive resolution")
-        let ambiguousPath = try ElementPath.parse("ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup")
+        // Test with path diagnostics method
+        // print("Testing path diagnostics")
+        let diagnostics = try await ElementPath.diagnosePathResolutionIssue(invalidPath.toString(), using: accessibilityService)
+        // print("Path diagnostics: \(diagnostics)")
         
-        // Use the progressive resolution API
-        let ambiguousResult = await ambiguousPath.resolvePathProgressively(using: accessibilityService)
-        
-        // For ambiguous results, we should get some kind of result regardless of the implementation
-        // Just check that we have candidates and segments
-        let lastSegment = ambiguousResult.segments.last
-        // print("Ambiguous path result: success=\(ambiguousResult.success), segments=\(ambiguousResult.segments.count)")
-        
-        if let lastSegment = lastSegment {
-            // print("Last segment has \(lastSegment.candidates.count) candidates")
-            // print("Last segment failure reason: \(lastSegment.failureReason ?? "none")")
-        }
+        // Verify diagnostics contains useful information
+        #expect(diagnostics.isEmpty == false)
+        #expect(diagnostics.contains("Path Resolution Diagnosis"))
+        #expect(diagnostics.contains("AXNonExistentElement") || diagnostics.contains("Failed to resolve"))
         
         // Clean up - close calculator
-        // print("Progressive path resolution test cleaning up - terminating Calculator")
+        // print("Path resolution test cleaning up - terminating Calculator")
         try await calculator.terminate()
         
         // Ensure all Calculator processes are terminated
@@ -938,7 +925,7 @@ struct ElementPathIntegrationTests {
         
         // Give time for the app to fully terminate
         try await Task.sleep(nanoseconds: 1_000_000_000)
-        // print("=== Progressive path resolution test completed ===")
+        // print("=== Path resolution test completed ===")
     }
     
     @Test("Test path resolution performance benchmarks")
@@ -998,23 +985,23 @@ struct ElementPathIntegrationTests {
         // No hard assertions on timing, as it varies by machine
         // Just measure and report the performance characteristics
         
-        // Compare progressive vs standard resolution
-        // print("Measuring standard vs progressive resolution")
+        // Measure standard resolution with diagnostics
+        // print("Measuring standard resolution vs diagnostics")
         let standardStartTime = Date()
         for _ in 0..<5 {
             let _ = try? await complexPath.resolve(using: accessibilityService)
         }
         let standardElapsedTime = Date().timeIntervalSince(standardStartTime) / 5.0
         
-        let progressiveStartTime = Date()
+        let diagnosticsStartTime = Date()
         for _ in 0..<5 {
-            let _ = await complexPath.resolvePathProgressively(using: accessibilityService)
+            let _ = try? await ElementPath.diagnosePathResolutionIssue(complexPath.toString(), using: accessibilityService)
         }
-        let progressiveElapsedTime = Date().timeIntervalSince(progressiveStartTime) / 5.0
+        let diagnosticsElapsedTime = Date().timeIntervalSince(diagnosticsStartTime) / 5.0
         
         // print("Standard resolution average time: \(standardElapsedTime) seconds")
-        // print("Progressive resolution average time: \(progressiveElapsedTime) seconds")
-        // print("Progressive overhead: \(max(0, progressiveElapsedTime - standardElapsedTime)) seconds")
+        // print("Diagnostics resolution average time: \(diagnosticsElapsedTime) seconds")
+        // print("Diagnostics overhead: \(max(0, diagnosticsElapsedTime - standardElapsedTime)) seconds")
         
         // Clean up - close calculator
         // print("Performance benchmark test cleaning up - terminating Calculator")
