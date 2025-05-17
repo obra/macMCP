@@ -4,7 +4,6 @@
 import Foundation
 @preconcurrency import AppKit
 @preconcurrency import ApplicationServices
-import CryptoKit
 
 /// Utility for working with AXUIElement objects
 public class AccessibilityElement {
@@ -68,16 +67,6 @@ public class AccessibilityElement {
         let frameSource: FrameSource
         var normalizedFrame: CGRect? = nil
         var viewportFrame: CGRect? = nil
-
-        // We need a preliminary frame for fingerprinting
-        var tempFrame: CGRect = .zero
-        // Try to get basic frame info for identifiers
-        if let positionValue = try? getAttribute(axElement, attribute: AXAttribute.position) as? NSValue,
-           let sizeValue = try? getAttribute(axElement, attribute: AXAttribute.size) as? NSValue {
-            tempFrame = CGRect(origin: positionValue.pointValue, size: sizeValue.sizeValue)
-        } else if let axFrame = try? getAttribute(axElement, attribute: AXAttribute.frame) as? NSValue {
-            tempFrame = axFrame.rectValue
-        }
         
         // Get the frame information with all the enhanced detections
         (frame, frameSource, normalizedFrame, viewportFrame) = getFrameInformation(
@@ -112,115 +101,43 @@ public class AccessibilityElement {
             attributes["application"] = parentApp
         }
         
-        // Generate a globally unique, stable identifier for this element
-        let identifier: String
-        do {
-            // Step 1: Get the native accessibility identifier if available
-            let nativeID = try getAttribute(axElement, attribute: AXAttribute.identifier) as? String
-            
-            // Check if we have a valid native ID and it meets our requirements
-            let validNativeID = nativeID?.isEmpty == false
-            
-            // We'll use the native ID as part of our identifier structure, but we want
-            // to ensure global uniqueness by adding context information
-            
-            // Create a "fingerprint" of the element using its properties
-            var fingerprintParts: [String] = []
-            
-            // Always include the role as the primary type indicator
-            fingerprintParts.append(role)
-            
-            // Include application context when available - critical for global uniqueness
-            if let app = attributes["application"] as? String {
-                fingerprintParts.append(app)
-            }
-            
-            // Include position for spatial uniqueness (helpful for grids of similar elements)
-            let positionPart = "pos-\(Int(tempFrame.origin.x))-\(Int(tempFrame.origin.y))"
-            fingerprintParts.append(positionPart)
-            
-            // Include size information for additional uniqueness
-            let sizePart = "size-\(Int(tempFrame.size.width))-\(Int(tempFrame.size.height))"
-            fingerprintParts.append(sizePart)
-            
-            // Format the element's descriptive information (used for human readability)
-            let descriptivePart: String
-            if validNativeID {
-                // If this element has a native ID, prioritize that as the descriptive part
-                descriptivePart = nativeID!
-            } else if let title = title, !title.isEmpty {
-                // Next priority is the title for common interactive controls
-                descriptivePart = title
-            } else if let description = description, !description.isEmpty {
-                // Next priority is the accessibility description
-                descriptivePart = description
-            } else if let value = value, !value.isEmpty {
-                // Next priority is the value
-                descriptivePart = "value-\(value)"
-            } else {
-                // Fallback to just using role
-                descriptivePart = role
-            }
-            
-            // Add the descriptive part to the fingerprint
-            fingerprintParts.append("desc-\(descriptivePart)")
-            
-            // Join all parts and create a hash for the stable part of the identifier
-            let fingerprint = fingerprintParts.joined(separator: "::")
-            let fingerprintData = fingerprint.data(using: .utf8) ?? Data()
-            
-            // Generate a hash from the fingerprint
-            let hashedID: String
-            if #available(macOS 10.15, *) {
-                let digest = SHA256.hash(data: fingerprintData)
-                let hashBytes = digest.prefix(8)
-                hashedID = hashBytes.map { String(format: "%02x", $0) }.joined()
-            } else {
-                // Fallback for older macOS versions
-                let hash = abs(fingerprint.hashValue)
-                hashedID = String(format: "%016llx", UInt64(hash))
-            }
-            
-            // Create the final identifier structure
-            // Check if this is a menu-related element
-            if role == AXAttribute.Role.menuItem ||
-               role == AXAttribute.Role.menu ||
-               role == "AXMenuBarItem" ||
-               role == "AXMenuBar" {
-
-                // Use path-based identifiers for menu items
-                identifier = generateMenuPathIdentifier(
-                    role: role,
-                    title: title,
-                    description: description,
-                    parent: parent,
-                    path: path
-                )
-            }
-            // For common interactive controls like buttons, we include the descriptive part directly
-            // in the identifier to make it more recognizable to Claude
-            else if role == AXAttribute.Role.button ||
-                    role == AXAttribute.Role.checkbox ||
-                    role == AXAttribute.Role.radioButton ||
-                    role == AXAttribute.Role.textField {
-
-                // For native IDs, preserve them in a consistent format to ensure compatibility
-                if validNativeID {
-                    identifier = "ui:\(nativeID!):\(hashedID)"
-                } else {
-                    // Create a more human-readable version for interactive elements
-                    identifier = "ui:\(descriptivePart):\(hashedID)"
-                }
-            } else {
-                // For other elements, use a more generic format
-                identifier = "ui:\(role):\(hashedID)"
-            }
-        } catch {
-            // On error, generate a fallback UUID with role as prefix
-            let fallbackUUID = UUID().uuidString
-            let shortUUID = fallbackUUID.prefix(8).lowercased()
-            identifier = "ui:\(role):\(shortUUID)"
+        // Generate an ElementPath-based identifier for this element
+        // Build the current path segment
+        var attributePairs: [String: String] = [:]
+        
+        // Add native identifier if available
+        if let nativeID = try? getAttribute(axElement, attribute: AXAttribute.identifier) as? String, 
+           !nativeID.isEmpty {
+            attributePairs["identifier"] = nativeID
         }
+        
+        // Add title if available and not empty
+        if let title = title, !title.isEmpty {
+            attributePairs["title"] = title
+        }
+        
+        // Add description if available and not empty
+        if let description = description, !description.isEmpty {
+            attributePairs["description"] = description
+        }
+        
+        // For application elements, add bundle identifier if possible
+        if role == AXAttribute.Role.application {
+            var pid: pid_t = 0
+            let pidResult = AXUIElementGetPid(axElement, &pid)
+            if pidResult == .success && pid != 0 {
+                if let app = NSRunningApplication(processIdentifier: pid), 
+                   let bundleID = app.bundleIdentifier {
+                    attributePairs["bundleIdentifier"] = bundleID
+                }
+            }
+        }
+        
+        // Construct the path - format: ui://AXRole[@attr="value"]
+        let elementPath = createElementPathString(role: role, attributes: attributePairs)
+        
+        // Use the ElementPath as the identifier
+        let identifier = elementPath
         
         // Now that we have an identifier, we'll use the frame-related variables that are already defined
 
@@ -254,6 +171,9 @@ public class AccessibilityElement {
             attributes: attributes,
             actions: actions
         )
+        
+        // Set the path property to ensure it's available
+        element.path = identifier
         
         // Recursively get children if requested and we haven't reached max depth
         var children: [UIElement] = []
@@ -410,10 +330,8 @@ public class AccessibilityElement {
         // Store the AXUIElement for reference
         uiElement.axElement = axElement
         
-        // Set the path if we have one
-        if !path.isEmpty {
-            uiElement.path = path
-        }
+        // Set the path property to ensure it's available
+        uiElement.path = identifier
         
         return uiElement
     }
@@ -657,9 +575,20 @@ public class AccessibilityElement {
         let role: String = try getAttribute(axElement, attribute: AXAttribute.role) as? String ?? "unknown"
         let title: String? = try? getAttribute(axElement, attribute: AXAttribute.title) as? String
         
-        // Just create an identifier from memory address - we won't need deep equality
+        // Create attributes dictionary for path creation
+        var attributePairs: [String: String] = [:]
+        
+        // Add title if available
+        if let title = title, !title.isEmpty {
+            attributePairs["title"] = title
+        }
+        
+        // Add a memory address as an additional identifier to ensure uniqueness for stubs
         let address = UInt(bitPattern: Unmanaged.passUnretained(axElement).toOpaque())
-        let identifier = "\(role)_\(title ?? "untitled")_\(address)"
+        attributePairs["memoryAddress"] = String(address)
+        
+        // Create the path-based identifier
+        let elementPath = createElementPathString(role: role, attributes: attributePairs)
         
         // Get a minimal frame
         let frame: CGRect
@@ -670,8 +599,8 @@ public class AccessibilityElement {
         }
         
         // Create minimal element - no children, empty attributes and actions 
-        return UIElement(
-            identifier: identifier,
+        let element = UIElement(
+            identifier: elementPath,
             role: role,
             title: title,
             value: nil,
@@ -685,6 +614,11 @@ public class AccessibilityElement {
             attributes: [:],
             actions: []
         )
+        
+        // Set the path property to ensure it's available
+        element.path = elementPath
+        
+        return element
     }
     
     /// Get frame information for an accessibility element with multiple detection methods
@@ -1195,95 +1129,21 @@ public class AccessibilityElement {
         try setAttribute(element, attribute: attribute, value: value)
     }
 
-    /// Generate a path-based identifier for menu elements
+    /// Creates a standard ElementPath string for an accessibility element
     /// - Parameters:
-    ///   - role: The element's role
-    ///   - title: The element's title
-    ///   - description: The element's description
-    ///   - parent: The parent UI element
-    ///   - path: The element's path in hierarchy
-    /// - Returns: A path-based identifier string
-    private static func generateMenuPathIdentifier(
-        role: String,
-        title: String?,
-        description: String?,
-        parent: UIElement?,
-        path: String
-    ) -> String {
-        // First, determine the display name for this element
-        let shortenedRole = role.replacingOccurrences(of: "AX", with: "")
-        let displayName: String
+    ///   - role: The accessibility role of the element
+    ///   - attributes: Key-value pairs of attributes to include in the path
+    /// - Returns: A properly formatted ElementPath string (ui://role[@attr="value"])
+    private static func createElementPathString(role: String, attributes: [String: String]) -> String {
+        var pathString = "ui://" + role
         
-        if let title = title, !title.isEmpty {
-            displayName = title
-        } else if let description = description, !description.isEmpty {
-            displayName = description
-        } else {
-            // When no name is available, use the role
-            displayName = "\(shortenedRole)"
+        // Add attributes in format [@key="value"]
+        for (key, value) in attributes.sorted(by: { $0.key < $1.key }) {
+            // Escape quotes in the value to maintain valid syntax
+            let escapedValue = value.replacingOccurrences(of: "\"", with: "\\\"")
+            pathString += "[@\(key)=\"\(escapedValue)\"]"
         }
         
-        // Start building the path components, beginning with this element
-        var pathComponents = [displayName]
-        
-        // If we have a parent, use it to build the path upward
-        if let parent = parent {
-            // Recursively collect parent names up the menu chain
-            var parentPathComponents: [String] = []
-            var currentParent: UIElement? = parent
-            var depth = 0
-            var siblingIndex = 0
-            
-            while currentParent != nil {
-                // Try to find index of child among siblings to use for position-based naming
-                if let grandparent = currentParent!.parent {
-                    if let index = grandparent.children.firstIndex(where: { $0.identifier == currentParent!.identifier }) {
-                        siblingIndex = index
-                    }
-                }
-                
-                // Only include menu-related elements in the path
-                if isMenuElement(currentParent!.role) {
-                    let parentShortenedRole = currentParent!.role.replacingOccurrences(of: "AX", with: "")
-                    var parentName: String
-                    
-                    if let title = currentParent!.title, !title.isEmpty {
-                        parentName = title
-                    } else if let description = currentParent!.elementDescription, !description.isEmpty {
-                        parentName = description
-                    } else {
-                        // For unnamed elements, include role and position
-                        parentName = "\(parentShortenedRole)\(siblingIndex + 1)"
-                    }
-                    
-                    parentPathComponents.insert(parentName, at: 0)
-                }
-                
-                // Move up to the next parent
-                currentParent = currentParent!.parent
-                depth += 1
-            }
-            
-            // Add parent components to the beginning of our path
-            pathComponents = parentPathComponents + pathComponents
-        }
-        
-        // If we couldn't build a path (no parents or no names), use a fallback
-        if pathComponents.isEmpty {
-            // Use the path parameter as a fallback
-            let pathElements = path.split(separator: "/")
-            
-            // If path is also empty, use a default with role and UUID
-            if pathElements.isEmpty {
-                return "ui:menu:\(shortenedRole)_\(UUID().uuidString.prefix(8))"
-            }
-            
-            // Build a path-based ID from the path parameter
-            return "ui:menu:\(pathElements.joined(separator: " > "))"
-        }
-        
-        // Build the final path-based ID
-        let pathString = pathComponents.joined(separator: " > ")
-        return "ui:menu:\(pathString)"
+        return pathString
     }
 }
