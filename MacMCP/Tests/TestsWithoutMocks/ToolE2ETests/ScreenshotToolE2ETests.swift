@@ -259,12 +259,12 @@ final class ScreenshotToolE2ETests: XCTestCase {
             for i in 0..<elementsToCaptureCount {
                 do {
                     let element = buttonElements[i]
-                    print("Attempting to capture element \(i+1): \(element.identifier)")
+                    print("Attempting to capture element \(i+1): \(element.path)")
 
                     // Create parameters for element screenshot
                     let elementParams: [String: Value] = [
                         "region": .string("element"),
-                        "elementPath": .string(element.path ?? "ui://AXApplication[@bundleIdentifier=\"\(calculatorBundleId)\"]/AXWindow/AXButton")
+                        "elementPath": .string(element.path)
                     ]
 
                     // Capture the element screenshot
@@ -319,12 +319,12 @@ final class ScreenshotToolE2ETests: XCTestCase {
             if !windowElements.isEmpty {
                 print("Found \(windowElements.count) window element(s). Attempting to screenshot by element ID...")
 
-                let windowElementId = windowElements[0].identifier
+                let windowElementPath = windowElements[0].path
 
                 // Create parameters for element screenshot
                 let elementParams: [String: Value] = [
                     "region": .string("element"),
-                    "elementPath": .string(windowElements[0].path ?? "ui://AXApplication[@bundleIdentifier=\"\(calculatorBundleId)\"]/AXWindow")
+                    "elementPath": .string(windowElements[0].path)
                 ]
 
                 // Capture the window element screenshot
@@ -414,7 +414,7 @@ final class ScreenshotToolE2ETests: XCTestCase {
         if !buttonElements.isEmpty {
             print("Sample of Calculator UI elements found:")
             for (index, element) in buttonElements.prefix(5).enumerated() {
-                print("  Element \(index + 1): \(element.role) - \(element.description) (ID: \(element.identifier))")
+                print("  Element \(index + 1): \(element.role) - \(element.description) (Path: \(element.path))")
             }
 
             // We've successfully discovered elements - test passed
@@ -449,7 +449,7 @@ final class ScreenshotToolE2ETests: XCTestCase {
         // We no longer need to capture element screenshots here
         if !buttonElements.isEmpty {
             let elementToScreenshot = buttonElements[0]
-            print("First button element ID: \(elementToScreenshot.identifier)")
+            print("First button element path: \(elementToScreenshot.path)")
         }
     }
     

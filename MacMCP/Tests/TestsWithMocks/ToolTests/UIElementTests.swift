@@ -9,7 +9,7 @@ struct UIElementTests {
     @Test("UIElement initialization and properties")
     func testUIElementInitialization() {
         let element = UIElement(
-            identifier: "test-element",
+            path: "ui://AXButton[@title=\"Test Button\"]",
             role: "button",
             title: "Test Button",
             value: "test value",
@@ -24,7 +24,7 @@ struct UIElementTests {
             actions: ["press", "show menu"]
         )
         
-        #expect(element.identifier == "test-element")
+        #expect(element.path == "ui://AXButton[@title=\"Test Button\"]")
         #expect(element.role == "button")
         #expect(element.title == "Test Button")
         #expect(element.value == "test value")
@@ -46,21 +46,21 @@ struct UIElementTests {
     @Test("UIElement child relationships")
     func testUIElementChildren() {
         let child1 = UIElement(
-            identifier: "child-1",
+            path: "ui://AXText[@title=\"Child 1\"]",
             role: "text",
             title: "Child 1",
             frame: CGRect(x: 0, y: 0, width: 50, height: 25)
         )
         
         let child2 = UIElement(
-            identifier: "child-2",
+            path: "ui://AXImage[@title=\"Child 2\"]",
             role: "image",
             title: "Child 2", 
             frame: CGRect(x: 0, y: 30, width: 50, height: 25)
         )
         
         let parent = UIElement(
-            identifier: "parent",
+            path: "ui://AXGroup[@title=\"Parent Element\"]",
             role: "group",
             title: "Parent Element",
             frame: CGRect(x: 10, y: 10, width: 200, height: 100),
@@ -68,14 +68,14 @@ struct UIElementTests {
         )
         
         #expect(parent.children.count == 2)
-        #expect(parent.children[0].identifier == "child-1")
-        #expect(parent.children[1].identifier == "child-2")
+        #expect(parent.children[0].path == "ui://AXText[@title=\"Child 1\"]") 
+        #expect(parent.children[1].path == "ui://AXImage[@title=\"Child 2\"]")
     }
     
     @Test("UIElement to JSON conversion")
     func testUIElementToJSON() throws {
         let element = UIElement(
-            identifier: "test-element",
+            path: "ui://AXButton[@title=\"Test Button\"]",
             role: "button",
             title: "Test Button",
             value: "test value",
@@ -90,7 +90,7 @@ struct UIElementTests {
         
         let json = try element.toJSON()
         
-        #expect(json["identifier"] as? String == "test-element")
+        #expect(json["path"] as? String == "ui://AXButton[@title=\"Test Button\"]")
         #expect(json["role"] as? String == "button")
         #expect(json["title"] as? String == "Test Button")
         #expect(json["value"] as? String == "test value")
@@ -123,7 +123,7 @@ struct UIElementTests {
     @Test("UIElement to MCP Value conversion")
     func testUIElementToValue() throws {
         let element = UIElement(
-            identifier: "test-element",
+            path: "ui://AXButton[@title=\"Test Button\"]",
             role: "button",
             title: "Test Button",
             frame: CGRect(x: 10, y: 20, width: 100, height: 50)
@@ -135,7 +135,7 @@ struct UIElementTests {
         let dictionary = try JSONSerialization.jsonObject(with: jsonData) as? [String: Any]
         
         // Test some fields
-        #expect(dictionary?["identifier"] as? String == "test-element")
+        #expect(dictionary?["path"] as? String == "ui://AXButton[@title=\"Test Button\"]")
         #expect(dictionary?["role"] as? String == "button")
         #expect(dictionary?["title"] as? String == "Test Button")
         
@@ -150,7 +150,7 @@ struct UIElementTests {
     @Test("Simple UIElement path generation")
     func testSimplePathGeneration() throws {
         let element = UIElement(
-            identifier: "test-element",
+            path: "ui://AXButton[@title=\"Test Button\"]",
             role: "AXButton",
             title: "Test Button",
             elementDescription: "A test button",
@@ -171,7 +171,7 @@ struct UIElementTests {
     func testPathGenerationWithParents() throws {
         // Create a window element
         let window = UIElement(
-            identifier: "window-1",
+            path: "ui://AXWindow[@title=\"Test Window\"]",
             role: "AXWindow",
             title: "Test Window",
             frame: CGRect(x: 0, y: 0, width: 800, height: 600)
@@ -179,7 +179,7 @@ struct UIElementTests {
         
         // Create a group element
         let group = UIElement(
-            identifier: "group-1",
+            path: "ui://AXWindow[@title=\"Test Window\"]/AXGroup[@title=\"Controls Group\"]",
             role: "AXGroup",
             title: "Controls Group",
             frame: CGRect(x: 10, y: 10, width: 200, height: 100),
@@ -188,7 +188,7 @@ struct UIElementTests {
         
         // Create a button element
         let button = UIElement(
-            identifier: "button-1",
+            path: "ui://AXWindow[@title=\"Test Window\"]/AXGroup[@title=\"Controls Group\"]/AXButton[@title=\"OK Button\"]",
             role: "AXButton",
             title: "OK Button",
             frame: CGRect(x: 20, y: 50, width: 80, height: 30),
@@ -219,7 +219,7 @@ struct UIElementTests {
     func testPathGenerationWithAttributes() throws {
         // Create an element with several attribute types
         let element = UIElement(
-            identifier: "complex-element",
+            path: "ui://AXTextField[@title=\"Search\"][@identifier=\"searchField\"]",
             role: "AXTextField",
             title: "Search",
             value: "query text",
@@ -252,7 +252,7 @@ struct UIElementTests {
     func testPathGenerationWithMissingAttributes() throws {
         // Create an element with minimal attributes
         let element = UIElement(
-            identifier: "minimal-element",
+            path: "ui://AXUnknown",
             role: "AXUnknown",
             frame: CGRect(x: 10, y: 20, width: 100, height: 30)
         )
@@ -273,7 +273,7 @@ struct UIElementTests {
     func testMenuElementPathGeneration() throws {
         // Create a menu bar item
         let menuBarItem = UIElement(
-            identifier: "ui:menu:File",
+            path: "ui://AXMenuBarItem[@title=\"File\"]",
             role: "AXMenuBarItem",
             title: "File",
             frame: CGRect(x: 10, y: 0, width: 50, height: 20)
@@ -281,7 +281,7 @@ struct UIElementTests {
         
         // Create a menu
         let menu = UIElement(
-            identifier: "ui:menu:File > Menu",
+            path: "ui://AXMenuBarItem[@title=\"File\"]/AXMenu",
             role: "AXMenu",
             frame: CGRect(x: 10, y: 20, width: 200, height: 300),
             parent: menuBarItem
@@ -289,7 +289,7 @@ struct UIElementTests {
         
         // Create a menu item
         let menuItem = UIElement(
-            identifier: "ui:menu:File > Open",
+            path: "ui://AXMenuBarItem[@title=\"File\"]/AXMenu/AXMenuItem[@title=\"Open\"]",
             role: "AXMenuItem",
             title: "Open",
             frame: CGRect(x: 10, y: 40, width: 180, height: 20),

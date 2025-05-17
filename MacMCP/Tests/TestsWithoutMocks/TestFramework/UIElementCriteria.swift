@@ -10,13 +10,13 @@ public struct UIElementCriteria {
     // Basic properties to match
     public let role: String?
     public let title: String?
-    public let identifier: String?
+    public let path: String?
     public let value: String?
     public let description: String?
 
     // Content matching options
     public let titleContains: String?
-    public let identifierContains: String?
+    public let pathContains: String?
     public let valueContains: String?
     public let descriptionContains: String?
 
@@ -34,11 +34,11 @@ public struct UIElementCriteria {
     /// - Parameters:
     ///   - role: Exact role to match
     ///   - title: Exact title to match
-    ///   - identifier: Exact identifier to match
+    ///   - path: Exact path to match
     ///   - value: Exact value to match
     ///   - description: Exact description to match
     ///   - titleContains: Title should contain this string
-    ///   - identifierContains: Identifier should contain this string
+    ///   - pathContains: Path should contain this string
     ///   - valueContains: Value should contain this string
     ///   - descriptionContains: Description should contain this string
     ///   - isClickable: Element should be clickable
@@ -50,11 +50,11 @@ public struct UIElementCriteria {
     public init(
         role: String? = nil,
         title: String? = nil,
-        identifier: String? = nil,
+        path: String? = nil,
         value: String? = nil,
         description: String? = nil,
         titleContains: String? = nil,
-        identifierContains: String? = nil,
+        pathContains: String? = nil,
         valueContains: String? = nil,
         descriptionContains: String? = nil,
         isClickable: Bool? = nil,
@@ -66,11 +66,11 @@ public struct UIElementCriteria {
     ) {
         self.role = role
         self.title = title
-        self.identifier = identifier
+        self.path = path
         self.value = value
         self.description = description
         self.titleContains = titleContains
-        self.identifierContains = identifierContains
+        self.pathContains = pathContains
         self.valueContains = valueContains
         self.descriptionContains = descriptionContains
         self.isClickable = isClickable
@@ -94,7 +94,7 @@ public struct UIElementCriteria {
             return false
         }
 
-        if let identifier = identifier, element.identifier != identifier {
+        if let path = path, element.path != path {
             return false
         }
 
@@ -121,8 +121,8 @@ public struct UIElementCriteria {
             }
         }
 
-        if let identifierContains = identifierContains,
-           !element.identifier.localizedCaseInsensitiveContains(identifierContains) {
+        if let pathContains = pathContains,
+           !element.path.localizedCaseInsensitiveContains(pathContains) {
             return false
         }
 
@@ -188,8 +188,8 @@ public struct UIElementCriteria {
             parts.append("title='\(title)'")
         }
         
-        if let identifier = identifier {
-            parts.append("identifier='\(identifier)'")
+        if let path = path {
+            parts.append("path='\(path)'")
         }
         
         if let value = value {
@@ -204,8 +204,8 @@ public struct UIElementCriteria {
             parts.append("titleContains='\(titleContains)'")
         }
         
-        if let identifierContains = identifierContains {
-            parts.append("identifierContains='\(identifierContains)'")
+        if let pathContains = pathContains {
+            parts.append("pathContains='\(pathContains)'")
         }
         
         if let valueContains = valueContains {

@@ -117,7 +117,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
 
         // Try to find the display element using path-based identifier
         let displayPath = "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXGroup/AXScrollArea[@AXDescription=\"Input\"]/AXStaticText"
-        let directCriteria = UIElementCriteria(identifier: displayPath)
+        let directCriteria = UIElementCriteria(path: displayPath)
 
         if let element = try await toolChain.findElement(
             matching: directCriteria,
@@ -286,7 +286,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
         // APPROACH 2: Try exact ID match
         let idCriteria = UIElementCriteria(
             role: "AXButton",
-            identifier: exactId
+            path: exactId
         )
 
         if let element = try await toolChain.findElement(
@@ -305,7 +305,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
                 let partialId = String(parts[1])
                 let partialCriteria = UIElementCriteria(
                     role: "AXButton",
-                    identifierContains: partialId
+                    pathContains: partialId
                 )
 
                 if let element = try await toolChain.findElement(
@@ -379,7 +379,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
         // Look for the group with identifier "CalculatorKeypadView"
         let criteria = UIElementCriteria(
             role: "AXGroup",
-            identifierContains: "CalculatorKeypadView"
+            pathContains: "CalculatorKeypadView"
         )
         
         return try await toolChain.findElement(

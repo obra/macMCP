@@ -115,7 +115,7 @@ struct PathNormalizerTests {
     func testGenerateNormalizedPath() {
         // Create a sample element hierarchy
         let buttonElement = UIElement(
-            identifier: "button1",
+            path: "ui://AXButton[@AXTitle=\"OK\"][@AXDescription=\"OK Button\"][@AXIdentifier=\"okButton\"]",
             role: "AXButton",
             title: "OK",
             elementDescription: "OK Button",
@@ -124,7 +124,7 @@ struct PathNormalizerTests {
         )
         
         let groupElement = UIElement(
-            identifier: "group1",
+            path: "ui://AXGroup[@AXTitle=\"Controls\"][@AXIdentifier=\"controlGroup\"]",
             role: "AXGroup",
             title: "Controls",
             frame: CGRect(x: 0, y: 0, width: 200, height: 100),
@@ -136,7 +136,7 @@ struct PathNormalizerTests {
         // Since buttonElement is created with parent = nil, we need to update it here
         // This is a test-only workaround as UIElement uses weak parent references
         let buttonWithParent = UIElement(
-            identifier: "button1",
+            path: "ui://AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"][@AXDescription=\"OK Button\"][@AXIdentifier=\"okButton\"]",
             role: "AXButton",
             title: "OK", 
             elementDescription: "OK Button",

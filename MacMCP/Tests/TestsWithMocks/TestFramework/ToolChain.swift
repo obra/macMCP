@@ -145,8 +145,8 @@ public class MockAccessibilityService: @unchecked Sendable, AccessibilityService
     
     private func createMockUIElement(identifier: String, role: String, title: String? = nil) -> UIElement {
         let path = "ui://AXApplication[@AXRole=\"AXApplication\"]/\(role)[@identifier=\"\(identifier)\"]"
-        let element = UIElement(
-            identifier: identifier,
+        return UIElement(
+            path: path,
             role: role,
             title: title,
             value: nil,
@@ -156,8 +156,6 @@ public class MockAccessibilityService: @unchecked Sendable, AccessibilityService
             attributes: ["enabled": true, "visible": true],
             actions: ["AXPress"]
         )
-        element.path = path
-        return element
     }
 }
 

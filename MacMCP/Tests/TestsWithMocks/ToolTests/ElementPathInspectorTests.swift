@@ -67,7 +67,7 @@ final class ElementPathInspectorTests: XCTestCase {
     func testElementPathHierarchy() throws {
         // Create a parent element
         let parentElement = UIElement(
-            identifier: "test-parent",
+            path: "ui://AXGroup[@AXTitle=\"Parent Group\"][@identifier=\"test-parent\"]",
             role: "AXGroup",
             title: "Parent Group",
             frame: CGRect(x: 50, y: 50, width: 400, height: 300),
@@ -80,7 +80,7 @@ final class ElementPathInspectorTests: XCTestCase {
         
         // Create a child element with the parent
         let childElement = UIElement(
-            identifier: "test-child",
+            path: "ui://AXGroup[@AXTitle=\"Parent Group\"]/AXButton[@AXTitle=\"Child Button\"][@identifier=\"test-child\"]",
             role: "AXButton",
             title: "Child Button",
             frame: CGRect(x: 100, y: 100, width: 100, height: 50),

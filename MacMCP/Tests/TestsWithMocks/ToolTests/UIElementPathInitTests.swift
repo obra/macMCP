@@ -468,19 +468,19 @@ struct UIElementPathInitTests {
         
         // Minimum implementations to satisfy protocol
         func getSystemUIElement(recursive: Bool, maxDepth: Int) async throws -> UIElement {
-            return UIElement(identifier: "mock-system", role: "AXApplication", frame: CGRect.zero, axElement: nil)
+            return UIElement(path: "ui://AXApplication[@AXTitle=\"System\"][@identifier=\"mock-system\"]", role: "AXApplication", frame: CGRect.zero, axElement: nil)
         }
         
         func getApplicationUIElement(bundleIdentifier: String, recursive: Bool, maxDepth: Int) async throws -> UIElement {
-            return UIElement(identifier: "mock-app", role: "AXApplication", frame: CGRect.zero, axElement: nil)
+            return UIElement(path: "ui://AXApplication[@AXTitle=\"Application\"][@bundleIdentifier=\"mock-app\"]", role: "AXApplication", frame: CGRect.zero, axElement: nil)
         }
         
         func getFocusedApplicationUIElement(recursive: Bool, maxDepth: Int) async throws -> UIElement {
-            return UIElement(identifier: "mock-focused-app", role: "AXApplication", frame: CGRect.zero, axElement: nil)
+            return UIElement(path: "ui://AXApplication[@AXTitle=\"Focused Application\"][@bundleIdentifier=\"mock-focused-app\"]", role: "AXApplication", frame: CGRect.zero, axElement: nil)
         }
         
         func getUIElementAtPosition(position: CGPoint, recursive: Bool, maxDepth: Int) async throws -> UIElement? {
-            return UIElement(identifier: "mock-position", role: "AXElement", frame: CGRect.zero, axElement: nil)
+            return UIElement(path: "ui://AXElement[@identifier=\"mock-position\"]", role: "AXElement", frame: CGRect.zero, axElement: nil)
         }
         
         func findUIElements(role: String?, titleContains: String?, scope: UIElementScope, recursive: Bool, maxDepth: Int) async throws -> [UIElement] {
@@ -518,7 +518,7 @@ struct UIElementPathInitTests {
         }
         
         func getElementWithFocus() async throws -> UIElement {
-            return UIElement(identifier: "mock-focused-element", role: "AXElement", frame: CGRect.zero, axElement: nil)
+            return UIElement(path: "ui://AXElement[@identifier=\"mock-focused-element\"]", role: "AXElement", frame: CGRect.zero, axElement: nil)
         }
         
         func getRunningApplications() -> [NSRunningApplication] {
@@ -534,7 +534,7 @@ struct UIElementPathInitTests {
         }
         
         func waitForElementByPath(_ pathString: String, timeout: TimeInterval, pollInterval: TimeInterval) async throws -> UIElement {
-            return UIElement(identifier: "mock-wait-element", role: "AXElement", frame: CGRect.zero, axElement: nil)
+            return UIElement(path: "ui://AXElement[@identifier=\"mock-wait-element\"]", role: "AXElement", frame: CGRect.zero, axElement: nil)
         }
         
         // Window management methods required by protocol

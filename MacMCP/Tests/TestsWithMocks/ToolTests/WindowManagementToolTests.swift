@@ -241,8 +241,19 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable, Acc
         attributes: [String: Any] = [:],
         children: [UIElement] = []
     ) -> UIElement {
+        // Generate a path based on the element's role and title or identifier
+        var path = "ui://"
+        path += role
+        
+        if let title = title, !title.isEmpty {
+            path += "[@AXTitle=\"\(title)\"]"
+        }
+        
+        // Add identifier as a predicate
+        path += "[@identifier=\"\(identifier)\"]"
+        
         return UIElement(
-            identifier: identifier,
+            path: path,
             role: role,
             title: title,
             value: value,
@@ -286,7 +297,7 @@ final class WindowManagementToolTests: XCTestCase {
     func testGetApplicationWindows() async throws {
         // Setup mock window
         let window1 = UIElement(
-            identifier: "window1",
+            path: "ui://AXWindow[@AXTitle=\"Test Window 1\"][@identifier=\"window1\"]",
             role: AXAttribute.Role.window,
             title: "Test Window 1",
             value: nil,
@@ -302,7 +313,7 @@ final class WindowManagementToolTests: XCTestCase {
         )
         
         let window2 = UIElement(
-            identifier: "window2",
+            path: "ui://AXWindow[@AXTitle=\"Test Window 2\"][@identifier=\"window2\"]",
             role: AXAttribute.Role.window,
             title: "Test Window 2",
             value: nil,
@@ -319,7 +330,7 @@ final class WindowManagementToolTests: XCTestCase {
         
         // Create mock application with windows
         let app = UIElement(
-            identifier: "com.test.app",
+            path: "ui://AXApplication[@AXTitle=\"Test App\"][@bundleIdentifier=\"com.test.app\"]",
             role: "AXApplication",
             title: "Test App",
             value: nil,
@@ -330,7 +341,7 @@ final class WindowManagementToolTests: XCTestCase {
             frameSource: .direct,
             parent: nil,
             children: [window1, window2],
-            attributes: [:],
+            attributes: ["bundleIdentifier": "com.test.app"],
             actions: []
         )
         
@@ -380,7 +391,7 @@ final class WindowManagementToolTests: XCTestCase {
     func testGetActiveWindow() async throws {
         // Setup mock window
         let window = UIElement(
-            identifier: "window1",
+            path: "ui://AXWindow[@AXTitle=\"Active Window\"][@identifier=\"window1\"]",
             role: AXAttribute.Role.window,
             title: "Active Window",
             value: nil,
@@ -397,7 +408,7 @@ final class WindowManagementToolTests: XCTestCase {
         
         // Create mock focused application with window
         let app = UIElement(
-            identifier: "com.test.app",
+            path: "ui://AXApplication[@AXTitle=\"Test App\"][@bundleIdentifier=\"com.test.app\"]",
             role: "AXApplication",
             title: "Test App",
             value: nil,
@@ -408,7 +419,7 @@ final class WindowManagementToolTests: XCTestCase {
             frameSource: .direct,
             parent: nil,
             children: [window],
-            attributes: [:],
+            attributes: ["bundleIdentifier": "com.test.app"],
             actions: []
         )
         
@@ -453,7 +464,7 @@ final class WindowManagementToolTests: XCTestCase {
     func testMoveWindow() async throws {
         // Setup mock element for findElement
         let window = UIElement(
-            identifier: "window1",
+            path: "ui://AXWindow[@AXTitle=\"Test Window\"][@identifier=\"window1\"]",
             role: AXAttribute.Role.window,
             title: "Test Window",
             value: nil,
@@ -506,7 +517,7 @@ final class WindowManagementToolTests: XCTestCase {
     func testResizeWindow() async throws {
         // Setup mock element for findElement
         let window = UIElement(
-            identifier: "window1",
+            path: "ui://AXWindow[@AXTitle=\"Test Window\"][@identifier=\"window1\"]",
             role: AXAttribute.Role.window,
             title: "Test Window",
             value: nil,
@@ -559,7 +570,7 @@ final class WindowManagementToolTests: XCTestCase {
     func testMinimizeWindow() async throws {
         // Setup mock element for findElement
         let window = UIElement(
-            identifier: "window1",
+            path: "ui://AXWindow[@AXTitle=\"Test Window\"][@identifier=\"window1\"]",
             role: AXAttribute.Role.window,
             title: "Test Window",
             value: nil,
@@ -608,7 +619,7 @@ final class WindowManagementToolTests: XCTestCase {
     func testMaximizeWindow() async throws {
         // Setup mock element for findElement
         let window = UIElement(
-            identifier: "window1",
+            path: "ui://AXWindow[@AXTitle=\"Test Window\"][@identifier=\"window1\"]",
             role: AXAttribute.Role.window,
             title: "Test Window",
             value: nil,
@@ -657,7 +668,7 @@ final class WindowManagementToolTests: XCTestCase {
     func testCloseWindow() async throws {
         // Setup mock element for findElement
         let window = UIElement(
-            identifier: "window1",
+            path: "ui://AXWindow[@AXTitle=\"Test Window\"][@identifier=\"window1\"]",
             role: AXAttribute.Role.window,
             title: "Test Window",
             value: nil,
@@ -706,7 +717,7 @@ final class WindowManagementToolTests: XCTestCase {
     func testActivateWindow() async throws {
         // Setup mock element for findElement
         let window = UIElement(
-            identifier: "window1",
+            path: "ui://AXWindow[@AXTitle=\"Test Window\"][@identifier=\"window1\"]",
             role: AXAttribute.Role.window,
             title: "Test Window",
             value: nil,
@@ -755,7 +766,7 @@ final class WindowManagementToolTests: XCTestCase {
     func testSetWindowOrder() async throws {
         // Setup mock element for findElement
         let window = UIElement(
-            identifier: "window1",
+            path: "ui://AXWindow[@AXTitle=\"Test Window\"][@identifier=\"window1\"]",
             role: AXAttribute.Role.window,
             title: "Test Window",
             value: nil,
@@ -808,7 +819,7 @@ final class WindowManagementToolTests: XCTestCase {
     func testSetWindowOrderWithReference() async throws {
         // Setup mock element for findElement
         let window = UIElement(
-            identifier: "window1",
+            path: "ui://AXWindow[@AXTitle=\"Test Window\"][@identifier=\"window1\"]",
             role: AXAttribute.Role.window,
             title: "Test Window",
             value: nil,
@@ -863,7 +874,7 @@ final class WindowManagementToolTests: XCTestCase {
     func testFocusWindow() async throws {
         // Setup mock element for findElement
         let window = UIElement(
-            identifier: "window1",
+            path: "ui://AXWindow[@AXTitle=\"Test Window\"][@identifier=\"window1\"]",
             role: AXAttribute.Role.window,
             title: "Test Window",
             value: nil,
@@ -914,7 +925,7 @@ final class WindowManagementToolTests: XCTestCase {
     func testErrorHandling() async throws {
         // Setup mock element for findElement but set failure flag
         let window = UIElement(
-            identifier: "window1",
+            path: "ui://AXWindow[@AXTitle=\"Test Window\"][@identifier=\"window1\"]",
             role: AXAttribute.Role.window,
             title: "Test Window",
             value: nil,
