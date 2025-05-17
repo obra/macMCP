@@ -653,73 +653,20 @@ public struct ElementPath: Sendable {
     /// - Returns: The resolved element matching the segment, or nil if no match is found
     /// - Throws: ElementPathError if there's an error resolving the segment
     public func resolveSegment(element: AXUIElement, segment: PathSegment, segmentIndex: Int) async throws -> AXUIElement? {
-        // print("DEBUG: Resolving segment \(segmentIndex): \(segment.toString())")
-        
-        // Get information about the current element
-        var roleRef: CFTypeRef?
-        let roleStatus = AXUIElementCopyAttributeValue(element, "AXRole" as CFString, &roleRef)
-        if roleStatus == .success, let role = roleRef as? String {
-            // print("DEBUG: Current element role: \(role)")
-            
-            // Get title if available
-            var titleRef: CFTypeRef?
-            let titleStatus = AXUIElementCopyAttributeValue(element, "AXTitle" as CFString, &titleRef)
-            if titleStatus == .success, let title = titleRef as? String {
-              //  print("DEBUG: Current element title: \(title)")
-            }
-        }
-        
         // Get the children of the current element
         var childrenRef: CFTypeRef?
         let status = AXUIElementCopyAttributeValue(element, "AXChildren" as CFString, &childrenRef)
         
-        // print("DEBUG: AXUIElementCopyAttributeValue status for AXChildren: \(status.rawValue)")
-        
         // Check if we could get children
         if status != .success || childrenRef == nil {
-            // print("DEBUG: Failed to get children - status: \(status.rawValue), childrenRef: \(String(describing: childrenRef))")
-            
-            // If this is the first segment (application), allow the element itself to match
-            if segmentIndex == 0 {
-                // Check if this element itself matches the segment
-                if try await elementMatchesSegment(element, segment: segment) {
-                    // print("DEBUG: First segment matches element itself")
-                    return element
-                }
-            }
-            
             let segmentString = segment.toString()
             throw ElementPathError.segmentResolutionFailed("Could not get children for segment: \(segmentString)", atSegment: segmentIndex)
         }
         
         // Cast to array of elements
         guard let children = childrenRef as? [AXUIElement] else {
-            // print("DEBUG: Failed to cast children to [AXUIElement] - type: \(type(of: childrenRef))")
             let segmentString = segment.toString()
             throw ElementPathError.segmentResolutionFailed("Children not in expected format for segment: \(segmentString)", atSegment: segmentIndex)
-        }
-        
-        // print("DEBUG: Found \(children.count) children of current element")
-        
-        // Log child roles to help with debugging
-        // print("DEBUG: Child roles:")
-        for (i, child) in children.enumerated() {
-            var childRoleRef: CFTypeRef?
-            let childRoleStatus = AXUIElementCopyAttributeValue(child, "AXRole" as CFString, &childRoleRef)
-            if childRoleStatus == .success, let childRole = childRoleRef as? String {
-                // print("DEBUG:   [\(i)] \(childRole)")
-                
-                // If the child matches our target segment role, check title too
-                if childRole == segment.role {
-                    var childTitleRef: CFTypeRef?
-                    let childTitleStatus = AXUIElementCopyAttributeValue(child, "AXTitle" as CFString, &childTitleRef)
-                    if childTitleStatus == .success, let _ = childTitleRef as? String {
-                        // print("DEBUG:     Title: \(childTitle)")
-                    }
-                }
-            } else {
-                 // print("DEBUG:   [\(i)] Unknown role, status: \(childRoleStatus.rawValue)")
-            }
         }
         
         // Filter children by role to find potential matches
@@ -732,21 +679,8 @@ public struct ElementPath: Sendable {
             }
         }
         
-        // print("DEBUG: Found \(matches.count) matches for segment \(segment.toString())")
-        
-        // Special case for when the parent element itself matches
-        if segmentIndex == 0 && matches.isEmpty {
-            // Check if the root element matches
-            if try await elementMatchesSegment(element, segment: segment) {
-                // print("DEBUG: Root element matches first segment")
-                return element
-            }
-        }
-        
         // Handle based on number of matches and whether an index was specified
         if matches.isEmpty {
-            // print("DEBUG: No matches found for segment")
-            
             // Gather information about available children for better diagnostics
             var availableChildren: [String] = []
             for (i, child) in children.prefix(5).enumerated() {
@@ -925,33 +859,14 @@ public struct ElementPath: Sendable {
             variants.append(attributeName)
         }
         
-        // Add common fallbacks based on attribute type
-        switch normalizedName {
-        case "AXTitle":
-            variants.append(contentsOf: ["AXValue", "AXHelp", "AXDescription", "AXLabel"])
-            
-        case "AXDescription":
-            variants.append(contentsOf: ["AXHelp", "AXValue", "AXLabel"])
-            
-        case "AXValue":
-            variants.append(contentsOf: ["AXTitle", "AXDescription", "AXLabel"])
-            
-        case "AXIdentifier":
-            variants.append(contentsOf: ["AXIdentifier", "id", "identifier", "AXDOMIdentifier"]) 
-            
-        case "AXLabel":
-            variants.append(contentsOf: ["AXDescription", "AXHelp", "AXTitle"])
-            
-        default:
-            // For attributes without special handling, try both with and without AX prefix
-            if normalizedName.hasPrefix("AX") {
-                // Add non-prefixed variant
-                let nonPrefixed = String(normalizedName.dropFirst(2))
-                variants.append(nonPrefixed.prefix(1).lowercased() + nonPrefixed.dropFirst())
-            } else {
-                // Add prefixed variant
-                variants.append("AX" + normalizedName.prefix(1).uppercased() + normalizedName.dropFirst())
-            }
+        // Handle AX prefix variants for consistent matching
+        if normalizedName.hasPrefix("AX") {
+            // Add non-prefixed variant
+            let nonPrefixed = String(normalizedName.dropFirst(2))
+            variants.append(nonPrefixed.prefix(1).lowercased() + nonPrefixed.dropFirst())
+        } else {
+            // Add prefixed variant
+            variants.append("AX" + normalizedName.prefix(1).uppercased() + normalizedName.dropFirst())
         }
         
         return variants
@@ -998,12 +913,6 @@ public struct ElementPath: Sendable {
         
         // Then case-insensitive match
         if actualValue.localizedCaseInsensitiveCompare(expectedValue) == .orderedSame {
-            return true
-        }
-        
-        // Then check contains relationships
-        if actualValue.localizedCaseInsensitiveContains(expectedValue) || 
-           expectedValue.localizedCaseInsensitiveContains(actualValue) {
             return true
         }
         
