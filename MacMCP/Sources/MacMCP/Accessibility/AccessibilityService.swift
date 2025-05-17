@@ -302,17 +302,6 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
       throw AccessibilityPermissions.Error.permissionDenied
     }
 
-    // Special handling for menu items with path-based identifiers
-    if elementPath.hasPrefix("ui:menu:") && action == "AXPress" {
-      logger.info(
-        "Detected menu item by path-based identifier, using hierarchical navigation",
-        metadata: [
-          "elementPath": .string(elementPath),
-          "menuPath": .string(elementPath.replacingOccurrences(of: "ui:menu:", with: "")),
-        ])
-
-      // Special case handling is no longer needed with path-based approach
-    }
 
     // Use proper path-based element identification
     do {
@@ -341,19 +330,6 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
         userInfo: [NSLocalizedDescriptionKey: "Failed to perform action on element with path: \(error.localizedDescription)"]
       )
     }
-  }
-  
-  /// Extract bundle ID from an element path
-  private func extractBundleId(from path: String) -> String? {
-    // For ui:// paths, try to extract bundleIdentifier attribute
-    if path.hasPrefix("ui://") {
-      if let bundleIdMatch = path.range(of: "@bundleIdentifier=\"([^\"]+)\"", options: .regularExpression) {
-        let bundleIdString = String(path[bundleIdMatch])
-        let bundleId = bundleIdString.replacingOccurrences(of: "@bundleIdentifier=\"", with: "").replacingOccurrences(of: "\"", with: "")
-        return bundleId
-      }
-    }
-    return nil
   }
   
   /// Navigate through menu path and activate a menu item

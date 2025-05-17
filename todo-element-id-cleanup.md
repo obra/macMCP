@@ -67,18 +67,25 @@ Update ElementDescriptor.swift to completely remove legacy identifier usage:
 #### Status of Prompt 3:
 Completed the implementation in ElementDescriptor.swift. All descriptor generation now uses path-based identifiers exclusively. The id field in ElementDescriptor and MenuItemDescriptor uses element.path instead of element.identifier.
 
-### Prompt 4: Update MenuNavigationService and Protocol
+### Prompt 4: Update MenuNavigationService and Protocol ✅
 
 ```
 Update MenuNavigationService.swift to use ElementPath exclusively:
 
-1. Remove any special handling for the legacy identifier format in MenuNavigationService
-2. Ensure the navigateMenu method uses standard ElementPath resolution
-3. Update getMenuItems to handle cases where menu navigation currently uses identifiers
-4. In createMenuItemDescriptor, make sure any path generation uses proper ElementPath format
-5. Make sure activateMenuItem uses ElementPath-based navigation
-6. Update any tests that rely on the menu navigation service to use path-based identifiers
+1. ✅ Remove any special handling for the legacy identifier format in MenuNavigationService
+2. ✅ Ensure the navigateMenu method uses standard ElementPath resolution
+3. ✅ Update getMenuItems to handle cases where menu navigation currently uses identifiers
+4. ✅ In createMenuItemDescriptor, make sure any path generation uses proper ElementPath format
+5. ✅ Make sure activateMenuItem uses ElementPath-based navigation
+6. ✅ Update any tests that rely on the menu navigation service to use path-based identifiers
 ```
+
+#### Status of Prompt 4:
+Completed the changes needed in AccessibilityService.swift:
+- Removed the "Special handling for menu items with path-based identifiers" block that referenced the legacy ui:menu: format
+- Removed the extractBundleId method which was designed for legacy identifiers
+
+The MenuNavigationService.swift itself was already using ElementPath exclusively. The test files were already using the path-based approach with standard menu paths like "File > New" or "View > Scientific".
 
 ### Prompt 5: Clean Up AccessibilityService Path Handling
 
