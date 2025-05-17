@@ -41,8 +41,8 @@ final class SimpleCalculatorTest: XCTestCase {
             try await Task.sleep(for: .milliseconds(1000))
         }
         
-        // Launch calculator fresh
-        let launchSuccess = try await app.launch(hideOthers: true)
+        // Launch calculator fresh without hiding other apps
+        let launchSuccess = try await app.launch(hideOthers: false)
         XCTAssertTrue(launchSuccess, "Calculator should launch successfully")
         
         // Wait for app to be ready

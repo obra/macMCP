@@ -50,9 +50,9 @@ public final class CalculatorTestHelper {
     /// Ensure the Calculator app is running, properly foregrounded, and ready for testing
     /// - Parameters:
     ///   - forceRelaunch: Whether to force relaunching the app even if it's already running
-    ///   - hideOthers: Whether to hide other applications when launching
+    ///   - hideOthers: Whether to hide other applications when launching (defaults to false)
     /// - Returns: True if the app is running and ready
-    public func ensureAppIsRunning(forceRelaunch: Bool = false, hideOthers: Bool = true) async throws -> Bool {
+    public func ensureAppIsRunning(forceRelaunch: Bool = false, hideOthers: Bool = false) async throws -> Bool {
         let isRunning = try await app.isRunning()
         
         // If forceRelaunch is true or app is not running, terminate any existing instances and relaunch
