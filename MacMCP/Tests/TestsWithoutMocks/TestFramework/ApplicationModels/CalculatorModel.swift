@@ -41,27 +41,27 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
         
         /// Button mappings for macOS calculator with path-based identifiers
         public static let buttonMappings: [String: String] = [
-            "0": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"0\"]",
-            "1": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"1\"]",
-            "2": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"2\"]",
-            "3": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"3\"]",
-            "4": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"4\"]",
-            "5": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"5\"]",
-            "6": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"6\"]",
-            "7": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"7\"]",
-            "8": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"8\"]",
-            "9": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"9\"]",
-            "+": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"+\"]",
-            "-": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"-\"]",
-            "×": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"×\"]",
-            "÷": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"÷\"]",
-            "=": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"=\"]",
-            ".": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\".\"]",
-            "%": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"%\"]",
-            "±": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"±\"]",
-            "C": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"C\"]",
-            "AC": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"AC\"]",
-            "Delete": "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"Delete\"]"
+            "0": "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"0\"]",
+            "1": "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]",
+            "2": "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"2\"]",
+            "3": "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"3\"]",
+            "4": "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"4\"]",
+            "5": "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"5\"]",
+            "6": "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"6\"]",
+            "7": "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"7\"]",
+            "8": "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"8\"]",
+            "9": "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"9\"]",
+            "+": "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"Add\"]",
+            "-": "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"Subtract\"]",
+            "×": "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"Multiply\"]",
+            "÷": "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"Divide\"]",
+            "=": "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"Equals\"]",
+            ".": "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"Decimal Point\"]",
+            "%": "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"Percent\"]",
+            "±": "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"Change Sign\"]",
+            "C": "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"Clear\"]",
+            "AC": "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"All Clear\"]",
+            "Delete": "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"Clear\"]"
         ]
         
     }
@@ -116,7 +116,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
         }
 
         // Try to find the display element using path-based identifier
-        let displayPath = "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXScrollArea[@description=\"Input\"]/AXStaticText"
+        let displayPath = "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXGroup/AXScrollArea[@AXDescription=\"Input\"]/AXStaticText"
         let directCriteria = UIElementCriteria(identifier: displayPath)
 
         if let element = try await toolChain.findElement(
@@ -131,7 +131,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
         // Look for the scroll area with description "Input"
         let scrollAreaCriteria = UIElementCriteria(
             role: "AXScrollArea",
-            description: "Input"
+            description: "Input" // AXDescription attribute
         )
 
         if let scrollArea = try await toolChain.findElement(
@@ -158,7 +158,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
         // Search for scroll area with description "Input"
         let scrollAreaCriteria = UIElementCriteria(
             role: "AXScrollArea",
-            descriptionContains: "Input"  // Use contains for more flexible matching
+            descriptionContains: "Input"  // Use contains for more flexible matching of AXDescription
         )
 
         // If that doesn't work, try a broader search
@@ -271,7 +271,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
         // This works because Calculator buttons consistently have descriptions like "1", "2", "+", etc.
         let descCriteria = UIElementCriteria(
             role: "AXButton",
-            description: button
+            description: button // Matches AXDescription attribute
         )
 
         if let element = try await toolChain.findElement(
@@ -322,7 +322,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
         // APPROACH 4: Try to find by using broader criteria with case-insensitive matching
         let broadCriteria = UIElementCriteria(
             role: "AXButton",
-            descriptionContains: button
+            descriptionContains: button // Case-insensitive matching of AXDescription
         )
 
         if let element = try await toolChain.findElement(

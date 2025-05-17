@@ -25,23 +25,47 @@ final class SimpleCalculatorTest: XCTestCase {
         // Create app model
         app = CalculatorModel(toolChain: toolChain)
         
-        // Terminate any existing calculator instances
-        let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.calculator")
-        if runningApps.isEmpty {
-            // Launch calculator
-            let launchSuccess = try await app.launch()
-            XCTAssertTrue(launchSuccess, "Calculator should launch successfully")
-            calculatorRunning = true
-        } else {
-            // Reuse existing instance
-            calculatorRunning = true
+        // We don't need to use the helper here since we're implementing the same logic directly
+        
+        // Since we need to use our specific app instance, call the methods directly
+        // but follow the same pattern as the helper's ensureAppIsRunning method
+        
+        // Terminate any existing calculator instances first to ensure clean state
+        let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleId)
+        for runningApp in runningApps {
+            _ = runningApp.terminate()
         }
         
+        // Wait for termination to complete
+        if !runningApps.isEmpty {
+            try await Task.sleep(for: .milliseconds(1000))
+        }
+        
+        // Launch calculator fresh
+        let launchSuccess = try await app.launch(hideOthers: true)
+        XCTAssertTrue(launchSuccess, "Calculator should launch successfully")
+        
         // Wait for app to be ready
-        try await Task.sleep(for: .milliseconds(1000))
+        try await Task.sleep(for: .milliseconds(2000))
+        
+        // Ensure Calculator is frontmost application
+        if let calcApp = NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleId).first {
+            let activateSuccess = calcApp.activate(options: [.activateIgnoringOtherApps])
+            if !activateSuccess {
+                print("Warning: Failed to activate Calculator as frontmost app")
+            }
+            
+            // Wait for activation
+            try await Task.sleep(for: .milliseconds(500))
+        }
         
         // Clear the calculator 
         _ = try await app.clear()
+        try await Task.sleep(for: .milliseconds(500)) // Wait for clear to complete
+        
+        calculatorRunning = true
+        
+        // Note: ensureAppIsRunning includes clearing the calculator and proper delays
     }
     
     override func tearDown() async throws {

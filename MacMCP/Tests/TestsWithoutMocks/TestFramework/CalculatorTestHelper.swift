@@ -47,15 +47,52 @@ public final class CalculatorTestHelper {
     
     // MARK: - Calculator Operations
     
-    /// Ensure the Calculator app is running
-    /// - Returns: True if the app is running
-    public func ensureAppIsRunning() async throws -> Bool {
-        if try await app.isRunning() {
-            return true
+    /// Ensure the Calculator app is running, properly foregrounded, and ready for testing
+    /// - Parameters:
+    ///   - forceRelaunch: Whether to force relaunching the app even if it's already running
+    ///   - hideOthers: Whether to hide other applications when launching
+    /// - Returns: True if the app is running and ready
+    public func ensureAppIsRunning(forceRelaunch: Bool = false, hideOthers: Bool = true) async throws -> Bool {
+        let isRunning = try await app.isRunning()
+        
+        // If forceRelaunch is true or app is not running, terminate any existing instances and relaunch
+        if forceRelaunch || !isRunning {
+            // Terminate any existing calculator instances first to ensure clean state
+            let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleId)
+            for runningApp in runningApps {
+                _ = runningApp.terminate()
+            }
+            
+            // Wait for termination to complete
+            if !runningApps.isEmpty {
+                try await Task.sleep(for: .milliseconds(1000))
+            }
+            
+            // Launch calculator fresh
+            let launchSuccess = try await app.launch(hideOthers: hideOthers)
+            
+            // Wait for app to be ready
+            try await Task.sleep(for: .milliseconds(2000))
         }
         
-        // Launch the app
-        return try await app.launch()
+        // Ensure Calculator is frontmost application regardless of whether we just launched it
+        if let calcApp = NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleId).first {
+            let activateSuccess = calcApp.activate(options: [.activateIgnoringOtherApps])
+            if !activateSuccess {
+                print("Warning: Failed to activate Calculator as frontmost app")
+            }
+            
+            // Wait for activation
+            try await Task.sleep(for: .milliseconds(500))
+        } else {
+            return false
+        }
+        
+        // Clear the calculator 
+        _ = try await app.clear()
+        try await Task.sleep(for: .milliseconds(500)) // Wait for clear to complete
+        
+        return true
     }
     
     /// Reset the Calculator app state (clear the display)
