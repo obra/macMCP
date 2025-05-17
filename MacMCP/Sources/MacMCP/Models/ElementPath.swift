@@ -1196,7 +1196,7 @@ extension ElementPath {
         var diagnosis = "Path Resolution Diagnosis for: \(pathString)\n"
         diagnosis += "=".repeating(80) + "\n\n"
         
-        // Validate path syntax (keep existing validation code)
+        // Validate path syntax
         do {
             let (_, warnings) = try validatePath(pathString, strict: true)
             
@@ -1262,23 +1262,117 @@ extension ElementPath {
             if matchingChildren.isEmpty {
                 diagnosis += "❌ No children match this segment\n"
                 
-                // List a few available children to help debugging
+                // List available children to help debugging
                 diagnosis += "Available children (sample):\n"
-                for (j, child) in children.prefix(3).enumerated() {
+                for (j, child) in children.prefix(5).enumerated() {
                     var roleRef: CFTypeRef?
                     AXUIElementCopyAttributeValue(child, "AXRole" as CFString, &roleRef)
                     let role = roleRef as? String ?? "unknown"
-                    diagnosis += "  Child \(j): role=\(role)\n"
+                    
+                    // Show more information about each child to help with troubleshooting
+                    diagnosis += "  Child \(j): role=\(role)"
+                    
+                    // Add key attributes to help with diagnosis
+                    for attr in ["AXTitle", "AXDescription", "AXIdentifier", "AXValue"] {
+                        var attrRef: CFTypeRef?
+                        let status = AXUIElementCopyAttributeValue(child, attr as CFString, &attrRef)
+                        if status == .success, let value = attrRef as? String, !value.isEmpty {
+                            diagnosis += ", \(attr)=\"\(value)\""
+                        }
+                    }
+                    diagnosis += "\n"
+                    
+                    // Check what attributes would have been needed for a match
+                    if role == segment.role {
+                        diagnosis += "    ⚠️ This child has the right role but didn't match other criteria\n"
+                        // For each attribute in the segment, check if the child has a matching value
+                        for (attrName, expectedValue) in segment.attributes {
+                            var hasMatch = false
+                            // Check all attribute variants
+                            for variantName in path.getAttributeVariants(attrName) {
+                                var attrRef: CFTypeRef?
+                                let status = AXUIElementCopyAttributeValue(child, variantName as CFString, &attrRef)
+                                if status == .success, let actualValue = convertAttributeToString(attrRef) {
+                                    diagnosis += "    - Attribute \(variantName): actual=\"\(actualValue)\", expected=\"\(expectedValue)\" "
+                                    if path.attributeMatchesValue(child, name: variantName, expectedValue: expectedValue) {
+                                        diagnosis += "✅ MATCH\n"
+                                        hasMatch = true
+                                        break
+                                    } else {
+                                        diagnosis += "❌ NO MATCH\n"
+                                    }
+                                }
+                            }
+                            if !hasMatch {
+                                diagnosis += "    - Attribute \(attrName): ❌ NOT FOUND on this element\n"
+                            }
+                        }
+                    }
                 }
+                
+                if children.count > 5 {
+                    diagnosis += "  ...and \(children.count - 5) more children\n"
+                }
+                
                 diagnosis += "\n"
+                diagnosis += "Possible solutions:\n"
+                diagnosis += "  1. Check if the role is correct (case-sensitive: \(segment.role))\n"
+                diagnosis += "  2. Verify attribute names and values match exactly\n"
+                diagnosis += "  3. Consider using the mcp-ax-inspector tool to see the exact element structure\n"
+                diagnosis += "  4. Try simplifying the path or using an index if there are many similar elements\n\n"
                 break
             } else if matchingChildren.count > 1 {
                 diagnosis += "⚠️ Multiple children (\(matchingChildren.count)) match this segment\n"
+                diagnosis += "Matching children details:\n"
+                
+                // Show detailed information about the first few matching children
+                for (j, child) in matchingChildren.prefix(3).enumerated() {
+                    var roleRef: CFTypeRef?
+                    AXUIElementCopyAttributeValue(child, "AXRole" as CFString, &roleRef)
+                    let role = roleRef as? String ?? "unknown"
+                    
+                    diagnosis += "  Match \(j): role=\(role)"
+                    
+                    // Add key attributes to help with disambiguation
+                    for attr in ["AXTitle", "AXDescription", "AXIdentifier", "AXValue"] {
+                        var attrRef: CFTypeRef?
+                        let status = AXUIElementCopyAttributeValue(child, attr as CFString, &attrRef)
+                        if status == .success, let value = attrRef as? String, !value.isEmpty {
+                            diagnosis += ", \(attr)=\"\(value)\""
+                        }
+                    }
+                    diagnosis += "\n"
+                }
+                
+                if matchingChildren.count > 3 {
+                    diagnosis += "  ...and \(matchingChildren.count - 3) more matches\n"
+                }
+                
+                diagnosis += "\nRecommendation:\n"
+                diagnosis += "  Add more specific attributes or use an index to disambiguate\n"
+                diagnosis += "  Example: \(segment.toString())[@AXTitle=\"SomeTitle\"] or \(segment.toString())[0]\n\n"
+                
                 // Continue with first match for now
                 currentElement = matchingChildren[0]
                 diagnosis += "✅ Continuing with first matching child\n\n"
             } else {
-                diagnosis += "✅ One child matches this segment\n\n"
+                diagnosis += "✅ One child matches this segment\n"
+                // Show what matched for informational purposes
+                var roleRef: CFTypeRef?
+                AXUIElementCopyAttributeValue(matchingChildren[0], "AXRole" as CFString, &roleRef)
+                let role = roleRef as? String ?? "unknown"
+                diagnosis += "  Match details: role=\(role)"
+                
+                // Add key attributes for information
+                for attr in ["AXTitle", "AXDescription", "AXIdentifier", "AXValue"] {
+                    var attrRef: CFTypeRef?
+                    let status = AXUIElementCopyAttributeValue(matchingChildren[0], attr as CFString, &attrRef)
+                    if status == .success, let value = attrRef as? String, !value.isEmpty {
+                        diagnosis += ", \(attr)=\"\(value)\""
+                    }
+                }
+                diagnosis += "\n\n"
+                
                 currentElement = matchingChildren[0]
             }
         }
@@ -1288,14 +1382,41 @@ extension ElementPath {
             var roleRef: CFTypeRef?
             AXUIElementCopyAttributeValue(finalElement, "AXRole" as CFString, &roleRef)
             let role = roleRef as? String ?? "unknown"
+            
+            // Get more information about the final element for better feedback
+            var finalDetails = "  Details: role=\(role)"
+            for attr in ["AXTitle", "AXDescription", "AXIdentifier", "AXValue"] {
+                var attrRef: CFTypeRef?
+                let status = AXUIElementCopyAttributeValue(finalElement, attr as CFString, &attrRef)
+                if status == .success, let value = attrRef as? String, !value.isEmpty {
+                    finalDetails += ", \(attr)=\"\(value)\""
+                }
+            }
+            
             diagnosis += "Final result: ✅ Resolved to \(role) element\n"
+            diagnosis += finalDetails + "\n"
         } else {
             diagnosis += "Final result: ❌ Failed to resolve complete path\n"
+            diagnosis += "Try using the mcp-ax-inspector tool to examine the actual UI hierarchy\n"
         }
         
         return diagnosis
     }
     
+    /// Helper function to convert an attribute reference to a string for diagnostics
+    private static func convertAttributeToString(_ attributeRef: CFTypeRef?) -> String? {
+        guard let attributeRef = attributeRef else { return nil }
+        
+        if let stringValue = attributeRef as? String {
+            return stringValue
+        } else if let numberValue = attributeRef as? NSNumber {
+            return numberValue.stringValue
+        } else if let boolValue = attributeRef as? Bool {
+            return boolValue ? "true" : "false"
+        } else {
+            return String(describing: attributeRef)
+        }
+    }
 }
     
     extension ElementPath {
