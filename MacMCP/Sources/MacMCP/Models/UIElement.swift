@@ -444,6 +444,17 @@ public enum FrameSource: String, Codable {
             json["description"] = elementDescription
         }
         
+        // Generate and include a fully qualified path
+        do {
+            let absolutePath = try generatePath()
+            json["path"] = absolutePath
+        } catch {
+            // If path generation fails, use existing path if available
+            if let existingPath = self.path {
+                json["path"] = existingPath
+            }
+        }
+        
         // Add frame information
         json["frame"] = [
             "x": frame.origin.x,
@@ -572,7 +583,7 @@ public enum FrameSource: String, Codable {
         // Start building the path with the current element
         var pathSegments: [PathSegment] = []
         
-        // Build the path from root to leaf (we'll reverse at the end)
+        // Build the path from current element to root (we'll reverse at the end)
         var currentElement: UIElement? = self
         
         // Convert the current element and its ancestors to path segments
@@ -642,12 +653,7 @@ public enum FrameSource: String, Codable {
         // Create the ElementPath
         let elementPath = try ElementPath(segments: pathSegments)
         
-        // Handle special case for menu paths - support legacy format
-        if self.identifier.hasPrefix("ui:menu:") {
-            // Return the path using the new format, but retain the menu structure
-            return elementPath.toString()
-        }
-        
+        // Use the complete path with all segments
         return elementPath.toString()
     }
 }

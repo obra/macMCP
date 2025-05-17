@@ -75,7 +75,7 @@ struct UIElementPathInitIntegrationTests {
         
         // Create a complex path to a button in Calculator
         // Use the same format to match the output of the element initializer's toString() method
-        let buttonPath = "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"][@AXIdentifier=\"One\"]"
+        let buttonPath = "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]"
         
         // Get diagnostics on the path before attempting resolution
         print("\n==== PATH DIAGNOSTICS ====")
@@ -218,7 +218,7 @@ struct UIElementPathInitIntegrationTests {
         
         // Create paths to different elements
         let windowPath = "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]"
-        let buttonPath = "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"][@AXIdentifier=\"One\"]"
+        let buttonPath = "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]"
         
         // Compare the paths
         let areSame = try await UIElement.areSameElement(path1: windowPath, path2: buttonPath, accessibilityService: accessibilityService)

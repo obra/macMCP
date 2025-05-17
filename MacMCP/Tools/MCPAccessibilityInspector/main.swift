@@ -66,7 +66,9 @@ final class JsonFetcher: @unchecked Sendable {
                 "bundleId": .string(bundleId),
                 "elementPath": .string(path),
                 "maxDepth": .int(maxDepth),
-                "includeHidden": .bool(true)
+                "includeHidden": .bool(true),
+                // Add original path to ensure we keep it intact in the output
+                "originalPath": .string(path)
             ]
             print("Fetching raw JSON for path: \(path)")
         } else {

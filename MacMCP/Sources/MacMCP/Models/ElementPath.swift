@@ -539,17 +539,17 @@ public struct ElementPath: Sendable {
         var depth = 0
         
         // Add detailed logging
-        print("\n==== BFS PATH RESOLUTION DEBUG ====")
-        print("Starting BFS path resolution for path: \(toString())")
-        print("Start segment index: \(startIndex)")
-        print("Total segments: \(segments.count)")
-        print("Queue initialized with 1 node: \(segments[0].toString())")
+        // print("\n==== BFS PATH RESOLUTION DEBUG ====")
+        // print("Starting BFS path resolution for path: \(toString())")
+        // print("Start segment index: \(startIndex)")
+        // print("Total segments: \(segments.count)")
+        // print("Queue initialized with 1 node: \(segments[0].toString())")
         
         // Breadth-first search loop
         while !queue.isEmpty && depth < maxDepth {
             // Track depth for timeout detection
             depth += 1
-            print("\nDEBUG: Processing depth \(depth), queue size: \(queue.count)")
+            // print("\nDEBUG: Processing depth \(depth), queue size: \(queue.count)")
             
             // Dequeue the next node to process
             let node = queue.removeFirst()
@@ -559,41 +559,41 @@ public struct ElementPath: Sendable {
             let roleStatus = AXUIElementCopyAttributeValue(node.element, "AXRole" as CFString, &roleRef)
             let role = (roleStatus == .success) ? (roleRef as? String ?? "unknown") : "unknown"
             
-            print("DEBUG: Exploring node: segmentIndex=\(node.segmentIndex), role=\(role), path=\(node.pathSoFar)")
+            // print("DEBUG: Exploring node: segmentIndex=\(node.segmentIndex), role=\(role), path=\(node.pathSoFar)")
             
             // Track visited nodes by memory address to avoid cycles
             let elementID = UInt(bitPattern: Unmanaged.passUnretained(node.element).toOpaque())
             if visited.contains(elementID) {
-                print("DEBUG: Skipping already visited element with ID \(elementID)")
+                // print("DEBUG: Skipping already visited element with ID \(elementID)")
                 continue
             }
             visited.insert(elementID)
-            print("DEBUG: Marked element \(elementID) as visited, total visited: \(visited.count)")
+            // print("DEBUG: Marked element \(elementID) as visited, total visited: \(visited.count)")
             
             // Check if we've reached the end of the path
             if node.segmentIndex >= segments.count {
-                print("DEBUG: SUCCESS - Reached end of path! All segments matched.")
-                print("==== END BFS DEBUG ====\n")
+                // print("DEBUG: SUCCESS - Reached end of path! All segments matched.")
+                // print("==== END BFS DEBUG ====\n")
                 return node.element
             }
             
             // Get the current segment we're trying to match
             let currentSegment = segments[node.segmentIndex]
-            print("DEBUG: Current segment [\(node.segmentIndex)]: \(currentSegment.toString())")
+            // print("DEBUG: Current segment [\(node.segmentIndex)]: \(currentSegment.toString())")
             
             // Update the failed segment index to the deepest segment we've tried
             failedSegmentIndex = max(failedSegmentIndex, node.segmentIndex)
             
             // Get children of the current element to explore
             guard let children = getChildElements(of: node.element) else {
-                print("DEBUG: No children found for this element")
+                // print("DEBUG: No children found for this element")
                 continue
             }
-            print("DEBUG: Found \(children.count) children to check")
+            // print("DEBUG: Found \(children.count) children to check")
             
             // If the segment specifies an index, we need to collect all matches first
             if currentSegment.index != nil {
-                print("DEBUG: Index-based segment detected with index \(String(describing: currentSegment.index))")
+                // print("DEBUG: Index-based segment detected with index \(String(describing: currentSegment.index))")
                 // Collect all matches for indexed selection
                 var matches: [(element: AXUIElement, path: String)] = []
                 
@@ -603,23 +603,23 @@ public struct ElementPath: Sendable {
                     let childRoleStatus = AXUIElementCopyAttributeValue(child, "AXRole" as CFString, &childRoleRef)
                     let childRole = (childRoleStatus == .success) ? (childRoleRef as? String ?? "unknown") : "unknown"
                     
-                    print("DEBUG: Checking child \(childIndex): role=\(childRole)")
+                    // print("DEBUG: Checking child \(childIndex): role=\(childRole)")
                     
                     if try await elementMatchesSegment(child, segment: currentSegment) {
                         let newPath = node.pathSoFar + "/" + currentSegment.toString()
                         matches.append((child, newPath))
-                        print("DEBUG: MATCH FOUND! Child \(childIndex) matches segment \(currentSegment.toString())")
+                        // print("DEBUG: MATCH FOUND! Child \(childIndex) matches segment \(currentSegment.toString())")
                     }
                 }
                 
-                print("DEBUG: Found \(matches.count) matching children for indexed segment")
+                // print("DEBUG: Found \(matches.count) matching children for indexed segment")
                 
                 // Now apply index selection if we found any matches
                 if !matches.isEmpty {
                     if let index = currentSegment.index {
                         // Validate the index is in range
                         if index < 0 || index >= matches.count {
-                            print("DEBUG: ERROR - Index \(index) is out of range (0..\(matches.count-1))")
+                            // print("DEBUG: ERROR - Index \(index) is out of range (0..\(matches.count-1))")
                             throw ElementPathError.invalidIndexSyntax(
                                 "Index \(index) is out of range (0..\(matches.count-1))",
                                 atSegment: node.segmentIndex
@@ -628,7 +628,7 @@ public struct ElementPath: Sendable {
                         
                         // Get the element at the specified index
                         let (matchedElement, matchedPath) = matches[index]
-                        print("DEBUG: Selected match at index \(index)")
+                        // print("DEBUG: Selected match at index \(index)")
                         
                         // Get matched element role for debugging
                         var matchedRoleRef: CFTypeRef?
@@ -637,13 +637,13 @@ public struct ElementPath: Sendable {
                         
                         // If this is the last segment, we've found our match
                         if node.segmentIndex == segments.count - 1 {
-                            print("DEBUG: SUCCESS - Found final element with role \(matchedRole)")
-                            print("==== END BFS DEBUG ====\n")
+                            // print("DEBUG: SUCCESS - Found final element with role \(matchedRole)")
+                            // print("==== END BFS DEBUG ====\n")
                             return matchedElement
                         }
                         
                         // Otherwise add to queue for further processing
-                        print("DEBUG: Adding matched element (role=\(matchedRole)) to queue with next segment index \(node.segmentIndex + 1)")
+                        // print("DEBUG: Adding matched element (role=\(matchedRole)) to queue with next segment index \(node.segmentIndex + 1)")
                         queue.append(PathNode(
                             element: matchedElement,
                             segmentIndex: node.segmentIndex + 1,
@@ -651,7 +651,7 @@ public struct ElementPath: Sendable {
                         ))
                     }
                 } else {
-                    print("DEBUG: No matches found for indexed segment")
+                    // print("DEBUG: No matches found for indexed segment")
                 }
             } else {
                 // No index specified, process all matching children normally
@@ -678,23 +678,23 @@ public struct ElementPath: Sendable {
                         childId = ", id=\(id)"
                     }
                     
-                    print("DEBUG: Checking child \(childIndex): role=\(childRole)\(childDesc)\(childId)")
+                    // print("DEBUG: Checking child \(childIndex): role=\(childRole)\(childDesc)\(childId)")
                     
                     if try await elementMatchesSegment(child, segment: currentSegment) {
                         matchCount += 1
                         // Create path to this point for debugging
                         let newPath = node.pathSoFar + "/" + currentSegment.toString()
-                        print("DEBUG: MATCH FOUND! Child \(childIndex) matches segment \(currentSegment.toString())")
+                        // print("DEBUG: MATCH FOUND! Child \(childIndex) matches segment \(currentSegment.toString())")
                         
                         // If this is the last segment, we've found our match
                         if node.segmentIndex == segments.count - 1 {
-                            print("DEBUG: SUCCESS - Found final element with role \(childRole)\(childDesc)\(childId)")
-                            print("==== END BFS DEBUG ====\n")
+                            // print("DEBUG: SUCCESS - Found final element with role \(childRole)\(childDesc)\(childId)")
+                            // print("==== END BFS DEBUG ====\n")
                             return child
                         }
                         
                         // Otherwise, add child to queue with next segment index
-                        print("DEBUG: Adding matched element to queue with next segment index \(node.segmentIndex + 1)")
+                        // print("DEBUG: Adding matched element to queue with next segment index \(node.segmentIndex + 1)")
                         queue.append(PathNode(
                             element: child,
                             segmentIndex: node.segmentIndex + 1,
@@ -703,14 +703,14 @@ public struct ElementPath: Sendable {
                     }
                 }
                 
-                print("DEBUG: Found \(matchCount) matching children for segment \(currentSegment.toString())")
+                // print("DEBUG: Found \(matchCount) matching children for segment \(currentSegment.toString())")
             }
         }
         
         // Check if we hit max depth
         if depth >= maxDepth {
-            print("DEBUG: ERROR - Exceeded maximum depth of \(maxDepth)")
-            print("==== END BFS DEBUG ====\n")
+            // print("DEBUG: ERROR - Exceeded maximum depth of \(maxDepth)")
+            // print("==== END BFS DEBUG ====\n")
             throw ElementPathError.resolutionTimeout(
                 "Path resolution exceeded maximum depth (\(maxDepth))",
                 atSegment: failedSegmentIndex
@@ -718,8 +718,8 @@ public struct ElementPath: Sendable {
         }
         
         // If we've explored all possibilities and found no match, throw an error with the correct segment index
-        print("DEBUG: ERROR - Could not find elements matching segment: \(segments[failedSegmentIndex].toString())")
-        print("==== END BFS DEBUG ====\n")
+        // print("DEBUG: ERROR - Could not find elements matching segment: \(segments[failedSegmentIndex].toString())")
+        // print("==== END BFS DEBUG ====\n")
         throw ElementPathError.segmentResolutionFailed(
             "Could not find elements matching segment: \(segments[failedSegmentIndex].toString())",
             atSegment: failedSegmentIndex
@@ -880,59 +880,59 @@ public struct ElementPath: Sendable {
     private func elementMatchesSegment(_ element: AXUIElement, segment: PathSegment) async throws -> Bool {
         // Element ID for debugging
         let elementID = UInt(bitPattern: Unmanaged.passUnretained(element).toOpaque())
-        print("  DEBUG: Matching element \(elementID) against segment \(segment.toString())")
+        // print("  DEBUG: Matching element \(elementID) against segment \(segment.toString())")
         
         // Check role first - this is the primary type matcher
         var roleRef: CFTypeRef?
         let roleStatus = AXUIElementCopyAttributeValue(element, "AXRole" as CFString, &roleRef)
         
         if roleStatus != .success || roleRef == nil {
-            print("  DEBUG: Element has no role or couldn't access role")
+            // print("  DEBUG: Element has no role or couldn't access role")
             return false
         }
         
         guard let role = roleRef as? String else {
-            print("  DEBUG: Element role is not a string value")
+            // print("  DEBUG: Element role is not a string value")
             return false
         }
         
-        print("  DEBUG: Element role = \(role), segment role = \(segment.role)")
+        // print("  DEBUG: Element role = \(role), segment role = \(segment.role)")
         
         // Check role match - be more tolerant with role matching (optionally strip 'AX' prefix)
         let normalizedSegmentRole = segment.role.hasPrefix("AX") ? segment.role : "AX\(segment.role)"
         let normalizedElementRole = role.hasPrefix("AX") ? role : "AX\(role)"
         
         if role != segment.role && normalizedElementRole != normalizedSegmentRole {
-            print("  DEBUG: ROLE MISMATCH - Element role doesn't match segment role")
-            print("  DEBUG: Element: \(role), Segment: \(segment.role)")
-            print("  DEBUG: Normalized Element: \(normalizedElementRole), Normalized Segment: \(normalizedSegmentRole)")
+            // print("  DEBUG: ROLE MISMATCH - Element role doesn't match segment role")
+            // print("  DEBUG: Element: \(role), Segment: \(segment.role)")
+            // print("  DEBUG: Normalized Element: \(normalizedElementRole), Normalized Segment: \(normalizedSegmentRole)")
             return false
         }
         
-        print("  DEBUG: ROLE MATCH OK ✓")
+        // print("  DEBUG: ROLE MATCH OK ✓")
         
         // If there are no attributes to match, we're done
         if segment.attributes.isEmpty {
-            print("  DEBUG: No attributes to check, match successful ✓")
+            // print("  DEBUG: No attributes to check, match successful ✓")
             return true
         }
         
         // Check each attribute - ALL must match for a successful match
-        print("  DEBUG: Checking attributes (\(segment.attributes.count) total):")
+        // print("  DEBUG: Checking attributes (\(segment.attributes.count) total):")
         for (name, expectedValue) in segment.attributes {
-            print("  DEBUG: Checking attribute \(name) with expected value \"\(expectedValue)\"")
+            // print("  DEBUG: Checking attribute \(name) with expected value \"\(expectedValue)\"")
             
             // Get normalized attribute name
             let normalizedName = getNormalizedAttributeName(name)
-            print("  DEBUG:   Using normalized attribute name: \(normalizedName)")
+            // print("  DEBUG:   Using normalized attribute name: \(normalizedName)")
             
             // Get the actual value for detailed logging
             var attributeRef: CFTypeRef?
             let attributeStatus = AXUIElementCopyAttributeValue(element, normalizedName as CFString, &attributeRef)
             
             if attributeStatus != .success || attributeRef == nil {
-                print("  DEBUG:   No value for attribute \(normalizedName)")
-                print("  DEBUG: FAILED - Attribute \(normalizedName) not found ✗")
+                // print("  DEBUG:   No value for attribute \(normalizedName)")
+                // print("  DEBUG: FAILED - Attribute \(normalizedName) not found ✗")
                 return false
             }
             
@@ -948,20 +948,20 @@ public struct ElementPath: Sendable {
                 actualValue = String(describing: attributeRef!)
             }
             
-            print("  DEBUG:   Found value: \"\(actualValue)\"")
+            // print("  DEBUG:   Found value: \"\(actualValue)\"")
             
             // Exact match check
             if actualValue == expectedValue {
-                print("  DEBUG:   ATTRIBUTE MATCH OK ✓ \(normalizedName)=\"\(actualValue)\" matches \"\(expectedValue)\"")
+                // print("  DEBUG:   ATTRIBUTE MATCH OK ✓ \(normalizedName)=\"\(actualValue)\" matches \"\(expectedValue)\"")
             } else {
-                print("  DEBUG:   ATTRIBUTE MISMATCH ✗ \(normalizedName)=\"\(actualValue)\" != \"\(expectedValue)\"")
-                print("  DEBUG: FAILED - Attribute \(normalizedName) did not match ✗")
+                // print("  DEBUG:   ATTRIBUTE MISMATCH ✗ \(normalizedName)=\"\(actualValue)\" != \"\(expectedValue)\"")
+                // print("  DEBUG: FAILED - Attribute \(normalizedName) did not match ✗")
                 return false
             }
         }
         
         // All checks passed
-        print("  DEBUG: ALL ATTRIBUTES MATCHED ✓ - Element matches segment successfully")
+        // print("  DEBUG: ALL ATTRIBUTES MATCHED ✓ - Element matches segment successfully")
         return true
     }
     
@@ -989,7 +989,7 @@ public struct ElementPath: Sendable {
         
         // If we couldn't get the attribute, it doesn't match
         if attributeStatus != .success || attributeRef == nil {
-            print("  DEBUG:     Attribute \(normalizedName) not found")
+            // print("  DEBUG:     Attribute \(normalizedName) not found")
             return false
         }
         
@@ -1007,12 +1007,12 @@ public struct ElementPath: Sendable {
         
         // Check for exact match
         if actualValue == expectedValue {
-            print("  DEBUG:     Exact match found")
+            // print("  DEBUG:     Exact match found")
             return true
         }
         
         // No match
-        print("  DEBUG:     No match found")
+        // print("  DEBUG:     No match found")
         return false
     }
     

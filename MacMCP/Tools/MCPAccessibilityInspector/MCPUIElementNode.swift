@@ -137,9 +137,22 @@ class MCPUIElementNode {
             self.attributes = [:]
         }
         
-        // Extract path information if available
+        // Extract path information from server
         self.elementPath = jsonElement["path"] as? String
         self.parentPath = nil
+        
+        // Important: Do NOT set fullPath here
+        // The fullPath will be calculated during populateChildren based on parent hierarchy
+        // This ensures that paths are always walked properly from parent to child
+        self.fullPath = nil
+        
+        // Special case for the root application element
+        // We need the root to have a valid path for children to build upon
+        if self.role == "AXApplication" && self.elementPath != nil {
+            // For root application elements, we can use the server-provided path directly
+            // This forms the foundation of our path hierarchy
+            self.fullPath = self.elementPath
+        }
 
         // Initialize children as empty (will be populated by inspector)
         self.children = []
@@ -155,16 +168,18 @@ class MCPUIElementNode {
                 let childNode = MCPUIElementNode(jsonElement: childJSON, index: nextIndex)
                 nextIndex += 1
                 
-                // Set the parent path relationship to help understand the hierarchy
-                childNode.parentPath = self.elementPath
+                // IMPORTANT: First add the child to our children array
+                // This establishes the parent-child relationship used for path building
+                self.children.append(childNode)
                 
-                // Calculate the full path for this node
+                // Before calculating paths, ensure parent relationship is set
+                // The parent-child relationship is critical for building fully qualified paths
+                childNode.parentPath = self.fullPath  // Use the parent's FULL path, not just elementPath
+                
+                // Now calculate the full path based on the parent-child relationship
                 childNode.calculateFullPath(parentNode: self)
                 
-                // Add to children
-                self.children.append(childNode)
-
-                // Recursively populate grandchildren
+                // Only after the element's own path is fully set, recursively process its children
                 nextIndex = childNode.populateChildren(from: childJSON, startingIndex: nextIndex)
             }
         }
@@ -172,58 +187,72 @@ class MCPUIElementNode {
         return nextIndex
     }
     
-    /// Calculate the full path for this node using parent's full path if available
+    /// Set the full path for this node by walking up the parent chain
     func calculateFullPath(parentNode: MCPUIElementNode?) {
-        // Process node's path segment, removing any 'ui://' prefix if present
-        var cleanSegment: String? = nil
-        if let pathSegment = self.elementPath {
-            // If this segment has a ui:// prefix, remove it
-            if pathSegment.hasPrefix("ui://") {
-                cleanSegment = String(pathSegment.dropFirst(5))
-            } else {
-                cleanSegment = pathSegment
-            }
-        }
+        // Log entry info
+        print("PATH DEBUG - calculateFullPath for \(self.role) with title \(self.title ?? "nil") and description \(self.description ?? "nil")")
+        print("PATH DEBUG - incoming server path: \(self.elementPath ?? "nil")")
+        print("PATH DEBUG - parent provided: \(parentNode != nil ? "yes" : "no")")
+        print("PATH DEBUG - parent fullPath: \(parentNode?.fullPath ?? "nil")")
         
-        // For the root node, the full path is "ui://" + the cleaned path segment
-        if parentNode == nil {
-            // Root node - use "ui://" prefix with the cleaned segment
-            if let segment = cleanSegment {
-                self.fullPath = "ui://" + segment
+        // We must ALWAYS walk up the entire parent chain to construct fully qualified paths
+        if let parentNode = parentNode, let parentPath = parentNode.fullPath {
+            // If parent has a path, we need to append our segment to it
+            let segment = self.generatePathSegment()
+            print("PATH DEBUG - generated segment: \(segment)")
+            
+            // Ensure we separate with a slash unless parent path already ends with /
+            var newPath: String
+            if parentPath.hasSuffix("/") {
+                newPath = parentPath + segment
             } else {
-                self.fullPath = "ui://"
-            }
-            return
-        }
-        
-        // If parent has a full path, combine with this node's segment
-        if let parentFullPath = parentNode?.fullPath, let segment = cleanSegment {
-            // Check if parent's path is the basic prefix
-            if parentFullPath == "ui://" {
-                // Join without adding an extra separator
-                self.fullPath = parentFullPath + segment
-            } else {
-                // Join with separator
-                self.fullPath = parentFullPath + "/" + segment
-            }
-            return
-        }
-        
-        // If parent has no full path but has a path segment
-        if let parentSegment = parentNode?.elementPath, let segment = cleanSegment {
-            // Clean the parent segment too
-            var cleanParentSegment = parentSegment
-            if cleanParentSegment.hasPrefix("ui://") {
-                cleanParentSegment = String(cleanParentSegment.dropFirst(5))
+                newPath = parentPath + "/" + segment
             }
             
-            // Start with prefix
-            self.fullPath = "ui://" + cleanParentSegment + "/" + segment
-            return
+            self.fullPath = newPath
+            print("PATH DEBUG - calculated path: \(newPath)")
+        } else {
+            // If we're at the root level (no parent) and we got a path from the server, use it
+            if let pathFromServer = self.elementPath {
+                self.fullPath = pathFromServer
+                print("PATH DEBUG - using server path as root: \(pathFromServer)")
+            } else {
+                // We can't generate a valid fully qualified path
+                print("ERROR: Unable to generate a fully qualified path for element: \(self.role)")
+                // Don't set any path - leaving it nil to indicate failure
+                print("PATH DEBUG - FAILED to generate path")
+            }
+        }
+    }
+    
+    /// Generate a path segment for this element
+    func generatePathSegment() -> String {
+        // Get the path provided by the MCP server directly if available
+        if let elementPath = self.elementPath, 
+           !elementPath.hasPrefix("ui://"),  // It shouldn't be a full path already
+           !elementPath.contains("/") {      // It shouldn't contain path separators
+            return elementPath              // Return the server-provided segment as-is
         }
         
-        // Last resort: Use the synthetic path
-        self.fullPath = self.generateSyntheticPath()
+        // Otherwise, create a segment for this element
+        var segment = role
+        
+        // Add key attributes to identify the element
+        if let title = self.title, !title.isEmpty {
+            let escapedTitle = PathNormalizer.escapeAttributeValue(title)
+            segment += "[@AXTitle=\"\(escapedTitle)\"]"
+        }
+        
+        if let description = self.description, !description.isEmpty {
+            let escapedDesc = PathNormalizer.escapeAttributeValue(description)
+            segment += "[@AXDescription=\"\(escapedDesc)\"]"
+        }
+        
+        if let identifier = self.attributes["identifier"] as? String, !identifier.isEmpty {
+            segment += "[@AXIdentifier=\"\(identifier)\"]"
+        }
+        
+        return segment
     }
     
     /// Generate a synthetic element path if one wasn't provided

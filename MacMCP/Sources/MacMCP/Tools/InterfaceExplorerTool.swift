@@ -4,6 +4,7 @@
 import Foundation
 import MCP
 import Logging
+import MacMCPUtilities
 
 /// A descriptor for UI elements with enhanced information about states and capabilities
 public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
@@ -133,11 +134,89 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
         // Clean and filter attributes
         let filteredAttributes = filterAttributes(element)
         
-        // Generate path if requested
+        // Generate absolute path if requested
         let path: String?
         if includePath {
             do {
-                path = try element.generatePath()
+                // Always generate a fully qualified path from root to current element
+                // Start with the complete path segments
+                var pathSegments: [PathSegment] = []
+                
+                // Collect all elements from current to root
+                var elementsChain: [UIElement] = []
+                var currentElement: UIElement? = element
+                
+                // Build chain of elements from current to root
+                while let elem = currentElement {
+                    elementsChain.insert(elem, at: 0)
+                    currentElement = elem.parent
+                }
+                
+                // Make sure we include the application at the root if not already in chain
+                if !elementsChain.isEmpty && elementsChain[0].role != "AXApplication" {
+                    // Try to get the application from the chain's parent links
+                    var foundApp = false
+                    currentElement = element.parent
+                    while let elem = currentElement {
+                        if elem.role == "AXApplication" {
+                            elementsChain.insert(elem, at: 0)
+                            foundApp = true
+                            break
+                        }
+                        currentElement = elem.parent
+                    }
+                    
+                    // If we still don't have an app, create a generic application segment
+                    if !foundApp {
+                        var appAttributes: [String: String] = [:]
+                        if let bundleId = element.attributes["bundleIdentifier"] as? String {
+                            appAttributes["bundleIdentifier"] = bundleId
+                        } else if let appTitle = element.attributes["applicationTitle"] as? String {
+                            appAttributes["AXTitle"] = PathNormalizer.escapeAttributeValue(appTitle)
+                        }
+                        pathSegments.append(PathSegment(role: "AXApplication", attributes: appAttributes))
+                    }
+                }
+                
+                // Process each element in the chain to create path segments
+                for elem in elementsChain {
+                    // Create appropriate attributes for this segment
+                    var attributes: [String: String] = [:]
+                    
+                    // Add useful identifying attributes
+                    if let title = elem.title, !title.isEmpty {
+                        attributes["AXTitle"] = PathNormalizer.escapeAttributeValue(title)
+                    }
+                    
+                    if let desc = elem.elementDescription, !desc.isEmpty {
+                        attributes["AXDescription"] = PathNormalizer.escapeAttributeValue(desc)
+                    }
+                    
+                    // Include identifier if available
+                    if let identifier = elem.attributes["identifier"] as? String, !identifier.isEmpty {
+                        attributes["AXIdentifier"] = identifier
+                    }
+                    
+                    // For applications, include bundle identifier if available
+                    if elem.role == "AXApplication" {
+                        if let bundleId = elem.attributes["bundleIdentifier"] as? String, !bundleId.isEmpty {
+                            attributes["bundleIdentifier"] = bundleId
+                        }
+                    }
+                    
+                    // Create the path segment with proper attributes
+                    let segment = PathSegment(role: elem.role, attributes: attributes)
+                    pathSegments.append(segment)
+                }
+                
+                // Create the ElementPath
+                let elementPath = try ElementPath(segments: pathSegments)
+                
+                // Convert to string
+                path = elementPath.toString()
+                
+                // Store the path on the element itself so that child elements can access it
+                element.path = path
             } catch {
                 // If path generation fails, we'll still return the descriptor without a path
                 path = nil
@@ -149,6 +228,12 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
         // Handle children if we haven't reached maximum depth
         let children: [EnhancedElementDescriptor]?
         if currentDepth < maxDepth && !element.children.isEmpty {
+            // Make sure each child has a proper parent reference before processing
+            for child in element.children {
+                // Ensure parent relationship is set properly
+                child.parent = element
+            }
+            
             // Recursively convert children with incremented depth
             children = element.children.map { 
                 from(element: $0, maxDepth: maxDepth, currentDepth: currentDepth + 1, includePath: includePath) 
@@ -949,6 +1034,9 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
                 maxDepth: maxDepth
             )
             
+            // Don't set element.path here
+            // We'll calculate accurate hierarchical paths for each element instead
+            
             // If we're searching within this element, apply filters to it and its children
             var resultElements: [UIElement] = []
             
@@ -966,6 +1054,25 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
                     maxDepth: maxDepth,
                     limit: limit
                 )
+                
+                // Generate proper hierarchical paths for all result elements
+                // This ensures each element has a fully qualified path reflecting its true position
+                for resultElement in resultElements {
+                    // Let's make sure all parent relationships are properly set up
+                    // This is essential for accurate path generation
+                    
+                    // Use generatePath to create a fully qualified path based on the element's
+                    // actual position in the UI hierarchy
+                    do {
+                        // First try to calculate a path using the element's hierarchy information
+                        let calculatedPath = try resultElement.generatePath()
+                        resultElement.path = calculatedPath
+                    } catch {
+                        // If path generation fails, we'll try to reconstruct from what we know
+                        // Log the error for debugging
+                        logger.error("Failed to generate path for element: \(error.localizedDescription)")
+                    }
+                }
             } else {
                 // If no filters, just use the element itself
                 resultElements = [element]
@@ -1072,6 +1179,17 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
             
             // Check if this element matches
             if elementMatches(element) {
+                // IMPORTANT: Build up the parent hierarchy before adding to results
+                // This ensures each element has a proper parent chain for path generation
+                
+                // We've already properly set up the parent relationship in convertToUIElement
+                // No need to do it again, but we should validate
+                if element.parent == nil && depth > 0 {
+                    // If a non-root element is missing its parent, this is unusual and might
+                    // cause path generation to fail, but we'll still include the element
+                    logger.warning("Element at depth \(depth) has no parent - path generation may be incomplete")
+                }
+                
                 results.append(element)
             }
             
@@ -1080,8 +1198,14 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
                 return
             }
             
-            // Process children
+            // Process children and ensure they have a reference to this element as their parent
             for child in element.children {
+                // IMPORTANT: Make sure the parent relationship is set
+                // This is critical for proper path generation later
+                if child.parent == nil {
+                    child.parent = element
+                }
+                
                 findElements(in: child, depth: depth + 1)
             }
         }
@@ -1210,7 +1334,20 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
     /// Convert UI elements to enhanced element descriptors
     private func convertToEnhancedDescriptors(elements: [UIElement], maxDepth: Int) -> [EnhancedElementDescriptor] {
         return elements.map { element in
-            EnhancedElementDescriptor.from(element: element, maxDepth: maxDepth)
+            // Before converting to descriptor, ensure the element has a properly calculated path
+            if element.path == nil {
+                do {
+                    // Generate a path based on the element's position in the hierarchy
+                    // This uses parent relationships to build a fully qualified path
+                    element.path = try element.generatePath()
+                } catch {
+                    // Log any path generation errors but continue
+                    logger.warning("Could not generate path for element: \(error.localizedDescription)")
+                }
+            }
+            
+            // Convert the element to an enhanced descriptor with its path included
+            return EnhancedElementDescriptor.from(element: element, maxDepth: maxDepth)
         }
     }
     
