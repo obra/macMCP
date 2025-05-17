@@ -35,7 +35,7 @@ class MCPTreeVisualizer {
     /// - Parameters:
     ///   - rootElement: The root element of the tree
     ///   - withFilters: Optional filters to apply (key-value pairs)
-    ///   - pathPattern: Optional path pattern to filter elements by
+    ///   - pathPattern: Optional path pattern to filter elements by (used only for display, filtering is done server-side)
     /// - Returns: A string representation of the tree
     func visualize(_ rootElement: MCPUIElementNode, withFilters: [String: String] = [:], pathPattern: String? = nil) -> String {
         var output = ""
@@ -48,8 +48,13 @@ class MCPTreeVisualizer {
             output += "   │\n"
         }
         
-        // Recursively visualize the children
-        visualizeChildren(rootElement.children, withFilters: withFilters, pathPattern: pathPattern, prefix: "", isLast: true, intoOutput: &output)
+        // Add a message if this is a path-based result
+        if pathPattern != nil && pathPattern!.hasPrefix("ui://") {
+            output += "   └─+ [Server-side path filtering used for: \(pathPattern!)]\n\n"
+        }
+        
+        // Recursively visualize children with standard filters only (no path filtering)
+        visualizeChildren(rootElement.children, withFilters: withFilters, prefix: "", isLast: true, intoOutput: &output)
         
         return output
     }
@@ -58,13 +63,12 @@ class MCPTreeVisualizer {
     /// - Parameters:
     ///   - children: The children to visualize
     ///   - withFilters: Filters to apply
-    ///   - pathPattern: Optional path pattern to filter elements by
     ///   - prefix: Current line prefix for indentation
     ///   - isLast: Whether this is the last child in its parent's children list
     ///   - output: Output string to append to
-    private func visualizeChildren(_ children: [MCPUIElementNode], withFilters: [String: String], pathPattern: String? = nil, prefix: String, isLast: Bool, intoOutput output: inout String) {
-        // Filter children if needed
-        let filteredChildren = filterElements(children, withFilters: withFilters, pathPattern: pathPattern)
+    private func visualizeChildren(_ children: [MCPUIElementNode], withFilters: [String: String], prefix: String, isLast: Bool, intoOutput output: inout String) {
+        // Filter children if needed (standard filters only, no path filtering)
+        let filteredChildren = filterElements(children, withFilters: withFilters)
         
         // Process each child
         for (index, child) in filteredChildren.enumerated() {
@@ -87,7 +91,7 @@ class MCPTreeVisualizer {
             
             // Recursively visualize grandchildren
             let newPrefix = prefix + (isLastChild ? "   " : "   " + TreeSymbols.vertical)
-            visualizeChildren(child.children, withFilters: withFilters, pathPattern: pathPattern, prefix: newPrefix, isLast: isLastChild, intoOutput: &output)
+            visualizeChildren(child.children, withFilters: withFilters, prefix: newPrefix, isLast: isLastChild, intoOutput: &output)
         }
     }
     
@@ -95,40 +99,16 @@ class MCPTreeVisualizer {
     /// - Parameters:
     ///   - elements: The elements to filter
     ///   - withFilters: The filters to apply
-    ///   - pathPattern: Optional path pattern to filter elements by path
     /// - Returns: Filtered list of elements
-    private func filterElements(_ elements: [MCPUIElementNode], withFilters: [String: String], pathPattern: String? = nil) -> [MCPUIElementNode] {
-        // First check if we have any filters at all
-        let noStandardFilters = withFilters.isEmpty
-        let noPathFilter = pathPattern == nil || pathPattern!.isEmpty
-        
-        // If there are no filters of any kind, return all elements
-        if noStandardFilters && noPathFilter {
+    private func filterElements(_ elements: [MCPUIElementNode], withFilters: [String: String]) -> [MCPUIElementNode] {
+        // If there are no standard filters, return all elements
+        if withFilters.isEmpty {
             return elements
         }
         
         return elements.filter { element in
-            // Check path filter first if specified
-            if let pattern = pathPattern, !pattern.isEmpty {
-                // Get the element's path to match against
-                let elementPath = element.elementPath ?? element.generateSyntheticPath() ?? ""
-                
-                // Simple substring match for now (enhanced version would use pattern matching)
-                // We'll use case-insensitive matching for better usability
-                if !elementPath.lowercased().contains(pattern.lowercased()) {
-                    // No path match, check if we should include special elements regardless
-                    let isApplicationElement = element.role == "AXApplication"
-                    let isTopLevelWindow = element.role == "AXWindow"
-                    
-                    // Always keep application and top-level window elements for context
-                    if !isApplicationElement && !isTopLevelWindow {
-                        return false
-                    }
-                }
-            }
-            
-            // If there are no standard filters, at this point the element passed the path filter
-            if noStandardFilters {
+            // If there are no standard filters, include all elements
+            if withFilters.isEmpty {
                 return true
             }
             

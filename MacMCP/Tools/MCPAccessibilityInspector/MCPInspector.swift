@@ -71,7 +71,7 @@ class MCPInspector {
     }
     
     /// Inspects the application and returns the root UI element node
-    func inspectApplication() async throws -> MCPUIElementNode {
+    func inspectApplication(pathFilter: String? = nil) async throws -> MCPUIElementNode {
         inspectorLogger.info("Inspecting application", metadata: ["appId": .string(appId ?? ""), "pid": .stringConvertible(pid ?? 0)])
         
         // Verify we have either an app ID or PID
@@ -99,7 +99,20 @@ class MCPInspector {
             throw InspectionError.applicationNotFound
         }
         
-        // Use MCP's UIStateTool to get UI information
+        // If we have a path filter, use it to get the specific element
+        if let pathFilter = pathFilter, pathFilter.hasPrefix("ui://") {
+            print("Using server-side path resolution for: \(pathFilter)")
+            do {
+                return try await inspectElementByPath(bundleIdentifier: bundleIdentifier, path: pathFilter, maxDepth: maxDepth)
+            } catch {
+                // If path-based inspection fails, fall back to normal app inspection
+                print("Path-based inspection failed with error: \(error.localizedDescription)")
+                print("Falling back to standard application inspection")
+                // Continue with standard app inspection
+            }
+        }
+        
+        // Use MCP's InterfaceExplorerTool to get UI information
         let uiState = try await fetchUIStateData(bundleIdentifier: bundleIdentifier, maxDepth: maxDepth)
         
         // Process the UI state

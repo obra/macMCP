@@ -49,7 +49,8 @@ final class AsyncInspectionTask: @unchecked Sendable {
             let rootElement: MCPUIElementNode
             
             if let path = inspectPath, let appId = inspector.appId {
-                print("Performing path-based inspection for: \(path)")
+                print("Performing server-side path-based inspection for: \(path)")
+                // Use the inspectElementByPath method for direct server-side path resolution
                 rootElement = try await inspector.inspectElementByPath(
                     bundleIdentifier: appId,
                     path: path,
@@ -402,13 +403,16 @@ struct MCPAccessibilityInspector: ParsableCommand {
             
             // We need to delegate to a separate async method to avoid issues
             // with capturing state in the Task
+            // Use pathFilter as inspectPath if inspectPath is not provided
+            let effectiveInspectPath = inspectPath ?? (pathFilter?.hasPrefix("ui://") == true ? pathFilter : nil)
+            
             let asyncTask = AsyncInspectionTask(
                 inspector: inspector,
                 showMenuDetail: showMenuDetail,
                 menuPath: menuPath,
                 showWindowDetail: showWindowDetail,
                 windowId: windowId,
-                inspectPath: inspectPath,
+                inspectPath: effectiveInspectPath, // Use the effective inspect path
                 onComplete: { root, additionalInfo in
                     resultRootElement = root
                     additionalOutput = additionalInfo

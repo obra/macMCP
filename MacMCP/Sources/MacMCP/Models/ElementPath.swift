@@ -538,53 +538,88 @@ public struct ElementPath: Sendable {
         // Add depth tracking
         var depth = 0
         
+        // Add detailed logging
+        print("\n==== BFS PATH RESOLUTION DEBUG ====")
+        print("Starting BFS path resolution for path: \(toString())")
+        print("Start segment index: \(startIndex)")
+        print("Total segments: \(segments.count)")
+        print("Queue initialized with 1 node: \(segments[0].toString())")
+        
         // Breadth-first search loop
         while !queue.isEmpty && depth < maxDepth {
             // Track depth for timeout detection
             depth += 1
+            print("\nDEBUG: Processing depth \(depth), queue size: \(queue.count)")
+            
             // Dequeue the next node to process
             let node = queue.removeFirst()
+            
+            // Get element details for debugging
+            var roleRef: CFTypeRef?
+            let roleStatus = AXUIElementCopyAttributeValue(node.element, "AXRole" as CFString, &roleRef)
+            let role = (roleStatus == .success) ? (roleRef as? String ?? "unknown") : "unknown"
+            
+            print("DEBUG: Exploring node: segmentIndex=\(node.segmentIndex), role=\(role), path=\(node.pathSoFar)")
             
             // Track visited nodes by memory address to avoid cycles
             let elementID = UInt(bitPattern: Unmanaged.passUnretained(node.element).toOpaque())
             if visited.contains(elementID) {
+                print("DEBUG: Skipping already visited element with ID \(elementID)")
                 continue
             }
             visited.insert(elementID)
+            print("DEBUG: Marked element \(elementID) as visited, total visited: \(visited.count)")
             
             // Check if we've reached the end of the path
             if node.segmentIndex >= segments.count {
+                print("DEBUG: SUCCESS - Reached end of path! All segments matched.")
+                print("==== END BFS DEBUG ====\n")
                 return node.element
             }
             
             // Get the current segment we're trying to match
             let currentSegment = segments[node.segmentIndex]
+            print("DEBUG: Current segment [\(node.segmentIndex)]: \(currentSegment.toString())")
             
             // Update the failed segment index to the deepest segment we've tried
             failedSegmentIndex = max(failedSegmentIndex, node.segmentIndex)
             
             // Get children of the current element to explore
             guard let children = getChildElements(of: node.element) else {
+                print("DEBUG: No children found for this element")
                 continue
             }
+            print("DEBUG: Found \(children.count) children to check")
             
             // If the segment specifies an index, we need to collect all matches first
             if currentSegment.index != nil {
+                print("DEBUG: Index-based segment detected with index \(String(describing: currentSegment.index))")
                 // Collect all matches for indexed selection
                 var matches: [(element: AXUIElement, path: String)] = []
                 
-                for child in children {
+                for (childIndex, child) in children.enumerated() {
+                    // Get child role for debugging
+                    var childRoleRef: CFTypeRef?
+                    let childRoleStatus = AXUIElementCopyAttributeValue(child, "AXRole" as CFString, &childRoleRef)
+                    let childRole = (childRoleStatus == .success) ? (childRoleRef as? String ?? "unknown") : "unknown"
+                    
+                    print("DEBUG: Checking child \(childIndex): role=\(childRole)")
+                    
                     if try await elementMatchesSegment(child, segment: currentSegment) {
                         let newPath = node.pathSoFar + "/" + currentSegment.toString()
                         matches.append((child, newPath))
+                        print("DEBUG: MATCH FOUND! Child \(childIndex) matches segment \(currentSegment.toString())")
                     }
                 }
+                
+                print("DEBUG: Found \(matches.count) matching children for indexed segment")
                 
                 // Now apply index selection if we found any matches
                 if !matches.isEmpty {
                     if let index = currentSegment.index {
                         // Validate the index is in range
                         if index < 0 || index >= matches.count {
+                            print("DEBUG: ERROR - Index \(index) is out of range (0..\(matches.count-1))")
                             throw ElementPathError.invalidIndexSyntax(
                                 "Index \(index) is out of range (0..\(matches.count-1))",
                                 atSegment: node.segmentIndex
@@ -593,33 +628,73 @@ public struct ElementPath: Sendable {
                         
                         // Get the element at the specified index
                         let (matchedElement, matchedPath) = matches[index]
+                        print("DEBUG: Selected match at index \(index)")
+                        
+                        // Get matched element role for debugging
+                        var matchedRoleRef: CFTypeRef?
+                        let matchedRoleStatus = AXUIElementCopyAttributeValue(matchedElement, "AXRole" as CFString, &matchedRoleRef)
+                        let matchedRole = (matchedRoleStatus == .success) ? (matchedRoleRef as? String ?? "unknown") : "unknown"
                         
                         // If this is the last segment, we've found our match
                         if node.segmentIndex == segments.count - 1 {
+                            print("DEBUG: SUCCESS - Found final element with role \(matchedRole)")
+                            print("==== END BFS DEBUG ====\n")
                             return matchedElement
                         }
                         
                         // Otherwise add to queue for further processing
+                        print("DEBUG: Adding matched element (role=\(matchedRole)) to queue with next segment index \(node.segmentIndex + 1)")
                         queue.append(PathNode(
                             element: matchedElement,
                             segmentIndex: node.segmentIndex + 1,
                             pathSoFar: matchedPath
                         ))
                     }
+                } else {
+                    print("DEBUG: No matches found for indexed segment")
                 }
             } else {
                 // No index specified, process all matching children normally
-                for child in children {
+                var matchCount = 0
+                
+                for (childIndex, child) in children.enumerated() {
+                    // Get child role for debugging
+                    var childRoleRef: CFTypeRef?
+                    let childRoleStatus = AXUIElementCopyAttributeValue(child, "AXRole" as CFString, &childRoleRef)
+                    let childRole = (childRoleStatus == .success) ? (childRoleRef as? String ?? "unknown") : "unknown"
+                    
+                    // Get other key attributes for debugging
+                    var childDesc = ""
+                    var descRef: CFTypeRef?
+                    let descStatus = AXUIElementCopyAttributeValue(child, "AXDescription" as CFString, &descRef)
+                    if descStatus == .success, let desc = descRef as? String {
+                        childDesc = ", description=\(desc)"
+                    }
+                    
+                    var childId = ""
+                    var idRef: CFTypeRef?
+                    let idStatus = AXUIElementCopyAttributeValue(child, "AXIdentifier" as CFString, &idRef)
+                    if idStatus == .success, let id = idRef as? String {
+                        childId = ", id=\(id)"
+                    }
+                    
+                    print("DEBUG: Checking child \(childIndex): role=\(childRole)\(childDesc)\(childId)")
+                    
                     if try await elementMatchesSegment(child, segment: currentSegment) {
+                        matchCount += 1
                         // Create path to this point for debugging
                         let newPath = node.pathSoFar + "/" + currentSegment.toString()
+                        print("DEBUG: MATCH FOUND! Child \(childIndex) matches segment \(currentSegment.toString())")
                         
                         // If this is the last segment, we've found our match
                         if node.segmentIndex == segments.count - 1 {
+                            print("DEBUG: SUCCESS - Found final element with role \(childRole)\(childDesc)\(childId)")
+                            print("==== END BFS DEBUG ====\n")
                             return child
                         }
                         
                         // Otherwise, add child to queue with next segment index
+                        print("DEBUG: Adding matched element to queue with next segment index \(node.segmentIndex + 1)")
                         queue.append(PathNode(
                             element: child,
                             segmentIndex: node.segmentIndex + 1,
@@ -627,11 +702,15 @@ public struct ElementPath: Sendable {
                         ))
                     }
                 }
+                
+                print("DEBUG: Found \(matchCount) matching children for segment \(currentSegment.toString())")
             }
         }
         
         // Check if we hit max depth
         if depth >= maxDepth {
+            print("DEBUG: ERROR - Exceeded maximum depth of \(maxDepth)")
+            print("==== END BFS DEBUG ====\n")
             throw ElementPathError.resolutionTimeout(
                 "Path resolution exceeded maximum depth (\(maxDepth))",
                 atSegment: failedSegmentIndex
@@ -639,6 +718,8 @@ public struct ElementPath: Sendable {
         }
         
         // If we've explored all possibilities and found no match, throw an error with the correct segment index
+        print("DEBUG: ERROR - Could not find elements matching segment: \(segments[failedSegmentIndex].toString())")
+        print("==== END BFS DEBUG ====\n")
         throw ElementPathError.segmentResolutionFailed(
             "Could not find elements matching segment: \(segments[failedSegmentIndex].toString())",
             atSegment: failedSegmentIndex
@@ -734,7 +815,6 @@ public struct ElementPath: Sendable {
             
             // Validate the index is in range
             if index < 0 || index >= matches.count {
-                let segmentString = segment.toString()
                 throw ElementPathError.invalidIndexSyntax(
                     "Index \(index) is out of range (0..\(matches.count-1))",
                     atSegment: segmentIndex
@@ -798,99 +878,123 @@ public struct ElementPath: Sendable {
     ///   - segment: The path segment to match against
     /// - Returns: True if the element matches the segment
     private func elementMatchesSegment(_ element: AXUIElement, segment: PathSegment) async throws -> Bool {
+        // Element ID for debugging
+        let elementID = UInt(bitPattern: Unmanaged.passUnretained(element).toOpaque())
+        print("  DEBUG: Matching element \(elementID) against segment \(segment.toString())")
+        
         // Check role first - this is the primary type matcher
         var roleRef: CFTypeRef?
         let roleStatus = AXUIElementCopyAttributeValue(element, "AXRole" as CFString, &roleRef)
         
         if roleStatus != .success || roleRef == nil {
+            print("  DEBUG: Element has no role or couldn't access role")
             return false
         }
         
         guard let role = roleRef as? String else {
+            print("  DEBUG: Element role is not a string value")
             return false
         }
+        
+        print("  DEBUG: Element role = \(role), segment role = \(segment.role)")
         
         // Check role match - be more tolerant with role matching (optionally strip 'AX' prefix)
         let normalizedSegmentRole = segment.role.hasPrefix("AX") ? segment.role : "AX\(segment.role)"
         let normalizedElementRole = role.hasPrefix("AX") ? role : "AX\(role)"
         
         if role != segment.role && normalizedElementRole != normalizedSegmentRole {
+            print("  DEBUG: ROLE MISMATCH - Element role doesn't match segment role")
+            print("  DEBUG: Element: \(role), Segment: \(segment.role)")
+            print("  DEBUG: Normalized Element: \(normalizedElementRole), Normalized Segment: \(normalizedSegmentRole)")
             return false
         }
         
+        print("  DEBUG: ROLE MATCH OK ✓")
+        
         // If there are no attributes to match, we're done
         if segment.attributes.isEmpty {
+            print("  DEBUG: No attributes to check, match successful ✓")
             return true
         }
         
         // Check each attribute - ALL must match for a successful match
+        print("  DEBUG: Checking attributes (\(segment.attributes.count) total):")
         for (name, expectedValue) in segment.attributes {
-            // Try attribute name variants
-            var attributeMatched = false
+            print("  DEBUG: Checking attribute \(name) with expected value \"\(expectedValue)\"")
             
-            // Try all variants of the attribute name
-            for attributeName in getAttributeVariants(name) {
-                if attributeMatchesValue(element, name: attributeName, expectedValue: expectedValue) {
-                    attributeMatched = true
-                    break
-                }
+            // Get normalized attribute name
+            let normalizedName = getNormalizedAttributeName(name)
+            print("  DEBUG:   Using normalized attribute name: \(normalizedName)")
+            
+            // Get the actual value for detailed logging
+            var attributeRef: CFTypeRef?
+            let attributeStatus = AXUIElementCopyAttributeValue(element, normalizedName as CFString, &attributeRef)
+            
+            if attributeStatus != .success || attributeRef == nil {
+                print("  DEBUG:   No value for attribute \(normalizedName)")
+                print("  DEBUG: FAILED - Attribute \(normalizedName) not found ✗")
+                return false
             }
             
-            // If attribute didn't match, this element doesn't match
-            if !attributeMatched {
+            // Convert attribute value to string for logging
+            let actualValue: String
+            if let stringValue = attributeRef as? String {
+                actualValue = stringValue
+            } else if let numberValue = attributeRef as? NSNumber {
+                actualValue = numberValue.stringValue
+            } else if let boolValue = attributeRef as? Bool {
+                actualValue = boolValue ? "true" : "false"
+            } else {
+                actualValue = String(describing: attributeRef!)
+            }
+            
+            print("  DEBUG:   Found value: \"\(actualValue)\"")
+            
+            // Exact match check
+            if actualValue == expectedValue {
+                print("  DEBUG:   ATTRIBUTE MATCH OK ✓ \(normalizedName)=\"\(actualValue)\" matches \"\(expectedValue)\"")
+            } else {
+                print("  DEBUG:   ATTRIBUTE MISMATCH ✗ \(normalizedName)=\"\(actualValue)\" != \"\(expectedValue)\"")
+                print("  DEBUG: FAILED - Attribute \(normalizedName) did not match ✗")
                 return false
             }
         }
         
         // All checks passed
+        print("  DEBUG: ALL ATTRIBUTES MATCHED ✓ - Element matches segment successfully")
         return true
     }
     
-    /// Get the variants of an attribute name to try when matching
+    /// Get the normalized form of an attribute name for matching
     /// - Parameter attributeName: The original attribute name
-    /// - Returns: An array of attribute name variants to try
-    private func getAttributeVariants(_ attributeName: String) -> [String] {
-        // Standard cases handled by the normalizer
-        let normalizedName = PathNormalizer.normalizeAttributeName(attributeName)
-        var variants = [normalizedName]
-        
-        // Add original name if different from normalized
-        if normalizedName != attributeName {
-            variants.append(attributeName)
-        }
-        
-        // Handle AX prefix variants for consistent matching
-        if normalizedName.hasPrefix("AX") {
-            // Add non-prefixed variant
-            let nonPrefixed = String(normalizedName.dropFirst(2))
-            variants.append(nonPrefixed.prefix(1).lowercased() + nonPrefixed.dropFirst())
-        } else {
-            // Add prefixed variant
-            variants.append("AX" + normalizedName.prefix(1).uppercased() + normalizedName.dropFirst())
-        }
-        
-        return variants
+    /// - Returns: The normalized attribute name
+    private func getNormalizedAttributeName(_ attributeName: String) -> String {
+        // Use the pathNormalizer for consistency with path generation
+        return PathNormalizer.normalizeAttributeName(attributeName)
     }
     
-    /// Match an attribute value against an expected value with boolean matching
+    /// Match an attribute value against an expected value
     /// - Parameters:
     ///   - element: The AXUIElement to check
     ///   - name: The attribute name
     ///   - expectedValue: The expected attribute value
     /// - Returns: True if the attribute matches the expected value
     private func attributeMatchesValue(_ element: AXUIElement, name: String, expectedValue: String) -> Bool {
+        // Get the normalized attribute name
+        let normalizedName = getNormalizedAttributeName(name)
+        
         // Get the attribute value
         var attributeRef: CFTypeRef?
-        let attributeStatus = AXUIElementCopyAttributeValue(element, name as CFString, &attributeRef)
+        let attributeStatus = AXUIElementCopyAttributeValue(element, normalizedName as CFString, &attributeRef)
         
         // If we couldn't get the attribute, it doesn't match
         if attributeStatus != .success || attributeRef == nil {
+            print("  DEBUG:     Attribute \(normalizedName) not found")
             return false
         }
         
         // Convert attribute value to string for comparison
         let actualValue: String
-        
         if let stringValue = attributeRef as? String {
             actualValue = stringValue
         } else if let numberValue = attributeRef as? NSNumber {
@@ -901,22 +1005,14 @@ public struct ElementPath: Sendable {
             actualValue = String(describing: attributeRef!)
         }
         
-        // Empty check - if either value is empty, handle specially
-        if actualValue.isEmpty || expectedValue.isEmpty {
-            return actualValue.isEmpty && expectedValue.isEmpty
-        }
-        
-        // Check for exact match first
+        // Check for exact match
         if actualValue == expectedValue {
-            return true
-        }
-        
-        // Then case-insensitive match
-        if actualValue.localizedCaseInsensitiveCompare(expectedValue) == .orderedSame {
+            print("  DEBUG:     Exact match found")
             return true
         }
         
         // No match
+        print("  DEBUG:     No match found")
         return false
     }
     
@@ -1261,23 +1357,26 @@ extension ElementPath {
                         // For each attribute in the segment, check if the child has a matching value
                         for (attrName, expectedValue) in segment.attributes {
                             var hasMatch = false
-                            // Check all attribute variants
-                            for variantName in path.getAttributeVariants(attrName) {
+                            // Use the normalized attribute name
+                            let normalizedAttrName = path.getNormalizedAttributeName(attrName)
+                            
+                            // Single check with normalized name
+                            do {
+                                let variantName = normalizedAttrName
                                 var attrRef: CFTypeRef?
                                 let status = AXUIElementCopyAttributeValue(child, variantName as CFString, &attrRef)
                                 if status == .success, let actualValue = convertAttributeToString(attrRef) {
                                     diagnosis += "    - Attribute \(variantName): actual=\"\(actualValue)\", expected=\"\(expectedValue)\" "
-                                    if path.attributeMatchesValue(child, name: variantName, expectedValue: expectedValue) {
+                                    if actualValue == expectedValue {
                                         diagnosis += "✅ MATCH\n"
                                         hasMatch = true
-                                        break
                                     } else {
                                         diagnosis += "❌ NO MATCH\n"
                                     }
                                 }
                             }
                             if !hasMatch {
-                                diagnosis += "    - Attribute \(attrName): ❌ NOT FOUND on this element\n"
+                                diagnosis += "    - Attribute \(attrName): ❌ NOT FOUND or NO MATCH on this element\n"
                             }
                         }
                     }
