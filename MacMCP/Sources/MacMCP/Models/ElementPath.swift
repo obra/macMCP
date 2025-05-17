@@ -568,23 +568,64 @@ public struct ElementPath: Sendable {
                 continue
             }
             
-            // Filter children by those matching the current segment
-            for child in children {
-                if try await elementMatchesSegment(child, segment: currentSegment) {
-                    // Create path to this point for debugging
-                    let newPath = node.pathSoFar + "/" + currentSegment.toString()
-                    
-                    // If this is the last segment, we've found our match
-                    if node.segmentIndex == segments.count - 1 {
-                        return child
+            // If the segment specifies an index, we need to collect all matches first
+            if currentSegment.index != nil {
+                // Collect all matches for indexed selection
+                var matches: [(element: AXUIElement, path: String)] = []
+                
+                for child in children {
+                    if try await elementMatchesSegment(child, segment: currentSegment) {
+                        let newPath = node.pathSoFar + "/" + currentSegment.toString()
+                        matches.append((child, newPath))
                     }
-                    
-                    // Otherwise, add child to queue with next segment index
-                    queue.append(PathNode(
-                        element: child,
-                        segmentIndex: node.segmentIndex + 1,
-                        pathSoFar: newPath
-                    ))
+                }
+                
+                // Now apply index selection if we found any matches
+                if !matches.isEmpty {
+                    if let index = currentSegment.index {
+                        // Validate the index is in range
+                        if index < 0 || index >= matches.count {
+                            throw ElementPathError.invalidIndexSyntax(
+                                "Index \(index) is out of range (0..\(matches.count-1))",
+                                atSegment: node.segmentIndex
+                            )
+                        }
+                        
+                        // Get the element at the specified index
+                        let (matchedElement, matchedPath) = matches[index]
+                        
+                        // If this is the last segment, we've found our match
+                        if node.segmentIndex == segments.count - 1 {
+                            return matchedElement
+                        }
+                        
+                        // Otherwise add to queue for further processing
+                        queue.append(PathNode(
+                            element: matchedElement,
+                            segmentIndex: node.segmentIndex + 1,
+                            pathSoFar: matchedPath
+                        ))
+                    }
+                }
+            } else {
+                // No index specified, process all matching children normally
+                for child in children {
+                    if try await elementMatchesSegment(child, segment: currentSegment) {
+                        // Create path to this point for debugging
+                        let newPath = node.pathSoFar + "/" + currentSegment.toString()
+                        
+                        // If this is the last segment, we've found our match
+                        if node.segmentIndex == segments.count - 1 {
+                            return child
+                        }
+                        
+                        // Otherwise, add child to queue with next segment index
+                        queue.append(PathNode(
+                            element: child,
+                            segmentIndex: node.segmentIndex + 1,
+                            pathSoFar: newPath
+                        ))
+                    }
                 }
             }
         }
@@ -750,29 +791,30 @@ public struct ElementPath: Sendable {
                 candidates: availableChildren,
                 reason: "No elements match this segment. Available children are shown below."
             )
-        } else if matches.count == 1 || segment.index != nil {
-            // Single match or specific index requested
-            
-            // If an index was specified, use it to select from matches
-            if let index = segment.index {
-                // Make sure the index is valid
-                if index < 0 || index >= matches.count {
-                    let segmentString = segment.toString()
-                    // print("DEBUG: Index out of range: \(index) for matches.count: \(matches.count)")
-                    throw ElementPathError.segmentResolutionFailed("Index out of range: \(index) for segment: \(segmentString)", atSegment: segmentIndex)
-                }
-                
-                // print("DEBUG: Returning match at specified index \(index)")
-                return matches[index]
+        } else if segment.index != nil {
+            // Segment has an index specified, validate and use it
+            guard let index = segment.index else {
+                // This should never happen since we just checked for it
+                return matches[0]
             }
             
-            // Otherwise return the single match
-            // print("DEBUG: Returning single match")
+            // Validate the index is in range
+            if index < 0 || index >= matches.count {
+                let segmentString = segment.toString()
+                throw ElementPathError.invalidIndexSyntax(
+                    "Index \(index) is out of range (0..\(matches.count-1))",
+                    atSegment: segmentIndex
+                )
+            }
+            
+            // Return the element at the specified index
+            return matches[index]
+        } else if matches.count == 1 {
+            // Single match without index - straightforward case
             return matches[0]
         } else {
             // Multiple matches and no index specified - this is ambiguous
             let segmentString = segment.toString()
-            // print("DEBUG: Ambiguous match - \(matches.count) elements match segment")
             
             // Gather information about the ambiguous matches to help with diagnostics
             var matchCandidates: [String] = []
