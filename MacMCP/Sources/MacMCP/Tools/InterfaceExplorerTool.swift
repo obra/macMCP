@@ -1055,23 +1055,13 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
                     limit: limit
                 )
                 
-                // Generate proper hierarchical paths for all result elements
-                // This ensures each element has a fully qualified path reflecting its true position
+                // When using path filter, we need to use the original path rather than calculating a new one
+                // This is the key fix for the issue - we preserve the full hierarchy from the filter
                 for resultElement in resultElements {
-                    // Let's make sure all parent relationships are properly set up
-                    // This is essential for accurate path generation
-                    
-                    // Use generatePath to create a fully qualified path based on the element's
-                    // actual position in the UI hierarchy
-                    do {
-                        // First try to calculate a path using the element's hierarchy information
-                        let calculatedPath = try resultElement.generatePath()
-                        resultElement.path = calculatedPath
-                    } catch {
-                        // If path generation fails, we'll try to reconstruct from what we know
-                        // Log the error for debugging
-                        logger.error("Failed to generate path for element: \(error.localizedDescription)")
-                    }
+                    // For path-based filtering, set the full path directly from the filter
+                    // This is more reliable than trying to calculate a new path
+                    resultElement.path = elementPath
+                    print("DEBUG: PATH FILTER - Using original filter path: \(elementPath)")
                 }
             } else {
                 // If no filters, just use the element itself
@@ -1080,6 +1070,15 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
                 // Apply visibility filter if needed
                 if !includeHidden {
                     resultElements = filterVisibleElements(resultElements)
+                }
+
+                // IMPORTANT: When using path-based filtering, set the original path on the result
+                // This ensures clients get the fully qualified path instead of a stripped one
+                for resultElement in resultElements {
+                    // Set the full path from the element path parameter directly
+                    // This preserves the hierarchical path information
+                    resultElement.path = elementPath
+                    print("DEBUG: Path filter - setting path: \(elementPath)")
                 }
             }
             
