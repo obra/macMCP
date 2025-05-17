@@ -8,7 +8,7 @@ final class ElementPathInspectorTests: XCTestCase {
     
     // Test data for path generation
     let testElement1 = UIElement(
-        identifier: "test-button-1",
+        path: "ui://AXButton[@title='Test Button']",
         role: "AXButton",
         title: "Test Button", 
         elementDescription: "Button description",
@@ -21,7 +21,7 @@ final class ElementPathInspectorTests: XCTestCase {
     )
     
     let testElement2 = UIElement(
-        identifier: "test-text-1",
+        path: "ui://AXTextField[@title='Test Field']",
         role: "AXTextField",
         title: "Test Field", 
         value: "Hello world",

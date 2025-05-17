@@ -350,8 +350,8 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
                 }
             }
 
-            // Check exact ID match
-            if element.identifier == exactId {
+            // Check exact path match
+            if element.path == exactId {
                 return element
             }
 
@@ -473,11 +473,15 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
                 )
             }
 
-            guard let elementPath = buttonElement.path else {
+            // Get the button element's path
+            let elementPath = buttonElement.path
+            
+            // Check if path is empty
+            if elementPath.isEmpty {
                 throw NSError(
                     domain: "CalculatorModel",
                     code: 1001,
-                    userInfo: [NSLocalizedDescriptionKey: "Button found but has no path: \(button)"]
+                    userInfo: [NSLocalizedDescriptionKey: "Button found but has empty path: \(button)"]
                 )
             }
             

@@ -82,7 +82,7 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
         ) {
             let clickParams: [String: Value] = [
                 "action": .string("click"),
-                "element": .string(dontSaveButton.identifier)
+                "element": .string(dontSaveButton.path)
             ]
 
             _ = try await toolChain.uiInteractionTool.handler(clickParams)

@@ -131,7 +131,7 @@ public class UIVerifier {
                 case "role":
                     actualValue = element.role
                 case "identifier":
-                    actualValue = element.identifier
+                    actualValue = element.path
                 default:
                     throw NSError(
                         domain: "UIVerifier",
@@ -169,7 +169,7 @@ public class UIVerifier {
             case "role":
                 actualValue = element.role
             case "identifier":
-                actualValue = element.identifier
+                actualValue = element.path
             default:
                 actualValue = nil
             }
@@ -228,7 +228,7 @@ public class UIVerifier {
                 case "role":
                     actualValue = element.role
                 case "identifier":
-                    actualValue = element.identifier
+                    actualValue = element.path
                 default:
                     throw NSError(
                         domain: "UIVerifier",
@@ -266,7 +266,7 @@ public class UIVerifier {
             case "role":
                 actualValue = element.role
             case "identifier":
-                actualValue = element.identifier
+                actualValue = element.path
             default:
                 actualValue = nil
             }

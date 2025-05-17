@@ -60,7 +60,7 @@ struct AccessibilityTests {
         
         // Verify basic properties
         #expect(!uiElement.role.isEmpty)
-        #expect(!uiElement.identifier.isEmpty)
+        #expect(!uiElement.path.isEmpty)
     }
     
     @Test("Get element hierarchy (limited depth)")
