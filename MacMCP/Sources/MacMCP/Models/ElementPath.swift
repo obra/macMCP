@@ -523,7 +523,7 @@ public struct ElementPath: Sendable {
     ///   - startIndex: The segment index to start from
     /// - Returns: The matched element at the end of the path
     /// - Throws: ElementPathError if no matching element is found
-    private func resolveBFS(startElement: AXUIElement, startIndex: Int) async throws -> AXUIElement {
+    private func resolveBFS(startElement: AXUIElement, startIndex: Int, maxDepth: Int = 50) async throws -> AXUIElement {
         // Create a queue for BFS
         var queue = [PathNode(element: startElement, 
                              segmentIndex: startIndex, 
@@ -532,8 +532,16 @@ public struct ElementPath: Sendable {
         // Set to track visited elements and avoid cycles
         var visited = Set<UInt>()
         
+        // Track which segment is failing for better error reporting
+        var failedSegmentIndex = startIndex
+        
+        // Add depth tracking
+        var depth = 0
+        
         // Breadth-first search loop
-        while !queue.isEmpty {
+        while !queue.isEmpty && depth < maxDepth {
+            // Track depth for timeout detection
+            depth += 1
             // Dequeue the next node to process
             let node = queue.removeFirst()
             
@@ -551,6 +559,9 @@ public struct ElementPath: Sendable {
             
             // Get the current segment we're trying to match
             let currentSegment = segments[node.segmentIndex]
+            
+            // Update the failed segment index to the deepest segment we've tried
+            failedSegmentIndex = max(failedSegmentIndex, node.segmentIndex)
             
             // Get children of the current element to explore
             guard let children = getChildElements(of: node.element) else {
@@ -578,8 +589,19 @@ public struct ElementPath: Sendable {
             }
         }
         
-        // If we've explored all possibilities and found no match, throw an error
-        throw ElementPathError.noMatchingElements("Failed to find a matching path after exploring all possibilities", atSegment: 0)
+        // Check if we hit max depth
+        if depth >= maxDepth {
+            throw ElementPathError.resolutionTimeout(
+                "Path resolution exceeded maximum depth (\(maxDepth))",
+                atSegment: failedSegmentIndex
+            )
+        }
+        
+        // If we've explored all possibilities and found no match, throw an error with the correct segment index
+        throw ElementPathError.segmentResolutionFailed(
+            "Could not find elements matching segment: \(segments[failedSegmentIndex].toString())",
+            atSegment: failedSegmentIndex
+        )
     }
     
     /// Resolve a single segment of a path starting from a given element
