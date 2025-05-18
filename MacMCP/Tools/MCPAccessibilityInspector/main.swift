@@ -175,7 +175,7 @@ final class AsyncInspectionTask: @unchecked Sendable {
           maxDepth: 15,  // Use smaller depth for path inspection
         )
         print("Successfully retrieved element at path: \(path)")
-      } else if let filter = pathFilter, let appId = inspector.appId {
+      } else if let filter = pathFilter, inspector.appId != nil {
         print("Performing filter-based inspection for: \(filter)")
         // Use the inspector method that accepts a path filter
         rootElement = try await inspector.inspectApplication(pathFilter: filter)

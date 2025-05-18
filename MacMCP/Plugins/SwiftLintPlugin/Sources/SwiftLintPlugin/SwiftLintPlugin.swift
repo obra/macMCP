@@ -8,9 +8,9 @@ import PackagePlugin
 struct SwiftLintPlugin: BuildToolPlugin {
   func createBuildCommands(context: PluginContext, target: Target) async throws -> [Command] {
     // Check if swiftlint is installed
-    let swiftlintPath: Path
+    let swiftlintURL: URL
     do {
-      swiftlintPath = try context.tool(named: "swiftlint").path
+      swiftlintURL = try context.tool(named: "swiftlint").url
     } catch {
       // Print a warning but don't fail the build
       print("Warning: SwiftLint not found, skipping linting for target: \(target.name)")
@@ -18,16 +18,16 @@ struct SwiftLintPlugin: BuildToolPlugin {
     }
 
     // Determine the directory containing the target sources
-    let targetDirectory = target.directory
+    let targetDirectoryURL = target.directoryURL
 
     // Create the lint command for the target
     return [
       .buildCommand(
         displayName: "Linting \(target.name) with SwiftLint",
-        executable: swiftlintPath,
+        executable: swiftlintURL,
         arguments: [
           "lint",
-          "--path", "\(targetDirectory)",
+          "--path", targetDirectoryURL.path,
         ],
         environment: [:],
       )
@@ -41,9 +41,9 @@ struct SwiftLintPlugin: BuildToolPlugin {
   extension SwiftLintPlugin: XcodeBuildToolPlugin {
     func createBuildCommands(context: XcodePluginContext, target: XcodeTarget) throws -> [Command] {
       // Check if swiftlint is installed
-      let swiftlintPath: Path
+      let swiftlintURL: URL
       do {
-        swiftlintPath = try context.tool(named: "swiftlint").path
+        swiftlintURL = try context.tool(named: "swiftlint").url
       } catch {
         // Print a warning but don't fail the build
         print("Warning: SwiftLint not found, skipping linting for target: \(target.displayName)")
@@ -54,10 +54,10 @@ struct SwiftLintPlugin: BuildToolPlugin {
       return [
         .buildCommand(
           displayName: "Linting \(target.displayName) with SwiftLint",
-          executable: swiftlintPath,
+          executable: swiftlintURL,
           arguments: [
             "lint",
-            "--path", "\(context.xcodeProject.directory)",
+            "--path", context.xcodeProject.directory.path,
           ],
           environment: [:],
         )

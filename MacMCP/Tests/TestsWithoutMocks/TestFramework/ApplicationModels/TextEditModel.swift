@@ -50,10 +50,8 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
       toolChain: toolChain,
     )
 
-    // Verify that keyboardInteractionTool is available in the toolchain
-    assert(
-      toolChain.keyboardInteractionTool != nil,
-      "KeyboardInteractionTool is required for TextEditModel")
+    // Ensure that KeyboardInteractionTool is available for use in TextEditModel
+    // Note: This is now a non-optional property in ToolChain
   }
 
   /// Ensure we have a clean TextEdit environment with a single new document

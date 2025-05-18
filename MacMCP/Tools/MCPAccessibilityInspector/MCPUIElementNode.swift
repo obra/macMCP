@@ -211,7 +211,7 @@ class MCPUIElementNode {
       print("PATH DEBUG - generated segment: \(segment)")
 
       // Ensure we separate with a slash unless parent path already ends with /
-      var newPath: String =
+      let newPath: String =
         if parentPath.hasSuffix("/") {
           parentPath + segment
         } else {

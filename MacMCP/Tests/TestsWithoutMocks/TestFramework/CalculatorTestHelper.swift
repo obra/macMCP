@@ -72,7 +72,7 @@ public final class CalculatorTestHelper {
       }
 
       // Launch calculator fresh
-      let launchSuccess = try await app.launch(hideOthers: hideOthers)
+      _ = try await app.launch(hideOthers: hideOthers)
 
       // Wait for app to be ready
       try await Task.sleep(for: .milliseconds(2000))

@@ -9,7 +9,6 @@ import Testing
 import XCTest
 
 @testable @preconcurrency import MacMCP
-@testable @preconcurrency import TestsWithoutMocks
 
 @Suite(.serialized)
 struct UIElementPathInitIntegrationTests {
@@ -349,7 +348,8 @@ private class CalculatorApp {
         )
       }
 
-      try NSWorkspace.shared.launchApplication(at: appURL, configuration: [:])
+      let config = NSWorkspace.OpenConfiguration()
+      try await NSWorkspace.shared.openApplication(at: appURL, configuration: config)
     }
 
     // Wait for the app to become fully active

@@ -9,7 +9,6 @@ import Testing
 import XCTest
 
 @testable @preconcurrency import MacMCP
-@testable @preconcurrency import TestsWithoutMocks
 
 @Suite(.serialized)
 struct ElementPathIntegrationTests {
@@ -692,7 +691,7 @@ struct ElementPathIntegrationTests {
     // Launch TextEdit using the ApplicationService
     let logger = Logger(label: "com.macos.mcp.test.elementpath")
     let applicationService = ApplicationService(logger: logger)
-    try await applicationService.openApplication(name: "TextEdit")
+    _ = try await applicationService.openApplication(name: "TextEdit")
     // print("TextEdit launched")
 
     // Delay to allow the UI to stabilize
@@ -1099,29 +1098,35 @@ struct ElementPathIntegrationTests {
 
     // Measure simple path resolution time
     // print("Measuring simple path performance")
-    let simpleStartTime = Date()
+    // Time measurement is disabled but kept in comments for future debugging
+    // let simpleStartTime = Date()
     for _ in 0..<10 {
       _ = try? await simplePath.resolve(using: accessibilityService)
     }
-    let simpleElapsedTime = Date().timeIntervalSince(simpleStartTime) / 10.0
+    // Calculating elapsed time for debugging purposes (uncomment if needed)
+    // let simpleElapsedTime = Date().timeIntervalSince(simpleStartTime) / 10.0
     // print("Simple path resolution average time: \(simpleElapsedTime) seconds")
 
     // Measure moderate path resolution time
     // print("Measuring moderate path performance")
-    let moderateStartTime = Date()
+    // Time measurement is disabled but kept in comments for future debugging
+    // let moderateStartTime = Date()
     for _ in 0..<10 {
       _ = try? await moderatePath.resolve(using: accessibilityService)
     }
-    let moderateElapsedTime = Date().timeIntervalSince(moderateStartTime) / 10.0
+    // Calculating elapsed time for debugging purposes (uncomment if needed)
+    // let moderateElapsedTime = Date().timeIntervalSince(moderateStartTime) / 10.0
     // print("Moderate path resolution average time: \(moderateElapsedTime) seconds")
 
     // Measure complex path resolution time
     // print("Measuring complex path performance")
-    let complexStartTime = Date()
+    // Time measurement is disabled but kept in comments for future debugging
+    // let complexStartTime = Date()
     for _ in 0..<10 {
       _ = try? await complexPath.resolve(using: accessibilityService)
     }
-    let complexElapsedTime = Date().timeIntervalSince(complexStartTime) / 10.0
+    // Calculating elapsed time for debugging purposes (uncomment if needed)
+    // let complexElapsedTime = Date().timeIntervalSince(complexStartTime) / 10.0
     // print("Complex path resolution average time: \(complexElapsedTime) seconds")
 
     // No hard assertions on timing, as it varies by machine
@@ -1129,19 +1134,23 @@ struct ElementPathIntegrationTests {
 
     // Measure standard resolution with diagnostics
     // print("Measuring standard resolution vs diagnostics")
-    let standardStartTime = Date()
+    // Time measurement is disabled but kept in comments for future debugging
+    // let standardStartTime = Date()
     for _ in 0..<5 {
       _ = try? await complexPath.resolve(using: accessibilityService)
     }
-    let standardElapsedTime = Date().timeIntervalSince(standardStartTime) / 5.0
+    // Calculating elapsed time for debugging purposes (uncomment if needed)
+    // let standardElapsedTime = Date().timeIntervalSince(standardStartTime) / 5.0
 
-    let diagnosticsStartTime = Date()
+    // Time measurement is disabled but kept in comments for future debugging
+    // let diagnosticsStartTime = Date()
     for _ in 0..<5 {
       _ = try? await ElementPath.diagnosePathResolutionIssue(
         complexPath.toString(), using: accessibilityService)
     }
-    let diagnosticsElapsedTime = Date().timeIntervalSince(diagnosticsStartTime) / 5.0
-
+    // Calculating elapsed time for debugging purposes (uncomment if needed)
+    // let diagnosticsElapsedTime = Date().timeIntervalSince(diagnosticsStartTime) / 5.0
+    //
     // print("Standard resolution average time: \(standardElapsedTime) seconds")
     // print("Diagnostics resolution average time: \(diagnosticsElapsedTime) seconds")
     // print("Diagnostics overhead: \(max(0, diagnosticsElapsedTime - standardElapsedTime)) seconds")
@@ -1192,7 +1201,8 @@ private class CalculatorApp {
         )
       }
 
-      try NSWorkspace.shared.launchApplication(at: appURL, configuration: [:])
+      let config = NSWorkspace.OpenConfiguration()
+      try await NSWorkspace.shared.openApplication(at: appURL, configuration: config)
     }
 
     // Wait for the app to become fully active

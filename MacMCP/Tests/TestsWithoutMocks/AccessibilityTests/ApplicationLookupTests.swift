@@ -18,8 +18,8 @@ final class ApplicationLookupTests: XCTestCase {
     // Create accessibility service
     accessibilityService = AccessibilityService()
 
-    // Launch Calculator app
-    app = launchCalculator()
+    // Launch Calculator app using the synchronous approach
+    app = launchCalculatorSync()
     XCTAssertNotNil(app, "Failed to launch Calculator app")
 
     // Give time for app to fully load
@@ -37,18 +37,45 @@ final class ApplicationLookupTests: XCTestCase {
     try super.tearDownWithError()
   }
 
-  private func launchCalculator() -> NSRunningApplication? {
-    let calcURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: calculatorBundleId)
-    guard let url = calcURL else {
-      XCTFail("Could not find Calculator app")
-      return nil
+  // Helper method that wraps the MainActor-isolated method in a synchronous call
+  private func launchCalculatorSync() -> NSRunningApplication? {
+    // Use a dispatch semaphore to wait for the async operation to complete
+    let semaphore = DispatchSemaphore(value: 0)
+    var result: NSRunningApplication?
+    
+    // Capture the bundleId to avoid self reference in the closure
+    let bundleId = calculatorBundleId
+    
+    // Launch on the main thread which is where MainActor runs
+    DispatchQueue.main.async {
+      Task { @MainActor in
+        // Launch using the calculator helper on the main actor
+        let calcHelper = CalculatorTestHelper.sharedHelper()
+        do {
+          _ = try await calcHelper.ensureAppIsRunning(forceRelaunch: true)
+          result = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId).first
+        } catch {
+          result = nil
+        }
+        semaphore.signal()
+      }
     }
-
-    return try? NSWorkspace.shared.launchApplication(
-      at: url,
-      options: .default,
-      configuration: [:],
-    )
+    
+    // Wait for the async operation to complete (with timeout)
+    _ = semaphore.wait(timeout: .now() + 10)
+    return result
+  }
+  
+  // The actual MainActor-isolated method to launch Calculator
+  @MainActor private func launchCalculator() async throws -> NSRunningApplication? {
+    // Get the shared helper
+    let calcHelper = CalculatorTestHelper.sharedHelper()
+    
+    // Launch calculator via the calculator helper
+    _ = try await calcHelper.ensureAppIsRunning(forceRelaunch: true)
+    
+    // Return the running app instance if we can find it
+    return NSRunningApplication.runningApplications(withBundleIdentifier: calculatorBundleId).first
   }
 
   // Helper to ensure the app is in foreground

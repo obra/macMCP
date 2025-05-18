@@ -19,7 +19,6 @@ let package = Package(
     .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.0"),
     .package(url: "https://github.com/apple/swift-log.git", from: "1.5.0"),
     .package(path: "Plugins/SwiftLintPlugin"),
-    .package(path: "Plugins/SwiftFormatPlugin"),
   ],
   targets: [
     // Library target for shared utilities that can be used by all executables
@@ -28,7 +27,6 @@ let package = Package(
       dependencies: [],
       plugins: [
         .plugin(name: "SwiftLintPlugin", package: "SwiftLintPlugin"),
-        .plugin(name: "SwiftFormatPlugin", package: "SwiftFormatPlugin"),
       ],
     ),
 
@@ -44,7 +42,6 @@ let package = Package(
       ],
       plugins: [
         .plugin(name: "SwiftLintPlugin", package: "SwiftLintPlugin"),
-        .plugin(name: "SwiftFormatPlugin", package: "SwiftFormatPlugin"),
       ],
     ),
     .executableTarget(
@@ -56,7 +53,6 @@ let package = Package(
       path: "Tools/AccessibilityInspector",
       plugins: [
         .plugin(name: "SwiftLintPlugin", package: "SwiftLintPlugin"),
-        .plugin(name: "SwiftFormatPlugin", package: "SwiftFormatPlugin"),
       ],
     ),
     .executableTarget(
@@ -71,7 +67,6 @@ let package = Package(
       path: "Tools/MCPAccessibilityInspector",
       plugins: [
         .plugin(name: "SwiftLintPlugin", package: "SwiftLintPlugin"),
-        .plugin(name: "SwiftFormatPlugin", package: "SwiftFormatPlugin"),
       ],
     ),
     .executableTarget(
@@ -82,25 +77,23 @@ let package = Package(
       path: "Tools/KeyboardMonitor",
       plugins: [
         .plugin(name: "SwiftLintPlugin", package: "SwiftLintPlugin"),
-        .plugin(name: "SwiftFormatPlugin", package: "SwiftFormatPlugin"),
       ],
     ),
     .testTarget(
       name: "TestsWithMocks",
       dependencies: ["MacMCP", "MacMCPUtilities"],
-      exclude: ["http-logs"],
       plugins: [
         .plugin(name: "SwiftLintPlugin", package: "SwiftLintPlugin"),
-        .plugin(name: "SwiftFormatPlugin", package: "SwiftFormatPlugin"),
       ],
     ),
     .testTarget(
       name: "TestsWithoutMocks",
       dependencies: ["MacMCP", "MacMCPUtilities"],
-      exclude: ["http-logs"],
+      resources: [
+        .copy("TestAssets/ScrollTestContent.txt"),
+      ],
       plugins: [
         .plugin(name: "SwiftLintPlugin", package: "SwiftLintPlugin"),
-        .plugin(name: "SwiftFormatPlugin", package: "SwiftFormatPlugin"),
       ],
     ),
     // Original test target removed after migration to TestsWithMocks and TestsWithoutMocks

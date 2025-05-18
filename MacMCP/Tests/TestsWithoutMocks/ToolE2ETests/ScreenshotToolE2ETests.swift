@@ -329,8 +329,6 @@ final class ScreenshotToolE2ETests: XCTestCase {
           "Found \(windowElements.count) window element(s). Attempting to screenshot by element ID..."
         )
 
-        let windowElementPath = windowElements[0].path
-
         // Create parameters for element screenshot
         let elementParams: [String: Value] = [
           "region": .string("element"),

@@ -690,20 +690,19 @@ public struct ElementPath: Sendable {
         // Collect all matches for indexed selection
         var matches: [(element: AXUIElement, path: String)] = []
 
-        for (childIndex, child) in children.enumerated() {
+        for (_, child) in children.enumerated() {
           // Get child role for debugging
           var childRoleRef: CFTypeRef?
           let childRoleStatus = AXUIElementCopyAttributeValue(
             child, "AXRole" as CFString, &childRoleRef)
-          let childRole =
-            (childRoleStatus == .success) ? (childRoleRef as? String ?? "unknown") : "unknown"
+          _ = (childRoleStatus == .success) ? (childRoleRef as? String ?? "unknown") : "unknown"
 
-          // print("DEBUG: Checking child \(childIndex): role=\(childRole)")
+          // print("DEBUG: Checking child: role info")
 
           if try await elementMatchesSegment(child, segment: currentSegment) {
             let newPath = node.pathSoFar + "/" + currentSegment.toString()
             matches.append((child, newPath))
-            // print("DEBUG: MATCH FOUND! Child \(childIndex) matches segment \(currentSegment.toString())")
+            // print("DEBUG: MATCH FOUND! Child matches segment \(currentSegment.toString())")
           }
         }
 
@@ -732,12 +731,11 @@ public struct ElementPath: Sendable {
               "AXRole" as CFString,
               &matchedRoleRef,
             )
-            let matchedRole =
-              (matchedRoleStatus == .success) ? (matchedRoleRef as? String ?? "unknown") : "unknown"
+            _ = (matchedRoleStatus == .success) ? (matchedRoleRef as? String ?? "unknown") : "unknown"
 
             // If this is the last segment, we've found our match
             if node.segmentIndex == segments.count - 1 {
-              // print("DEBUG: SUCCESS - Found final element with role \(matchedRole)")
+              // print("DEBUG: SUCCESS - Found final element")
               // print("==== END BFS DEBUG ====\n")
               return matchedElement
             }
@@ -758,41 +756,36 @@ public struct ElementPath: Sendable {
         // No index specified, process all matching children normally
         var matchCount = 0
 
-        for (childIndex, child) in children.enumerated() {
+        for (_, child) in children.enumerated() {
           // Get child role for debugging
           var childRoleRef: CFTypeRef?
           let childRoleStatus = AXUIElementCopyAttributeValue(
             child, "AXRole" as CFString, &childRoleRef)
-          let childRole =
-            (childRoleStatus == .success) ? (childRoleRef as? String ?? "unknown") : "unknown"
+          _ = (childRoleStatus == .success) ? (childRoleRef as? String ?? "unknown") : "unknown"
 
+          // These attribute fetching operations commented out since they're only used for debugging
+          // Uncomment if needed for debugging in the future
+          /*
           // Get other key attributes for debugging
-          var childDesc = ""
           var descRef: CFTypeRef?
           let descStatus = AXUIElementCopyAttributeValue(
             child, "AXDescription" as CFString, &descRef)
-          if descStatus == .success, let desc = descRef as? String {
-            childDesc = ", description=\(desc)"
-          }
-
-          var childId = ""
+          
           var idRef: CFTypeRef?
           let idStatus = AXUIElementCopyAttributeValue(child, "AXIdentifier" as CFString, &idRef)
-          if idStatus == .success, let id = idRef as? String {
-            childId = ", id=\(id)"
-          }
+          */
 
-          // print("DEBUG: Checking child \(childIndex): role=\(childRole)\(childDesc)\(childId)")
+          // print("DEBUG: Checking child: role info available when debugging enabled")
 
           if try await elementMatchesSegment(child, segment: currentSegment) {
             matchCount += 1
             // Create path to this point for debugging
             let newPath = node.pathSoFar + "/" + currentSegment.toString()
-            // print("DEBUG: MATCH FOUND! Child \(childIndex) matches segment \(currentSegment.toString())")
+            // print("DEBUG: MATCH FOUND! Child matches segment \(currentSegment.toString())")
 
             // If this is the last segment, we've found our match
             if node.segmentIndex == segments.count - 1 {
-              // print("DEBUG: SUCCESS - Found final element with role \(childRole)\(childDesc)\(childId)")
+              // print("DEBUG: SUCCESS - Found final element")
               // print("==== END BFS DEBUG ====\n")
               return child
             }
