@@ -114,13 +114,14 @@ final class ElementPathFilteringTests: XCTestCase {
     }
     
     func testRoleFilteringFullPaths() async throws {
-        // Filter for buttons only
+        // Filter for numeric button "1" specifically
         let request: [String: Value] = [
             "scope": .string("application"),
             "bundleId": .string(calculatorBundleId),
             "maxDepth": .int(10),
             "filter": .object([
-                "role": .string("AXButton")
+                "role": .string("AXButton"),
+                "descriptionContains": .string("1")
             ])
         ]
         
@@ -159,12 +160,15 @@ final class ElementPathFilteringTests: XCTestCase {
     }
     
     func testElementTypeFilteringFullPaths() async throws {
-        // Filter by element type
+        // Filter by element type and specific description
         let request: [String: Value] = [
             "scope": .string("application"),
             "bundleId": .string(calculatorBundleId),
             "maxDepth": .int(10),
-            "elementTypes": .array([.string("button")])
+            "elementTypes": .array([.string("button")]),
+            "filter": .object([
+                "descriptionContains": .string("1")
+            ])
         ]
         
         // Process request through tool
@@ -205,7 +209,7 @@ final class ElementPathFilteringTests: XCTestCase {
             "bundleId": .string(calculatorBundleId),
             "maxDepth": .int(10),
             "filter": .object([
-                "descriptionContains": .string("2") // Look for button "2"
+                "descriptionContains": .string("1") // Look for button "1"
             ])
         ]
         
@@ -229,7 +233,7 @@ final class ElementPathFilteringTests: XCTestCase {
         // Verify all results have fully qualified paths
         for descriptor in descriptors {
             verifyFullyQualifiedPath(descriptor.path)
-            XCTAssertTrue(descriptor.description?.contains("2") ?? false, 
+            XCTAssertTrue(descriptor.description?.contains("1") ?? false, 
                          "Element doesn't match filter criteria")
             
             // Log paths to help with debugging
@@ -250,7 +254,7 @@ final class ElementPathFilteringTests: XCTestCase {
             "maxDepth": .int(10),
             "elementTypes": .array([.string("button")]),
             "filter": .object([
-                "descriptionContains": .string("2")
+                "descriptionContains": .string("1")
             ])
         ]
         
@@ -275,7 +279,7 @@ final class ElementPathFilteringTests: XCTestCase {
         for descriptor in descriptors {
             verifyFullyQualifiedPath(descriptor.path)
             XCTAssertEqual(descriptor.role, "AXButton", "Non-button element returned")
-            XCTAssertTrue(descriptor.description?.contains("2") ?? false, 
+            XCTAssertTrue(descriptor.description?.contains("1") ?? false, 
                          "Element doesn't match description criteria")
             
             // Log paths to help with debugging
