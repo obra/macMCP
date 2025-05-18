@@ -1,0 +1,52 @@
+included:
+  - MacMCP/Sources
+  - MacMCP/Tests
+excluded:
+  - MacMCP/.build
+  - MacMCP/swift-sdk
+  - "**/.*.swift"
+
+disabled_rules:
+  - trailing_whitespace
+  - line_length
+  - function_body_length
+  - type_body_length
+  - file_length
+  - todo
+
+opt_in_rules:
+  - force_unwrapping
+  - implicit_return
+  - closure_spacing
+  - unneeded_parentheses_in_closure_argument
+  - redundant_nil_coalescing
+  - overridden_super_call
+  - prohibited_super_call
+  - empty_count
+  - empty_string
+  - first_where
+  - modifier_order
+  - sorted_imports
+
+cyclomatic_complexity:
+  warning: 15
+  error: 25
+
+nesting:
+  type_level:
+    warning: 3
+  statement_level:
+    warning: 5
+
+identifier_name:
+  excluded:
+    - id
+    - x
+    - y
+    - w
+    - h
+    - i
+    - j
+    - ax
+
+reporter: "xcode"

@@ -1,0 +1,13 @@
+--indent 4
+--indentcase true
+--trimwhitespace always
+--maxwidth 120
+--self remove
+--wraparguments before-first
+--wrapcollections before-first
+--extensionacl on-declarations
+--ifdef no-indent
+--patternlet inline
+--swiftversion 6.1
+--exclude MacMCP/.build,MacMCP/swift-sdk
+--header "ABOUTME: {file}\nABOUTME: Part of MacMCP allowing LLMs to interact with macOS applications."

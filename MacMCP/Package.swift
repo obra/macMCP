@@ -17,13 +17,19 @@ let package = Package(
     dependencies: [
         .package(path: "../swift-sdk"),
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.0"),
-        .package(url: "https://github.com/apple/swift-log.git", from: "1.5.0")
+        .package(url: "https://github.com/apple/swift-log.git", from: "1.5.0"),
+        .package(path: "Plugins/SwiftLintPlugin"),
+        .package(path: "Plugins/SwiftFormatPlugin")
     ],
     targets: [
         // Library target for shared utilities that can be used by all executables
         .target(
             name: "MacMCPUtilities",
-            dependencies: []),
+            dependencies: [],
+            plugins: [
+                .plugin(name: "SwiftLintPlugin", package: "SwiftLintPlugin"),
+                .plugin(name: "SwiftFormatPlugin", package: "SwiftFormatPlugin")
+            ]),
             
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
@@ -34,6 +40,10 @@ let package = Package(
                 .product(name: "MCP", package: "swift-sdk"),
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .product(name: "Logging", package: "swift-log")
+            ],
+            plugins: [
+                .plugin(name: "SwiftLintPlugin", package: "SwiftLintPlugin"),
+                .plugin(name: "SwiftFormatPlugin", package: "SwiftFormatPlugin")
             ]),
         .executableTarget(
             name: "AccessibilityInspector",
@@ -41,7 +51,11 @@ let package = Package(
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .product(name: "Logging", package: "swift-log")
             ],
-            path: "Tools/AccessibilityInspector"),
+            path: "Tools/AccessibilityInspector",
+            plugins: [
+                .plugin(name: "SwiftLintPlugin", package: "SwiftLintPlugin"),
+                .plugin(name: "SwiftFormatPlugin", package: "SwiftFormatPlugin")
+            ]),
         .executableTarget(
             name: "MCPAccessibilityInspector",
             dependencies: [
@@ -51,23 +65,37 @@ let package = Package(
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .product(name: "Logging", package: "swift-log")
             ],
-            path: "Tools/MCPAccessibilityInspector"),
+            path: "Tools/MCPAccessibilityInspector",
+            plugins: [
+                .plugin(name: "SwiftLintPlugin", package: "SwiftLintPlugin"),
+                .plugin(name: "SwiftFormatPlugin", package: "SwiftFormatPlugin")
+            ]),
         .executableTarget(
             name: "KeyboardMonitor",
             dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser")
             ],
-            path: "Tools/KeyboardMonitor"),
+            path: "Tools/KeyboardMonitor",
+            plugins: [
+                .plugin(name: "SwiftLintPlugin", package: "SwiftLintPlugin"),
+                .plugin(name: "SwiftFormatPlugin", package: "SwiftFormatPlugin")
+            ]),
         .testTarget(
             name: "TestsWithMocks",
             dependencies: ["MacMCP", "MacMCPUtilities"],
-            exclude: ["http-logs"]
-        ),
+            exclude: ["http-logs"],
+            plugins: [
+                .plugin(name: "SwiftLintPlugin", package: "SwiftLintPlugin"),
+                .plugin(name: "SwiftFormatPlugin", package: "SwiftFormatPlugin")
+            ]),
         .testTarget(
             name: "TestsWithoutMocks",
             dependencies: ["MacMCP", "MacMCPUtilities"],
-            exclude: ["http-logs"]
-        ),
+            exclude: ["http-logs"],
+            plugins: [
+                .plugin(name: "SwiftLintPlugin", package: "SwiftLintPlugin"),
+                .plugin(name: "SwiftFormatPlugin", package: "SwiftFormatPlugin")
+            ])
         // Original test target removed after migration to TestsWithMocks and TestsWithoutMocks
         // .testTarget(
         //     name: "MacMCPTests",

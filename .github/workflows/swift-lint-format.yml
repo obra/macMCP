@@ -1,0 +1,53 @@
+name: Swift Lint and Format
+
+on:
+  push:
+    branches: [ main, develop, f/** ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  lint-and-format:
+    runs-on: macos-14
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Swift
+      uses: swift-actions/setup-swift@v1
+      with:
+        swift-version: '6.1'
+    
+    - name: Install tools
+      run: |
+        brew install swiftlint
+        brew install swiftformat
+    
+    - name: Run SwiftFormat check
+      run: |
+        echo "Checking Swift formatting..."
+        swiftformat --lint --verbose .
+    
+    - name: Run SwiftLint
+      run: |
+        echo "Running SwiftLint..."
+        swiftlint --strict --reporter github-actions-logging
+    
+    - name: Build project
+      run: |
+        cd MacMCP
+        swift build
+
+  tests:
+    runs-on: macos-14
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Swift
+      uses: swift-actions/setup-swift@v1
+      with:
+        swift-version: '6.1'
+    
+    - name: Run tests
+      run: |
+        cd MacMCP
+        swift test --filter TestsWithMocks
