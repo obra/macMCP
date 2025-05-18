@@ -158,11 +158,12 @@ final class ApplicationManagementE2ETests: XCTestCase {
     // Verify result for running application
     XCTAssertEqual(calcResult.count, 1, "Should return one content item")
 
-    if case .text(let jsonString) = calcResult[0] {
-      XCTAssertTrue(
-        jsonString.contains("\"isRunning\":true"), "Calculator should be reported as running")
-    } else {
-      XCTFail("Result should be text content")
+    do {
+      let json = try toolChain.parseJsonResponse(calcResult[0])
+      let isRunning = toolChain.getBoolValue(from: json, forKey: "isRunning")
+      XCTAssertTrue(isRunning, "Calculator should be reported as running")
+    } catch {
+      XCTFail("Failed to parse JSON response: \(error)")
     }
 
     // Check if a non-running application is reported correctly
@@ -176,13 +177,12 @@ final class ApplicationManagementE2ETests: XCTestCase {
     // Verify result for non-running application
     XCTAssertEqual(nonRunningResult.count, 1, "Should return one content item")
 
-    if case .text(let jsonString) = nonRunningResult[0] {
-      XCTAssertTrue(
-        jsonString.contains("\"isRunning\":false"),
-        "Non-existent app should be reported as not running",
-      )
-    } else {
-      XCTFail("Result should be text content")
+    do {
+      let json = try toolChain.parseJsonResponse(nonRunningResult[0])
+      let isRunning = toolChain.getBoolValue(from: json, forKey: "isRunning")
+      XCTAssertFalse(isRunning, "Non-existent app should be reported as not running")
+    } catch {
+      XCTFail("Failed to parse JSON response: \(error)")
     }
   }
 
@@ -247,10 +247,12 @@ final class ApplicationManagementE2ETests: XCTestCase {
     // Verify activate result - activating should succeed reliably
     XCTAssertEqual(activateResult.count, 1, "Should return one content item")
 
-    if case .text(let jsonString) = activateResult[0] {
-      XCTAssertTrue(jsonString.contains("\"success\":true"), "Activate operation should succeed")
-    } else {
-      XCTFail("Result should be text content")
+    do {
+      let json = try toolChain.parseJsonResponse(activateResult[0])
+      let success = toolChain.getBoolValue(from: json, forKey: "success")
+      XCTAssertTrue(success, "Activate operation should succeed")
+    } catch {
+      XCTFail("Failed to parse JSON response: \(error)")
     }
 
     // Allow time for UI to update
@@ -312,10 +314,12 @@ final class ApplicationManagementE2ETests: XCTestCase {
     // Verify hide others result
     XCTAssertEqual(hideOthersResult.count, 1, "Should return one content item")
 
-    if case .text(let jsonString) = hideOthersResult[0] {
-      XCTAssertTrue(jsonString.contains("\"success\":true"), "Hide others operation should succeed")
-    } else {
-      XCTFail("Result should be text content")
+    do {
+      let json = try toolChain.parseJsonResponse(hideOthersResult[0])
+      let success = toolChain.getBoolValue(from: json, forKey: "success")
+      XCTAssertTrue(success, "Hide others operation should succeed")
+    } catch {
+      XCTFail("Failed to parse JSON response: \(error)")
     }
 
     // Allow time for UI to update
@@ -369,11 +373,12 @@ final class ApplicationManagementE2ETests: XCTestCase {
     // Verify force terminate result
     XCTAssertEqual(forceTerminateResult.count, 1, "Should return one content item")
 
-    if case .text(let jsonString) = forceTerminateResult[0] {
-      XCTAssertTrue(
-        jsonString.contains("\"success\":true"), "Force terminate operation should succeed")
-    } else {
-      XCTFail("Result should be text content")
+    do {
+      let json = try toolChain.parseJsonResponse(forceTerminateResult[0])
+      let success = toolChain.getBoolValue(from: json, forKey: "success")
+      XCTAssertTrue(success, "Force terminate operation should succeed")
+    } catch {
+      XCTFail("Failed to parse JSON response: \(error)")
     }
 
     // Wait for app to terminate

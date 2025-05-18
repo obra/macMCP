@@ -351,40 +351,97 @@ extension ApplicationService {
         context: ["bundleIdentifier": bundleIdentifier],
       )
     }
-
-    // Track if all instances were hidden successfully
-    var allHidden = true
+    
+    // Track if any instances were hidden successfully
+    var anyHidden = false
+    var atLeastOneFailure = false
 
     // Attempt to hide each instance
     for app in runningApps {
-      let success = app.hide()
-
-      if !success {
+      // First try to make sure the app is not active before hiding
+      if app.isActive {
+        // If active, try to activate another app first
+        if let anotherApp = NSWorkspace.shared.runningApplications.first(where: { 
+          $0.activationPolicy == .regular && 
+          $0.bundleIdentifier != bundleIdentifier && 
+          !$0.isHidden
+        }) {
+          _ = anotherApp.activate(options: [])
+          // Give it a moment to take effect
+          try? await Task.sleep(for: .milliseconds(100))
+        }
+      }
+      
+      // Record the initial state
+      let wasHidden = app.isHidden
+      
+      // Try to hide the application
+      let hideResult = app.hide()
+      
+      // Give macOS a moment to process the hide request
+      try? await Task.sleep(for: .milliseconds(200))
+      
+      // Refresh the application state after the hide attempt
+      if let updatedApp = NSRunningApplication(processIdentifier: app.processIdentifier) {
+        // Check if the app is now actually hidden, regardless of the hide() return value
+        if updatedApp.isHidden {
+          anyHidden = true
+          logger.debug(
+            "Application is now hidden, hide() returned \(hideResult)",
+            metadata: [
+              "bundleIdentifier": "\(bundleIdentifier)",
+              "processId": "\(app.processIdentifier)",
+              "wasAlreadyHidden": "\(wasHidden)",
+            ])
+        } else {
+          logger.warning(
+            "Failed to hide application instance",
+            metadata: [
+              "bundleIdentifier": "\(bundleIdentifier)",
+              "processId": "\(app.processIdentifier)",
+              "isActive": "\(app.isActive)",
+              "hideResult": "\(hideResult)",
+            ])
+          atLeastOneFailure = true
+        }
+      } else {
+        // Application is no longer running
         logger.warning(
-          "Failed to hide application instance",
+          "Application is no longer running after hide attempt",
           metadata: [
             "bundleIdentifier": "\(bundleIdentifier)",
             "processId": "\(app.processIdentifier)",
           ])
-        allHidden = false
+        atLeastOneFailure = true
       }
     }
 
-    if allHidden {
-      logger.info(
-        "Application hidden successfully",
-        metadata: [
-          "bundleIdentifier": "\(bundleIdentifier)"
-        ])
+    // Consider the operation successful if at least one instance was hidden
+    let overallSuccess = anyHidden
+    
+    if overallSuccess {
+      if atLeastOneFailure {
+        logger.info(
+          "Some application instances were hidden successfully",
+          metadata: [
+            "bundleIdentifier": "\(bundleIdentifier)"
+          ])
+      } else {
+        logger.info(
+          "All application instances hidden successfully",
+          metadata: [
+            "bundleIdentifier": "\(bundleIdentifier)"
+          ])
+      }
     } else {
       logger.error(
-        "Failed to hide all application instances",
+        "Failed to hide any application instances",
         metadata: [
           "bundleIdentifier": "\(bundleIdentifier)"
         ])
     }
 
-    return allHidden
+    return overallSuccess
   }
 
   /// Unhide an application

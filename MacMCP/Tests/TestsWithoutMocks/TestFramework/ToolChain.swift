@@ -567,6 +567,49 @@ public final class ToolChain: @unchecked Sendable {
     return []
   }
 
+  // MARK: - JSON Parsing Helpers
+  
+  /// Parse JSON from a tool response
+  /// - Parameter content: The content returned from a tool
+  /// - Returns: The parsed JSON as a dictionary
+  /// - Throws: An error if the content is not valid JSON
+  public func parseJsonResponse(_ content: Tool.Content) throws -> [String: Any] {
+    guard case .text(let jsonString) = content else {
+      throw NSError(
+        domain: "ToolChain",
+        code: 1010,
+        userInfo: [NSLocalizedDescriptionKey: "Tool response is not text content"]
+      )
+    }
+    
+    guard let data = jsonString.data(using: .utf8) else {
+      throw NSError(
+        domain: "ToolChain",
+        code: 1011,
+        userInfo: [NSLocalizedDescriptionKey: "Failed to convert JSON string to data"]
+      )
+    }
+    
+    guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+      throw NSError(
+        domain: "ToolChain",
+        code: 1012,
+        userInfo: [NSLocalizedDescriptionKey: "Failed to parse JSON or result is not a dictionary"]
+      )
+    }
+    
+    return json
+  }
+  
+  /// Get a boolean value from a parsed JSON response
+  /// - Parameters:
+  ///   - json: The parsed JSON
+  ///   - key: The key to look up
+  /// - Returns: The boolean value, or false if not found
+  public func getBoolValue(from json: [String: Any], forKey key: String) -> Bool {
+    return json[key] as? Bool ?? false
+  }
+  
   // MARK: - Helper Methods
 
   /// Parse a UI element from JSON

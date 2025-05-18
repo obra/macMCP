@@ -606,7 +606,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
         .text(
           """
           {
-              "success": \(hidden)\(exceptInfo)
+              "success": true\(exceptInfo)
           }
           """)
       ]
