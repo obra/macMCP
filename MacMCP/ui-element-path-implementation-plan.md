@@ -6,7 +6,7 @@ This document presents a revised implementation plan for the path-based UI eleme
 
 MacMCP currently identifies elements using a combination of approaches:
 - Hash-based identifiers: `ui:<role>:<hash>` 
-- Menu-specific path-like identifiers: `ui:menu:<menu path>`
+- Menu paths now use standard ElementPath format with XPath-like syntax
 
 The work on `f/ui-paths-take-2` branch has begun implementing a new path-based approach using syntax like `ui://AXWindow/AXScrollArea/AXTextArea[@name="Content"]` for non-menu elements.
 

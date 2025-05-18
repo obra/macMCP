@@ -15,8 +15,8 @@ This document summarizes the key learnings and challenges encountered when imple
    - Menus need to be activated sequentially to reveal their contents
    - Menu items are often created dynamically and don't exist in the accessibility tree until parents are activated
 
-3. **Identifier Inconsistency**
-   - Menu paths in identifiers (`ui:menu:MenuBar1 > View > Menu1 > Scientific`) don't always match actual UI hierarchy
+3. **Path Inconsistency**
+   - Menu paths expressed as "MenuBar > View > Scientific" don't always match actual UI hierarchy
    - Menu item titles might vary from their path components (with added spaces, symbols, etc.)
    - Some applications use non-standard menu structures
 
@@ -61,8 +61,8 @@ try AccessibilityElement.performAction(menuBarItem, action: "AXPress")
 ### 3. Direct Menu Item Activation
 
 ```swift
-// Extract path components from identifier
-let pathComponents = identifier.replacingOccurrences(of: "ui:menu:", with: "").components(separatedBy: " > ")
+// Extract path components from menu path
+let pathComponents = menuPath.components(separatedBy: " > ")
 
 // Navigate through each menu component
 for component in pathComponents {

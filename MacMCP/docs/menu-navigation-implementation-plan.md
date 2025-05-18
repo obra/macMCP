@@ -50,7 +50,7 @@ Before implementing the new solution, we need to clearly define how menu paths w
    - Case-sensitive by default, but with flexible matching options
 
 2. **Internal Identifier Format**:
-   - Structured identifiers: `"ui:menu:MenuBar > File > MenuItem > Open"`
+   - Menu path strings: `"MenuBar > File > Open"`
    - Used for internal element tracking and stable identification
    - Can include component type indicators for disambiguation
 

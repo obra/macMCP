@@ -296,7 +296,7 @@ This document outlines the next steps in our migration to exclusively use path-b
 1. Update UIInteractionTool:
    - Change clickElement(identifier:) to clickElement(path:)
    - Update all element interaction methods to use paths
-   - Add backward compatibility for legacy identifiers
+   - Ensure full adoption of ElementPath throughout the codebase
 
 2. Update WindowManagementTool:
    - Use paths for window identification
@@ -317,7 +317,7 @@ This document outlines the next steps in our migration to exclusively use path-b
 **Verification**:
 - Verify all tools work correctly with path-based element identification
 - Test with real-world applications (Calculator, TextEdit)
-- Ensure backward compatibility with legacy identifiers where needed
+- Ensure consistent use of ElementPath throughout the codebase
 
 **Existing Tests**:
 - The `InterfaceExplorerToolTests.swift` file already has a test for path support: `testElementPathSupport()`
