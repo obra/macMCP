@@ -105,23 +105,21 @@ public class AccessibilityElement {
         // Build the current path segment
         var attributePairs: [String: String] = [:]
         
-        // Add native identifier if available
-        if let nativeID = try? getAttribute(axElement, attribute: AXAttribute.identifier) as? String, 
-           !nativeID.isEmpty {
-            attributePairs["identifier"] = nativeID
-        }
+        // Don't include identifiers in paths as they can change between runs
+        // and make paths too specific for reliable element matching
         
-        // Add title if available and not empty
+        // Add title if available and not empty - use AXTitle for proper accessibility attribute name
         if let title = title, !title.isEmpty {
-            attributePairs["title"] = title
+            attributePairs["AXTitle"] = title
         }
         
-        // Add description if available and not empty
+        // Add description if available and not empty - use AXDescription for proper accessibility attribute name
         if let description = description, !description.isEmpty {
-            attributePairs["description"] = description
+            attributePairs["AXDescription"] = description
         }
         
         // For application elements, add bundle identifier if possible
+        // Keep bundleIdentifier without AX prefix as it's a special case
         if role == AXAttribute.Role.application {
             var pid: pid_t = 0
             let pidResult = AXUIElementGetPid(axElement, &pid)
@@ -133,11 +131,15 @@ public class AccessibilityElement {
             }
         }
         
-        // Construct the path - format: ui://AXRole[@attr="value"]
-        let elementPath = createElementPathString(role: role, attributes: attributePairs)
+        // Construct the element-only path segment - format: AXRole[@attr="value"]
+        let elementPathSegment = createElementPathString(role: role, attributes: attributePairs)
         
-        // Use the ElementPath as the identifier
-        let identifier = elementPath
+        // Build the complete hierarchical path for this element
+        let hierarchicalPath = path.isEmpty ? elementPathSegment : "\(path)/\(elementPathSegment)"
+        
+        // Use the hierarchical path as the identifier, prefixed with ui://
+        let fullHierarchicalPath = "ui://\(hierarchicalPath.hasPrefix("AX") ? hierarchicalPath : "AX\(hierarchicalPath)")"
+        let identifier = fullHierarchicalPath
         
         // Now that we have an identifier, we'll use the frame-related variables that are already defined
 
@@ -150,11 +152,8 @@ public class AccessibilityElement {
             actions = []
         }
         
-        // Build the hierarchical path for debugging
-        let currentPath = path.isEmpty ? role : "\(path)/\(role)"
-        
         // Log at all depths for better debugging visibility
-        // NSLog("Converting element at depth \(depth): \(currentPath) - \(identifier)")
+        // NSLog("Converting element at depth \(depth): \(hierarchicalPath) - \(identifier)")
         
         // Create the element first (without children)
         let element = UIElement(
@@ -294,7 +293,7 @@ public class AccessibilityElement {
                                 maxDepth: adjustedMaxDepth,
                                 depth: depth + 1,
                                 parent: element,
-                                path: currentPath
+                                path: hierarchicalPath
                             )
                             children.append(child)
                         } catch {
