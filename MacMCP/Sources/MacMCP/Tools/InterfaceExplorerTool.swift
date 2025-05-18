@@ -44,7 +44,7 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     /// Additional element attributes
     public let attributes: [String: String]
     
-    /// Path-based identifier for the element
+    /// Fully qualified path-based identifier for the element (always starts with ui://)
     public let path: String?
     
     /// Children elements, if within maxDepth
@@ -100,13 +100,11 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     ///   - element: The UIElement to convert
     ///   - maxDepth: Maximum depth of the hierarchy to traverse
     ///   - currentDepth: Current depth in the hierarchy
-    ///   - includePath: Whether to include the path (default true)
     /// - Returns: An EnhancedElementDescriptor
     public static func from(
         element: UIElement,
         maxDepth: Int = 10,
-        currentDepth: Int = 0,
-        includePath: Bool = true
+        currentDepth: Int = 0
     ) -> EnhancedElementDescriptor {
         // Generate a human-readable name
         let name: String
@@ -137,16 +135,16 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
         // Clean and filter attributes
         let filteredAttributes = filterAttributes(element)
         
-        // Generate absolute path if requested
-        let path: String?
-        if includePath {
-            // First check if the element already has a path set
-            // Use the element's already set path
-            path = element.path
-            elementDescriptorLogger.debug("Using pre-set path on element", metadata: ["path": .string(path ?? "<nil>")])
+        // Always generate the fully qualified path
+        var path: String?
+        
+        // First check if the element already has a path set
+        // Use the element's already set path - this should be the fully qualified path
+        path = element.path
+        elementDescriptorLogger.debug("Using path on element", metadata: ["path": .string(path ?? "<nil>")])
             
-            // Check if we need to generate a more detailed path
-            if false { // Skipping this branch but keeping for structure
+            // Always generate a more detailed path if the current one isn't fully qualified
+            if path == nil || !path!.contains("/") { // Generate full path if missing or incomplete
                 // No pre-existing path, so we need to generate one
                 do {
                     // Always generate a fully qualified path from root to current element
@@ -235,9 +233,7 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
                     path = nil
                 }
             }
-        } else {
-            path = nil
-        }
+        // The else block for includePath=false is removed as we always want a path
         
         // Handle children if we haven't reached maximum depth
         let children: [EnhancedElementDescriptor]?
@@ -250,14 +246,17 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
             
             // Recursively convert children with incremented depth
             children = element.children.map { 
-                from(element: $0, maxDepth: maxDepth, currentDepth: currentDepth + 1, includePath: includePath) 
+                from(element: $0, maxDepth: maxDepth, currentDepth: currentDepth + 1) 
             }
         } else {
             children = nil
         }
         
+        // Ensure the full path is always used for both id and path fields
+        let finalPath = path ?? (try? element.generatePath()) ?? element.path
+        
         return EnhancedElementDescriptor(
-            id: element.path,
+            id: finalPath, // Always use fully qualified path for id
             role: element.role,
             name: name,
             title: element.title,
@@ -268,7 +267,7 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
             capabilities: capabilities,
             actions: element.actions,
             attributes: filteredAttributes,
-            path: path,
+            path: finalPath, // Always use fully qualified path
             children: children
         )
     }
@@ -1069,13 +1068,29 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
                     limit: limit
                 )
                 
-                // When using path filter, we need to use the original path rather than calculating a new one
-                // This is the key fix for the issue - we preserve the full hierarchy from the filter
+                // When using path filter, ensure we have proper full paths
+                // This ensures we have complete hierarchy information
                 for resultElement in resultElements {
-                    // For path-based filtering, set the full path directly from the filter
-                    // This is more reliable than trying to calculate a new path
-                    resultElement.path = elementPath
-                    self.logger.debug("PATH FILTER - Using original filter path", metadata: ["path": "\(elementPath)"])
+                    // For path filtering, we need to handle both fully qualified and partial paths
+                    if elementPath.hasPrefix("ui://") && elementPath.contains("/") {
+                        // This appears to be a fully qualified path, so use it directly
+                        resultElement.path = elementPath
+                        self.logger.debug("PATH FILTER - Using provided fully qualified path", metadata: ["path": "\(elementPath)"])
+                    } else {
+                        // Try to generate a fully qualified path
+                        do {
+                            let fullPath = try resultElement.generatePath()
+                            resultElement.path = fullPath
+                            self.logger.debug("PATH FILTER - Generated fully qualified path", metadata: [
+                                "original": "\(elementPath)",
+                                "fully_qualified": "\(fullPath)"
+                            ])
+                        } catch {
+                            // Fall back to using the provided path if generation fails
+                            resultElement.path = elementPath
+                            self.logger.warning("PATH FILTER - Using partial path due to generation failure", metadata: ["path": "\(elementPath)"])
+                        }
+                    }
                 }
             } else {
                 // If no filters, just use the element itself
@@ -1086,13 +1101,27 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
                     resultElements = filterVisibleElements(resultElements)
                 }
 
-                // IMPORTANT: When using path-based filtering, set the original path on the result
-                // This ensures clients get the fully qualified path instead of a stripped one
+                // When using path-based filtering, set the base path for each element
+                // This ensures clients have the proper context for each element
                 for resultElement in resultElements {
-                    // Set the full path from the element path parameter directly
-                    // This preserves the hierarchical path information
-                    resultElement.path = elementPath
-                    self.logger.debug("Path filter - setting path", metadata: ["path": "\(elementPath)"])
+                    // For path filtering, we set a base path that the element will extend
+                    // when creating its fully qualified path
+                    if elementPath.hasPrefix("ui://") && elementPath.contains("/") {
+                        // This appears to be a fully qualified path, so use it directly
+                        resultElement.path = elementPath
+                        self.logger.debug("Using provided fully qualified path", metadata: ["path": "\(elementPath)"])
+                    } else {
+                        // Try to generate a fully qualified path
+                        do {
+                            let fullPath = try resultElement.generatePath()
+                            resultElement.path = fullPath
+                            self.logger.debug("Generated fully qualified path for element", metadata: ["path": "\(fullPath)"])
+                        } catch {
+                            // Fall back to using the provided path if generation fails
+                            resultElement.path = elementPath
+                            self.logger.warning("Using partial path due to path generation failure", metadata: ["path": "\(elementPath)"])
+                        }
+                    }
                 }
             }
             
@@ -1353,17 +1382,45 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
                     // Generate a path based on the element's position in the hierarchy
                     // This uses parent relationships to build a fully qualified path
                     element.path = try element.generatePath()
+                    elementDescriptorLogger.debug("Generated fully qualified path", metadata: ["path": .string(element.path)])
                 } catch {
                     // Log any path generation errors but continue
-                    logger.warning("Could not generate path for element: \(error.localizedDescription)")
+                    logger.warning("Could not generate fully qualified path for element: \(error.localizedDescription)")
+                }
+            } else if !element.path.hasPrefix("ui://") {
+                // Path exists but isn't fully qualified - try to generate a proper one
+                do {
+                    element.path = try element.generatePath()
+                    elementDescriptorLogger.debug("Replaced non-qualified path with fully qualified path", metadata: ["path": .string(element.path)])
+                } catch {
+                    logger.warning("Could not replace non-qualified path: \(error.localizedDescription)")
+                }
+            } else if !element.path.contains("/") {
+                // Path has ui:// prefix but doesn't contain hierarchy separators
+                // This indicates it's a partial path, not a fully qualified one
+                do {
+                    // Try to generate a more complete path
+                    let fullPath = try element.generatePath()
+                    elementDescriptorLogger.debug("Replacing partial path with fully qualified path", metadata: [
+                        "old": .string(element.path),
+                        "new": .string(fullPath)
+                    ])
+                    element.path = fullPath
+                } catch {
+                    logger.warning("Could not generate fully qualified path from partial path: \(error.localizedDescription)")
                 }
             } else {
-                // Element already has a path (likely from path filtering)
+                // Element already has a fully qualified path (likely from path filtering)
                 // Log it to help with debugging
-                elementDescriptorLogger.debug("Element already has path before descriptor conversion", metadata: ["path": .string(element.path)])
+                elementDescriptorLogger.debug("Element already has fully qualified path", metadata: ["path": .string(element.path)])
             }
             
-            // Convert the element to an enhanced descriptor with its path included
+            // Verify the path is fully qualified
+            if !element.path.hasPrefix("ui://") || !element.path.contains("/") {
+                logger.warning("Path may not be fully qualified", metadata: ["path": .string(element.path)])
+            }
+            
+            // Convert the element to an enhanced descriptor with its fully qualified path
             return EnhancedElementDescriptor.from(element: element, maxDepth: maxDepth)
         }
     }

@@ -1129,13 +1129,13 @@ public class AccessibilityElement {
         try setAttribute(element, attribute: attribute, value: value)
     }
 
-    /// Creates a standard ElementPath string for an accessibility element
+    /// Creates a path segment string for an accessibility element
     /// - Parameters:
     ///   - role: The accessibility role of the element
     ///   - attributes: Key-value pairs of attributes to include in the path
-    /// - Returns: A properly formatted ElementPath string (ui://role[@attr="value"])
+    /// - Returns: A properly formatted path segment string (role[@attr="value"]) without ui:// prefix
     private static func createElementPathString(role: String, attributes: [String: String]) -> String {
-        var pathString = "ui://" + role
+        var pathString = role
         
         // Add attributes in format [@key="value"]
         for (key, value) in attributes.sorted(by: { $0.key < $1.key }) {
