@@ -5,19 +5,19 @@
 import PackageDescription
 
 let package = Package(
-    name: "SwiftFormatPlugin",
-    products: [
-        .plugin(
-            name: "SwiftFormatPlugin",
-            targets: ["SwiftFormatPlugin"]
-        ),
-    ],
-    targets: [
-        .plugin(
-            name: "SwiftFormatPlugin",
-            capability: .buildTool(),
-            dependencies: [],
-            path: "Sources/SwiftFormatPlugin"
-        ),
-    ]
+  name: "SwiftFormatPlugin",
+  products: [
+    .plugin(
+      name: "SwiftFormatPlugin",
+      targets: ["SwiftFormatPlugin"],
+    )
+  ],
+  targets: [
+    .plugin(
+      name: "SwiftFormatPlugin",
+      capability: .buildTool(),
+      dependencies: [],
+      path: "Sources/SwiftFormatPlugin",
+    )
+  ],
 )

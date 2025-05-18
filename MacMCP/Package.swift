@@ -4,103 +4,110 @@
 import PackageDescription
 
 let package = Package(
-    name: "MacMCP",
-    platforms: [
-        .macOS(.v13)
-    ],
-    products: [
-        .executable(name: "MacMCP", targets: ["MacMCP"]),
-        .executable(name: "ax-inspector", targets: ["AccessibilityInspector"]),
-        .executable(name: "mcp-ax-inspector", targets: ["MCPAccessibilityInspector"]),
-        .executable(name: "keymon", targets: ["KeyboardMonitor"])
-    ],
-    dependencies: [
-        .package(path: "../swift-sdk"),
-        .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.0"),
-        .package(url: "https://github.com/apple/swift-log.git", from: "1.5.0"),
-        .package(path: "Plugins/SwiftLintPlugin"),
-        .package(path: "Plugins/SwiftFormatPlugin")
-    ],
-    targets: [
-        // Library target for shared utilities that can be used by all executables
-        .target(
-            name: "MacMCPUtilities",
-            dependencies: [],
-            plugins: [
-                .plugin(name: "SwiftLintPlugin", package: "SwiftLintPlugin"),
-                .plugin(name: "SwiftFormatPlugin", package: "SwiftFormatPlugin")
-            ]),
-            
-        // Targets are the basic building blocks of a package, defining a module or a test suite.
-        // Targets can depend on other targets in this package and products from dependencies.
-        .executableTarget(
-            name: "MacMCP",
-            dependencies: [
-                .target(name: "MacMCPUtilities"),
-                .product(name: "MCP", package: "swift-sdk"),
-                .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .product(name: "Logging", package: "swift-log")
-            ],
-            plugins: [
-                .plugin(name: "SwiftLintPlugin", package: "SwiftLintPlugin"),
-                .plugin(name: "SwiftFormatPlugin", package: "SwiftFormatPlugin")
-            ]),
-        .executableTarget(
-            name: "AccessibilityInspector",
-            dependencies: [
-                .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .product(name: "Logging", package: "swift-log")
-            ],
-            path: "Tools/AccessibilityInspector",
-            plugins: [
-                .plugin(name: "SwiftLintPlugin", package: "SwiftLintPlugin"),
-                .plugin(name: "SwiftFormatPlugin", package: "SwiftFormatPlugin")
-            ]),
-        .executableTarget(
-            name: "MCPAccessibilityInspector",
-            dependencies: [
-                .target(name: "MacMCPUtilities"),
-                .target(name: "MacMCP"),
-                .product(name: "MCP", package: "swift-sdk"),
-                .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .product(name: "Logging", package: "swift-log")
-            ],
-            path: "Tools/MCPAccessibilityInspector",
-            plugins: [
-                .plugin(name: "SwiftLintPlugin", package: "SwiftLintPlugin"),
-                .plugin(name: "SwiftFormatPlugin", package: "SwiftFormatPlugin")
-            ]),
-        .executableTarget(
-            name: "KeyboardMonitor",
-            dependencies: [
-                .product(name: "ArgumentParser", package: "swift-argument-parser")
-            ],
-            path: "Tools/KeyboardMonitor",
-            plugins: [
-                .plugin(name: "SwiftLintPlugin", package: "SwiftLintPlugin"),
-                .plugin(name: "SwiftFormatPlugin", package: "SwiftFormatPlugin")
-            ]),
-        .testTarget(
-            name: "TestsWithMocks",
-            dependencies: ["MacMCP", "MacMCPUtilities"],
-            exclude: ["http-logs"],
-            plugins: [
-                .plugin(name: "SwiftLintPlugin", package: "SwiftLintPlugin"),
-                .plugin(name: "SwiftFormatPlugin", package: "SwiftFormatPlugin")
-            ]),
-        .testTarget(
-            name: "TestsWithoutMocks",
-            dependencies: ["MacMCP", "MacMCPUtilities"],
-            exclude: ["http-logs"],
-            plugins: [
-                .plugin(name: "SwiftLintPlugin", package: "SwiftLintPlugin"),
-                .plugin(name: "SwiftFormatPlugin", package: "SwiftFormatPlugin")
-            ])
-        // Original test target removed after migration to TestsWithMocks and TestsWithoutMocks
-        // .testTarget(
-        //     name: "MacMCPTests",
-        //     dependencies: ["MacMCP"],
-        //     exclude: ["http-logs"]
-        // )
-    ]
+  name: "MacMCP",
+  platforms: [
+    .macOS(.v13)
+  ],
+  products: [
+    .executable(name: "MacMCP", targets: ["MacMCP"]),
+    .executable(name: "ax-inspector", targets: ["AccessibilityInspector"]),
+    .executable(name: "mcp-ax-inspector", targets: ["MCPAccessibilityInspector"]),
+    .executable(name: "keymon", targets: ["KeyboardMonitor"]),
+  ],
+  dependencies: [
+    .package(path: "../swift-sdk"),
+    .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.0"),
+    .package(url: "https://github.com/apple/swift-log.git", from: "1.5.0"),
+    .package(path: "Plugins/SwiftLintPlugin"),
+    .package(path: "Plugins/SwiftFormatPlugin"),
+  ],
+  targets: [
+    // Library target for shared utilities that can be used by all executables
+    .target(
+      name: "MacMCPUtilities",
+      dependencies: [],
+      plugins: [
+        .plugin(name: "SwiftLintPlugin", package: "SwiftLintPlugin"),
+        .plugin(name: "SwiftFormatPlugin", package: "SwiftFormatPlugin"),
+      ],
+    ),
+
+    // Targets are the basic building blocks of a package, defining a module or a test suite.
+    // Targets can depend on other targets in this package and products from dependencies.
+    .executableTarget(
+      name: "MacMCP",
+      dependencies: [
+        .target(name: "MacMCPUtilities"),
+        .product(name: "MCP", package: "swift-sdk"),
+        .product(name: "ArgumentParser", package: "swift-argument-parser"),
+        .product(name: "Logging", package: "swift-log"),
+      ],
+      plugins: [
+        .plugin(name: "SwiftLintPlugin", package: "SwiftLintPlugin"),
+        .plugin(name: "SwiftFormatPlugin", package: "SwiftFormatPlugin"),
+      ],
+    ),
+    .executableTarget(
+      name: "AccessibilityInspector",
+      dependencies: [
+        .product(name: "ArgumentParser", package: "swift-argument-parser"),
+        .product(name: "Logging", package: "swift-log"),
+      ],
+      path: "Tools/AccessibilityInspector",
+      plugins: [
+        .plugin(name: "SwiftLintPlugin", package: "SwiftLintPlugin"),
+        .plugin(name: "SwiftFormatPlugin", package: "SwiftFormatPlugin"),
+      ],
+    ),
+    .executableTarget(
+      name: "MCPAccessibilityInspector",
+      dependencies: [
+        .target(name: "MacMCPUtilities"),
+        .target(name: "MacMCP"),
+        .product(name: "MCP", package: "swift-sdk"),
+        .product(name: "ArgumentParser", package: "swift-argument-parser"),
+        .product(name: "Logging", package: "swift-log"),
+      ],
+      path: "Tools/MCPAccessibilityInspector",
+      plugins: [
+        .plugin(name: "SwiftLintPlugin", package: "SwiftLintPlugin"),
+        .plugin(name: "SwiftFormatPlugin", package: "SwiftFormatPlugin"),
+      ],
+    ),
+    .executableTarget(
+      name: "KeyboardMonitor",
+      dependencies: [
+        .product(name: "ArgumentParser", package: "swift-argument-parser")
+      ],
+      path: "Tools/KeyboardMonitor",
+      plugins: [
+        .plugin(name: "SwiftLintPlugin", package: "SwiftLintPlugin"),
+        .plugin(name: "SwiftFormatPlugin", package: "SwiftFormatPlugin"),
+      ],
+    ),
+    .testTarget(
+      name: "TestsWithMocks",
+      dependencies: ["MacMCP", "MacMCPUtilities"],
+      exclude: ["http-logs"],
+      plugins: [
+        .plugin(name: "SwiftLintPlugin", package: "SwiftLintPlugin"),
+        .plugin(name: "SwiftFormatPlugin", package: "SwiftFormatPlugin"),
+      ],
+    ),
+    .testTarget(
+      name: "TestsWithoutMocks",
+      dependencies: ["MacMCP", "MacMCPUtilities"],
+      exclude: ["http-logs"],
+      plugins: [
+        .plugin(name: "SwiftLintPlugin", package: "SwiftLintPlugin"),
+        .plugin(name: "SwiftFormatPlugin", package: "SwiftFormatPlugin"),
+      ],
+    ),
+    // Original test target removed after migration to TestsWithMocks and TestsWithoutMocks
+    // .testTarget(
+    //     name: "MacMCPTests",
+    //     dependencies: ["MacMCP"],
+    //     exclude: ["http-logs"]
+    // )
+  ],
 )

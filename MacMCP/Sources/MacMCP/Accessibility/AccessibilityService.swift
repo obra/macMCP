@@ -1,5 +1,5 @@
-// ABOUTME: This file provides the AccessibilityService for getting UI element information.
-// ABOUTME: It coordinates interactions with the macOS accessibility API.
+// ABOUTME: AccessibilityService.swift
+// ABOUTME: Part of MacMCP allowing LLMs to interact with macOS applications.
 
 @preconcurrency import AppKit
 @preconcurrency import ApplicationServices
@@ -10,7 +10,7 @@ import MCP
 /// Service for working with the macOS accessibility API
 public actor AccessibilityService: AccessibilityServiceProtocol {
   /// The logger for accessibility operations
-  internal let logger: Logger
+  let logger: Logger
 
   /// The default maximum recursion depth for element hierarchy
   public static let defaultMaxDepth = 25
@@ -20,11 +20,11 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
   public init(logger: Logger? = nil) {
     self.logger = logger ?? Logger(label: "mcp.accessibility")
   }
-  
+
   /// Execute a function within the actor's isolated context
   /// This method allows calling code to utilize the actor isolation to maintain Sendability
   public func run<T: Sendable>(_ operation: @Sendable () async throws -> T) async rethrows -> T {
-    return try await operation()
+    try await operation()
   }
 
   /// Get the system-wide UI element structure
@@ -34,7 +34,7 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
   /// - Returns: A UIElement representing the system-wide accessibility hierarchy
   public func getSystemUIElement(
     recursive: Bool = true,
-    maxDepth: Int = AccessibilityService.defaultMaxDepth
+    maxDepth: Int = AccessibilityService.defaultMaxDepth,
   ) async throws -> UIElement {
     // First check permissions
     guard AccessibilityPermissions.isAccessibilityEnabled() else {
@@ -46,7 +46,7 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
     return try AccessibilityElement.convertToUIElement(
       systemElement,
       recursive: recursive,
-      maxDepth: maxDepth
+      maxDepth: maxDepth,
     )
   }
 
@@ -59,7 +59,7 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
   public func getApplicationUIElement(
     bundleIdentifier: String,
     recursive: Bool = true,
-    maxDepth: Int = AccessibilityService.defaultMaxDepth
+    maxDepth: Int = AccessibilityService.defaultMaxDepth,
   ) async throws -> UIElement {
     // First check permissions
     guard AccessibilityPermissions.isAccessibilityEnabled() else {
@@ -68,12 +68,17 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
     }
 
     // Find the running application
-    guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier).first else {
+    guard
+      let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier)
+        .first
+    else {
       logger.error("Application not found", metadata: ["bundleId": .string(bundleIdentifier)])
       throw NSError(
         domain: "com.macos.mcp.accessibility",
         code: MacMCPErrorCode.applicationNotFound,
-        userInfo: [NSLocalizedDescriptionKey: "Application with bundle ID '\(bundleIdentifier)' not found"]
+        userInfo: [
+          NSLocalizedDescriptionKey: "Application with bundle ID '\(bundleIdentifier)' not found"
+        ],
       )
     }
 
@@ -82,7 +87,7 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
     return try AccessibilityElement.convertToUIElement(
       appElement,
       recursive: recursive,
-      maxDepth: maxDepth
+      maxDepth: maxDepth,
     )
   }
 
@@ -93,7 +98,7 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
   /// - Returns: A UIElement representing the focused application's accessibility hierarchy
   public func getFocusedApplicationUIElement(
     recursive: Bool = true,
-    maxDepth: Int = AccessibilityService.defaultMaxDepth
+    maxDepth: Int = AccessibilityService.defaultMaxDepth,
   ) async throws -> UIElement {
     // First check permissions
     guard AccessibilityPermissions.isAccessibilityEnabled() else {
@@ -103,27 +108,27 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
 
     // Get the system-wide element and find the focused application
     let systemElement = AccessibilityElement.systemWideElement()
-    
+
     var focusedAppElement: CFTypeRef?
     let error = AXUIElementCopyAttributeValue(
       systemElement,
       kAXFocusedApplicationAttribute as CFString,
-      &focusedAppElement
+      &focusedAppElement,
     )
-    
+
     if error != AXError.success || focusedAppElement == nil {
       logger.error("Failed to get focused application", metadata: ["error": .string("\(error)")])
       throw NSError(
         domain: "com.macos.mcp.accessibility",
         code: MacMCPErrorCode.elementNotFound,
-        userInfo: [NSLocalizedDescriptionKey: "Failed to get focused application"]
+        userInfo: [NSLocalizedDescriptionKey: "Failed to get focused application"],
       )
     }
-    
+
     return try AccessibilityElement.convertToUIElement(
       focusedAppElement as! AXUIElement,
       recursive: recursive,
-      maxDepth: maxDepth
+      maxDepth: maxDepth,
     )
   }
 
@@ -136,7 +141,7 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
   public func getUIElementAtPosition(
     position: CGPoint,
     recursive: Bool = true,
-    maxDepth: Int = AccessibilityService.defaultMaxDepth
+    maxDepth: Int = AccessibilityService.defaultMaxDepth,
   ) async throws -> UIElement? {
     // First check permissions
     guard AccessibilityPermissions.isAccessibilityEnabled() else {
@@ -146,29 +151,31 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
 
     // Get the system-wide element
     let systemElement = AccessibilityElement.systemWideElement()
-    
+
     // Get the element at the position
     var elementAtPosition: AXUIElement?
     let error = AXUIElementCopyElementAtPosition(
       systemElement,
       Float(position.x),
       Float(position.y),
-      &elementAtPosition
+      &elementAtPosition,
     )
-    
+
     if error != .success || elementAtPosition == nil {
-      logger.debug("No element found at position", metadata: [
-        "x": .string("\(position.x)"),
-        "y": .string("\(position.y)"),
-        "error": .string("\(error)")
-      ])
+      logger.debug(
+        "No element found at position",
+        metadata: [
+          "x": .string("\(position.x)"),
+          "y": .string("\(position.y)"),
+          "error": .string("\(error)"),
+        ])
       return nil
     }
-    
+
     return try AccessibilityElement.convertToUIElement(
       elementAtPosition!,
       recursive: recursive,
-      maxDepth: maxDepth
+      maxDepth: maxDepth,
     )
   }
 
@@ -195,7 +202,7 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
     descriptionContains: String? = nil,
     scope: UIElementScope = .focusedApplication,
     recursive: Bool = true,
-    maxDepth: Int = AccessibilityService.defaultMaxDepth
+    maxDepth: Int = AccessibilityService.defaultMaxDepth,
   ) async throws -> [UIElement] {
     // First check permissions
     guard AccessibilityPermissions.isAccessibilityEnabled() else {
@@ -215,61 +222,66 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
       let error = AXUIElementCopyAttributeValue(
         systemElement,
         kAXFocusedApplicationAttribute as CFString,
-        &focusedAppElement
+        &focusedAppElement,
       )
-      
+
       if error != AXError.success || focusedAppElement == nil {
         logger.error("Failed to get focused application", metadata: ["error": .string("\(error)")])
         throw NSError(
           domain: "com.macos.mcp.accessibility",
           code: MacMCPErrorCode.elementNotFound,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to get focused application"]
+          userInfo: [NSLocalizedDescriptionKey: "Failed to get focused application"],
         )
       }
-      
+
       rootElement = focusedAppElement as! AXUIElement
     case .application(let bundleIdentifier):
       // Find the running application
-      guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier).first else {
+      guard
+        let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier)
+          .first
+      else {
         logger.error("Application not found", metadata: ["bundleId": .string(bundleIdentifier)])
         throw NSError(
           domain: "com.macos.mcp.accessibility",
           code: MacMCPErrorCode.applicationNotFound,
-          userInfo: [NSLocalizedDescriptionKey: "Application with bundle ID '\(bundleIdentifier)' not found"]
+          userInfo: [
+            NSLocalizedDescriptionKey: "Application with bundle ID '\(bundleIdentifier)' not found"
+          ],
         )
       }
-      
+
       rootElement = AccessibilityElement.applicationElement(pid: app.processIdentifier)
     }
-    
+
     // Convert to UIElement
     let rootUIElement = try AccessibilityElement.convertToUIElement(
       rootElement,
       recursive: recursive,
-      maxDepth: maxDepth
+      maxDepth: maxDepth,
     )
-    
+
     // Filter elements based on criteria
     var matches: [UIElement] = []
-    
+
     // Function to recursively find matching elements
     func findMatches(in element: UIElement) {
       var isMatch = true
-      
+
       // Check role if specified
       if let roleToMatch = role {
         if element.role != roleToMatch {
           isMatch = false
         }
       }
-      
+
       // Check title (exact) if specified
       if let titleToMatch = title {
         if element.title != titleToMatch {
           isMatch = false
         }
       }
-      
+
       // Check titleContains if specified
       if let titleSubstring = titleContains {
         if let title = element.title {
@@ -316,21 +328,21 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
           isMatch = false
         }
       }
-      
+
       // Add to matches if all criteria match
       if isMatch {
         matches.append(element)
       }
-      
+
       // Recursively check children
       for child in element.children {
         findMatches(in: child)
       }
     }
-    
+
     // Start the search
     findMatches(in: rootUIElement)
-    
+
     return matches
   }
 
@@ -340,14 +352,15 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
   ///   - elementPath: The element path
   public func performAction(
     action: String,
-    onElementWithPath elementPath: String
+    onElementWithPath elementPath: String,
   ) async throws {
     logger.info(
       "Performing accessibility action",
       metadata: [
         "action": .string(action),
-        "elementPath": .string(elementPath)
-      ])
+        "elementPath": .string(elementPath),
+      ],
+    )
 
     // First check permissions
     guard AccessibilityPermissions.isAccessibilityEnabled() else {
@@ -355,17 +368,16 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
       throw AccessibilityPermissions.Error.permissionDenied
     }
 
-
     // Use proper path-based element identification
     do {
       // Parse the path
       let parsedPath = try ElementPath.parse(elementPath)
-      
+
       // Resolve the path to get the AXUIElement
       let axElement = try await run {
         try await parsedPath.resolve(using: self)
       }
-      
+
       // Perform the action
       try AccessibilityElement.performAction(axElement, action: action)
       return
@@ -375,16 +387,20 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
         metadata: [
           "elementPath": .string(elementPath),
           "action": .string(action),
-          "error": .string("\(error)")
-        ])
+          "error": .string("\(error)"),
+        ],
+      )
       throw NSError(
         domain: "com.macos.mcp.accessibility",
         code: MacMCPErrorCode.invalidElementPath,
-        userInfo: [NSLocalizedDescriptionKey: "Failed to perform action on element with path: \(error.localizedDescription)"]
+        userInfo: [
+          NSLocalizedDescriptionKey:
+            "Failed to perform action on element with path: \(error.localizedDescription)"
+        ],
       )
     }
   }
-  
+
   /// Navigate through menu path and activate a menu item
   /// - Parameters:
   ///   - path: The simplified menu path (e.g., "File > Open" or "View > Scientific")
@@ -401,17 +417,17 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
   /// - Returns: The UIElement if found, nil otherwise
   public func findElementByPath(path: String) async throws -> UIElement? {
     logger.debug("Finding element by path", metadata: ["path": "\(path)"])
-    
+
     // First check if the path is valid
     guard ElementPath.isElementPath(path) else {
       logger.error("Invalid element path format", metadata: ["path": "\(path)"])
       throw NSError(
         domain: "com.macos.mcp.accessibility",
         code: MacMCPErrorCode.invalidActionParams,
-        userInfo: [NSLocalizedDescriptionKey: "Invalid element path format: \(path)"]
+        userInfo: [NSLocalizedDescriptionKey: "Invalid element path format: \(path)"],
       )
     }
-    
+
     // Parse and resolve the path
     do {
       let parsedPath = try ElementPath.parse(path)
@@ -421,20 +437,26 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
       return try AccessibilityElement.convertToUIElement(axElement)
     } catch let pathError as ElementPathError {
       // Log specific information about path resolution errors
-      logger.error("Path resolution error", metadata: [
-        "path": "\(path)",
-        "error": "\(pathError.description)"
-      ])
+      logger.error(
+        "Path resolution error",
+        metadata: [
+          "path": "\(path)",
+          "error": "\(pathError.description)",
+        ])
       throw NSError(
         domain: "com.macos.mcp.accessibility",
         code: MacMCPErrorCode.elementNotFound,
-        userInfo: [NSLocalizedDescriptionKey: "Failed to resolve element path: \(pathError.description)"]
+        userInfo: [
+          NSLocalizedDescriptionKey: "Failed to resolve element path: \(pathError.description)"
+        ],
       )
     } catch {
-      logger.error("Error finding element by path", metadata: [
-        "path": "\(path)",
-        "error": "\(error.localizedDescription)"
-      ])
+      logger.error(
+        "Error finding element by path",
+        metadata: [
+          "path": "\(path)",
+          "error": "\(error.localizedDescription)",
+        ])
       throw error
     }
   }

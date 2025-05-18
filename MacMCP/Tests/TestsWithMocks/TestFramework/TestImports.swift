@@ -1,10 +1,11 @@
-// ABOUTME: This file provides common imports and type definitions for mock-based tests.
-// ABOUTME: It ensures consistent access to MacMCP types and mocks across test files.
+// ABOUTME: TestImports.swift
+// ABOUTME: Part of MacMCP allowing LLMs to interact with macOS applications.
 
-import Foundation
-import CoreGraphics
 import AppKit
+import CoreGraphics
+import Foundation
 import MCP
+
 @testable import MacMCP
 
 // Re-export MacMCP types

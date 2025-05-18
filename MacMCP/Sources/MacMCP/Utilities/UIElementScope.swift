@@ -1,5 +1,5 @@
-// ABOUTME: This file defines the scope for UI element search operations.
-// ABOUTME: It helps narrow down search contexts for accessibility operations.
+// ABOUTME: UIElementScope.swift
+// ABOUTME: Part of MacMCP allowing LLMs to interact with macOS applications.
 
 import Foundation
 

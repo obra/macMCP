@@ -5,19 +5,19 @@
 import PackageDescription
 
 let package = Package(
-    name: "SwiftLintPlugin",
-    products: [
-        .plugin(
-            name: "SwiftLintPlugin",
-            targets: ["SwiftLintPlugin"]
-        ),
-    ],
-    targets: [
-        .plugin(
-            name: "SwiftLintPlugin",
-            capability: .buildTool(),
-            dependencies: [],
-            path: "Sources/SwiftLintPlugin"
-        ),
-    ]
+  name: "SwiftLintPlugin",
+  products: [
+    .plugin(
+      name: "SwiftLintPlugin",
+      targets: ["SwiftLintPlugin"],
+    )
+  ],
+  targets: [
+    .plugin(
+      name: "SwiftLintPlugin",
+      capability: .buildTool(),
+      dependencies: [],
+      path: "Sources/SwiftLintPlugin",
+    )
+  ],
 )

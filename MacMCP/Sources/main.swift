@@ -1,4 +1,4 @@
-// The Swift Programming Language
-// https://docs.swift.org/swift-book
+// ABOUTME: main.swift
+// ABOUTME: Part of MacMCP allowing LLMs to interact with macOS applications.
 
 print("Hello, world!")
