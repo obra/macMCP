@@ -41,7 +41,10 @@ class MCPUIElementNode {
         self.role = jsonElement["role"] as? String ?? "Unknown"
         self.roleDescription = jsonElement["roleDescription"] as? String
         self.subrole = jsonElement["subrole"] as? String
-        self.title = jsonElement["title"] as? String ?? jsonElement["name"] as? String
+        
+        // Only use title from "title" field, not from "name"
+        // The "name" field is a human-readable display name that may just be the role name
+        self.title = jsonElement["title"] as? String
 
         // Extract position and size
         if let frameDict = jsonElement["frame"] as? [String: Any] {
