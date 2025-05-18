@@ -50,7 +50,7 @@ final class SimpleCalculatorTest: XCTestCase {
         
         // Ensure Calculator is frontmost application
         if let calcApp = NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleId).first {
-            let activateSuccess = calcApp.activate(options: [.activateIgnoringOtherApps])
+            let activateSuccess = calcApp.activate(options: [])
             if !activateSuccess {
                 print("Warning: Failed to activate Calculator as frontmost app")
             }

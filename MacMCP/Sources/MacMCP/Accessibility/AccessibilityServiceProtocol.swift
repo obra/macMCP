@@ -35,9 +35,26 @@ public protocol AccessibilityServiceProtocol: Sendable {
     ) async throws -> UIElement?
 
     /// Find UI elements matching criteria
+    /// - Parameters:
+    ///   - role: Optional role to match (e.g., "AXButton", "AXTextField")
+    ///   - title: Optional exact title to match
+    ///   - titleContains: Optional substring to match in element titles
+    ///   - value: Optional exact value to match
+    ///   - valueContains: Optional substring to match in element values
+    ///   - description: Optional exact description to match
+    ///   - descriptionContains: Optional substring to match in element descriptions
+    ///   - scope: Search scope (system-wide, focused app, or specific app)
+    ///   - recursive: Whether to recursively search children
+    ///   - maxDepth: Maximum depth for recursion
+    /// - Returns: Array of matching UIElements
     func findUIElements(
         role: String?,
+        title: String?,
         titleContains: String?,
+        value: String?,
+        valueContains: String?,
+        description: String?,
+        descriptionContains: String?,
         scope: UIElementScope,
         recursive: Bool,
         maxDepth: Int

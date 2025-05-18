@@ -310,7 +310,9 @@ public struct ElementPath: Sendable {
             // Unescape quotes in the value
             value = value.replacingOccurrences(of: "\\\"", with: "\"")
             
-            attributes[name] = value
+            // Normalize the attribute name during parsing
+            let normalizedName = PathNormalizer.normalizeAttributeName(name)
+            attributes[normalizedName] = value
         }
         
         // Extract index if present
@@ -435,10 +437,9 @@ public struct ElementPath: Sendable {
                 // Get all running applications
                 let runningApps = NSWorkspace.shared.runningApplications
                 
-                // Find application with matching title
-                if let app = runningApps.first(where: { 
-                    $0.localizedName == title || $0.localizedName?.contains(title) == true 
-                }) {
+                // Find application with exactly matching title - only exact matches
+                if let app = runningApps.first(where: { $0.localizedName == title }) {
+                    logger.debug("Found exact match for application title: \(title)")
                     return AXUIElementCreateApplication(app.processIdentifier)
                 } else {
                     // No exact match, gather information about running apps
@@ -723,13 +724,73 @@ public struct ElementPath: Sendable {
             )
         }
         
-        // If we've explored all possibilities and found no match, throw an error with the correct segment index
-        // print("DEBUG: ERROR - Could not find elements matching segment: \(segments[failedSegmentIndex].toString())")
-        // print("==== END BFS DEBUG ====\n")
-        throw ElementPathError.segmentResolutionFailed(
-            "Could not find elements matching segment: \(segments[failedSegmentIndex].toString())",
-            atSegment: failedSegmentIndex
-        )
+        // If we've explored all possibilities and found no match, enhance error reporting
+        logger.trace("==== END BFS DEBUG ====\n")
+        
+        // Special error handling for generic containers like AXGroup
+        let segment = segments[failedSegmentIndex]
+        let isGenericContainer = (segment.role == "AXGroup" || segment.role == "AXBox" || segment.role == "AXGeneric")
+        
+        if isGenericContainer {
+            // Enhanced debug information specifically for AXGroup segments
+            // Gather all available attributes of the potential children to see what's available
+            var debugInfo = "Generic container resolution failure debugging:"
+            
+            // Get all children at the current level for debugging
+            let latestNode = queue.last
+            if let element = latestNode?.element {
+                var childrenRef: CFTypeRef?
+                let status = AXUIElementCopyAttributeValue(element, "AXChildren" as CFString, &childrenRef)
+                
+                if status == .success, let children = childrenRef as? [AXUIElement] {
+                    debugInfo += "\nFound \(children.count) children at this level. "
+                    
+                    // Get attributes for all AXGroup children
+                    var groupChildren: [(Int, AXUIElement, [String: String])] = []
+                    
+                    for (i, child) in children.enumerated() {
+                        var roleRef: CFTypeRef?
+                        let roleStatus = AXUIElementCopyAttributeValue(child, "AXRole" as CFString, &roleRef)
+                        
+                        if roleStatus == .success, let role = roleRef as? String, role == "AXGroup" {
+                            var attributes: [String: String] = [:]
+                            let attributesToCheck = ["AXRole", "AXDescription", "AXTitle", "AXIdentifier"]
+                            
+                            for attr in attributesToCheck {
+                                var attrRef: CFTypeRef?
+                                let attrStatus = AXUIElementCopyAttributeValue(child, attr as CFString, &attrRef)
+                                
+                                if attrStatus == .success, let value = attrRef as? String {
+                                    attributes[attr] = value
+                                }
+                            }
+                            
+                            groupChildren.append((i, child, attributes))
+                        }
+                    }
+                    
+                    debugInfo += "\nFound \(groupChildren.count) AXGroup children:"
+                    for (i, _, attrs) in groupChildren {
+                        debugInfo += "\n  Child \(i): "
+                        for (key, value) in attrs.sorted(by: { $0.key < $1.key }) {
+                            debugInfo += "\(key)=\"\(value)\", "
+                        }
+                    }
+                }
+            }
+            
+            logger.error("\(debugInfo)")
+            
+            throw ElementPathError.segmentResolutionFailed(
+                "Could not find generic container element matching segment: \(segment.toString()). Generic containers like AXGroup may require position-based matching or more specific attributes.",
+                atSegment: failedSegmentIndex
+            )
+        } else {
+            throw ElementPathError.segmentResolutionFailed(
+                "Could not find elements matching segment: \(segment.toString())",
+                atSegment: failedSegmentIndex
+            )
+        }
     }
     
     /// Resolve a single segment of a path starting from a given element
@@ -886,59 +947,81 @@ public struct ElementPath: Sendable {
     private func elementMatchesSegment(_ element: AXUIElement, segment: PathSegment) async throws -> Bool {
         // Element ID for debugging
         let elementID = UInt(bitPattern: Unmanaged.passUnretained(element).toOpaque())
-        // print("  DEBUG: Matching element \(elementID) against segment \(segment.toString())")
+        logger.trace("Matching element \(elementID) against segment \(segment.toString())")
         
         // Check role first - this is the primary type matcher
         var roleRef: CFTypeRef?
         let roleStatus = AXUIElementCopyAttributeValue(element, "AXRole" as CFString, &roleRef)
         
         if roleStatus != .success || roleRef == nil {
-            // print("  DEBUG: Element has no role or couldn't access role")
+            logger.trace("Element has no role or couldn't access role")
             return false
         }
         
         guard let role = roleRef as? String else {
-            // print("  DEBUG: Element role is not a string value")
+            logger.trace("Element role is not a string value")
             return false
         }
         
-        // print("  DEBUG: Element role = \(role), segment role = \(segment.role)")
+        logger.trace("Element role = \(role), segment role = \(segment.role)")
         
         // Check role match - be more tolerant with role matching (optionally strip 'AX' prefix)
         let normalizedSegmentRole = segment.role.hasPrefix("AX") ? segment.role : "AX\(segment.role)"
         let normalizedElementRole = role.hasPrefix("AX") ? role : "AX\(role)"
         
         if role != segment.role && normalizedElementRole != normalizedSegmentRole {
-            // print("  DEBUG: ROLE MISMATCH - Element role doesn't match segment role")
-            // print("  DEBUG: Element: \(role), Segment: \(segment.role)")
-            // print("  DEBUG: Normalized Element: \(normalizedElementRole), Normalized Segment: \(normalizedSegmentRole)")
+            logger.trace("ROLE MISMATCH - Element role doesn't match segment role")
+            logger.trace("Element: \(role), Segment: \(segment.role)")
+            logger.trace("Normalized Element: \(normalizedElementRole), Normalized Segment: \(normalizedSegmentRole)")
             return false
         }
         
-        // print("  DEBUG: ROLE MATCH OK ✓")
+        logger.trace("ROLE MATCH OK ✓")
         
         // If there are no attributes to match, we're done
         if segment.attributes.isEmpty {
-            // print("  DEBUG: No attributes to check, match successful ✓")
+            logger.trace("No attributes to check, match successful ✓")
             return true
         }
         
         // Check each attribute - ALL must match for a successful match
-        // print("  DEBUG: Checking attributes (\(segment.attributes.count) total):")
+        logger.trace("Checking attributes (\(segment.attributes.count) total):")
         for (name, expectedValue) in segment.attributes {
-            // print("  DEBUG: Checking attribute \(name) with expected value \"\(expectedValue)\"")
+            logger.trace("Checking attribute \(name) with expected value \"\(expectedValue)\"")
             
             // Get normalized attribute name
             let normalizedName = getNormalizedAttributeName(name)
-            // print("  DEBUG:   Using normalized attribute name: \(normalizedName)")
+            logger.trace("Using normalized attribute name: \(normalizedName)")
+            
+            // For generic containers like AXGroup, we need additional debugging
+            let role = segment.role
+            let isGenericContainer = (role == "AXGroup" || role == "AXBox" || role == "AXGeneric")
+            
+            if isGenericContainer {
+                logger.trace("Processing generic container element \(role)")
+            }
             
             // Get the actual value for detailed logging
             var attributeRef: CFTypeRef?
             let attributeStatus = AXUIElementCopyAttributeValue(element, normalizedName as CFString, &attributeRef)
             
             if attributeStatus != .success || attributeRef == nil {
-                // print("  DEBUG:   No value for attribute \(normalizedName)")
-                // print("  DEBUG: FAILED - Attribute \(normalizedName) not found ✗")
+                logger.trace("No value for attribute \(normalizedName)")
+                
+                // Special handling for failing to find attributes on generic containers
+                if isGenericContainer && segment.attributes.count == 1 {
+                    // For generic containers with only one attribute, if it fails to match, check if this might be
+                    // a structural container element that should match just based on role
+                    logger.trace("Generic container match consideration - may need position-based matching")
+                    
+                    // If we have an index specified, we should still find a match
+                    if segment.index != nil {
+                        logger.trace("Has index - will use position-based matching")
+                        return true
+                    }
+                }
+                
+                logger.trace("FAILED - Attribute \(normalizedName) not found ✗")
                 return false
             }
             
@@ -954,20 +1037,20 @@ public struct ElementPath: Sendable {
                 actualValue = String(describing: attributeRef!)
             }
             
-            // print("  DEBUG:   Found value: \"\(actualValue)\"")
+            logger.trace("Found value: \"\(actualValue)\"")
             
             // Exact match check
             if actualValue == expectedValue {
-                // print("  DEBUG:   ATTRIBUTE MATCH OK ✓ \(normalizedName)=\"\(actualValue)\" matches \"\(expectedValue)\"")
+                logger.trace("ATTRIBUTE MATCH OK ✓ \(normalizedName)=\"\(actualValue)\" matches \"\(expectedValue)\"")
             } else {
-                // print("  DEBUG:   ATTRIBUTE MISMATCH ✗ \(normalizedName)=\"\(actualValue)\" != \"\(expectedValue)\"")
-                // print("  DEBUG: FAILED - Attribute \(normalizedName) did not match ✗")
+                logger.trace("ATTRIBUTE MISMATCH ✗ \(normalizedName)=\"\(actualValue)\" != \"\(expectedValue)\"")
+                logger.trace("FAILED - Attribute \(normalizedName) did not match ✗")
                 return false
             }
         }
         
         // All checks passed
-        // print("  DEBUG: ALL ATTRIBUTES MATCHED ✓ - Element matches segment successfully")
+        logger.trace("ALL ATTRIBUTES MATCHED ✓ - Element matches segment successfully")
         return true
     }
     
@@ -985,17 +1068,70 @@ public struct ElementPath: Sendable {
     ///   - name: The attribute name
     ///   - expectedValue: The expected attribute value
     /// - Returns: True if the attribute matches the expected value
+    ///
+    /// This method tries multiple variants of the attribute name to handle inconsistencies in
+    /// how attribute names might be specified in paths versus how they are accessed in the
+    /// accessibility API. It has special handling for bundleIdentifier to ensure it works
+    /// consistently regardless of attribute order or format.
+    ///
+    /// The matching strategy tries:
+    /// 1. The original attribute name as provided
+    /// 2. The normalized attribute name (from PathNormalizer)
+    /// 3. For attributes with AX prefix: tries without the prefix (except bundleIdentifier)
+    /// 4. For attributes without AX prefix: tries with the prefix (except bundleIdentifier)
+    ///
+    /// This ensures paths like these all work:
+    /// - [@AXTitle="Calculator"][@bundleIdentifier="com.apple.calculator"]
+    /// - [@bundleIdentifier="com.apple.calculator"][@AXTitle="Calculator"]
+    /// - [@AXbundleIdentifier="com.apple.calculator"] (incorrect but handled for compatibility)
     private func attributeMatchesValue(_ element: AXUIElement, name: String, expectedValue: String) -> Bool {
-        // Get the normalized attribute name
-        let normalizedName = getNormalizedAttributeName(name)
+        // First try with the original attribute name
+        if tryAttributeMatch(element, attributeName: name, expectedValue: expectedValue) {
+            return true
+        }
         
+        // Try with normalized attribute name
+        let normalizedName = getNormalizedAttributeName(name)
+        if normalizedName != name && tryAttributeMatch(element, attributeName: normalizedName, expectedValue: expectedValue) {
+            return true
+        }
+        
+        // For special cases like bundleIdentifier that may not have AX prefix
+        if name.hasPrefix("AX") && !normalizedName.contains("bundleIdentifier") {
+            // Try without AX prefix for all except bundleIdentifier
+            let withoutPrefix = String(name.dropFirst(2))
+            if tryAttributeMatch(element, attributeName: withoutPrefix, expectedValue: expectedValue) {
+                return true
+            }
+        } else if !name.hasPrefix("AX") && name != "bundleIdentifier" {
+            // Try with AX prefix for normal attributes (not bundleIdentifier)
+            let withPrefix = "AX\(name)"
+            if tryAttributeMatch(element, attributeName: withPrefix, expectedValue: expectedValue) {
+                return true
+            }
+        }
+        
+        // No match found with any variation
+        return false
+    }
+    
+    /// Helper method to try matching an attribute with a specific name
+    /// - Parameters:
+    ///   - element: The element to check
+    ///   - attributeName: The attribute name to try
+    ///   - expectedValue: The expected value
+    /// - Returns: True if the attribute matches
+    ///
+    /// This helper method encapsulates the actual attribute access and comparison logic
+    /// to avoid repetition in the main attributeMatchesValue method, which needs to try
+    /// multiple name variants.
+    private func tryAttributeMatch(_ element: AXUIElement, attributeName: String, expectedValue: String) -> Bool {
         // Get the attribute value
         var attributeRef: CFTypeRef?
-        let attributeStatus = AXUIElementCopyAttributeValue(element, normalizedName as CFString, &attributeRef)
+        let attributeStatus = AXUIElementCopyAttributeValue(element, attributeName as CFString, &attributeRef)
         
         // If we couldn't get the attribute, it doesn't match
         if attributeStatus != .success || attributeRef == nil {
-            // print("  DEBUG:     Attribute \(normalizedName) not found")
             return false
         }
         
@@ -1013,12 +1149,9 @@ public struct ElementPath: Sendable {
         
         // Check for exact match
         if actualValue == expectedValue {
-            // print("  DEBUG:     Exact match found")
             return true
         }
         
-        // No match
-        // print("  DEBUG:     No match found")
         return false
     }
     

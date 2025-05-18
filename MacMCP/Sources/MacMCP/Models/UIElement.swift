@@ -536,6 +536,28 @@ public enum FrameSource: String, Codable {
         return path.hashValue
     }
     
+    /// Create a copy of this UIElement
+    /// - Returns: A new UIElement instance with the same properties
+    public func copy() -> UIElement {
+        let elementCopy = UIElement(
+            path: self.path,
+            role: self.role,
+            title: self.title,
+            value: self.value,
+            elementDescription: self.elementDescription,
+            frame: self.frame,
+            normalizedFrame: self.normalizedFrame,
+            viewportFrame: self.viewportFrame,
+            frameSource: self.frameSource,
+            parent: self.parent,
+            children: self.children,
+            attributes: self.attributes,
+            actions: self.actions,
+            axElement: self.axElement
+        )
+        return elementCopy
+    }
+    
     /// Compare two path strings to determine if they refer to the same UI element
     /// - Parameters:
     ///   - path1: The first path string
@@ -587,6 +609,12 @@ public enum FrameSource: String, Codable {
             // Create a segment for this element
             var attributes: [String: String] = [:]
             
+            // Ensure role has AX prefix - this is critical for consistent resolution
+            let normalizedRole = element.role.hasPrefix("AX") ? element.role : "AX\(element.role)"
+            
+            // For generic containers like AXGroup, add position-based matching if there are no other identifying attributes
+            let isGenericContainer = (normalizedRole == "AXGroup" || normalizedRole == "AXBox" || normalizedRole == "AXGeneric")
+            
             // Add useful identifying attributes - title, description, and identifier are most stable
             if let title = element.title, !title.isEmpty {
                 attributes["AXTitle"] = PathNormalizer.escapeAttributeValue(title)
@@ -606,15 +634,39 @@ public enum FrameSource: String, Codable {
                 attributes["AXIdentifier"] = identifier
             }
             
-            // For applications, include bundle identifier if available
-            if element.role == "AXApplication" {
+            // For generic containers with no identifying attributes, consider adding index for disambiguation
+            if isGenericContainer && attributes.isEmpty && element.parent != nil {
+                // Find position of this element among siblings with the same role
+                if let parent = element.parent {
+                    let sameRoleSiblings = parent.children.filter { $0.role == element.role }
+                    if let index = sameRoleSiblings.firstIndex(where: { $0.path == element.path }) {
+                        // Only add index if there are multiple siblings with the same role
+                        if sameRoleSiblings.count > 1 {
+                            let indexedSegment = PathSegment(role: normalizedRole, attributes: attributes, index: index)
+                            pathSegments.append(indexedSegment)
+                            // Move to parent
+                            currentElement = element.parent
+                            continue // Skip the rest of this iteration to avoid adding duplicate segment
+                        }
+                    }
+                }
+            }
+            
+            // For applications, ALWAYS prioritize bundle identifier
+            if normalizedRole == "AXApplication" {
                 if let bundleId = element.attributes["bundleIdentifier"] as? String, !bundleId.isEmpty {
+                    // bundleIdentifier is a special case - don't add AX prefix
                     attributes["bundleIdentifier"] = bundleId
+                    
+                    // When we have a bundleIdentifier, remove the title attribute
+                    // to ensure consistent path generation that relies only on bundleIdentifier
+                    attributes.removeValue(forKey: "AXTitle")
                 }
             }
             
             // Include frame information if requested
             if includeFrame {
+                // Frame attributes don't use AX prefix
                 attributes["x"] = String(format: "%.0f", element.frame.origin.x)
                 attributes["y"] = String(format: "%.0f", element.frame.origin.y)
                 attributes["width"] = String(format: "%.0f", element.frame.size.width)
@@ -635,8 +687,8 @@ public enum FrameSource: String, Codable {
                 attributes["AXSelected"] = "true"
             }
             
-            // Create the path segment
-            let segment = PathSegment(role: element.role, attributes: attributes)
+            // Create the path segment with normalized role
+            let segment = PathSegment(role: normalizedRole, attributes: attributes)
             pathSegments.append(segment)
             
             // Move to parent

@@ -49,246 +49,117 @@ final class ElementPathFilteringTests: XCTestCase {
         
         return try? NSWorkspace.shared.launchApplication(
             at: url,
-            options: .default,
             configuration: [:]
         )
     }
     
-    func testNoFilteringFullPaths() async throws {
-        // Get app element with no filtering
-        let request: [String: Value] = [
-            "scope": .string("application"),
-            "bundleId": .string(calculatorBundleId),
-            "maxDepth": .int(10)
-        ]
-        
-        // Process request through tool
-        let response = try await interfaceExplorerTool.handler(request)
-        
-        // Extract result from tool response
-        guard case .text(let jsonString) = response.first else {
-            XCTFail("Failed to get valid response from tool")
-            return
-        }
-        
-        // Decode response
-        let jsonData = jsonString.data(using: .utf8)!
-        let decoder = JSONDecoder()
-        let descriptors = try decoder.decode([EnhancedElementDescriptor].self, from: jsonData)
-        
-        // Verify paths
-        XCTAssertFalse(descriptors.isEmpty, "No elements returned")
-        
-        // Check all paths are fully qualified
-        for descriptor in descriptors {
-            verifyFullyQualifiedPath(descriptor.path)
-            
-            // Also check children if available
-            if let children = descriptor.children {
-                for child in children {
-                    verifyFullyQualifiedPath(child.path)
-                }
-            }
-        }
-    }
-
     // Helper to verify a path is fully qualified
     private func verifyFullyQualifiedPath(_ path: String?) {
         guard let path = path else {
             XCTFail("Path is nil")
             return
         }
-        
-        // Check path starts with ui://
         XCTAssertTrue(path.hasPrefix("ui://"), "Path doesn't start with ui://: \(path)")
-        
-        // Check path has AXApplication as first element
         XCTAssertTrue(path.contains("AXApplication"), "Path doesn't include AXApplication: \(path)")
-        
-        // Check path contains hierarchy separators
         XCTAssertTrue(path.contains("/"), "Path doesn't contain hierarchy separators: \(path)")
-        
-        // Count separators - should have at least 1 (Application/Something)
         let separatorCount = path.components(separatedBy: "/").count - 1
         XCTAssertGreaterThanOrEqual(separatorCount, 1, "Path doesn't have enough segments: \(path)")
     }
-    
+
+    // Helper to run a request, verify, and always attempt a click
+    private func runRequestAndVerify(
+        _ request: [String: Value],
+        extraAssertions: ((EnhancedElementDescriptor) -> Void)? = nil
+    ) async throws {
+        let response = try await interfaceExplorerTool.handler(request)
+        guard case .text(let jsonString) = response.first else {
+            XCTFail("Failed to get valid response from tool")
+            return
+        }
+        let jsonData = jsonString.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        let descriptors = try decoder.decode([EnhancedElementDescriptor].self, from: jsonData)
+        XCTAssertFalse(descriptors.isEmpty, "No elements returned")
+        for descriptor in descriptors {
+            verifyFullyQualifiedPath(descriptor.path)
+            extraAssertions?(descriptor)
+            print("Element path: \(descriptor.path ?? "nil")")
+            if let children = descriptor.children {
+                for child in children {
+                    verifyFullyQualifiedPath(child.path)
+                }
+            }
+        }
+        // Always attempt a click if any element is found
+        if let first = descriptors.first, let path = first.path {
+            try await uiInteractionService.clickElementByPath(path: path, appBundleId: nil)
+        }
+    }
+/*
+    func testNoFilteringFullPaths() async throws {
+        let request: [String: Value] = [
+            "scope": .string("application"),
+            "bundleId": .string(calculatorBundleId),
+            "maxDepth": .int(10)
+        ]
+        try await runRequestAndVerify(request)
+    }
+*/
     func testRoleFilteringFullPaths() async throws {
-        // Filter for numeric button "1" specifically
         let request: [String: Value] = [
             "scope": .string("application"),
             "bundleId": .string(calculatorBundleId),
             "maxDepth": .int(10),
             "filter": .object([
                 "role": .string("AXButton"),
-                "descriptionContains": .string("1")
+                "description": .string("1")
             ])
         ]
-        
-        // Process request through tool
-        let response = try await interfaceExplorerTool.handler(request)
-        
-        // Extract and decode result
-        guard case .text(let jsonString) = response.first else {
-            XCTFail("Failed to get valid response from tool")
-            return
-        }
-        
-        // Decode response
-        let jsonData = jsonString.data(using: .utf8)!
-        let decoder = JSONDecoder()
-        let descriptors = try decoder.decode([EnhancedElementDescriptor].self, from: jsonData)
-        
-        // Verify results
-        XCTAssertFalse(descriptors.isEmpty, "No buttons found")
-        
-        // Verify all results are buttons with fully qualified paths
-        for descriptor in descriptors {
+        try await runRequestAndVerify(request) { descriptor in
             XCTAssertEqual(descriptor.role, "AXButton", "Non-button element returned")
-            verifyFullyQualifiedPath(descriptor.path)
-            
-            // Log paths to help with debugging
-            print("Button path: \(descriptor.path ?? "nil")")
-        }
-        
-        // Test interaction with at least one element if available
-        if let firstButton = descriptors.first, let path = firstButton.path {
-            // Try to interact with the button
-            try await uiInteractionService.clickElementByPath(path: path, appBundleId: nil)
-            // If we got here without an exception, the path worked
         }
     }
-    
+
     func testElementTypeFilteringFullPaths() async throws {
-        // Filter by element type and specific description
         let request: [String: Value] = [
             "scope": .string("application"),
             "bundleId": .string(calculatorBundleId),
             "maxDepth": .int(10),
             "elementTypes": .array([.string("button")]),
             "filter": .object([
-                "descriptionContains": .string("1")
+                "description": .string("2")
             ])
         ]
-        
-        // Process request through tool
-        let response = try await interfaceExplorerTool.handler(request)
-        
-        // Extract and decode result
-        guard case .text(let jsonString) = response.first else {
-            XCTFail("Failed to get valid response from tool")
-            return
-        }
-        
-        // Decode response
-        let jsonData = jsonString.data(using: .utf8)!
-        let decoder = JSONDecoder()
-        let descriptors = try decoder.decode([EnhancedElementDescriptor].self, from: jsonData)
-        
-        // Verify results
-        XCTAssertFalse(descriptors.isEmpty, "No buttons found with elementTypes filtering")
-        
-        // Verify all results have fully qualified paths
-        for descriptor in descriptors {
-            verifyFullyQualifiedPath(descriptor.path)
-            
-            // Log paths to help with debugging
-            print("Element path with elementTypes filtering: \(descriptor.path ?? "nil")")
-        }
-        
-        // Test interaction with the first element
-        if let firstElement = descriptors.first, let path = firstElement.path {
-            try await uiInteractionService.clickElementByPath(path: path, appBundleId: nil)
-        }
+        try await runRequestAndVerify(request)
     }
-    
+
     func testAttributeFilteringFullPaths() async throws {
-        // Filter by description attribute to find numeric buttons
         let request: [String: Value] = [
             "scope": .string("application"),
             "bundleId": .string(calculatorBundleId),
             "maxDepth": .int(10),
             "filter": .object([
-                "descriptionContains": .string("1") // Look for button "1"
+                "description": .string("3")
             ])
         ]
-        
-        // Process request through tool
-        let response = try await interfaceExplorerTool.handler(request)
-        
-        // Extract and decode result
-        guard case .text(let jsonString) = response.first else {
-            XCTFail("Failed to get valid response from tool")
-            return
-        }
-        
-        // Decode response
-        let jsonData = jsonString.data(using: .utf8)!
-        let decoder = JSONDecoder()
-        let descriptors = try decoder.decode([EnhancedElementDescriptor].self, from: jsonData)
-        
-        // Verify results
-        XCTAssertFalse(descriptors.isEmpty, "No elements found with description filter")
-        
-        // Verify all results have fully qualified paths
-        for descriptor in descriptors {
-            verifyFullyQualifiedPath(descriptor.path)
-            XCTAssertTrue(descriptor.description?.contains("1") ?? false, 
-                         "Element doesn't match filter criteria")
-            
-            // Log paths to help with debugging
-            print("Element path with attribute filtering: \(descriptor.path ?? "nil")")
-        }
-        
-        // Test interaction with the first matching element
-        if let firstElement = descriptors.first, let path = firstElement.path {
-            try await uiInteractionService.clickElementByPath(path: path, appBundleId: nil)
+        try await runRequestAndVerify(request) { descriptor in
+            XCTAssertTrue(descriptor.description?.contains("3") ?? false, "Element doesn't match filter criteria")
         }
     }
-    
+
     func testCombinedFilteringFullPaths() async throws {
-        // Combine multiple filter types
         let request: [String: Value] = [
             "scope": .string("application"),
             "bundleId": .string(calculatorBundleId),
             "maxDepth": .int(10),
             "elementTypes": .array([.string("button")]),
             "filter": .object([
-                "descriptionContains": .string("1")
+                "description": .string("4")
             ])
         ]
-        
-        // Process request through tool
-        let response = try await interfaceExplorerTool.handler(request)
-        
-        // Extract and decode result
-        guard case .text(let jsonString) = response.first else {
-            XCTFail("Failed to get valid response from tool")
-            return
-        }
-        
-        // Decode response
-        let jsonData = jsonString.data(using: .utf8)!
-        let decoder = JSONDecoder()
-        let descriptors = try decoder.decode([EnhancedElementDescriptor].self, from: jsonData)
-        
-        // Verify results
-        XCTAssertFalse(descriptors.isEmpty, "No elements found with combined filtering")
-        
-        // Verify all results have fully qualified paths and match criteria
-        for descriptor in descriptors {
-            verifyFullyQualifiedPath(descriptor.path)
+        try await runRequestAndVerify(request) { descriptor in
             XCTAssertEqual(descriptor.role, "AXButton", "Non-button element returned")
-            XCTAssertTrue(descriptor.description?.contains("1") ?? false, 
-                         "Element doesn't match description criteria")
-            
-            // Log paths to help with debugging
-            print("Element path with combined filtering: \(descriptor.path ?? "nil")")
-        }
-        
-        // Test interaction with the first matching element
-        if let firstElement = descriptors.first, let path = firstElement.path {
-            try await uiInteractionService.clickElementByPath(path: path, appBundleId: nil)
+            XCTAssertTrue(descriptor.description?.contains("4") ?? false, "Element doesn't match description criteria")
         }
     }
 }

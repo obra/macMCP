@@ -133,6 +133,7 @@ final class AsyncInspectionTask: @unchecked Sendable {
     private let showWindowDetail: Bool
     private let windowId: String?
     private let inspectPath: String?
+    private let pathFilter: String?
 
     init(inspector: MCPInspector,
          showMenuDetail: Bool = false,
@@ -140,6 +141,7 @@ final class AsyncInspectionTask: @unchecked Sendable {
          showWindowDetail: Bool = false,
          windowId: String? = nil,
          inspectPath: String? = nil,
+         pathFilter: String? = nil,
          onComplete: @escaping (MCPUIElementNode, String) -> Void,
          onError: @escaping (Swift.Error) -> Void) {
         self.inspector = inspector
@@ -148,6 +150,7 @@ final class AsyncInspectionTask: @unchecked Sendable {
         self.showWindowDetail = showWindowDetail
         self.windowId = windowId
         self.inspectPath = inspectPath
+        self.pathFilter = pathFilter
         self.onComplete = onComplete
         self.onError = onError
     }
@@ -156,7 +159,7 @@ final class AsyncInspectionTask: @unchecked Sendable {
         do {
             print("Launching MCP and retrieving UI state...")
             
-            // Check if we're doing path-based inspection
+            // Check if we're doing path-based inspection or filter-based inspection
             let rootElement: MCPUIElementNode
             
             if let path = inspectPath, let appId = inspector.appId {
@@ -168,6 +171,11 @@ final class AsyncInspectionTask: @unchecked Sendable {
                     maxDepth: 15 // Use smaller depth for path inspection
                 )
                 print("Successfully retrieved element at path: \(path)")
+            } else if let filter = pathFilter, let appId = inspector.appId {
+                print("Performing filter-based inspection for: \(filter)")
+                // Use the inspector method that accepts a path filter
+                rootElement = try await inspector.inspectApplication(pathFilter: filter)
+                print("Successfully retrieved UI state with filter: \(filter)")
             } else {
                 // Normal application inspection
                 rootElement = try await inspector.inspectApplication()
@@ -525,8 +533,9 @@ struct MCPAccessibilityInspector: ParsableCommand {
             
             // We need to delegate to a separate async method to avoid issues
             // with capturing state in the Task
-            // Use pathFilter as inspectPath if inspectPath is not provided
-            let effectiveInspectPath = inspectPath ?? (pathFilter?.hasPrefix("ui://") == true ? pathFilter : nil)
+            // Only use pathFilter as inspectPath if it's a full UI path
+            let effectiveInspectPath = inspectPath
+            let pathFilterValue = pathFilter  // Keep the original path filter for filtering
             
             let asyncTask = AsyncInspectionTask(
                 inspector: inspector,
@@ -534,7 +543,8 @@ struct MCPAccessibilityInspector: ParsableCommand {
                 menuPath: menuPath,
                 showWindowDetail: showWindowDetail,
                 windowId: windowId,
-                inspectPath: effectiveInspectPath, // Use the effective inspect path
+                inspectPath: effectiveInspectPath,
+                pathFilter: pathFilterValue,  // Pass the path filter
                 onComplete: { root, additionalInfo in
                     resultRootElement = root
                     additionalOutput = additionalInfo

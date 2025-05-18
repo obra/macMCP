@@ -54,7 +54,7 @@ extension ApplicationService {
             // If we need to activate the application
             if let runningApp = NSRunningApplication(processIdentifier: pid) {
                 // Activate the application
-                _ = runningApp.activate(options: [.activateIgnoringOtherApps])
+                _ = runningApp.activate(options: [])
                 
                 // Hide other applications if requested
                 if hideOthers {

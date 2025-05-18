@@ -352,7 +352,7 @@ struct ElementPathTests {
             return UIElement(path: "ui://AXElement[@identifier=\"mock-position\"]", role: "AXElement", frame: CGRect.zero, axElement: nil)
         }
         
-        func findUIElements(role: String?, titleContains: String?, scope: UIElementScope, recursive: Bool, maxDepth: Int) async throws -> [UIElement] {
+        func findUIElements(role: String?, title: String?, titleContains: String?, value: String?, valueContains: String?, description: String?, descriptionContains: String?, scope: UIElementScope, recursive: Bool, maxDepth: Int) async throws -> [UIElement] {
             return []
         }
         

@@ -506,13 +506,25 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
                             "type": .string("string"),
                             "description": .string("Filter by accessibility role")
                         ]),
+                        "title": .object([
+                            "type": .string("string"),
+                            "description": .string("Filter by title (exact match)")
+                        ]),
                         "titleContains": .object([
                             "type": .string("string"),
                             "description": .string("Filter by title containing this text")
                         ]),
+                        "value": .object([
+                            "type": .string("string"),
+                            "description": .string("Filter by value (exact match)")
+                        ]),
                         "valueContains": .object([
                             "type": .string("string"),
                             "description": .string("Filter by value containing this text")
+                        ]),
+                        "description": .object([
+                            "type": .string("string"),
+                            "description": .string("Filter by description (exact match)")
                         ]),
                         "descriptionContains": .object([
                             "type": .string("string"),
@@ -588,14 +600,20 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
         
         // Extract filter criteria
         var role: String? = nil
+        var title: String? = nil
         var titleContains: String? = nil
+        var value: String? = nil
         var valueContains: String? = nil
+        var description: String? = nil
         var descriptionContains: String? = nil
         
         if case let .object(filterObj)? = params["filter"] {
             role = filterObj["role"]?.stringValue
+            title = filterObj["title"]?.stringValue
             titleContains = filterObj["titleContains"]?.stringValue
+            value = filterObj["value"]?.stringValue
             valueContains = filterObj["valueContains"]?.stringValue
+            description = filterObj["description"]?.stringValue
             descriptionContains = filterObj["descriptionContains"]?.stringValue
         }
         
@@ -607,8 +625,11 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
                 includeHidden: includeHidden,
                 limit: limit,
                 role: role,
+                title: title,
                 titleContains: titleContains,
+                value: value,
                 valueContains: valueContains,
+                description: description,
                 descriptionContains: descriptionContains,
                 elementTypes: elementTypes
             )
@@ -625,8 +646,11 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
                 includeHidden: includeHidden,
                 limit: limit,
                 role: role,
+                title: title,
                 titleContains: titleContains,
+                value: value,
                 valueContains: valueContains,
+                description: description,
                 descriptionContains: descriptionContains,
                 elementTypes: elementTypes
             )
@@ -637,8 +661,11 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
                 includeHidden: includeHidden,
                 limit: limit,
                 role: role,
+                title: title,
                 titleContains: titleContains,
+                value: value,
                 valueContains: valueContains,
+                description: description,
                 descriptionContains: descriptionContains,
                 elementTypes: elementTypes
             )
@@ -671,8 +698,11 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
                 includeHidden: includeHidden,
                 limit: limit,
                 role: role,
+                title: title,
                 titleContains: titleContains,
+                value: value,
                 valueContains: valueContains,
+                description: description,
                 descriptionContains: descriptionContains,
                 elementTypes: elementTypes
             )
@@ -693,8 +723,11 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
                 includeHidden: includeHidden,
                 limit: limit,
                 role: role,
+                title: title,
                 titleContains: titleContains,
+                value: value,
                 valueContains: valueContains,
+                description: description,
                 descriptionContains: descriptionContains,
                 elementTypes: elementTypes
             )
@@ -711,8 +744,11 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
                 includeHidden: includeHidden,
                 limit: limit,
                 role: role,
+                title: title,
                 titleContains: titleContains,
+                value: value,
                 valueContains: valueContains,
+                description: description,
                 descriptionContains: descriptionContains,
                 elementTypes: elementTypes
             )
@@ -728,8 +764,11 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
         includeHidden: Bool,
         limit: Int,
         role: String?,
+        title: String?,
         titleContains: String?,
+        value: String?,
         valueContains: String?,
+        description: String?,
         descriptionContains: String?,
         elementTypes: [String]
     ) async throws -> [Tool.Content] {
@@ -741,11 +780,16 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
         
         // Apply filters if specified
         var elements: [UIElement]
-        if role != nil || titleContains != nil || valueContains != nil || descriptionContains != nil || !elementTypes.contains("any") {
+        if role != nil || title != nil || titleContains != nil || value != nil || valueContains != nil || description != nil || descriptionContains != nil || !elementTypes.contains("any") {
             // Use findUIElements for filtered results
             elements = try await accessibilityService.findUIElements(
                 role: role,
+                title: title,
                 titleContains: titleContains,
+                value: value,
+                valueContains: valueContains,
+                description: description,
+                descriptionContains: descriptionContains,
                 scope: .systemWide,
                 recursive: true,
                 maxDepth: maxDepth
@@ -754,7 +798,12 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
             // Apply additional filters that weren't directly supported by findUIElements
             elements = applyAdditionalFilters(
                 elements: elements,
+                role: role,
+                title: title,
+                titleContains: titleContains,
+                value: value,
                 valueContains: valueContains,
+                description: description,
                 descriptionContains: descriptionContains,
                 elementTypes: elementTypes,
                 includeHidden: includeHidden,
@@ -786,28 +835,41 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
         includeHidden: Bool,
         limit: Int,
         role: String?,
+        title: String?,
         titleContains: String?,
+        value: String?,
         valueContains: String?,
+        description: String?,
         descriptionContains: String?,
         elementTypes: [String]
     ) async throws -> [Tool.Content] {
         // Get application-specific UI state
         var elements: [UIElement]
         
-        if role != nil || titleContains != nil || valueContains != nil || descriptionContains != nil || !elementTypes.contains("any") {
+        if role != nil || title != nil || titleContains != nil || value != nil || valueContains != nil || description != nil || descriptionContains != nil || !elementTypes.contains("any") {
             // Use findUIElements for filtered results
             elements = try await accessibilityService.findUIElements(
                 role: role,
+                title: title,
                 titleContains: titleContains,
+                value: value,
+                valueContains: valueContains,
+                description: description,
+                descriptionContains: descriptionContains,
                 scope: .application(bundleIdentifier: bundleId),
                 recursive: true,
                 maxDepth: maxDepth
             )
             
-            // Apply additional filters
+            // Apply additional filters if needed (if not handled by findUIElements)
             elements = applyAdditionalFilters(
                 elements: elements,
+                role: role,
+                title: title,
+                titleContains: titleContains,
+                value: value,
                 valueContains: valueContains,
+                description: description,
                 descriptionContains: descriptionContains,
                 elementTypes: elementTypes,
                 includeHidden: includeHidden,
@@ -844,19 +906,27 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
         includeHidden: Bool,
         limit: Int,
         role: String?,
+        title: String?,
         titleContains: String?,
+        value: String?,
         valueContains: String?,
+        description: String?,
         descriptionContains: String?,
         elementTypes: [String]
     ) async throws -> [Tool.Content] {
         // Get focused application UI state
         var elements: [UIElement]
         
-        if role != nil || titleContains != nil || valueContains != nil || descriptionContains != nil || !elementTypes.contains("any") {
+        if role != nil || title != nil || titleContains != nil || value != nil || valueContains != nil || description != nil || descriptionContains != nil || !elementTypes.contains("any") {
             // Use findUIElements for filtered results
             elements = try await accessibilityService.findUIElements(
                 role: role,
+                title: title,
                 titleContains: titleContains,
+                value: value,
+                valueContains: valueContains,
+                description: description,
+                descriptionContains: descriptionContains,
                 scope: .focusedApplication,
                 recursive: true,
                 maxDepth: maxDepth
@@ -865,7 +935,12 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
             // Apply additional filters
             elements = applyAdditionalFilters(
                 elements: elements,
+                role: role,
+                title: title,
+                titleContains: titleContains,
+                value: value,
                 valueContains: valueContains,
+                description: description,
                 descriptionContains: descriptionContains,
                 elementTypes: elementTypes,
                 includeHidden: includeHidden,
@@ -903,8 +978,11 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
         includeHidden: Bool,
         limit: Int,
         role: String?,
+        title: String?,
         titleContains: String?,
+        value: String?,
         valueContains: String?,
+        description: String?,
         descriptionContains: String?,
         elementTypes: [String]
     ) async throws -> [Tool.Content] {
@@ -921,12 +999,15 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
         var elements = [element]
         
         // Apply filters if needed
-        if role != nil || titleContains != nil || valueContains != nil || descriptionContains != nil || !elementTypes.contains("any") || !includeHidden {
+        if role != nil || title != nil || titleContains != nil || value != nil || valueContains != nil || description != nil || descriptionContains != nil || !elementTypes.contains("any") || !includeHidden {
             elements = applyAdditionalFilters(
                 elements: elements,
                 role: role,
+                title: title,
                 titleContains: titleContains,
+                value: value,
                 valueContains: valueContains,
+                description: description,
                 descriptionContains: descriptionContains,
                 elementTypes: elementTypes,
                 includeHidden: includeHidden,
@@ -952,8 +1033,11 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
         includeHidden: Bool,
         limit: Int,
         role: String?,
+        title: String?,
         titleContains: String?,
+        value: String?,
         valueContains: String?,
+        description: String?,
         descriptionContains: String?,
         elementTypes: [String]
     ) async throws -> [Tool.Content] {
@@ -977,14 +1061,17 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
             // If we're searching within this element, we need to apply filters to its children
             var resultElements: [UIElement] = []
             
-            if role != nil || titleContains != nil || valueContains != nil || descriptionContains != nil || !elementTypes.contains("any") {
+            if role != nil || title != nil || titleContains != nil || value != nil || valueContains != nil || description != nil || descriptionContains != nil || !elementTypes.contains("any") {
                 // For filtering, we need to process the element and its descendants
                 // Now search within this element for matching elements
                 resultElements = findMatchingDescendants(
                     in: element,
                     role: role,
+                    title: title,
                     titleContains: titleContains,
+                    value: value,
                     valueContains: valueContains,
+                    description: description,
                     descriptionContains: descriptionContains,
                     elementTypes: elementTypes,
                     includeHidden: includeHidden,
@@ -1025,8 +1112,11 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
         includeHidden: Bool,
         limit: Int,
         role: String?,
+        title: String?,
         titleContains: String?,
+        value: String?,
         valueContains: String?,
+        description: String?,
         descriptionContains: String?,
         elementTypes: [String]
     ) async throws -> [Tool.Content] {
@@ -1053,14 +1143,16 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
             // If we're searching within this element, apply filters to it and its children
             var resultElements: [UIElement] = []
             
-            if role != nil || titleContains != nil || valueContains != nil || 
-               descriptionContains != nil || !elementTypes.contains("any") {
+            if role != nil || title != nil || titleContains != nil || value != nil || valueContains != nil || description != nil || descriptionContains != nil || !elementTypes.contains("any") {
                 // Find matching elements within the hierarchy
                 resultElements = findMatchingDescendants(
                     in: element,
                     role: role,
+                    title: title,
                     titleContains: titleContains,
+                    value: value,
                     valueContains: valueContains,
+                    description: description,
                     descriptionContains: descriptionContains,
                     elementTypes: elementTypes,
                     includeHidden: includeHidden,
@@ -1147,8 +1239,11 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
     private func findMatchingDescendants(
         in element: UIElement,
         role: String?,
+        title: String?,
         titleContains: String?,
+        value: String?,
         valueContains: String?,
+        description: String?,
         descriptionContains: String?,
         elementTypes: [String],
         includeHidden: Bool,
@@ -1188,27 +1283,15 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
         
         // Helper function to check if an element matches all criteria
         func elementMatches(_ element: UIElement) -> Bool {
-            // Role check
             let roleMatches = role == nil || element.role == role
-            
-            // Type check
             let typeMatches = targetRoles.isEmpty || elementTypes.contains("any") || targetRoles.contains(element.role)
-            
-            // Title check
-            let titleMatches = titleContains == nil || 
-                              (element.title?.localizedCaseInsensitiveContains(titleContains!) ?? false)
-            
-            // Value check
-            let valueMatches = valueContains == nil || 
-                              (element.value?.localizedCaseInsensitiveContains(valueContains!) ?? false)
-            
-            // Description check
-            let descriptionMatches = descriptionContains == nil || 
-                                    (element.elementDescription?.localizedCaseInsensitiveContains(descriptionContains!) ?? false)
-            
-            // Visibility check
+            let titleMatches = (title == nil || element.title == title) &&
+                               (titleContains == nil || (element.title?.localizedCaseInsensitiveContains(titleContains!) ?? false))
+            let valueMatches = (value == nil || element.value == value) &&
+                               (valueContains == nil || (element.value?.localizedCaseInsensitiveContains(valueContains!) ?? false))
+            let descriptionMatches = (description == nil || element.elementDescription == description) &&
+                                     (descriptionContains == nil || (element.elementDescription?.localizedCaseInsensitiveContains(descriptionContains!) ?? false))
             let visibilityMatches = includeHidden || element.isVisible
-            
             return roleMatches && typeMatches && titleMatches && valueMatches && descriptionMatches && visibilityMatches
         }
         
@@ -1270,8 +1353,11 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
         return applyAdditionalFilters(
             elements: elements,
             role: nil,
+            title: nil,
             titleContains: nil,
+            value: valueContains,
             valueContains: valueContains,
+            description: descriptionContains,
             descriptionContains: descriptionContains,
             elementTypes: elementTypes,
             includeHidden: includeHidden,
@@ -1283,8 +1369,11 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
     private func applyAdditionalFilters(
         elements: [UIElement],
         role: String? = nil,
+        title: String? = nil,
         titleContains: String? = nil,
+        value: String? = nil,
         valueContains: String? = nil,
+        description: String? = nil,
         descriptionContains: String? = nil,
         elementTypes: [String]? = nil,
         includeHidden: Bool = true,

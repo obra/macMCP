@@ -232,7 +232,7 @@ extension AccessibilityService {
             let pidError = AXUIElementGetPid(appElement as! AXUIElement, &pid)
             if pidError == .success {
                 let app = NSRunningApplication(processIdentifier: pid)
-                app?.activate(options: [.activateIgnoringOtherApps])
+                app?.activate(options: [])
             }
         }
         

@@ -51,7 +51,7 @@ public class MockAccessibilityService: @unchecked Sendable, AccessibilityService
         return createMockUIElement(role: "AXButton", title: "Element at Position")
     }
     
-    public func findUIElements(role: String?, titleContains: String?, scope: UIElementScope, recursive: Bool, maxDepth: Int) async throws -> [UIElement] {
+    public func findUIElements(role: String?, title: String?, titleContains: String?, value: String?, valueContains: String?, description: String?, descriptionContains: String?, scope: UIElementScope, recursive: Bool, maxDepth: Int) async throws -> [UIElement] {
         // Return empty array for simplified mock
         return []
     }

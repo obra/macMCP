@@ -77,7 +77,7 @@ public final class CalculatorTestHelper {
         
         // Ensure Calculator is frontmost application regardless of whether we just launched it
         if let calcApp = NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleId).first {
-            let activateSuccess = calcApp.activate(options: [.activateIgnoringOtherApps])
+            let activateSuccess = calcApp.activate(options: [])
             if !activateSuccess {
                 print("Warning: Failed to activate Calculator as frontmost app")
             }

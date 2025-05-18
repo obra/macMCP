@@ -301,10 +301,15 @@ public struct WindowManagementTool: @unchecked Sendable {
         // Find the focused element
         let elements = try await accessibilityService.findUIElements(
             role: nil,
+            title: nil,
             titleContains: nil,
+            value: nil,
+            valueContains: nil,
+            description: nil,
+            descriptionContains: nil,
             scope: .focusedApplication,
             recursive: true,
-            maxDepth: 10
+            maxDepth: 1
         ).filter { ($0.attributes["focused"] as? Bool) == true }
         
         // Convert the focused element(s) to descriptors

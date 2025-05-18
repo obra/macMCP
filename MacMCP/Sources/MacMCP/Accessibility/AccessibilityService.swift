@@ -175,14 +175,24 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
   /// Find UI elements matching criteria
   /// - Parameters:
   ///   - role: Optional role to match (e.g., "AXButton", "AXTextField")
+  ///   - title: Optional exact title to match
   ///   - titleContains: Optional substring to match in element titles
+  ///   - value: Optional exact value to match
+  ///   - valueContains: Optional substring to match in element values
+  ///   - description: Optional exact description to match
+  ///   - descriptionContains: Optional substring to match in element descriptions
   ///   - scope: Search scope (system-wide, focused app, or specific app)
   ///   - recursive: Whether to recursively search children
   ///   - maxDepth: Maximum depth for recursion
   /// - Returns: Array of matching UIElements
   public func findUIElements(
     role: String? = nil,
+    title: String? = nil,
     titleContains: String? = nil,
+    value: String? = nil,
+    valueContains: String? = nil,
+    description: String? = nil,
+    descriptionContains: String? = nil,
     scope: UIElementScope = .focusedApplication,
     recursive: Bool = true,
     maxDepth: Int = AccessibilityService.defaultMaxDepth
@@ -253,10 +263,53 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
         }
       }
       
-      // Check title if specified
+      // Check title (exact) if specified
+      if let titleToMatch = title {
+        if element.title != titleToMatch {
+          isMatch = false
+        }
+      }
+      
+      // Check titleContains if specified
       if let titleSubstring = titleContains {
         if let title = element.title {
           if !title.localizedCaseInsensitiveContains(titleSubstring) {
+            isMatch = false
+          }
+        } else {
+          isMatch = false
+        }
+      }
+
+      // Check value (exact) if specified
+      if let valueToMatch = value {
+        if element.value != valueToMatch {
+          isMatch = false
+        }
+      }
+
+      // Check valueContains if specified
+      if let valueSubstring = valueContains {
+        if let value = element.value {
+          if !value.localizedCaseInsensitiveContains(valueSubstring) {
+            isMatch = false
+          }
+        } else {
+          isMatch = false
+        }
+      }
+
+      // Check description (exact) if specified
+      if let descToMatch = description {
+        if element.elementDescription != descToMatch {
+          isMatch = false
+        }
+      }
+
+      // Check descriptionContains if specified
+      if let descSubstring = descriptionContains {
+        if let desc = element.elementDescription {
+          if !desc.localizedCaseInsensitiveContains(descSubstring) {
             isMatch = false
           }
         } else {

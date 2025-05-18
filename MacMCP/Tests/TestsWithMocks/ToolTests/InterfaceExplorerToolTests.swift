@@ -490,7 +490,12 @@ final class InterfaceExplorerToolTests: XCTestCase {
         // Get the window position
         let windows = try await toolChain.accessibilityService.findUIElements(
             role: "AXWindow",
-            titleContains: Optional<String>.none,
+            title: nil,
+            titleContains: nil,
+            value: nil,
+            valueContains: nil,
+            description: nil,
+            descriptionContains: nil,
             scope: .application(bundleIdentifier: "com.apple.calculator"),
             recursive: true,
             maxDepth: 3

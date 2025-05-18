@@ -918,7 +918,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
         if let appInfo = await findApplicationByBundleID(bundleIdentifier), appInfo.isRunning, let pid = appInfo.processId {
             // Found in cache, try to activate by PID
             if let app = NSRunningApplication(processIdentifier: pid) {
-                let success = app.activate(options: [.activateIgnoringOtherApps])
+                let success = app.activate(options: [])
                 
                 if success {
                     logger.debug("Application activated successfully from cache", metadata: [
@@ -944,7 +944,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
         if !runningApplications.isEmpty {
             // Activate the first running instance (usually there's only one)
             let application = runningApplications.first!
-            let success = application.activate(options: [.activateIgnoringOtherApps])
+            let success = application.activate(options: [])
             
             // Update the cache with the running application
             updateCacheForRunningApp(application)
