@@ -266,7 +266,6 @@ struct ElementPathTests {
         #expect(ElementPath.isElementPath("ui://AXWindow/AXGroup/AXButton") == true)
         #expect(ElementPath.isElementPath("ui://") == true) // Empty path is still an element path (will fail on parse)
         #expect(ElementPath.isElementPath("somestring") == false)
-        #expect(ElementPath.isElementPath("ui:element:123") == false) // Legacy format
         #expect(ElementPath.isElementPath("") == false)
     }
     

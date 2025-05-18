@@ -26,7 +26,7 @@ public class MockAccessibilityService: @unchecked Sendable, AccessibilityService
         let parts = path.split(separator: "/")
         if let lastPart = parts.last {
             let role = String(lastPart.split(separator: "[").first ?? "AXUnknown")
-            return createMockUIElement(identifier: "path_element", role: role, title: "Path Element")
+            return createMockUIElement(role: role, title: "Path Element")
         }
         return nil
     }
@@ -36,19 +36,19 @@ public class MockAccessibilityService: @unchecked Sendable, AccessibilityService
     }
     
     public func getSystemUIElement(recursive: Bool, maxDepth: Int) async throws -> UIElement {
-        return createMockUIElement(identifier: "system", role: "AXApplication", title: "System")
+        return createMockUIElement(role: "AXApplication", title: "System")
     }
     
     public func getApplicationUIElement(bundleIdentifier: String, recursive: Bool, maxDepth: Int) async throws -> UIElement {
-        return createMockUIElement(identifier: "app", role: "AXApplication", title: bundleIdentifier)
+        return createMockUIElement(role: "AXApplication", title: bundleIdentifier)
     }
     
     public func getFocusedApplicationUIElement(recursive: Bool, maxDepth: Int) async throws -> UIElement {
-        return createMockUIElement(identifier: "focused", role: "AXApplication", title: "Focused App")
+        return createMockUIElement(role: "AXApplication", title: "Focused App")
     }
     
     public func getUIElementAtPosition(position: CGPoint, recursive: Bool, maxDepth: Int) async throws -> UIElement? {
-        return createMockUIElement(identifier: "element_at_position", role: "AXButton", title: "Element at Position")
+        return createMockUIElement(role: "AXButton", title: "Element at Position")
     }
     
     public func findUIElements(role: String?, titleContains: String?, scope: UIElementScope, recursive: Bool, maxDepth: Int) async throws -> [UIElement] {
@@ -143,8 +143,17 @@ public class MockAccessibilityService: @unchecked Sendable, AccessibilityService
     
     // MARK: - Helper Methods
     
-    private func createMockUIElement(identifier: String, role: String, title: String? = nil) -> UIElement {
-        let path = "ui://AXApplication[@AXRole=\"AXApplication\"]/\(role)[@identifier=\"\(identifier)\"]"
+    private func createMockUIElement(role: String, title: String? = nil) -> UIElement {
+        var path = "ui://AXApplication[@AXRole=\"AXApplication\"]/"
+        
+        // Construct path based on available properties
+        path += role
+        
+        // Add title if available
+        if let title = title, !title.isEmpty {
+            path += "[@AXTitle=\"\(title)\"]"
+        }
+        
         return UIElement(
             path: path,
             role: role,
