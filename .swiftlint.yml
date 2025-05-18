@@ -33,10 +33,7 @@ cyclomatic_complexity:
   error: 25
 
 nesting:
-  type_level:
-    warning: 3
-  statement_level:
-    warning: 5
+  type_level: 3
 
 identifier_name:
   excluded:
@@ -48,5 +45,9 @@ identifier_name:
     - i
     - j
     - ax
+
+# Ensure SwiftFormat and SwiftLint agree on trailing commas
+trailing_comma:
+  mandatory_comma: true
 
 reporter: "xcode"
