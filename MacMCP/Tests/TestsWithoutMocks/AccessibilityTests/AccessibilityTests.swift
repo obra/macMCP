@@ -4,7 +4,6 @@
 import AppKit
 import Foundation
 import Testing
-import XCTest
 
 @testable import MacMCP
 
@@ -14,7 +13,7 @@ struct AccessibilityTests {
   func testSystemWideElement() {
     let systemElement = AccessibilityElement.systemWideElement()
     // Just verify we received an element
-    XCTAssertNotNil(systemElement)
+    #expect(systemElement != nil)
   }
 
   @Test("Application element by PID access")
@@ -24,17 +23,14 @@ struct AccessibilityTests {
 
     let appElement = AccessibilityElement.applicationElement(pid: pid)
     // Just verify we received an element
-    XCTAssertNotNil(appElement)
+    #expect(appElement != nil)
   }
 
   @Test("Get element attributes")
   func getAttributes() throws {
     // This test will be skipped if accessibility permissions aren't granted,
     // since we can't automate permission granting in tests
-    try XCTSkipIf(
-      !AccessibilityPermissions.isAccessibilityEnabled(),
-      "Accessibility not enabled, skipping test",
-    )
+    #expect(AccessibilityPermissions.isAccessibilityEnabled(), "Accessibility not enabled, skipping test")
 
     // Get the system-wide element
     let systemElement = AccessibilityElement.systemWideElement()
@@ -55,10 +51,7 @@ struct AccessibilityTests {
   @Test("Convert to UIElement model")
   func testConvertToUIElement() throws {
     // This test will be skipped if accessibility permissions aren't granted
-    try XCTSkipIf(
-      !AccessibilityPermissions.isAccessibilityEnabled(),
-      "Accessibility not enabled, skipping test",
-    )
+    #expect(AccessibilityPermissions.isAccessibilityEnabled(), "Accessibility not enabled, skipping test")
 
     // Get a simple UI element - use the system-wide element
     let systemElement = AccessibilityElement.systemWideElement()
@@ -77,6 +70,6 @@ struct AccessibilityTests {
     // environments
     print("Skipping test that requires system-level accessibility permissions")
     // Soft-pass the test by ensuring a trivial assertion passes
-    XCTAssertTrue(true)
+    #expect(true)
   }
 }

@@ -3,7 +3,7 @@
 
 import Foundation
 import Testing
-import XCTest
+import AppKit
 
 @testable import MacMCP
 
@@ -797,7 +797,7 @@ struct UIElementPathInitTests {
     // Attempt to create a UIElement (should throw)
     do {
       _ = try await UIElement(fromPath: pathString, accessibilityService: service)
-      XCTFail("Expected an error but none was thrown")
+      #expect(Bool(false), "Expected an error but none was thrown")
     } catch let error as ElementPathError {
       // Verify we got an appropriate error
       switch error {
@@ -805,10 +805,10 @@ struct UIElementPathInitTests {
         // These are the expected error types
         break
       default:
-        XCTFail("Unexpected error type: \(error)")
+        #expect(Bool(false), "Unexpected error type: \(error)")
       }
     } catch {
-      XCTFail("Unexpected error: \(error)")
+      #expect(Bool(false), "Unexpected error: \(error)")
     }
   }
 
@@ -823,7 +823,7 @@ struct UIElementPathInitTests {
     // Attempt to create a UIElement (should throw due to ambiguity)
     do {
       _ = try await UIElement(fromPath: pathString, accessibilityService: service)
-      XCTFail("Expected an ambiguity error but none was thrown")
+      #expect(Bool(false), "Expected an ambiguity error but none was thrown")
     } catch let error as ElementPathError {
       // Verify we got an ambiguity error
       switch error {
@@ -831,10 +831,10 @@ struct UIElementPathInitTests {
         // This is the expected error type
         break
       default:
-        XCTFail("Expected ambiguousMatch error but got: \(error)")
+        #expect(Bool(false), "Expected ambiguousMatch error but got: \(error)")
       }
     } catch {
-      XCTFail("Unexpected error: \(error)")
+      #expect(Bool(false), "Unexpected error: \(error)")
     }
   }
 
@@ -941,7 +941,7 @@ struct UIElementPathInitTests {
     do {
       _ = try await UIElement.areSameElement(
         path1: validPath, path2: invalidPath, accessibilityService: service)
-      XCTFail("Expected an error but none was thrown")
+      #expect(Bool(false), "Expected an error but none was thrown")
     } catch {
       // This is expected behavior
     }

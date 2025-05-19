@@ -5,7 +5,6 @@ import Foundation
 import Logging
 import MCP
 import Testing
-import XCTest
 
 @testable import MacMCP
 
@@ -100,7 +99,7 @@ struct ErrorHandlingTests {
     for (name, params) in testCases {
       do {
         _ = try await tool.handler(params)
-        XCTFail("Test \(name) should have thrown an error but didn't")
+        #expect(Bool(false), "Test \(name) should have thrown an error but didn't")
       } catch let error as MCPError {
         // Verify the error is properly formatted
         switch error {
@@ -118,7 +117,7 @@ struct ErrorHandlingTests {
           break
         }
       } catch {
-        XCTFail("Test \(name) threw unexpected error type: \(type(of: error))")
+        #expect(Bool(false), "Test \(name) threw unexpected error type: \(type(of: error))")
       }
     }
   }

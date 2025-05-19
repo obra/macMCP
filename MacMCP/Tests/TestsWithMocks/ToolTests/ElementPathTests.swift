@@ -4,7 +4,7 @@
 import Foundation
 import MacMCPUtilities
 import Testing
-import XCTest
+import AppKit
 
 @testable import MacMCP
 
@@ -100,11 +100,11 @@ struct ElementPathTests {
 
     do {
       _ = try ElementPath(segments: emptySegments)
-      XCTFail("Should have thrown an error for empty segments")
+      #expect(Bool(false), "Should have thrown an error for empty segments")
     } catch let error as ElementPathError {
       #expect(error == ElementPathError.emptyPath)
     } catch {
-      XCTFail("Threw unexpected error: \(error)")
+      #expect(Bool(false), "Threw unexpected error: \(error)")
     }
   }
 
@@ -208,11 +208,11 @@ struct ElementPathTests {
 
     do {
       _ = try ElementPath.parse(pathString)
-      XCTFail("Should have thrown an error for invalid prefix")
+      #expect(Bool(false), "Should have thrown an error for invalid prefix")
     } catch let error as ElementPathError {
       #expect(error == ElementPathError.invalidPathPrefix(pathString))
     } catch {
-      XCTFail("Threw unexpected error: \(error)")
+      #expect(Bool(false), "Threw unexpected error: \(error)")
     }
   }
 
@@ -222,11 +222,11 @@ struct ElementPathTests {
 
     do {
       _ = try ElementPath.parse(pathString)
-      XCTFail("Should have thrown an error for empty path")
+      #expect(Bool(false), "Should have thrown an error for empty path")
     } catch let error as ElementPathError {
       #expect(error == ElementPathError.emptyPath)
     } catch {
-      XCTFail("Threw unexpected error: \(error)")
+      #expect(Bool(false), "Threw unexpected error: \(error)")
     }
   }
 
@@ -679,7 +679,7 @@ struct ElementPathTests {
     let mockResolveException = mockResolvePathWithExceptionForTest(service: mockService, path: path)
     #expect(mockResolveException != nil)
     guard let error = mockResolveException else {
-      XCTFail("Expected ambiguous match error but no error occurred")
+      #expect(Bool(false), "Expected ambiguous match error but no error occurred")
       return
     }
 
@@ -692,7 +692,7 @@ struct ElementPathTests {
       // This is also acceptable
       #expect(segment.contains("AXGroup[@AXTitle=\"Duplicate\"]"))
     default:
-      XCTFail("Expected ambiguous match error but got \(error)")
+      #expect(Bool(false), "Expected ambiguous match error but got \(error)")
     }
   }
 
@@ -852,7 +852,7 @@ struct ElementPathTests {
       #expect(candidates.count > 0)
       #expect(reason.contains("Multiple elements"))
     } else {
-      XCTFail("Expected resolutionFailed error but got \(String(describing: ambiguousError))")
+      #expect(Bool(false), "Expected resolutionFailed error but got \(String(describing: ambiguousError))")
     }
 
     // Test no matching elements with enhanced error
@@ -869,7 +869,7 @@ struct ElementPathTests {
       #expect(candidates.count > 0)
       #expect(reason.contains("No elements match"))
     } else {
-      XCTFail("Expected resolutionFailed error but got \(String(describing: nonExistentError))")
+      #expect(Bool(false), "Expected resolutionFailed error but got \(String(describing: nonExistentError))")
     }
   }
 
