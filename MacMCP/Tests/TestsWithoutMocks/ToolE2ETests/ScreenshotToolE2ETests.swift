@@ -92,19 +92,19 @@ struct ScreenshotToolE2ETests {
       let widthTolerance = Int(Double(screenWidth) * 0.1)  // 10% tolerance
       let heightTolerance = Int(Double(screenHeight) * 0.1)  // 10% tolerance
 
-      XCTAssertTrue(
+      #expect(
         abs(Int(image.size.width) - screenWidth) <= widthTolerance,
         "Screenshot width should be close to screen width",
       )
-      XCTAssertTrue(
+      #expect(
         abs(Int(image.size.height) - screenHeight) <= heightTolerance,
         "Screenshot height should be close to screen height",
       )
 
       // Check metadata
-      XCTAssertEqual(metadata?["region"], "full", "Region should be 'full'")
+      #expect(metadata?["region"] == "full", "Region should be 'full'")
     } else {
-      XCTFail("Result should be an image content item")
+      #expect(false, "Result should be an image content item")
     }
     
     try await tearDown()
@@ -147,21 +147,21 @@ struct ScreenshotToolE2ETests {
       let widthRatio = Double(image.size.width) / Double(width)
       let heightRatio = Double(image.size.height) / Double(height)
 
-      XCTAssertTrue(
+      #expect(
         widthRatio == 1.0 || abs(widthRatio - 2.0) < 0.1,
         "Screenshot width should match requested width or be scaled by 2x (requested: \(width), actual: \(image.size.width))",
       )
-      XCTAssertTrue(
+      #expect(
         heightRatio == 1.0 || abs(heightRatio - 2.0) < 0.1,
         "Screenshot height should match requested height or be scaled by 2x (requested: \(height), actual: \(image.size.height))",
       )
 
       // For metadata, we don't strictly verify values since they might be scaled
-      XCTAssertNotNil(metadata?["width"], "Width metadata should be present")
-      XCTAssertNotNil(metadata?["height"], "Height metadata should be present")
-      XCTAssertEqual(metadata?["region"], "area", "Region should be 'area'")
+      #expect(metadata?["width"] != nil, "Width metadata should be present")
+      #expect(metadata?["height"] != nil, "Height metadata should be present")
+      #expect(metadata?["region"] == "area", "Region should be 'area'")
     } else {
-      XCTFail("Result should be an image content item")
+      #expect(false, "Result should be an image content item")
     }
     
     try await tearDown()
@@ -189,13 +189,13 @@ struct ScreenshotToolE2ETests {
       let image = NSImage(data: decodedData)!
 
       // Calculator window size can vary - it might be as small as 190px on some systems
-      XCTAssertGreaterThan(image.size.width, 180, "Calculator window should be wider than 180px")
-      XCTAssertGreaterThan(image.size.height, 180, "Calculator window should be taller than 180px")
+      #expect(image.size.width, 180, "Calculator window should be wider than 180px")
+      #expect(image.size.height, 180, "Calculator window should be taller than 180px")
 
       // Check metadata
-      XCTAssertEqual(metadata?["region"], "window", "Region should be 'window'")
+      #expect(metadata?["region"], "window", "Region should be 'window'")
     } else {
-      XCTFail("Result should be an image content item")
+      #expect(false, "Result should be an image content item")
     }
     
     try await tearDown()
@@ -296,13 +296,13 @@ struct ScreenshotToolE2ETests {
             let image = NSImage(data: decodedData)!
 
             // Verify image has reasonable dimensions
-            XCTAssertGreaterThan(
+            #expect(
               image.size.width, 5.0, "Element screenshot width should be reasonable")
-            XCTAssertGreaterThan(
+            #expect(
               image.size.height, 5.0, "Element screenshot height should be reasonable")
 
             // Verify metadata
-            XCTAssertEqual(metadata?["region"], "element", "Region should be 'element'")
+            #expect(metadata?["region"], "element", "Region should be 'element'")
 
             print(
               "Successfully captured element screenshot with dimensions: \(image.size.width) x \(image.size.height)",
@@ -317,8 +317,7 @@ struct ScreenshotToolE2ETests {
 
       // We should have captured at least one element successfully
       print("Captured \(capturedElements) element(s), with \(captureFailures) failure(s)")
-      XCTAssertGreaterThan(
-        capturedElements, 0, "Should capture at least one element screenshot successfully")
+      #expect(capturedElements > 0, "Should capture at least one element screenshot successfully")
     } else {
       print("No button elements found in Calculator - skipping element screenshots")
     }
@@ -361,13 +360,11 @@ struct ScreenshotToolE2ETests {
           let image = NSImage(data: decodedData)!
 
           // Calculator window size can vary - check it's a reasonable size
-          XCTAssertGreaterThan(
-            image.size.width, 180, "Calculator window should be wider than 180px")
-          XCTAssertGreaterThan(
-            image.size.height, 180, "Calculator window should be taller than 180px")
+          #expect(image.size.width > 180, "Calculator window should be wider than 180px")
+          #expect(image.size.height > 180, "Calculator window should be taller than 180px")
 
           // Check metadata
-          XCTAssertEqual(metadata?["region"], "element", "Region should be 'element'")
+          #expect(metadata?["region"] == "element", "Region should be 'element'")
 
           print(
             "Successfully captured window by element ID: \(image.size.width) x \(image.size.height)"
@@ -415,9 +412,9 @@ struct ScreenshotToolE2ETests {
       let image = NSImage(data: decodedData)!
 
       // Window should have reasonable dimensions
-      XCTAssertGreaterThan(image.size.width, 180, "Window should be wider than 180px")
-      XCTAssertGreaterThan(image.size.height, 180, "Window should be taller than 180px")
-      XCTAssertEqual(metadata?["region"], "window", "Region should be 'window'")
+      #expect(image.size.width > 180, "Window should be wider than 180px")
+      #expect(image.size.height > 180, "Window should be taller than 180px")
+      #expect(metadata?["region"] == "window", "Region should be 'window'")
 
       print(
         "Successfully captured app window screenshot with dimensions: \(image.size.width) x \(image.size.height)",
@@ -505,13 +502,11 @@ struct ScreenshotToolE2ETests {
     // Expect an error
     do {
       _ = try await toolChain.screenshotTool.handler(params)
-      XCTFail("Should throw an error for non-existent element")
+      #expect(false, "Should throw an error for non-existent element")
     } catch {
       // Success - we expect an error
-      XCTAssertTrue(
-        error.localizedDescription.contains("not found"),
-        "Error should indicate element not found",
-      )
+      #expect(error.localizedDescription.contains("not found"),
+        "Error should indicate element not found")
     }
     
     try await tearDown()
@@ -530,13 +525,11 @@ struct ScreenshotToolE2ETests {
     // Expect an error
     do {
       _ = try await toolChain.screenshotTool.handler(params)
-      XCTFail("Should throw an error for non-running application")
+      #expect(false, "Should throw an error for non-running application")
     } catch {
       // Success - we expect an error
-      XCTAssertTrue(
-        error.localizedDescription.contains("not running"),
-        "Error should indicate application not running",
-      )
+      #expect(error.localizedDescription.contains("not running"),
+        "Error should indicate application not running")
     }
     
     try await tearDown()
@@ -598,7 +591,7 @@ struct ScreenshotToolE2ETests {
         height: metadata?["height"] ?? "0",
       )
     } else {
-      XCTFail("Result should be an image content item")
+      #expect(false, "Result should be an image content item")
     }
   }
 

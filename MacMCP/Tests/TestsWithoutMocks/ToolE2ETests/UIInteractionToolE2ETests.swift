@@ -175,27 +175,27 @@ struct UIInteractionToolE2ETests {
     print("Clicking button '2'")
     let twoPath = twoButton.path
     if twoPath.isEmpty {
-      XCTFail("Empty path for '2' button")
+      #expect(false, "Empty path for '2' button")
       return
     }
     let clickTwoSuccess = try await calculatorHelper.toolChain.clickElement(
       elementPath: twoPath,
       bundleId: calculatorHelper.app.bundleId,
     )
-    XCTAssertTrue(clickTwoSuccess, "Should click '2' button successfully")
+    #expect(clickTwoSuccess, "Should click '2' button successfully")
     try await Task.sleep(for: .milliseconds(1000))
 
     print("Clicking button '='")
     let eqPath = eqButton.path
     if eqPath.isEmpty {
-      XCTFail("Empty path for '=' button")
+      #expect(false, "Empty path for '=' button")
       return
     }
     let clickEqualsSuccess = try await calculatorHelper.toolChain.clickElement(
       elementPath: eqPath,
       bundleId: calculatorHelper.app.bundleId,
     )
-    XCTAssertTrue(clickEqualsSuccess, "Should click '=' button successfully")
+    #expect(clickEqualsSuccess, "Should click '=' button successfully")
     try await Task.sleep(for: .milliseconds(1000))
 
     // Verify the result is 3 (1+2)
@@ -206,7 +206,7 @@ struct UIInteractionToolE2ETests {
     // Test direct UIInteractionTool interface to verify proper passing of parameters
     // onePath is already defined above, so we'll reuse it
     if oneButton.path.isEmpty {
-      XCTFail("Empty path for '1' button")
+      #expect(false, "Empty path for '1' button")
       return
     }
     let result = try await calculatorHelper.toolChain.uiInteractionTool.handler([
@@ -215,15 +215,15 @@ struct UIInteractionToolE2ETests {
       "appBundleId": .string(calculatorHelper.app.bundleId),
     ])
 
-    XCTAssertFalse(result.isEmpty, "Handler should return non-empty result")
+    #expect(!result.isEmpty, "Handler should return non-empty result")
     if case .text(let message) = result.first {
-      XCTAssertTrue(
+      #expect(
         message.contains("Successfully clicked"),
-        "Success message should indicate click was successful",
+        "Success message should indicate click was successful"
       )
-      XCTAssertTrue(message.contains(onePath), "Success message should include element path")
+      #expect(message.contains(onePath), "Success message should include element path")
     } else {
-      XCTFail("Handler should return text content")
+      #expect(false, "Handler should return text content")
     }
 
     print("testBasicClick completed successfully")
@@ -261,7 +261,7 @@ struct UIInteractionToolE2ETests {
     }
 
     guard let digitFive else {
-      XCTFail("Failed to find button '5' after multiple attempts")
+      #expect(false, "Failed to find button '5' after multiple attempts")
       return
     }
 
@@ -269,8 +269,8 @@ struct UIInteractionToolE2ETests {
     print("Found button '5' at frame: \(digitFive.frame)")
 
     // Verify the button has valid coordinates
-    XCTAssertGreaterThan(digitFive.frame.width, 10, "Button should have reasonable width")
-    XCTAssertGreaterThan(digitFive.frame.height, 10, "Button should have reasonable height")
+    #expect(digitFive.frame.width > 10, "Button should have reasonable width")
+    #expect(digitFive.frame.height > 10, "Button should have reasonable height")
 
     // Calculate the center point of the button
     let centerX = digitFive.frame.origin.x + digitFive.frame.size.width / 2
@@ -282,7 +282,7 @@ struct UIInteractionToolE2ETests {
     let clickSuccess = try await calculatorHelper.toolChain.clickAtPosition(
       position: CGPoint(x: centerX, y: centerY),
     )
-    XCTAssertTrue(clickSuccess, "Should click at coordinates successfully")
+    #expect(clickSuccess, "Should click at coordinates successfully")
     try await Task.sleep(for: .milliseconds(1000))
 
     // Verify the display shows "5"
@@ -303,8 +303,8 @@ struct UIInteractionToolE2ETests {
     ]
 
     let doubleResult = try await calculatorHelper.toolChain.uiInteractionTool.handler(doubleParams)
-    XCTAssertFalse(
-      doubleResult.isEmpty, "Handler should return non-empty result for double coordinates")
+    #expect(
+      !doubleResult.isEmpty, "Handler should return non-empty result for double coordinates")
 
     // Verify the display shows "5" again
     try await calculatorHelper.assertDisplayValue(
@@ -323,7 +323,7 @@ struct UIInteractionToolE2ETests {
     ]
 
     let intResult = try await calculatorHelper.toolChain.uiInteractionTool.handler(intParams)
-    XCTAssertFalse(intResult.isEmpty, "Handler should return non-empty result for int coordinates")
+    #expect(!intResult.isEmpty, "Handler should return non-empty result for int coordinates")
 
     // Verify the display shows "5" again
     try await calculatorHelper.assertDisplayValue(
@@ -361,12 +361,12 @@ struct UIInteractionToolE2ETests {
     // Type some text with a clear word to double-click
     let testText = "Double-click-test word test"
     let typingSuccess = try await textEditHelper.typeText(testText)
-    XCTAssertTrue(typingSuccess, "Should type text successfully")
+    #expect(typingSuccess, "Should type text successfully")
     try await Task.sleep(for: .milliseconds(1000))
 
     // Get the text area element
     guard let textArea = try await textEditHelper.app.getTextArea() else {
-      XCTFail("Failed to find TextEdit text area")
+      #expect(false, "Failed to find TextEdit text area")
       return
     }
 
@@ -394,12 +394,12 @@ struct UIInteractionToolE2ETests {
 
     // Get the text and verify the replacement
     let documentText = try await textEditHelper.app.getText()
-    XCTAssertNotNil(documentText, "Should get text from document")
+    #expect(documentText != nil, "Should get text from document")
     print("Final document text: \(documentText ?? "nil")")
 
     // We can't guarantee exactly which word was selected,
     // but we can verify the replacement text is there
-    XCTAssertTrue(
+    #expect(
       documentText?.contains(replacementText) ?? false,
       "Document should contain the replacement text",
     )
@@ -415,14 +415,14 @@ struct UIInteractionToolE2ETests {
 
     // Get the text area element again after reset
     guard let newTextArea = try await textEditHelper.app.getTextArea() else {
-      XCTFail("Failed to find TextEdit text area after reset")
+      #expect(false, "Failed to find TextEdit text area after reset")
       return
     }
 
     // Try double-click through the handler
     let newTextAreaPath = newTextArea.path
     if newTextAreaPath.isEmpty {
-      XCTFail("Empty path for text area")
+      #expect(false, "Empty path for text area")
       return
     }
     let doubleClickParams: [String: Value] = [
@@ -432,8 +432,7 @@ struct UIInteractionToolE2ETests {
 
     let doubleClickResult = try await textEditHelper.toolChain.uiInteractionTool.handler(
       doubleClickParams)
-    XCTAssertFalse(
-      doubleClickResult.isEmpty, "Handler should return non-empty result for double-click")
+    #expect(!doubleClickResult.isEmpty, "Handler should return non-empty result for double-click")
     try await Task.sleep(for: .milliseconds(1000))
 
     // Type new replacement text
@@ -443,8 +442,8 @@ struct UIInteractionToolE2ETests {
 
     // Verify text was replaced
     let newDocumentText = try await textEditHelper.app.getText()
-    XCTAssertNotNil(newDocumentText, "Should get text from document after element double-click")
-    XCTAssertTrue(
+    #expect(newDocumentText != nil, "Should get text from document after element double-click")
+    #expect(
       newDocumentText?.contains(newReplacement) ?? false,
       "Document should contain the new replacement text after element double-click",
     )
@@ -477,19 +476,19 @@ struct UIInteractionToolE2ETests {
     // Type some text to right-click on
     let testText = "Right-click test text"
     let typingSuccess = try await textEditHelper.typeText(testText)
-    XCTAssertTrue(typingSuccess, "Should type text successfully")
+    #expect(typingSuccess, "Should type text successfully")
     try await Task.sleep(for: .milliseconds(1000))
 
     // Get the text area element
     guard let textArea = try await textEditHelper.app.getTextArea() else {
-      XCTFail("Failed to find TextEdit text area")
+      #expect(false, "Failed to find TextEdit text area")
       return
     }
 
     // Use the UIInteractionTool handler directly to test right-click
     let textAreaPath = textArea.path
     if textAreaPath.isEmpty {
-      XCTFail("Empty path for text area")
+      #expect(false, "Empty path for text area")
       return
     }
     let rightClickParams: [String: Value] = [
@@ -499,8 +498,7 @@ struct UIInteractionToolE2ETests {
 
     let rightClickResult = try await textEditHelper.toolChain.uiInteractionTool.handler(
       rightClickParams)
-    XCTAssertFalse(
-      rightClickResult.isEmpty, "Handler should return non-empty result for right-click")
+    #expect(!rightClickResult.isEmpty, "Handler should return non-empty result for right-click")
 
     // Since it's difficult to programmatically verify a context menu appeared,
     // we'll just validate that no error was thrown and a result was returned
@@ -546,12 +544,12 @@ struct UIInteractionToolE2ETests {
     // Type some text
     let testText = "Drag operation test text"
     let typingSuccess = try await textEditHelper.typeText(testText)
-    XCTAssertTrue(typingSuccess, "Should type text successfully")
+    #expect(typingSuccess, "Should type text successfully")
     try await Task.sleep(for: .milliseconds(1000))
 
     // Get the text area element
     guard let textArea = try await textEditHelper.app.getTextArea() else {
-      XCTFail("Failed to find TextEdit text area")
+      #expect(false, "Failed to find TextEdit text area")
       return
     }
 
@@ -563,7 +561,7 @@ struct UIInteractionToolE2ETests {
     do {
       let textAreaPath = textArea.path
       if textAreaPath.isEmpty {
-        XCTFail("Empty path for text area")
+        #expect(false, "Empty path for text area")
         return
       }
       let invalidParams: [String: Value] = [
@@ -573,11 +571,11 @@ struct UIInteractionToolE2ETests {
       ]
 
       _ = try await textEditHelper.toolChain.uiInteractionTool.handler(invalidParams)
-      XCTFail("Should throw an error when targetElementPath is missing")
+      #expect(false, "Should throw an error when targetElementPath is missing")
     } catch {
       // Expected error - success
       let errorMessage = error.localizedDescription.lowercased()
-      XCTAssertTrue(
+      #expect(
         errorMessage.contains("target") || errorMessage.contains("missing"),
         "Error should indicate missing targetElementPath parameter",
       )
@@ -623,7 +621,7 @@ struct UIInteractionToolE2ETests {
     if fileManager.fileExists(atPath: testFileURL.path) {
       print("Test file exists at path: \(testFileURL.path)")
     } else {
-      XCTFail("Test file not found at path: \(testFileURL.path)")
+      #expect(false, "Test file not found at path: \(testFileURL.path)")
       return
     }
 
@@ -656,7 +654,7 @@ struct UIInteractionToolE2ETests {
 
     // Open the scroll test file - this brings up a file dialog
     let openSuccess = try await textEditHelper.app.openDocument(from: testFileURL.path)
-    XCTAssertTrue(openSuccess, "Should start open document operation successfully")
+    #expect(openSuccess, "Should start open document operation successfully")
     print("Started document open operation")
 
     // Wait for the dialog to fully appear and stabilize
@@ -755,7 +753,7 @@ struct UIInteractionToolE2ETests {
       // Click the Open button
       let openButtonPath = openButton.path
       if openButtonPath.isEmpty {
-        XCTFail("Empty path for Open button")
+        #expect(false, "Empty path for Open button")
         return
       }
       let clickParams: [String: Value] = [
@@ -791,7 +789,7 @@ struct UIInteractionToolE2ETests {
     // Get the text area element
     print("Attempting to get text area...")
     guard let textArea = try await textEditHelper.app.getTextArea() else {
-      XCTFail("Failed to find TextEdit text area")
+      #expect(false, "Failed to find TextEdit text area")
       return
     }
     print("Found text area with path: \(textArea.path)")
@@ -885,8 +883,7 @@ struct UIInteractionToolE2ETests {
 
     let scrollDownResult = try await textEditHelper.toolChain.uiInteractionTool.handler(
       scrollDownParams)
-    XCTAssertFalse(
-      scrollDownResult.isEmpty, "Handler should return non-empty result for scroll down")
+    #expect(!scrollDownResult.isEmpty, "Handler should return non-empty result for scroll down")
     print("Scroll down operation completed")
     try await Task.sleep(for: .milliseconds(1000))
 
@@ -904,17 +901,17 @@ struct UIInteractionToolE2ETests {
 
     let scrollUpResult = try await textEditHelper.toolChain.uiInteractionTool.handler(
       scrollUpParams)
-    XCTAssertFalse(scrollUpResult.isEmpty, "Handler should return non-empty result for scroll up")
+    #expect(!scrollUpResult.isEmpty, "Handler should return non-empty result for scroll up")
     print("Scroll up operation completed")
     try await Task.sleep(for: .milliseconds(1000))
 
     // Now verify results of all operations
     // 1. File should be loaded - we already verified text area
-    XCTAssertNotNil(initialDocText, "Document should contain text content")
+    #expect(initialDocText != nil, "Document should contain text content")
     print("Document content preview: \(String(describing: initialDocText?.prefix(100)))")
 
     // Check for the file content - look for any text that would be in our file
-    XCTAssertTrue(
+    #expect(
       initialDocText?.contains("test file for scrolling") ?? false,
       "Document should contain test file content",
     )
@@ -924,18 +921,18 @@ struct UIInteractionToolE2ETests {
     let foundAnyMarker = testFileMarkers.contains { marker in
       initialDocText?.contains(marker) ?? false
     }
-    XCTAssertTrue(foundAnyMarker, "Document should contain at least one expected marker")
+    #expect(foundAnyMarker, "Document should contain at least one expected marker")
 
     // 2. Scroll operations should have returned success results
     if let content = scrollDownResult.first, case .text(let text) = content {
-      XCTAssertTrue(
+      #expect(
         text.contains("success") || text.contains("scroll"),
         "Scroll down result should indicate success",
       )
     }
 
     if let content = scrollUpResult.first, case .text(let text) = content {
-      XCTAssertTrue(
+      #expect(
         text.contains("success") || text.contains("scroll"),
         "Scroll up result should indicate success",
       )
@@ -950,11 +947,11 @@ struct UIInteractionToolE2ETests {
     ) async throws {
       do {
         _ = try await textEditHelper.toolChain.uiInteractionTool.handler(params)
-        XCTFail(message)
+        #expect(false, message)
       } catch {
         // Expected error - success
         let errorMessage = error.localizedDescription.lowercased()
-        XCTAssertTrue(
+        #expect(
           errorMessage.contains(expectedErrorContains.lowercased()),
           "Error should indicate: \(expectedErrorContains)",
         )
@@ -964,7 +961,7 @@ struct UIInteractionToolE2ETests {
 
     // Check the path for text area
     if textArea.path.isEmpty {
-      XCTFail("Empty path for text area")
+      #expect(false, "Empty path for text area")
       return
     }
     // We already have textAreaPath defined above
@@ -1051,33 +1048,33 @@ struct UIInteractionToolE2ETests {
 
     // Get the text area element
     guard let textArea = try await textEditHelper.app.getTextArea() else {
-      XCTFail("Failed to find TextEdit text area")
+      #expect(false, "Failed to find TextEdit text area")
       return
     }
 
     // 1. First click in text area to ensure it has focus
     let keyboardTextAreaPath = textArea.path
     if keyboardTextAreaPath.isEmpty {
-      XCTFail("Empty path for text area")
+      #expect(false, "Empty path for text area")
       return
     }
     let clickResult = try await textEditHelper.toolChain.clickElement(
       elementPath: keyboardTextAreaPath,
       bundleId: textEditHelper.app.bundleId,
     )
-    XCTAssertTrue(clickResult, "Should click text area successfully")
+    #expect(clickResult, "Should click text area successfully")
     try await Task.sleep(for: .milliseconds(1000))
 
     // 2. Type "Part1" text
     let part1 = "Part1"
     let typingSuccess1 = try await textEditHelper.typeText(part1)
-    XCTAssertTrue(typingSuccess1, "Should type part1 text successfully")
+    #expect(typingSuccess1, "Should type part1 text successfully")
     try await Task.sleep(for: .milliseconds(1000))
 
     // 3. Type "Part3" text - this creates a gap where we'll insert "Part2"
     let part3 = " Part3"
     let typingSuccess3 = try await textEditHelper.typeText(part3)
-    XCTAssertTrue(typingSuccess3, "Should type part3 text successfully")
+    #expect(typingSuccess3, "Should type part3 text successfully")
     try await Task.sleep(for: .milliseconds(1000))
 
     // We now have "Part1 Part3" in the document
@@ -1085,7 +1082,7 @@ struct UIInteractionToolE2ETests {
     // 4. Get text content for verification
     let initialText = try await textEditHelper.app.getText()
     let expectedInitialText = "Part1 Part3"
-    XCTAssertTrue(
+    #expect(
       initialText?.contains(expectedInitialText) ?? false,
       "Document should initially contain 'Part1 Part3'",
     )
@@ -1094,7 +1091,7 @@ struct UIInteractionToolE2ETests {
     // First, get the text area element again to ensure we have current coordinates
     let freshTextArea = try await textEditHelper.app.getTextArea()
     guard let textArea = freshTextArea else {
-      XCTFail("Could not find text area for positioning cursor")
+      #expect(false, "Could not find text area for positioning cursor")
       return
     }
 
@@ -1118,7 +1115,7 @@ struct UIInteractionToolE2ETests {
     // 6. Now type the inserted text - using the new typeText that doesn't clear
     let part2 = " Part2"
     let typingSuccess2 = try await textEditHelper.typeText(part2)
-    XCTAssertTrue(typingSuccess2, "Should type part2 text successfully")
+    #expect(typingSuccess2, "Should type part2 text successfully")
     try await Task.sleep(for: .milliseconds(1000))
 
     // 7. Verify the final text has all three parts in the correct order
@@ -1128,7 +1125,7 @@ struct UIInteractionToolE2ETests {
     print("Expected final text: \"\(expectedFinalText)\"")
     print("Actual final text: \"\(finalText ?? "nil")\"")
 
-    XCTAssertTrue(
+    #expect(
       finalText?.contains(expectedFinalText) ?? false,
       "Document should contain all three parts in correct order: 'Part1 Part2 Part3'",
     )
@@ -1157,12 +1154,12 @@ struct UIInteractionToolE2ETests {
         elementPath: nonExistentId,
         bundleId: calculatorHelper.app.bundleId,
       )
-      XCTFail("Should throw an error for non-existent element")
+      #expect(false, "Should throw an error for non-existent element")
     } catch {
       // Success - we expect an error
       let errorMessage = error.localizedDescription.lowercased()
       print("Received expected error: \(errorMessage)")
-      XCTAssertTrue(
+      #expect(
         errorMessage.contains("not found") || errorMessage.contains("no element")
           || errorMessage.contains("invalid") || errorMessage.contains("unable to find"),
         "Error should indicate element not found: \(errorMessage)",
@@ -1179,11 +1176,11 @@ struct UIInteractionToolE2ETests {
       ]
 
       _ = try await calculatorHelper.toolChain.uiInteractionTool.handler(nonExistentParams)
-      XCTFail("Handler should throw an error for non-existent element")
+      #expect(false, "Handler should throw an error for non-existent element")
     } catch {
       // Expected error - success
       let errorMessage = error.localizedDescription.lowercased()
-      XCTAssertTrue(
+      #expect(
         errorMessage.contains("not found") || errorMessage.contains("no element")
           || errorMessage.contains("invalid"),
         "Error should indicate element not found",
@@ -1213,11 +1210,11 @@ struct UIInteractionToolE2ETests {
       ]
 
       _ = try await calculatorHelper.toolChain.uiInteractionTool.handler(invalidParams)
-      XCTFail("Should throw an error for invalid action")
+      #expect(false, "Should throw an error for invalid action")
     } catch {
       // Expected error - success
       let errorMessage = error.localizedDescription.lowercased()
-      XCTAssertTrue(
+      #expect(
         errorMessage.contains("invalid action") || errorMessage.contains("unknown action"),
         "Error should indicate invalid action: \(errorMessage)",
       )
@@ -1231,11 +1228,11 @@ struct UIInteractionToolE2ETests {
       ]
 
       _ = try await calculatorHelper.toolChain.uiInteractionTool.handler(invalidParams)
-      XCTFail("Should throw an error for missing action")
+      #expect(false, "Should throw an error for missing action")
     } catch {
       // Expected error - success
       let errorMessage = error.localizedDescription.lowercased()
-      XCTAssertTrue(
+      #expect(
         errorMessage.contains("action") || errorMessage.contains("required"),
         "Error should indicate missing action: \(errorMessage)",
       )
