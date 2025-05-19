@@ -1,0 +1,5 @@
+TestsWithoutMocks.ApplicationTests.CalculatorTests
+TestsWithoutMocks.ApplicationTests.TextEditTests
+TestsWithoutMocks.ApplicationTests
+TestsWithoutMocks.ToolE2ETests
+TestsWithoutMocks.AccessibilityTests
