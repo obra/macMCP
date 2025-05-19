@@ -197,18 +197,16 @@ class MCPUIElementNode {
   /// Set the full path for this node by walking up the parent chain
   func calculateFullPath(parentNode: MCPUIElementNode?) {
     // Log entry info
-    print(
-      "PATH DEBUG - calculateFullPath for \(role) with title \(title ?? "nil") and description \(description ?? "nil")",
-    )
-    print("PATH DEBUG - incoming server path: \(elementPath ?? "nil")")
-    print("PATH DEBUG - parent provided: \(parentNode != nil ? "yes" : "no")")
-    print("PATH DEBUG - parent fullPath: \(parentNode?.fullPath ?? "nil")")
+    // print( "PATH DEBUG - calculateFullPath for \(role) with title \(title ?? "nil") and description \(description ?? "nil")",)
+    // print("PATH DEBUG - incoming server path: \(elementPath ?? "nil")")
+    // print("PATH DEBUG - parent provided: \(parentNode != nil ? "yes" : "no")")
+    // print("PATH DEBUG - parent fullPath: \(parentNode?.fullPath ?? "nil")")
 
     // We must ALWAYS walk up the entire parent chain to construct fully qualified paths
     if let parentNode, let parentPath = parentNode.fullPath {
       // If parent has a path, we need to append our segment to it
       let segment = generatePathSegment()
-      print("PATH DEBUG - generated segment: \(segment)")
+      // print("PATH DEBUG - generated segment: \(segment)")
 
       // Ensure we separate with a slash unless parent path already ends with /
       let newPath: String =
@@ -219,17 +217,17 @@ class MCPUIElementNode {
         }
 
       fullPath = newPath
-      print("PATH DEBUG - calculated path: \(newPath)")
+      // print("PATH DEBUG - calculated path: \(newPath)")
     } else {
       // If we're at the root level (no parent) and we got a path from the server, use it
       if let pathFromServer = elementPath {
         fullPath = pathFromServer
-        print("PATH DEBUG - using server path as root: \(pathFromServer)")
+        // print("PATH DEBUG - using server path as root: \(pathFromServer)")
       } else {
         // We can't generate a valid fully qualified path
-        print("ERROR: Unable to generate a fully qualified path for element: \(role)")
+        // print("ERROR: Unable to generate a fully qualified path for element: \(role)")
         // Don't set any path - leaving it nil to indicate failure
-        print("PATH DEBUG - FAILED to generate path")
+       // print("PATH DEBUG - FAILED to generate path")
       }
     }
   }
