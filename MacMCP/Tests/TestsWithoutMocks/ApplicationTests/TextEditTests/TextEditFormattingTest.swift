@@ -4,6 +4,7 @@
 import AppKit
 import Foundation
 import MCP
+import Testing
 import XCTest
 
 @testable import MacMCP
@@ -12,83 +13,98 @@ import XCTest
 // @_implementationOnly import TestsWithoutMocks
 
 /// Test case for MCP's ability to interact with the TextEdit app
-@MainActor
-final class TextEditFormattingTest: XCTestCase {
+@Suite(.serialized)
+struct TextEditFormattingTest {
   // Test helper for TextEdit interactions
   private var helper: TextEditTestHelper!
 
-  override func setUp() async throws {
+  // Shared setup method
+  private mutating func setUp() async throws {
     // Get shared helper
-    helper = TextEditTestHelper.shared()
+    helper = await TextEditTestHelper.shared()
 
     // Ensure app is running and reset state
     let appRunning = try await helper.ensureAppIsRunning()
-    XCTAssertTrue(appRunning, "TextEdit should be running")
+    #expect(appRunning)
     try await helper.resetAppState()
+  }
+  
+  // Shared teardown method
+  private mutating func tearDown() async throws {
+    if helper != nil {
+     _ = try await helper.closeWindowAndDiscardChanges()
+    }
   }
 
   /// Test that we can type text in TextEdit using keyboard commands
-  func testTypeText() async throws {
+  @Test("Type Text in TextEdit")
+  mutating func testTypeText() async throws {
+    try await setUp()
+    
     // Type text in TextEdit using keyboard commands
     let text = "Hello world"
     let typeSuccess = try await helper.typeText(text)
-    XCTAssertTrue(typeSuccess, "Should be able to type text")
+    #expect(typeSuccess)
 
     // Take a pause to allow UI to update
     try await Task.sleep(for: .milliseconds(500))
 
     // Verify text appears in the document
-    try await helper.assertDocumentContainsText(
-      text,
-      message: "Document should contain the typed text",
-    )
+    try await helper.assertDocumentContainsText(text)
+    
+    try await tearDown()
   }
 
   /// Test formatting text in TextEdit - bold, italic, newline, etc.
-  func testTextFormatting() async throws {
+  @Test("Text Formatting in TextEdit")
+  mutating func testTextFormatting() async throws {
+    try await setUp()
+    
     // Type "Hello world" in TextEdit
     let text = "Hello world"
     let typeSuccess = try await helper.typeText(text)
-    XCTAssertTrue(typeSuccess, "Should be able to type text")
+    #expect(typeSuccess)
 
     // Brief pause to allow UI to update
     try await Task.sleep(for: .milliseconds(500))
 
     // Select the first word ("Hello")
     let selectSuccess = try await helper.selectText(startPos: 0, length: 5)
-    XCTAssertTrue(selectSuccess, "Should be able to select text")
+    #expect(selectSuccess)
 
     // Apply bold formatting to the first word
     let boldSuccess = try await helper.toggleBold()
-    XCTAssertTrue(boldSuccess, "Should be able to toggle bold")
+    #expect(boldSuccess)
 
     // Brief pause to allow UI to update
     try await Task.sleep(for: .milliseconds(500))
 
     // Verify text still exists in the document
-    try await helper.assertDocumentContainsText(
-      text,
-      message: "Document should still contain the text after formatting",
-    )
+    try await helper.assertDocumentContainsText(text)
+    
+    try await tearDown()
   }
 
   /// Test more advanced formatting and saving/reopening
-  func testSaveAndReopen() async throws {
+  @Test("Save and Reopen TextEdit Document")
+  mutating func testSaveAndReopen() async throws {
+    try await setUp()
+    
     // Type "Formatting Test" in TextEdit
     let text = "Formatting Test"
     let typeSuccess = try await helper.typeText(text)
-    XCTAssertTrue(typeSuccess, "Should be able to type text")
+    #expect(typeSuccess)
 
     // Brief pause to allow UI to update
     try await Task.sleep(for: .milliseconds(500))
 
     // Select all text
     let selectAll = try await helper.selectText(startPos: 0, length: text.count)
-    XCTAssertTrue(selectAll, "Should be able to select all text")
+    #expect(selectAll)
 
     // Make text larger using the Format menu
     let largerSuccess = try await helper.makeTextLarger()
-    XCTAssertTrue(largerSuccess, "Should be able to make text larger")
+    #expect(largerSuccess)
 
     // Brief pause to allow UI to update
     try await Task.sleep(for: .milliseconds(500))
@@ -96,15 +112,14 @@ final class TextEditFormattingTest: XCTestCase {
     // Save the document to /tmp
     let savePath = "/tmp/textedit_test.rtf"
     let (_, saveSuccess) = try await helper.saveDocument(to: savePath)
-    XCTAssertTrue(saveSuccess, "Should be able to save the document")
+    #expect(saveSuccess)
 
     // Get the current text for later comparison
     let documentText = try await helper.app.getText()
-    XCTAssertNotNil(documentText, "Should be able to get document text")
+    #expect(documentText != nil)
 
     // Force terminate the app
-    for app in NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.TextEdit")
-    {
+    for app in NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.TextEdit") {
       _ = app.forceTerminate()
     }
 
@@ -113,22 +128,21 @@ final class TextEditFormattingTest: XCTestCase {
 
     // Relaunch TextEdit
     let reopenSuccess = try await helper.ensureAppIsRunning()
-    XCTAssertTrue(reopenSuccess, "Should be able to relaunch TextEdit")
+    #expect(reopenSuccess)
 
     // Wait for the app to fully initialize
     try await Task.sleep(for: .milliseconds(2000))
 
     // Open the saved document
     let openSuccess = try await helper.openDocument(from: savePath)
-    XCTAssertTrue(openSuccess, "Should be able to open the document")
+    #expect(openSuccess)
 
     // Brief pause to allow document to load
     try await Task.sleep(for: .milliseconds(2000))
 
     // Verify the reopened document contains the correct text
-    try await helper.assertDocumentContainsText(
-      text,
-      message: "Reopened document should contain the original text",
-    )
+    try await helper.assertDocumentContainsText(text)
+    
+    try await tearDown()
   }
 }

@@ -4,6 +4,7 @@
 import AppKit
 import Foundation
 import MCP
+import Testing
 import XCTest
 
 @testable import MacMCP
@@ -12,56 +13,66 @@ import XCTest
 // @_implementationOnly import TestsWithoutMocks
 
 /// Test case for MCP's ability to interact with the Calculator app
-@MainActor
-final class BasicArithmeticTest: XCTestCase {
+@Suite(.serialized)
+struct BasicArithmeticTest {
   // Calculator helper for testing
   private var calculatorHelper: CalculatorTestHelper!
 
-  override func setUp() async throws {
-    // Setup runs on the MainActor due to class annotation
-
+  // Shared setup method
+  private mutating func setUp() async throws {
     // Get the shared calculator helper
-    calculatorHelper = CalculatorTestHelper.sharedHelper()
+    calculatorHelper = await CalculatorTestHelper.sharedHelper()
 
     // Ensure app is running and reset state
     let _ = try await calculatorHelper.ensureAppIsRunning()
     await calculatorHelper.resetAppState()
   }
+  
+  // Shared teardown method
+  private mutating func tearDown() async throws {
+    // Optional cleanup - in most cases the helper's reset handles this
+    if calculatorHelper != nil {
+      // No explicit termination since the helper may be reused
+    }
+  }
 
   /// Test simple direct UI inspection of Calculator
-  func testUIInspection() async throws {
+  @Test("UI Inspection of Calculator")
+  mutating func testUIInspection() async throws {
+    try await setUp()
+    
     // Look for window elements
     let windows = try await calculatorHelper.toolChain.findElements(
       matching: UIElementCriteria(role: "AXWindow"),
       scope: "application",
       bundleId: "com.apple.calculator",
-      maxDepth: 5,
+      maxDepth: 5
     )
 
     // Simple assertion - should have found at least one window
-    XCTAssertFalse(windows.isEmpty, "Should find at least one window")
+    #expect(!windows.isEmpty, "Should find at least one window")
 
     // Look for buttons
     let buttons = try await calculatorHelper.toolChain.findElements(
       matching: UIElementCriteria(role: "AXButton"),
       scope: "application",
       bundleId: "com.apple.calculator",
-      maxDepth: 10,
+      maxDepth: 10
     )
 
     // Simple assertion - should have found buttons
-    XCTAssertFalse(buttons.isEmpty, "Should find at least one button")
+    #expect(!buttons.isEmpty, "Should find at least one button")
 
     // Look for static text elements that might contain the display value
     let textElements = try await calculatorHelper.toolChain.findElements(
       matching: UIElementCriteria(role: "AXStaticText"),
       scope: "application",
       bundleId: "com.apple.calculator",
-      maxDepth: 10,
+      maxDepth: 10
     )
 
     // Should find at least one text element (the display)
-    XCTAssertFalse(textElements.isEmpty, "Should find at least one text element")
+    #expect(!textElements.isEmpty, "Should find at least one text element")
 
     // Test a simple interaction with the calculator
     // Try to type a digit using the keyboard interaction tool
@@ -72,13 +83,18 @@ final class BasicArithmeticTest: XCTestCase {
 
     // Verify the display shows "1"
     try await calculatorHelper.assertDisplayValue("1", message: "Display should show '1'")
+    
+    try await tearDown()
   }
 
   /// Test sequential UI interactions like entering a series of button presses
-  func testSequentialUIInteractions() async throws {
+  @Test("Sequential UI Interactions")
+  mutating func testSequentialUIInteractions() async throws {
+    try await setUp()
+    
     // Enter a sequence of button presses
     let sequenceSuccess = try await calculatorHelper.app.enterSequence("123")
-    XCTAssertTrue(sequenceSuccess, "Should be able to enter a sequence of buttons")
+    #expect(sequenceSuccess, "Should be able to enter a sequence of buttons")
 
     // Brief pause to allow UI to update
     try await Task.sleep(for: .milliseconds(500))
@@ -86,13 +102,18 @@ final class BasicArithmeticTest: XCTestCase {
     // Verify the result shows the correct sequence
     try await calculatorHelper.assertDisplayValue(
       "123", message: "Display should show the entered sequence '123'")
+      
+    try await tearDown()
   }
 
   /// Test calculator operations using keyboard input
-  func testKeyboardInput() async throws {
+  @Test("Keyboard Input Operations")
+  mutating func testKeyboardInput() async throws {
+    try await setUp()
+    
     // Use the keyboard interaction tool to type a simple calculation
     let typingSuccess = try await calculatorHelper.app.typeText("123+456=")
-    XCTAssertTrue(typingSuccess, "Should be able to type text using keyboard")
+    #expect(typingSuccess, "Should be able to type text using keyboard")
 
     // Brief pause to allow UI to update
     try await Task.sleep(for: .milliseconds(500))
@@ -106,7 +127,7 @@ final class BasicArithmeticTest: XCTestCase {
 
     // Use direct typing for 50*2=
     let typingSuccess2 = try await calculatorHelper.app.typeText("50*2=")
-    XCTAssertTrue(typingSuccess2, "Should be able to type calculation using keyboard")
+    #expect(typingSuccess2, "Should be able to type calculation using keyboard")
 
     // Brief pause to allow UI to update
     try await Task.sleep(for: .milliseconds(500))
@@ -143,7 +164,7 @@ final class BasicArithmeticTest: XCTestCase {
     ]
 
     let keySequenceSuccess = try await calculatorHelper.app.executeKeySequence(keySequence)
-    XCTAssertTrue(keySequenceSuccess, "Should be able to execute complex key sequence")
+    #expect(keySequenceSuccess, "Should be able to execute complex key sequence")
 
     // Brief pause to allow UI to update
     try await Task.sleep(for: .milliseconds(500))
@@ -151,5 +172,7 @@ final class BasicArithmeticTest: XCTestCase {
     // Verify the result is 26 (5*4+6)
     try await calculatorHelper.assertDisplayValue(
       "26", message: "Display should show the result '26'")
+      
+    try await tearDown()
   }
 }

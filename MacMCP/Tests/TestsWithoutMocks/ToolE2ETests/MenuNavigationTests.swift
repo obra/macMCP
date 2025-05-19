@@ -3,6 +3,7 @@
 
 import Foundation
 import MCP
+import Testing
 import XCTest
 
 @testable import MacMCP
@@ -14,17 +15,18 @@ private struct TextEditAppInfo {
 }
 
 /// A focused test for menu navigation in TextEdit
-@MainActor
-final class MenuNavigationTest: XCTestCase {
+@Suite(.serialized)
+struct MenuNavigationTest {
   private var helper: TextEditTestHelper!
 
-  override func setUp() async throws {
+  // Shared setup method
+  private mutating func setUp() async throws {
     // Get shared helper
-    helper = TextEditTestHelper.shared()
+    helper = await TextEditTestHelper.shared()
 
     // Ensure app is running and reset state
     let appRunning = try await helper.ensureAppIsRunning()
-    XCTAssertTrue(appRunning, "TextEdit should be running")
+    #expect(appRunning)
     try await helper.resetAppState()
 
     // Explicitly activate TextEdit using MCP to ensure it's in the foreground
@@ -35,15 +37,21 @@ final class MenuNavigationTest: XCTestCase {
 
     // Verify TextEdit is frontmost
     let frontmost = try await getFrontmostApp()
-    XCTAssertEqual(
-      frontmost?.bundleIdentifier,
-      "com.apple.TextEdit",
-      "TextEdit should be frontmost after activation",
-    )
+    #expect(frontmost?.bundleIdentifier == "com.apple.TextEdit")
+  }
+  
+  // Shared teardown method
+  private mutating func tearDown() async throws {
+    if helper != nil {
+      _ = try await helper.closeWindowAndDiscardChanges()
+    }
   }
 
   /// Test basic menu navigation: open a new document and close it
-  func testMenuNavigationBasic() async throws {
+  @Test("Menu Navigation Basic Operations")
+  mutating func testMenuNavigationBasic() async throws {
+    try await setUp()
+    
     // Get initial count of windows
     let initialWindows = try await getTextEditWindowCount()
     print("Initial window count: \(initialWindows)")
@@ -52,7 +60,7 @@ final class MenuNavigationTest: XCTestCase {
     let openSuccess = try await openNewDocumentViaMenu()
 
     // Test opening new document - this assertion must pass to continue
-    XCTAssertTrue(openSuccess, "Should successfully navigate to File > New menu item")
+    #expect(openSuccess)
 
     // Only continue if open was successful
     if openSuccess {
@@ -64,17 +72,16 @@ final class MenuNavigationTest: XCTestCase {
       print("Window count after opening: \(afterOpenWindows)")
 
       // Verify a new window was opened
-      XCTAssertEqual(
-        afterOpenWindows,
-        initialWindows + 1,
-        "Opening a new document should increase window count by 1",
+      #expect(
+        afterOpenWindows == initialWindows + 1,
+        "Opening a new document should increase window count by 1"
       )
 
       // Only try to close if we verified window count increased
       if afterOpenWindows == initialWindows + 1 {
         // Now close the newly created window using File > Close menu
         let closeSuccess = try await closeDocumentViaMenu()
-        XCTAssertTrue(closeSuccess, "Should successfully navigate to File > Close menu item")
+        #expect(closeSuccess, "Should successfully navigate to File > Close menu item")
 
         // Wait for window to close
         try await Task.sleep(for: .milliseconds(2000))
@@ -84,13 +91,14 @@ final class MenuNavigationTest: XCTestCase {
         print("Window count after closing: \(afterCloseWindows)")
 
         // Verify the window was closed
-        XCTAssertEqual(
-          afterCloseWindows,
-          initialWindows,
-          "Closing the document should return to initial window count",
+        #expect(
+          afterCloseWindows == initialWindows,
+          "Closing the document should return to initial window count"
         )
       }
     }
+    
+    try await tearDown()
   }
 
   /// Activate TextEdit application using MCP to bring it to foreground
@@ -134,7 +142,7 @@ final class MenuNavigationTest: XCTestCase {
       {
         return TextEditAppInfo(
           bundleIdentifier: bundleId,
-          applicationName: appName,
+          applicationName: appName
         )
       }
     }

@@ -4,6 +4,7 @@
 import AppKit
 import Foundation
 import MCP
+import Testing
 import XCTest
 
 @testable import MacMCP
@@ -12,62 +13,82 @@ import XCTest
 // @_implementationOnly import TestsWithoutMocks
 
 /// Simple test cases for the TextEdit app using the TextEditTestHelper
-@MainActor
-final class SimpleTextEditTest: XCTestCase {
+@Suite(.serialized)
+struct SimpleTextEditTest {
   // Test helper for TextEdit interactions
   private var helper: TextEditTestHelper!
 
-  // Only initialize in setUp (async context), not in setUpWithError
-  override func setUp() async throws {
-    // Get shared helper
-    helper = TextEditTestHelper.shared()
+  @Test("Test basic text typing")
+  mutating func testBasicTextTyping() async throws {
+    // Setup
+    helper = await TextEditTestHelper.shared()
 
     // Ensure the app is running
     let appRunning = try await helper.ensureAppIsRunning()
-    XCTAssertTrue(appRunning, "TextEdit should be running")
+    #expect(appRunning)
 
     // Reset app state for a clean test environment
     try await helper.resetAppState()
-  }
-
-  /// Test basic text typing
-  func testBasicTextTyping() async throws {
+    
     // Type some text
     let testText = "Hello, TextEdit!"
     let typingSuccess = try await helper.typeText(testText)
-    XCTAssertTrue(typingSuccess, "Should be able to type text")
+    #expect(typingSuccess)
 
     // Verify text appears in the document
-    try await helper.assertDocumentContainsText(
-      testText,
-      message: "Document should contain the typed text",
-    )
+    try await helper.assertDocumentContainsText(testText)
+    
+    // Cleanup
+    _ = try await helper.closeWindowAndDiscardChanges()
   }
 
-  /// Test basic text formatting
-  func testBasicFormatting() async throws {
+  @Test("Test basic formatting")
+  mutating func testBasicFormatting() async throws {
+    // Setup
+    helper = await TextEditTestHelper.shared()
+
+    // Ensure the app is running
+    let appRunning = try await helper.ensureAppIsRunning()
+    #expect(appRunning)
+
+    // Reset app state for a clean test environment
+    try await helper.resetAppState()
+    
     // Type some text and select it
     let testText = "Formatted Text"
     let typingSuccess = try await helper.typeText(testText)
-    XCTAssertTrue(typingSuccess, "Should be able to type text")
+    #expect(typingSuccess)
 
     // Select all text
     let selectionSuccess = try await helper.selectText(startPos: 0, length: testText.count)
-    XCTAssertTrue(selectionSuccess, "Should be able to select text")
+    #expect(selectionSuccess, "Should be able to select text")
 
     // Apply bold formatting
     let boldSuccess = try await helper.toggleBold()
-    XCTAssertTrue(boldSuccess, "Should be able to apply bold formatting")
+    #expect(boldSuccess, "Should be able to apply bold formatting")
 
     // Check document text is still there
     try await helper.assertDocumentContainsText(
       testText,
       message: "Document should still contain the text after formatting",
     )
+    
+    // Cleanup
+    _ = try await helper.closeWindowAndDiscardChanges()
   }
 
-  /// Test combined formatting using performTextOperation
-  func testCombinedTextOperations() async throws {
+  @Test("Test combined text operations")
+  mutating func testCombinedTextOperations() async throws {
+    // Setup
+    helper = await TextEditTestHelper.shared()
+
+    // Ensure the app is running
+    let appRunning = try await helper.ensureAppIsRunning()
+    #expect(appRunning)
+
+    // Reset app state for a clean test environment
+    try await helper.resetAppState()
+    
     let testText = "Testing Operations"
 
     // Use the performTextOperation helper method to test a sequence of operations
@@ -85,6 +106,9 @@ final class SimpleTextEditTest: XCTestCase {
       verificationText: testText,
     )
 
-    XCTAssertTrue(success, "Text operation should complete successfully with correct verification")
+    #expect(success)
+    
+    // Cleanup
+    _ = try await helper.closeWindowAndDiscardChanges()
   }
 }
