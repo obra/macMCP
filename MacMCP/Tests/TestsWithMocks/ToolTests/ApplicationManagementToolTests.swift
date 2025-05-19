@@ -4,7 +4,7 @@
 import Foundation
 import Logging
 import MCP
-import XCTest
+import Testing
 
 @testable import MacMCP
 
@@ -287,13 +287,14 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
 }
 
 /// Tests for the ApplicationManagementTool
-final class ApplicationManagementToolTests: XCTestCase {
+@Suite(.serialized)
+struct ApplicationManagementToolTests {
   // Test components
   private var mockApplicationService: MockApplicationService!
   private var applicationManagementTool: ApplicationManagementTool!
 
-  override func setUp() {
-    super.setUp()
+  // Shared setup method
+  private mutating func setUp() async throws {
     mockApplicationService = MockApplicationService()
     applicationManagementTool = ApplicationManagementTool(
       applicationService: mockApplicationService,
@@ -301,16 +302,19 @@ final class ApplicationManagementToolTests: XCTestCase {
     )
   }
 
-  override func tearDown() {
+  // Shared teardown method
+  private mutating func tearDown() async throws {
     applicationManagementTool = nil
     mockApplicationService = nil
-    super.tearDown()
   }
 
   // MARK: - Test Methods
 
   /// Test launching an application by bundle identifier
-  func testLaunchByBundleIdentifier() async throws {
+  @Test("Launch by bundle identifier")
+  mutating func testLaunchByBundleIdentifier() async throws {
+    try await setUp()
+    
     // Setup
     let params: [String: Value] = [
       "action": .string("launch"),
@@ -323,32 +327,33 @@ final class ApplicationManagementToolTests: XCTestCase {
     let result = try await applicationManagementTool.handler(params)
 
     // Verify the result
-    XCTAssertEqual(result.count, 1, "Should return one content item")
+    #expect(result.count == 1, "Should return one content item")
 
     // Verify the service was called correctly
-    XCTAssertTrue(mockApplicationService.launchApplicationCalled, "Should call launchApplication")
-    XCTAssertNil(mockApplicationService.lastApplicationName)
-    XCTAssertEqual(mockApplicationService.lastBundleIdentifier, "com.test.app")
-    XCTAssertEqual(mockApplicationService.lastArguments, ["--arg1", "--arg2"])
-    XCTAssertEqual(mockApplicationService.lastHideOthers, true)
+    #expect(mockApplicationService.launchApplicationCalled, "Should call launchApplication")
+    #expect(mockApplicationService.lastApplicationName == nil)
+    #expect(mockApplicationService.lastBundleIdentifier == "com.test.app")
+    #expect(mockApplicationService.lastArguments == ["--arg1", "--arg2"])
+    #expect(mockApplicationService.lastHideOthers == true)
 
     // Verify the result content
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
-      XCTAssertTrue(jsonString.contains("\"success\":true"), "Response should indicate success")
-      XCTAssertTrue(
-        jsonString.contains("\"processIdentifier\":12345"), "Response should include process ID")
-      XCTAssertTrue(
-        jsonString.contains("\"bundleIdentifier\":\"com.test.app\""),
-        "Response should include bundle ID",
-      )
+      #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
+      #expect(jsonString.contains("\"processIdentifier\":12345"), "Response should include process ID")
+      #expect(jsonString.contains("\"bundleIdentifier\":\"com.test.app\""), "Response should include bundle ID")
     } else {
-      XCTFail("Result should be text content")
+      #expect(false, "Result should be text content")
     }
+    
+    try await tearDown()
   }
 
   /// Test launching an application by name
-  func testLaunchByApplicationName() async throws {
+  @Test("Launch by application name")
+  mutating func testLaunchByApplicationName() async throws {
+    try await setUp()
+    
     // Setup
     let params: [String: Value] = [
       "action": .string("launch"),
@@ -361,26 +366,31 @@ final class ApplicationManagementToolTests: XCTestCase {
     let result = try await applicationManagementTool.handler(params)
 
     // Verify the result
-    XCTAssertEqual(result.count, 1, "Should return one content item")
+    #expect(result.count == 1, "Should return one content item")
 
     // Verify the service was called correctly
-    XCTAssertTrue(mockApplicationService.launchApplicationCalled, "Should call launchApplication")
-    XCTAssertEqual(mockApplicationService.lastApplicationName, "Test App")
-    XCTAssertNil(mockApplicationService.lastBundleIdentifier)
-    XCTAssertEqual(mockApplicationService.lastWaitForLaunch, false)
-    XCTAssertEqual(mockApplicationService.lastTimeout, 60.0)
+    #expect(mockApplicationService.launchApplicationCalled, "Should call launchApplication")
+    #expect(mockApplicationService.lastApplicationName == "Test App")
+    #expect(mockApplicationService.lastBundleIdentifier == nil)
+    #expect(mockApplicationService.lastWaitForLaunch == false)
+    #expect(mockApplicationService.lastTimeout == 60.0)
 
     // Verify the result content
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
-      XCTAssertTrue(jsonString.contains("\"success\":true"), "Response should indicate success")
+      #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
     } else {
-      XCTFail("Result should be text content")
+      #expect(false, "Result should be text content")
     }
+    
+    try await tearDown()
   }
 
   /// Test terminating an application
-  func testTerminate() async throws {
+  @Test("Terminate application")
+  mutating func testTerminate() async throws {
+    try await setUp()
+    
     // Setup
     let params: [String: Value] = [
       "action": .string("terminate"),
@@ -392,29 +402,30 @@ final class ApplicationManagementToolTests: XCTestCase {
     let result = try await applicationManagementTool.handler(params)
 
     // Verify the result
-    XCTAssertEqual(result.count, 1, "Should return one content item")
+    #expect(result.count == 1, "Should return one content item")
 
     // Verify the service was called correctly
-    XCTAssertTrue(
-      mockApplicationService.terminateApplicationCalled, "Should call terminateApplication")
-    XCTAssertEqual(mockApplicationService.terminateLastBundleIdentifier, "com.test.app")
-    XCTAssertEqual(mockApplicationService.terminateLastTimeout, 15.0)
+    #expect(mockApplicationService.terminateApplicationCalled, "Should call terminateApplication")
+    #expect(mockApplicationService.terminateLastBundleIdentifier == "com.test.app")
+    #expect(mockApplicationService.terminateLastTimeout == 15.0)
 
     // Verify the result content
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
-      XCTAssertTrue(jsonString.contains("\"success\":true"), "Response should indicate success")
-      XCTAssertTrue(
-        jsonString.contains("\"bundleIdentifier\":\"com.test.app\""),
-        "Response should include bundle ID",
-      )
+      #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
+      #expect(jsonString.contains("\"bundleIdentifier\":\"com.test.app\""), "Response should include bundle ID")
     } else {
-      XCTFail("Result should be text content")
+      #expect(false, "Result should be text content")
     }
+    
+    try await tearDown()
   }
 
   /// Test force terminating an application
-  func testForceTerminate() async throws {
+  @Test("Force terminate application")
+  mutating func testForceTerminate() async throws {
+    try await setUp()
+    
     // Setup
     let params: [String: Value] = [
       "action": .string("forceTerminate"),
@@ -425,29 +436,29 @@ final class ApplicationManagementToolTests: XCTestCase {
     let result = try await applicationManagementTool.handler(params)
 
     // Verify the result
-    XCTAssertEqual(result.count, 1, "Should return one content item")
+    #expect(result.count == 1, "Should return one content item")
 
     // Verify the service was called correctly
-    XCTAssertTrue(
-      mockApplicationService.forceTerminateApplicationCalled,
-      "Should call forceTerminateApplication")
-    XCTAssertEqual(mockApplicationService.forceTerminateLastBundleIdentifier, "com.test.app")
+    #expect(mockApplicationService.forceTerminateApplicationCalled, "Should call forceTerminateApplication")
+    #expect(mockApplicationService.forceTerminateLastBundleIdentifier == "com.test.app")
 
     // Verify the result content
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
-      XCTAssertTrue(jsonString.contains("\"success\":true"), "Response should indicate success")
-      XCTAssertTrue(
-        jsonString.contains("\"bundleIdentifier\":\"com.test.app\""),
-        "Response should include bundle ID",
-      )
+      #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
+      #expect(jsonString.contains("\"bundleIdentifier\":\"com.test.app\""), "Response should include bundle ID")
     } else {
-      XCTFail("Result should be text content")
+      #expect(false, "Result should be text content")
     }
+    
+    try await tearDown()
   }
 
   /// Test checking if an application is running
-  func testIsRunning() async throws {
+  @Test("Check if application is running")
+  mutating func testIsRunning() async throws {
+    try await setUp()
+    
     // Setup
     mockApplicationService.isRunningResultToReturn = true
 
@@ -460,30 +471,30 @@ final class ApplicationManagementToolTests: XCTestCase {
     let result = try await applicationManagementTool.handler(params)
 
     // Verify the result
-    XCTAssertEqual(result.count, 1, "Should return one content item")
+    #expect(result.count == 1, "Should return one content item")
 
     // Verify the service was called correctly
-    XCTAssertTrue(
-      mockApplicationService.isApplicationRunningCalled, "Should call isApplicationRunning")
-    XCTAssertEqual(mockApplicationService.isRunningLastBundleIdentifier, "com.test.app")
+    #expect(mockApplicationService.isApplicationRunningCalled, "Should call isApplicationRunning")
+    #expect(mockApplicationService.isRunningLastBundleIdentifier == "com.test.app")
 
     // Verify the result content
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
-      XCTAssertTrue(jsonString.contains("\"success\":true"), "Response should indicate success")
-      XCTAssertTrue(
-        jsonString.contains("\"bundleIdentifier\":\"com.test.app\""),
-        "Response should include bundle ID",
-      )
-      XCTAssertTrue(
-        jsonString.contains("\"isRunning\":true"), "Response should include running status")
+      #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
+      #expect(jsonString.contains("\"bundleIdentifier\":\"com.test.app\""), "Response should include bundle ID")
+      #expect(jsonString.contains("\"isRunning\":true"), "Response should include running status")
     } else {
-      XCTFail("Result should be text content")
+      #expect(false, "Result should be text content")
     }
+    
+    try await tearDown()
   }
 
   /// Test getting running applications
-  func testGetRunningApplications() async throws {
+  @Test("Get running applications")
+  mutating func testGetRunningApplications() async throws {
+    try await setUp()
+    
     // Setup - mock is already configured in setup
 
     let params: [String: Value] = [
@@ -494,41 +505,32 @@ final class ApplicationManagementToolTests: XCTestCase {
     let result = try await applicationManagementTool.handler(params)
 
     // Verify the result
-    XCTAssertEqual(result.count, 1, "Should return one content item")
+    #expect(result.count == 1, "Should return one content item")
 
     // Verify the service was called correctly
-    XCTAssertTrue(
-      mockApplicationService.getRunningApplicationsCalled, "Should call getRunningApplications")
+    #expect(mockApplicationService.getRunningApplicationsCalled, "Should call getRunningApplications")
 
     // Verify the result content
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
-      XCTAssertTrue(jsonString.contains("\"success\":true"), "Response should indicate success")
-      XCTAssertTrue(
-        jsonString.contains("\"applications\":"), "Response should include applications array")
-      XCTAssertTrue(
-        jsonString.contains("\"bundleIdentifier\":\"com.test.app1\""),
-        "Response should include first app bundle ID",
-      )
-      XCTAssertTrue(
-        jsonString.contains("\"applicationName\":\"Test App 1\""),
-        "Response should include first app name",
-      )
-      XCTAssertTrue(
-        jsonString.contains("\"bundleIdentifier\":\"com.test.app2\""),
-        "Response should include second app bundle ID",
-      )
-      XCTAssertTrue(
-        jsonString.contains("\"applicationName\":\"Test App 2\""),
-        "Response should include second app name",
-      )
+      #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
+      #expect(jsonString.contains("\"applications\":"), "Response should include applications array")
+      #expect(jsonString.contains("\"bundleIdentifier\":\"com.test.app1\""), "Response should include first app bundle ID")
+      #expect(jsonString.contains("\"applicationName\":\"Test App 1\""), "Response should include first app name")
+      #expect(jsonString.contains("\"bundleIdentifier\":\"com.test.app2\""), "Response should include second app bundle ID")
+      #expect(jsonString.contains("\"applicationName\":\"Test App 2\""), "Response should include second app name")
     } else {
-      XCTFail("Result should be text content")
+      #expect(false, "Result should be text content")
     }
+    
+    try await tearDown()
   }
 
   /// Test activating an application
-  func testActivateApplication() async throws {
+  @Test("Activate application")
+  mutating func testActivateApplication() async throws {
+    try await setUp()
+    
     // Setup
     let params: [String: Value] = [
       "action": .string("activateApplication"),
@@ -539,28 +541,29 @@ final class ApplicationManagementToolTests: XCTestCase {
     let result = try await applicationManagementTool.handler(params)
 
     // Verify the result
-    XCTAssertEqual(result.count, 1, "Should return one content item")
+    #expect(result.count == 1, "Should return one content item")
 
     // Verify the service was called correctly
-    XCTAssertTrue(
-      mockApplicationService.activateApplicationCalled, "Should call activateApplication")
-    XCTAssertEqual(mockApplicationService.activateLastBundleIdentifier, "com.test.app")
+    #expect(mockApplicationService.activateApplicationCalled, "Should call activateApplication")
+    #expect(mockApplicationService.activateLastBundleIdentifier == "com.test.app")
 
     // Verify the result content
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
-      XCTAssertTrue(jsonString.contains("\"success\":true"), "Response should indicate success")
-      XCTAssertTrue(
-        jsonString.contains("\"bundleIdentifier\":\"com.test.app\""),
-        "Response should include bundle ID",
-      )
+      #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
+      #expect(jsonString.contains("\"bundleIdentifier\":\"com.test.app\""), "Response should include bundle ID")
     } else {
-      XCTFail("Result should be text content")
+      #expect(false, "Result should be text content")
     }
+    
+    try await tearDown()
   }
 
   /// Test hiding an application
-  func testHideApplication() async throws {
+  @Test("Hide application")
+  mutating func testHideApplication() async throws {
+    try await setUp()
+    
     // Setup
     let params: [String: Value] = [
       "action": .string("hideApplication"),
@@ -571,27 +574,29 @@ final class ApplicationManagementToolTests: XCTestCase {
     let result = try await applicationManagementTool.handler(params)
 
     // Verify the result
-    XCTAssertEqual(result.count, 1, "Should return one content item")
+    #expect(result.count == 1, "Should return one content item")
 
     // Verify the service was called correctly
-    XCTAssertTrue(mockApplicationService.hideApplicationCalled, "Should call hideApplication")
-    XCTAssertEqual(mockApplicationService.hideLastBundleIdentifier, "com.test.app")
+    #expect(mockApplicationService.hideApplicationCalled, "Should call hideApplication")
+    #expect(mockApplicationService.hideLastBundleIdentifier == "com.test.app")
 
     // Verify the result content
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
-      XCTAssertTrue(jsonString.contains("\"success\":true"), "Response should indicate success")
-      XCTAssertTrue(
-        jsonString.contains("\"bundleIdentifier\":\"com.test.app\""),
-        "Response should include bundle ID",
-      )
+      #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
+      #expect(jsonString.contains("\"bundleIdentifier\":\"com.test.app\""), "Response should include bundle ID")
     } else {
-      XCTFail("Result should be text content")
+      #expect(false, "Result should be text content")
     }
+    
+    try await tearDown()
   }
 
   /// Test unhiding an application
-  func testUnhideApplication() async throws {
+  @Test("Unhide application")
+  mutating func testUnhideApplication() async throws {
+    try await setUp()
+    
     // Setup
     let params: [String: Value] = [
       "action": .string("unhideApplication"),
@@ -602,27 +607,29 @@ final class ApplicationManagementToolTests: XCTestCase {
     let result = try await applicationManagementTool.handler(params)
 
     // Verify the result
-    XCTAssertEqual(result.count, 1, "Should return one content item")
+    #expect(result.count == 1, "Should return one content item")
 
     // Verify the service was called correctly
-    XCTAssertTrue(mockApplicationService.unhideApplicationCalled, "Should call unhideApplication")
-    XCTAssertEqual(mockApplicationService.unhideLastBundleIdentifier, "com.test.app")
+    #expect(mockApplicationService.unhideApplicationCalled, "Should call unhideApplication")
+    #expect(mockApplicationService.unhideLastBundleIdentifier == "com.test.app")
 
     // Verify the result content
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
-      XCTAssertTrue(jsonString.contains("\"success\":true"), "Response should indicate success")
-      XCTAssertTrue(
-        jsonString.contains("\"bundleIdentifier\":\"com.test.app\""),
-        "Response should include bundle ID",
-      )
+      #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
+      #expect(jsonString.contains("\"bundleIdentifier\":\"com.test.app\""), "Response should include bundle ID")
     } else {
-      XCTFail("Result should be text content")
+      #expect(false, "Result should be text content")
     }
+    
+    try await tearDown()
   }
 
   /// Test hiding other applications
-  func testHideOtherApplications() async throws {
+  @Test("Hide other applications")
+  mutating func testHideOtherApplications() async throws {
+    try await setUp()
+    
     // Setup
     let params: [String: Value] = [
       "action": .string("hideOtherApplications"),
@@ -633,28 +640,29 @@ final class ApplicationManagementToolTests: XCTestCase {
     let result = try await applicationManagementTool.handler(params)
 
     // Verify the result
-    XCTAssertEqual(result.count, 1, "Should return one content item")
+    #expect(result.count == 1, "Should return one content item")
 
     // Verify the service was called correctly
-    XCTAssertTrue(
-      mockApplicationService.hideOtherApplicationsCalled, "Should call hideOtherApplications")
-    XCTAssertEqual(mockApplicationService.hideOthersLastExceptBundleIdentifier, "com.test.app")
+    #expect(mockApplicationService.hideOtherApplicationsCalled, "Should call hideOtherApplications")
+    #expect(mockApplicationService.hideOthersLastExceptBundleIdentifier == "com.test.app")
 
     // Verify the result content
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
-      XCTAssertTrue(jsonString.contains("\"success\":true"), "Response should indicate success")
-      XCTAssertTrue(
-        jsonString.contains("\"exceptBundleIdentifier\":\"com.test.app\""),
-        "Response should include except bundle ID",
-      )
+      #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
+      #expect(jsonString.contains("\"exceptBundleIdentifier\":\"com.test.app\""), "Response should include except bundle ID")
     } else {
-      XCTFail("Result should be text content")
+      #expect(false, "Result should be text content")
     }
+    
+    try await tearDown()
   }
 
   /// Test getting the frontmost application
-  func testGetFrontmostApplication() async throws {
+  @Test("Get frontmost application")
+  mutating func testGetFrontmostApplication() async throws {
+    try await setUp()
+    
     // Setup - mock is already configured in setup
 
     let params: [String: Value] = [
@@ -665,39 +673,32 @@ final class ApplicationManagementToolTests: XCTestCase {
     let result = try await applicationManagementTool.handler(params)
 
     // Verify the result
-    XCTAssertEqual(result.count, 1, "Should return one content item")
+    #expect(result.count == 1, "Should return one content item")
 
     // Verify the service was called correctly
-    XCTAssertTrue(
-      mockApplicationService.getFrontmostApplicationCalled, "Should call getFrontmostApplication")
+    #expect(mockApplicationService.getFrontmostApplicationCalled, "Should call getFrontmostApplication")
 
     // Verify the result content
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
-      XCTAssertTrue(jsonString.contains("\"success\":true"), "Response should indicate success")
-      XCTAssertTrue(
-        jsonString.contains("\"bundleIdentifier\":\"com.test.frontmost\""),
-        "Response should include bundle ID",
-      )
-      XCTAssertTrue(
-        jsonString.contains("\"applicationName\":\"Frontmost App\""),
-        "Response should include app name",
-      )
-      XCTAssertTrue(
-        jsonString.contains("\"processIdentifier\":12345"), "Response should include process ID")
-      XCTAssertTrue(
-        jsonString.contains("\"isActive\":true"), "Response should include active status")
-      XCTAssertTrue(
-        jsonString.contains("\"isFinishedLaunching\":true"),
-        "Response should include finished launching status",
-      )
+      #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
+      #expect(jsonString.contains("\"bundleIdentifier\":\"com.test.frontmost\""), "Response should include bundle ID")
+      #expect(jsonString.contains("\"applicationName\":\"Frontmost App\""), "Response should include app name")
+      #expect(jsonString.contains("\"processIdentifier\":12345"), "Response should include process ID")
+      #expect(jsonString.contains("\"isActive\":true"), "Response should include active status")
+      #expect(jsonString.contains("\"isFinishedLaunching\":true"), "Response should include finished launching status")
     } else {
-      XCTFail("Result should be text content")
+      #expect(false, "Result should be text content")
     }
+    
+    try await tearDown()
   }
 
   /// Test the case when there is no frontmost application
-  func testGetFrontmostApplicationNone() async throws {
+  @Test("Get frontmost application when none exists")
+  mutating func testGetFrontmostApplicationNone() async throws {
+    try await setUp()
+    
     // Setup - override the mock to return nil
     mockApplicationService.frontmostApplicationToReturn = nil
 
@@ -709,27 +710,28 @@ final class ApplicationManagementToolTests: XCTestCase {
     let result = try await applicationManagementTool.handler(params)
 
     // Verify the result
-    XCTAssertEqual(result.count, 1, "Should return one content item")
+    #expect(result.count == 1, "Should return one content item")
 
     // Verify the service was called correctly
-    XCTAssertTrue(
-      mockApplicationService.getFrontmostApplicationCalled, "Should call getFrontmostApplication")
+    #expect(mockApplicationService.getFrontmostApplicationCalled, "Should call getFrontmostApplication")
 
     // Verify the result content
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
-      XCTAssertTrue(jsonString.contains("\"success\":true"), "Response should indicate success")
-      XCTAssertTrue(
-        jsonString.contains("\"hasFrontmostApplication\":false"),
-        "Response should indicate no frontmost app",
-      )
+      #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
+      #expect(jsonString.contains("\"hasFrontmostApplication\":false"), "Response should indicate no frontmost app")
     } else {
-      XCTFail("Result should be text content")
+      #expect(false, "Result should be text content")
     }
+    
+    try await tearDown()
   }
 
   /// Test error handling for failures
-  func testErrorHandling() async throws {
+  @Test("Error handling")
+  mutating func testErrorHandling() async throws {
+    try await setUp()
+    
     // Setup - configure mock to fail
     mockApplicationService.shouldFailOperations = true
     mockApplicationService.errorToThrow = MCPError.internalError("Test error message")
@@ -743,25 +745,27 @@ final class ApplicationManagementToolTests: XCTestCase {
     // Test that the error is propagated
     do {
       _ = try await applicationManagementTool.handler(params)
-      XCTFail("Should throw an error")
+      #expect(false, "Should throw an error")
     } catch let error as MCPError {
       // Verify it's the correct error type
       switch error {
       case .internalError(let message):
-        XCTAssertTrue(
-          message?.contains("Test error message") ?? false,
-          "Error message should include the original error details",
-        )
+        #expect(message?.contains("Test error message") == true, "Error message should include the original error details")
       default:
-        XCTFail("Wrong error type: \(error)")
+        #expect(false, "Wrong error type: \(error)")
       }
     } catch {
-      XCTFail("Unexpected error type: \(error)")
+      #expect(false, "Unexpected error type: \(error)")
     }
+    
+    try await tearDown()
   }
 
   /// Test validation errors for missing parameters
-  func testValidationErrors() async throws {
+  @Test("Validation errors")
+  mutating func testValidationErrors() async throws {
+    try await setUp()
+    
     // Test missing bundleIdentifier for an action that requires it
     let params: [String: Value] = [
       "action": .string("terminate")
@@ -770,19 +774,16 @@ final class ApplicationManagementToolTests: XCTestCase {
     // Test that parameter validation works
     do {
       _ = try await applicationManagementTool.handler(params)
-      XCTFail("Should throw an error for missing bundleIdentifier")
+      #expect(false, "Should throw an error for missing bundleIdentifier")
     } catch let error as MCPError {
       switch error {
       case .invalidParams(let message):
-        XCTAssertTrue(
-          message?.contains("bundleIdentifier is required") ?? false,
-          "Error should indicate missing bundleIdentifier",
-        )
+        #expect(message?.contains("bundleIdentifier is required") == true, "Error should indicate missing bundleIdentifier")
       default:
-        XCTFail("Wrong error type: \(error)")
+        #expect(false, "Wrong error type: \(error)")
       }
     } catch {
-      XCTFail("Unexpected error type: \(error)")
+      #expect(false, "Unexpected error type: \(error)")
     }
 
     // Test missing both identifiers for launch
@@ -792,19 +793,16 @@ final class ApplicationManagementToolTests: XCTestCase {
 
     do {
       _ = try await applicationManagementTool.handler(launchParams)
-      XCTFail("Should throw an error for missing both applicationName and bundleIdentifier")
+      #expect(false, "Should throw an error for missing both applicationName and bundleIdentifier")
     } catch let error as MCPError {
       switch error {
       case .invalidParams(let message):
-        XCTAssertTrue(
-          message?.contains("Either applicationName or bundleIdentifier is required") ?? false,
-          "Error should indicate missing identifiers",
-        )
+        #expect(message?.contains("Either applicationName or bundleIdentifier is required") == true, "Error should indicate missing identifiers")
       default:
-        XCTFail("Wrong error type: \(error)")
+        #expect(false, "Wrong error type: \(error)")
       }
     } catch {
-      XCTFail("Unexpected error type: \(error)")
+      #expect(false, "Unexpected error type: \(error)")
     }
 
     // Test invalid action
@@ -815,19 +813,18 @@ final class ApplicationManagementToolTests: XCTestCase {
 
     do {
       _ = try await applicationManagementTool.handler(invalidActionParams)
-      XCTFail("Should throw an error for invalid action")
+      #expect(false, "Should throw an error for invalid action")
     } catch let error as MCPError {
       switch error {
       case .invalidParams(let message):
-        XCTAssertTrue(
-          message?.contains("Valid action is required") ?? false,
-          "Error should indicate invalid action",
-        )
+        #expect(message?.contains("Valid action is required") == true, "Error should indicate invalid action")
       default:
-        XCTFail("Wrong error type: \(error)")
+        #expect(false, "Wrong error type: \(error)")
       }
     } catch {
-      XCTFail("Unexpected error type: \(error)")
+      #expect(false, "Unexpected error type: \(error)")
     }
+    
+    try await tearDown()
   }
 }

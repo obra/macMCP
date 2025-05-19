@@ -2,91 +2,70 @@
 // ABOUTME: Part of MacMCP allowing LLMs to interact with macOS applications.
 
 import Foundation
-import XCTest
+import Testing
+import XCTest // Kept for XCTestError
 
 @testable import MacMCP
 
-final class ApplicationLookupTests: XCTestCase {
+@Suite(.serialized)
+struct ApplicationLookupTests {
   private var accessibilityService: AccessibilityService!
   private var calculatorBundleId = "com.apple.calculator"
   private var calculatorTitle = "Calculator"
   private var app: NSRunningApplication?
 
-  override func setUpWithError() throws {
-    try super.setUpWithError()
-
+  // Shared setup method
+  private mutating func setUp() async throws {
     // Create accessibility service
     accessibilityService = AccessibilityService()
 
     // Launch Calculator app using the synchronous approach
-    app = launchCalculatorSync()
-    XCTAssertNotNil(app, "Failed to launch Calculator app")
+    app = await launchCalculatorSync()
+    #expect(app != nil, "Failed to launch Calculator app")
 
     // Give time for app to fully load
-    Thread.sleep(forTimeInterval: 2.0)
+    try await Task.sleep(for: .seconds(2))
   }
-
-  override func tearDownWithError() throws {
+  
+  // Shared teardown method
+  private mutating func tearDown() async throws {
     // Terminate Calculator
     app?.terminate()
     app = nil
 
     // Wait for termination
-    Thread.sleep(forTimeInterval: 1.0)
-
-    try super.tearDownWithError()
+    try await Task.sleep(for: .seconds(1))
   }
 
   // Helper method that wraps the MainActor-isolated method in a synchronous call
-  private func launchCalculatorSync() -> NSRunningApplication? {
-    // Use a dispatch semaphore to wait for the async operation to complete
-    let semaphore = DispatchSemaphore(value: 0)
-    var result: NSRunningApplication?
-    
+  private func launchCalculatorSync() async -> NSRunningApplication? {
     // Capture the bundleId to avoid self reference in the closure
     let bundleId = calculatorBundleId
     
-    // Launch on the main thread which is where MainActor runs
-    DispatchQueue.main.async {
-      Task { @MainActor in
-        // Launch using the calculator helper on the main actor
-        let calcHelper = CalculatorTestHelper.sharedHelper()
-        do {
-          _ = try await calcHelper.ensureAppIsRunning(forceRelaunch: true)
-          result = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId).first
-        } catch {
-          result = nil
-        }
-        semaphore.signal()
-      }
+    // Launch using the calculator helper on the main actor
+    let calcHelper = await CalculatorTestHelper.sharedHelper()
+    do {
+      _ = try await calcHelper.ensureAppIsRunning(forceRelaunch: true)
+      return NSRunningApplication.runningApplications(withBundleIdentifier: bundleId).first
+    } catch {
+      return nil
     }
-    
-    // Wait for the async operation to complete (with timeout)
-    _ = semaphore.wait(timeout: .now() + 10)
-    return result
-  }
-  
-  // The actual MainActor-isolated method to launch Calculator
-  @MainActor private func launchCalculator() async throws -> NSRunningApplication? {
-    // Get the shared helper
-    let calcHelper = CalculatorTestHelper.sharedHelper()
-    
-    // Launch calculator via the calculator helper
-    _ = try await calcHelper.ensureAppIsRunning(forceRelaunch: true)
-    
-    // Return the running app instance if we can find it
-    return NSRunningApplication.runningApplications(withBundleIdentifier: calculatorBundleId).first
   }
 
   // Helper to ensure the app is in foreground
   private func bringCalculatorToForeground() async throws {
     guard let app else {
-      XCTFail("Calculator app not running")
-      return
+      // Create a custom error rather than using XCTestError
+      throw NSError(
+        domain: "ApplicationLookupTests",
+        code: 1000,
+        userInfo: [NSLocalizedDescriptionKey: "Calculator app not running"]
+      )
     }
 
-    XCTAssertTrue(app.activate(options: []), "Failed to bring Calculator to foreground")
-    try await Task.sleep(nanoseconds: 1_000_000_000)  // 1.0 second
+    let activated = app.activate(options: [])
+    #expect(activated, "Failed to bring Calculator to foreground")
+    try await Task.sleep(for: .seconds(1))
   }
 
   // Helper to test application lookup using ElementPath
@@ -99,7 +78,7 @@ final class ApplicationLookupTests: XCTestCase {
     if shouldForeground {
       print("Bringing Calculator to foreground first...")
       try await bringCalculatorToForeground()
-      try await Task.sleep(nanoseconds: 500_000_000)  // 0.5 seconds
+      try await Task.sleep(for: .milliseconds(500))
     }
 
     do {
@@ -118,8 +97,8 @@ final class ApplicationLookupTests: XCTestCase {
       // Basic validation - we don't have much we can check, but we can get the role
       var roleRef: CFTypeRef?
       let status = AXUIElementCopyAttributeValue(appElement, "AXRole" as CFString, &roleRef)
-      XCTAssertEqual(status, .success, "Failed to get role from application element")
-      XCTAssertEqual(roleRef as? String, "AXApplication", "Element is not an application")
+      #expect(status == .success, "Failed to get role from application element")
+      #expect(roleRef as? String == "AXApplication", "Element is not an application")
 
       print(
         "✅ SUCCESS: Application lookup succeeded in \(String(format: "%.3f", timeElapsed)) seconds."
@@ -138,76 +117,114 @@ final class ApplicationLookupTests: XCTestCase {
       if pidStatus == .success {
         if let app = NSRunningApplication(processIdentifier: pid) {
           print(
-            "Application: \(app.localizedName ?? "unknown") (Bundle ID: \(app.bundleIdentifier ?? "unknown"))",
+            "Application: \(app.localizedName ?? "unknown") (Bundle ID: \(app.bundleIdentifier ?? "unknown"))"
           )
-          XCTAssertEqual(app.bundleIdentifier, calculatorBundleId, "Wrong application was found")
+          #expect(app.bundleIdentifier == calculatorBundleId, "Wrong application was found")
         } else {
           print("Application process: \(pid) (no NSRunningApplication available)")
         }
       }
     } catch {
       print("❌ FAILED: \(description) failed with error: \(error)")
-      XCTFail("Application lookup failed: \(error)")
+      throw error
     }
   }
 
   // MARK: - Tests
 
-  func testApplicationLookupByTitleOnly() async throws {
+  @Test("Application Lookup By Title Only")
+  mutating func testApplicationLookupByTitleOnly() async throws {
+    try await setUp()
+    
     let path = "ui://AXApplication[@AXTitle=\"Calculator\"]"
     try await testApplicationLookup(path: path, description: "Lookup by title only")
+    
+    try await tearDown()
   }
 
-  func testApplicationLookupByBundleIdOnly() async throws {
+  @Test("Application Lookup By BundleId Only")
+  mutating func testApplicationLookupByBundleIdOnly() async throws {
+    try await setUp()
+    
     let path = "ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]"
     try await testApplicationLookup(path: path, description: "Lookup by bundleId only")
+    
+    try await tearDown()
   }
 
-  func testApplicationLookupByTitleAndBundleId() async throws {
+  @Test("Application Lookup By Title And BundleId")
+  mutating func testApplicationLookupByTitleAndBundleId() async throws {
+    try await setUp()
+    
     let path =
       "ui://AXApplication[@AXTitle=\"Calculator\"][@bundleIdentifier=\"com.apple.calculator\"]"
     try await testApplicationLookup(
       path: path, description: "Lookup by title and bundleId (title first)")
+      
+    try await tearDown()
   }
 
-  func testApplicationLookupByBundleIdAndTitle() async throws {
+  @Test("Application Lookup By BundleId And Title")
+  mutating func testApplicationLookupByBundleIdAndTitle() async throws {
+    try await setUp()
+    
     let path =
       "ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"][@AXTitle=\"Calculator\"]"
     try await testApplicationLookup(
       path: path, description: "Lookup by bundleId and title (bundleId first)")
+      
+    try await tearDown()
   }
 
-  func testApplicationLookupByTitleWithAXBundleId() async throws {
+  @Test("Application Lookup By Title With AXBundleId")
+  mutating func testApplicationLookupByTitleWithAXBundleId() async throws {
+    try await setUp()
+    
     let path =
       "ui://AXApplication[@AXTitle=\"Calculator\"][@AXbundleIdentifier=\"com.apple.calculator\"]"
     try await testApplicationLookup(
       path: path, description: "Lookup by title and AX-prefixed bundleId")
+      
+    try await tearDown()
   }
 
   // Tests with foreground activation
 
-  func testApplicationLookupByTitleOnlyWithForeground() async throws {
+  @Test("Application Lookup By Title Only With Foreground")
+  mutating func testApplicationLookupByTitleOnlyWithForeground() async throws {
+    try await setUp()
+    
     let path = "ui://AXApplication[@AXTitle=\"Calculator\"]"
     try await testApplicationLookup(
       path: path,
       description: "Lookup by title only (with foreground)",
-      shouldForeground: true,
+      shouldForeground: true
     )
+    
+    try await tearDown()
   }
 
-  func testApplicationLookupByBundleIdOnlyWithForeground() async throws {
+  @Test("Application Lookup By BundleId Only With Foreground")
+  mutating func testApplicationLookupByBundleIdOnlyWithForeground() async throws {
+    try await setUp()
+    
     let path = "ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]"
     try await testApplicationLookup(
       path: path,
       description: "Lookup by bundleId only (with foreground)",
-      shouldForeground: true,
+      shouldForeground: true
     )
+    
+    try await tearDown()
   }
 
   // Extreme test - is the app running but just can't be found with AX?
-  func testApplicationIsRunning() async throws {
+  @Test("Application Is Running")
+  mutating func testApplicationIsRunning() async throws {
+    try await setUp()
+    
     let apps = NSRunningApplication.runningApplications(withBundleIdentifier: calculatorBundleId)
-    XCTAssertFalse(apps.isEmpty, "Calculator not found in running applications")
+    #expect(!apps.isEmpty, "Calculator not found in running applications")
 
     if let app = apps.first {
       print("Calculator is running:")
@@ -234,10 +251,15 @@ final class ApplicationLookupTests: XCTestCase {
         print("AX Title: \(titleRef as? String ?? "unknown")")
       }
     }
+    
+    try await tearDown()
   }
 
   // Test accessibility permissions
-  func testAccessibilityPermissionsCheck() async throws {
+  @Test("Accessibility Permissions Check")
+  mutating func testAccessibilityPermissionsCheck() async throws {
+    try await setUp()
+    
     // Check if we can access any accessibility API as a permissions test
     let systemWideElement = AXUIElementCreateSystemWide()
     var roleRef: CFTypeRef?
@@ -245,6 +267,8 @@ final class ApplicationLookupTests: XCTestCase {
 
     let permissionsGranted = (status == .success)
     print("Accessibility permissions status: \(permissionsGranted)")
-    XCTAssertTrue(permissionsGranted, "Accessibility permissions are not granted")
+    #expect(permissionsGranted, "Accessibility permissions are not granted")
+    
+    try await tearDown()
   }
 }

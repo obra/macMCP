@@ -4,6 +4,7 @@
 import Foundation
 // Test utilities are directly available in this module
 import MCP
+import Testing
 import XCTest
 
 @testable import MacMCP
@@ -15,17 +16,18 @@ private struct CalculatorAppInfo {
 }
 
 /// A focused test for menu navigation in Calculator
-@MainActor
-final class MenuNavigationCalculatorTest: XCTestCase {
+@Suite(.serialized)
+struct MenuNavigationCalculatorTest {
   private var helper: CalculatorTestHelper!
 
-  override func setUp() async throws {
+  // Shared setup method
+  private mutating func setUp() async throws {
     // Get shared helper
-    helper = CalculatorTestHelper.sharedHelper()
+    helper = await CalculatorTestHelper.sharedHelper()
 
     // Ensure app is running and reset state
     let appRunning = try await helper.ensureAppIsRunning()
-    XCTAssertTrue(appRunning, "Calculator should be running")
+    #expect(appRunning, "Calculator should be running")
 
     // Explicitly activate Calculator using MCP to ensure it's in the foreground
     try await activateCalculatorWithMCP()
@@ -35,15 +37,28 @@ final class MenuNavigationCalculatorTest: XCTestCase {
 
     // Verify Calculator is frontmost
     let frontmost = try await getFrontmostApp()
-    XCTAssertEqual(
-      frontmost?.bundleIdentifier,
-      "com.apple.calculator",
-      "Calculator should be frontmost after activation",
+    #expect(
+      frontmost?.bundleIdentifier == "com.apple.calculator",
+      "Calculator should be frontmost after activation"
     )
+  }
+  
+  // Shared teardown method
+  private mutating func tearDown() async throws {
+    if helper != nil {
+      // Reset calculator to clean state
+      await helper.resetAppState()
+      
+      // Optionally terminate the app
+      // We don't terminate here since the helper manages app lifecycle
+    }
   }
 
   /// Test listing application menus (helpful for debugging menu navigation)
-  func testListCalculatorMenus() async throws {
+  @Test("List Calculator Menus")
+  mutating func testListCalculatorMenus() async throws {
+    try await setUp()
+    
     // Ensure Calculator is activated and in the foreground
     try await activateCalculatorWithMCP()
     try await Task.sleep(for: .milliseconds(2000))
@@ -103,13 +118,28 @@ final class MenuNavigationCalculatorTest: XCTestCase {
     }
 
     // This is just for debugging menu structure, so no assertions needed
-    XCTAssertTrue(true, "Successfully retrieved menu structure")
+    #expect(true, "Successfully retrieved menu structure")
+    
+    try await tearDown()
   }
 
   /// Test basic menu navigation: switch from Basic to Scientific calculator mode
-  func testViewMenuNavigation() async throws {
-    // First run the menu listing test to understand the menu structure
-    try await testListCalculatorMenus()
+  @Test("View Menu Navigation")
+  mutating func testViewMenuNavigation() async throws {
+    try await setUp()
+    
+    // First run the menu listing logic to understand the menu structure
+    // Ensure Calculator is activated and in the foreground
+    try await activateCalculatorWithMCP()
+    try await Task.sleep(for: .milliseconds(2000))
+
+    // List all menu items in the application menu bar
+    let menuParams: [String: Value] = [
+      "action": .string("getApplicationMenus"),
+      "bundleId": .string("com.apple.calculator"),
+    ]
+    
+    let _ = try await helper.toolChain.menuNavigationTool.handler(menuParams)
 
     // Get initial mode of calculator
     let initialMode = try await getCalculatorMode()
@@ -119,7 +149,7 @@ final class MenuNavigationCalculatorTest: XCTestCase {
     let scientificSuccess = try await switchToCalculatorMode("Scientific")
 
     // Test switching to Scientific mode
-    XCTAssertTrue(scientificSuccess, "Should successfully navigate to View > Scientific menu item")
+    #expect(scientificSuccess, "Should successfully navigate to View > Scientific menu item")
 
     // Wait for mode change to take effect
     try await Task.sleep(for: .milliseconds(2000))
@@ -130,7 +160,7 @@ final class MenuNavigationCalculatorTest: XCTestCase {
 
     // Now try switching to Basic mode
     let basicSuccess = try await switchToCalculatorMode("Basic")
-    XCTAssertTrue(basicSuccess, "Should successfully navigate to View > Basic menu item")
+    #expect(basicSuccess, "Should successfully navigate to View > Basic menu item")
 
     // Wait for mode change to take effect
     try await Task.sleep(for: .milliseconds(2000))
@@ -138,6 +168,8 @@ final class MenuNavigationCalculatorTest: XCTestCase {
     // Get final calculator mode
     let basicMode = try await getCalculatorMode()
     print("Calculator mode after Basic: \(basicMode)")
+    
+    try await tearDown()
   }
 
   /// Activate Calculator application using MCP to bring it to foreground
@@ -181,7 +213,7 @@ final class MenuNavigationCalculatorTest: XCTestCase {
       {
         return CalculatorAppInfo(
           bundleIdentifier: bundleId,
-          applicationName: appName,
+          applicationName: appName
         )
       }
     }

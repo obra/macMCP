@@ -3,6 +3,7 @@
 
 import AppKit
 import Foundation
+import Logging
 import MCP
 import Testing
 import XCTest
@@ -17,23 +18,41 @@ import XCTest
 struct BasicArithmeticTest {
   // Calculator helper for testing
   private var calculatorHelper: CalculatorTestHelper!
+  private var logger: Logger!
+  private var logFileURL: URL?
 
   // Shared setup method
   private mutating func setUp() async throws {
+    // Set up standardized logging
+    (logger, logFileURL) = TestLogger.create(label: "mcp.test.calculator", testName: "BasicArithmeticTest")
+    TestLogger.configureEnvironment(logger: logger)
+    let _ = TestLogger.createDiagnosticLog(testName: "BasicArithmeticTest", logger: logger)
+    
+    logger.info("Setting up BasicArithmeticTest")
+    
     // Get the shared calculator helper
     calculatorHelper = await CalculatorTestHelper.sharedHelper()
+    logger.info("Obtained shared calculator helper")
 
     // Ensure app is running and reset state
+    logger.info("Ensuring Calculator app is running")
     let _ = try await calculatorHelper.ensureAppIsRunning()
+    
+    logger.info("Resetting application state")
     await calculatorHelper.resetAppState()
+    
+    logger.info("Setup complete")
   }
   
   // Shared teardown method
   private mutating func tearDown() async throws {
+    logger.info("Tearing down BasicArithmeticTest")
     // Optional cleanup - in most cases the helper's reset handles this
     if calculatorHelper != nil {
       // No explicit termination since the helper may be reused
+      logger.info("Helper may be reused, skipping termination")
     }
+    logger.info("Teardown complete")
   }
 
   /// Test simple direct UI inspection of Calculator
@@ -42,6 +61,7 @@ struct BasicArithmeticTest {
     try await setUp()
     
     // Look for window elements
+    logger.info("Finding window elements")
     let windows = try await calculatorHelper.toolChain.findElements(
       matching: UIElementCriteria(role: "AXWindow"),
       scope: "application",

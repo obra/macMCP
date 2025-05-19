@@ -4,7 +4,7 @@
 import AppKit
 import Foundation
 import MCP
-import XCTest
+import Testing
 
 @testable import MacMCP
 
@@ -134,8 +134,8 @@ public final class CalculatorTestHelper {
       ? "Calculator display should show '\(expectedValue)' but found '\(actualValue ?? "nil")'"
       : message
 
-    // Assert the value matches
-    XCTAssertEqual(actualValue, expectedValue, assertionMessage)
+    // Use Swift Testing framework's expect - can't pass message directly
+    #expect(actualValue == expectedValue)
   }
 
   /// Press a button on the Calculator

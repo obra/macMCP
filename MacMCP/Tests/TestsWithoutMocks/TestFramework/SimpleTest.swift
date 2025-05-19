@@ -1,56 +1,76 @@
 // ABOUTME: SimpleTest.swift
 // ABOUTME: Part of MacMCP allowing LLMs to interact with macOS applications.
 
-import XCTest
+import Testing
 import Logging
+import Foundation
 
-/// Base test class that provides standard logging capabilities
-class SimpleTest: XCTestCase {
-  /// Logger for test output
-  var logger: Logger!
-  
-  /// URL of the log file for test output
-  var logFileURL: URL?
-  
-  /// Diagnostic log path for accessibility tree dumps
-  var diagnosticLogPath: String?
-  
-  override func setUp() async throws {
-    try await super.setUp()
+/// Function that wraps #expect with a custom message
+/// In the Testing framework, we can't pass a custom message to #expect, so we just use the expression
+public func expectMessage(_ expression: Bool, _ message: String = "") {
+    // Just forward to the normal #expect but ignore the message since we can't show it
+    #expect(expression)
+}
+
+/// TestCase protocol that provides standard logging capabilities for Swift Testing framework tests
+public protocol TestCase {
+    /// Logger for test output
+    var logger: Logger { get set }
     
-    // Set up logging for this test
-    let className = String(describing: type(of: self))
-    (logger, logFileURL) = TestLogger.create(label: "mcp.test.\(className.lowercased())", testName: className)
+    /// URL of the log file for test output
+    var logFileURL: URL? { get set }
     
-    // Configure standard environment variables
-    TestLogger.configureEnvironment(logger: logger)
+    /// Diagnostic log path for accessibility tree dumps
+    var diagnosticLogPath: String? { get set }
     
-    // Create diagnostic log if needed
-    diagnosticLogPath = TestLogger.createDiagnosticLog(testName: className, logger: logger)
+    /// Set up test environment
+    mutating func setUp() async throws
     
-    logger.info("====== TEST SETUP STARTED ======")
-  }
-  
-  override func tearDown() async throws {
-    logger.info("====== TEST TEARDOWN STARTED ======")
-    
-    // Print log file location if available
-    if let logURL = logFileURL {
-      logger.info("Test log available at: \(logURL.path)")
-      print("For detailed debug info, check the log file at: \(logURL.path)")
+    /// Tear down test environment
+    mutating func tearDown() async throws
+}
+
+/// Default implementation of TestCase protocol
+public extension TestCase {
+    /// Standard setup implementation
+    mutating func setUp() async throws {
+        // Set up logging for this test
+        let typeName = String(describing: type(of: self))
+        (logger, logFileURL) = TestLogger.create(label: "mcp.test.\(typeName.lowercased())", testName: typeName)
+        
+        // Configure standard environment variables
+        TestLogger.configureEnvironment(logger: logger)
+        
+        // Create diagnostic log if needed
+        diagnosticLogPath = TestLogger.createDiagnosticLog(testName: typeName, logger: logger)
+        
+        logger.info("====== TEST SETUP STARTED ======")
     }
     
-    if let diagnosticPath = diagnosticLogPath {
-      logger.info("Accessibility diagnostic log available at: \(diagnosticPath)")
+    /// Standard teardown implementation
+    mutating func tearDown() async throws {
+        logger.info("====== TEST TEARDOWN STARTED ======")
+        
+        // Print log file location if available
+        if let logURL = logFileURL {
+            logger.info("Test log available at: \(logURL.path)")
+            print("For detailed debug info, check the log file at: \(logURL.path)")
+        }
+        
+        if let diagnosticPath = diagnosticLogPath {
+            logger.info("Accessibility diagnostic log available at: \(diagnosticPath)")
+        }
+        
+        logger.info("====== TEST TEARDOWN COMPLETE ======")
     }
+}
+
+/// A testing utility struct to include in Swift Testing framework test suites
+/// Use this as a property in your test struct to include logging capabilities
+public struct TestSetup: TestCase {
+    public var logger: Logger = Logger(label: "mcp.test.default")
+    public var logFileURL: URL?
+    public var diagnosticLogPath: String?
     
-    logger.info("====== TEST TEARDOWN COMPLETE ======")
-    try await super.tearDown()
-  }
-  
-  func testExample() {
-    logger.info("Running example test")
-    XCTAssertTrue(true)
-    logger.debug("Test completed successfully")
-  }
+    public init() {}
 }

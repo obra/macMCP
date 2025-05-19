@@ -5,7 +5,7 @@
 @preconcurrency import ApplicationServices
 import Foundation
 @preconcurrency import MCP
-import XCTest
+import Testing
 
 @testable @preconcurrency import MacMCP
 
@@ -119,8 +119,8 @@ final class TextEditTestHelper {
       ? "TextEdit document should contain '\(expectedText)' but found '\(actualText ?? "nil")'"
       : message
 
-    // Assert the text is contained in the document
-    XCTAssertTrue(actualText?.contains(expectedText) ?? false, assertionMessage)
+    // Assert the text is contained in the document using Swift Testing framework
+    #expect(actualText?.contains(expectedText) ?? false)
   }
 
   /// Generate a unique temp file path for tests
@@ -186,6 +186,15 @@ final class TextEditTestHelper {
   }
 
   /// Close window and click "Delete" button on save dialog
+  /// This is specifically for ElementPath testing where we need to handle
+  /// the window close differently than the regular TextEditModel approach
+  @MainActor
+  func closeWindowAndDiscardChanges() async throws -> Bool {
+    // Use the internal accessibilityService from the app
+    return try await closeWindowAndDiscardChanges(using: app.toolChain.accessibilityService)
+  }
+  
+  /// Close window and click "Delete" button on save dialog with a specific accessibilityService
   /// This is specifically for ElementPath testing where we need to handle
   /// the window close differently than the regular TextEditModel approach
   @MainActor

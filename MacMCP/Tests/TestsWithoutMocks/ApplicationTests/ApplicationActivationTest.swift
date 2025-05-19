@@ -3,31 +3,51 @@
 
 import Foundation
 import MCP
+import Testing
 import XCTest
 
 @testable import MacMCP
 
+/// Simple struct to hold application information
+struct ApplicationInfo {
+  let bundleIdentifier: String
+  let applicationName: String
+}
+
 /// A focused test for application activation and management operations
-@MainActor
-final class ApplicationActivationTest: XCTestCase {
+@Suite(.serialized)
+struct ApplicationActivationTest {
   private var toolChain: ToolChain!
 
-  override func setUp() async throws {
+  // Shared setup method
+  private mutating func setUp() async throws {
     // Create a new toolchain for test operations
     toolChain = ToolChain(logLabel: "mcp.test.application_activation")
 
-    // Ensure clean state - terminate TextEdit if running
-    _ = try? await terminateApp(bundleId: "com.apple.TextEdit")
+    // Ensure clean state - terminate grapher if running
+    _ = try? await terminateApp(bundleId: "com.apple.grapher")
 
+    // Wait briefly to ensure cleanup is complete
+    try await Task.sleep(for: .milliseconds(1000))
+  }
+  
+  // Shared teardown method
+  private mutating func tearDown() async throws {
+    // Clean up - terminate grapher if it's still running
+    _ = try? await terminateApp(bundleId: "com.apple.grapher")
+    
     // Wait briefly to ensure cleanup is complete
     try await Task.sleep(for: .milliseconds(1000))
   }
 
   /// Basic test for application launch and activation flow
-  func testBasicAppActivation() async throws {
-    // Launch TextEdit
-    let launchSuccess = try await launchApp(bundleId: "com.apple.TextEdit")
-    XCTAssertTrue(launchSuccess, "TextEdit should launch successfully")
+  @Test("Basic App Activation")
+  mutating func testBasicAppActivation() async throws {
+    try await setUp()
+    
+    // Launch grapher
+    let launchSuccess = try await launchApp(bundleId: "com.apple.grapher")
+    #expect(launchSuccess)
 
     // Wait for app to initialize
     try await Task.sleep(for: .milliseconds(2000))
@@ -36,9 +56,9 @@ final class ApplicationActivationTest: XCTestCase {
     let frontmostBeforeSwitch = try await getFrontmostApp()
     print("Frontmost app before switch: \(frontmostBeforeSwitch?.bundleIdentifier ?? "None")")
 
-    // Switch to Finder (deactivate TextEdit)
+    // Switch to Finder (deactivate grapher)
     let switchToFinderSuccess = try await activateApp(bundleId: "com.apple.finder")
-    XCTAssertTrue(switchToFinderSuccess, "Should successfully activate Finder")
+    #expect(switchToFinderSuccess, "Should successfully activate Finder")
 
     // Wait for app switch
     try await Task.sleep(for: .milliseconds(2000))
@@ -47,15 +67,14 @@ final class ApplicationActivationTest: XCTestCase {
     let frontmostAfterSwitch = try await getFrontmostApp()
     print(
       "Frontmost app after switch to Finder: \(frontmostAfterSwitch?.bundleIdentifier ?? "None")")
-    XCTAssertEqual(
-      frontmostAfterSwitch?.bundleIdentifier,
-      "com.apple.finder",
-      "Finder should be frontmost after activation",
+    #expect(
+      frontmostAfterSwitch?.bundleIdentifier == "com.apple.finder",
+      "Finder should be frontmost after activation"
     )
 
-    // Switch back to TextEdit
-    let switchBackSuccess = try await activateApp(bundleId: "com.apple.TextEdit")
-    XCTAssertTrue(switchBackSuccess, "Should successfully activate TextEdit again")
+    // Switch back to grapher
+    let switchBackSuccess = try await activateApp(bundleId: "com.apple.grapher")
+    #expect(switchBackSuccess, "Should successfully activate grapher again")
 
     // Wait for app switch
     try await Task.sleep(for: .milliseconds(2000))
@@ -63,21 +82,22 @@ final class ApplicationActivationTest: XCTestCase {
     // Get frontmost app to verify switch back worked
     let frontmostAfterSwitchBack = try await getFrontmostApp()
     print(
-      "Frontmost app after switch back to TextEdit: \(frontmostAfterSwitchBack?.bundleIdentifier ?? "None")"
+      "Frontmost app after switch back to grapher: \(frontmostAfterSwitchBack?.bundleIdentifier ?? "None")"
     )
-    XCTAssertEqual(
-      frontmostAfterSwitchBack?.bundleIdentifier,
-      "com.apple.TextEdit",
-      "TextEdit should be frontmost after activation",
+    #expect(
+      frontmostAfterSwitchBack?.bundleIdentifier == "com.apple.grapher",
+      "grapher should be frontmost after activation"
     )
 
     // Test window counting with WindowManagementTool
-    let windowCount = try await getWindowCount(bundleId: "com.apple.TextEdit")
-    print("TextEdit window count: \(windowCount)")
+    let windowCount = try await getWindowCount(bundleId: "com.apple.grapher")
+    print("grapher window count: \(windowCount)")
 
-    // Terminate TextEdit
-    let terminateSuccess = try await terminateApp(bundleId: "com.apple.TextEdit")
-    XCTAssertTrue(terminateSuccess, "TextEdit should terminate successfully")
+    // Terminate grapher
+    let terminateSuccess = try await terminateApp(bundleId: "com.apple.grapher")
+    #expect(terminateSuccess, "grapher should terminate successfully")
+    
+    try await tearDown()
   }
 
   // MARK: - Helper Methods
@@ -155,7 +175,7 @@ final class ApplicationActivationTest: XCTestCase {
       {
         return ApplicationInfo(
           bundleIdentifier: bundleId,
-          applicationName: appName,
+          applicationName: appName
         )
       }
     }
@@ -189,10 +209,4 @@ final class ApplicationActivationTest: XCTestCase {
 
     return 0
   }
-}
-
-/// Simple struct to hold application information
-struct ApplicationInfo {
-  let bundleIdentifier: String
-  let applicationName: String
 }

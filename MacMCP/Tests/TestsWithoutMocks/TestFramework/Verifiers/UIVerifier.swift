@@ -2,7 +2,7 @@
 // ABOUTME: Part of MacMCP allowing LLMs to interact with macOS applications.
 
 import Foundation
-import XCTest
+import Testing
 
 @testable import MacMCP
 
@@ -47,10 +47,9 @@ public class UIVerifier {
       try await Task.sleep(for: .milliseconds(100))
     }
 
-    // Element not found within timeout - fail the test
-    XCTFail("Element matching \(criteria.debugDescription) not found within \(timeout) seconds")
-
-    // This will never be reached due to XCTFail, but is needed for compilation
+    // Element not found within timeout - throw error
+    let message = "Element matching \(criteria.debugDescription) not found within \(timeout) seconds"
+    #expect(false)
     throw NSError(
       domain: "UIVerifier",
       code: 1000,
@@ -81,7 +80,8 @@ public class UIVerifier {
         bundleId: bundleId,
       )) != nil {
         // Element found - fail the test
-        XCTFail("Element matching \(criteria.debugDescription) was found, but should not exist")
+        let message = "Element matching \(criteria.debugDescription) was found, but should not exist"
+        #expect(false)
         return
       }
 
@@ -174,12 +174,12 @@ public class UIVerifier {
           nil
         }
 
-      XCTFail(
-        "Element found, but \(property) value mismatch. Expected: \"\(expectedValue)\", Actual: \"\(actualValue ?? "nil")\"",
-      )
+      let message = "Element found, but \(property) value mismatch. Expected: \"\(expectedValue)\", Actual: \"\(actualValue ?? "nil")\""
+      #expect(false)
     } else {
       // Element not found
-      XCTFail("Element matching \(criteria.debugDescription) not found within \(timeout) seconds")
+      let notFoundMessage = "Element matching \(criteria.debugDescription) not found within \(timeout) seconds"
+      #expect(false)
     }
 
     // This will never be reached due to XCTFail, but is needed for compilation
@@ -272,12 +272,12 @@ public class UIVerifier {
           nil
         }
 
-      XCTFail(
-        "Element found, but \(property) value doesn't contain \"\(substring)\". Actual: \"\(actualValue ?? "nil")\"",
-      )
+      let containsMessage = "Element found, but \(property) value doesn't contain \"\(substring)\". Actual: \"\(actualValue ?? "nil")\""
+      #expect(false)
     } else {
       // Element not found
-      XCTFail("Element matching \(criteria.debugDescription) not found within \(timeout) seconds")
+      let notFoundMessage = "Element matching \(criteria.debugDescription) not found within \(timeout) seconds"
+      #expect(false)
     }
 
     // This will never be reached due to XCTFail, but is needed for compilation
