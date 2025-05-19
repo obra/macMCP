@@ -5,7 +5,7 @@ import AppKit
 import Foundation
 import Logging
 import MCP
-import XCTest
+import Testing
 
 @testable import MacMCP
 
@@ -13,8 +13,8 @@ import XCTest
 // @_implementationOnly import TestsWithoutMocks
 
 /// End-to-end tests for the UIInteractionTool using Calculator and TextEdit apps
-@MainActor
-final class UIInteractionToolE2ETests: XCTestCase {
+@Suite(.serialized)
+struct UIInteractionToolE2ETests {
   // Test components
   private var calculatorHelper: CalculatorTestHelper!
   private var textEditHelper: TextEditTestHelper!
@@ -23,12 +23,13 @@ final class UIInteractionToolE2ETests: XCTestCase {
   private var calculatorRunning = false
   private var textEditRunning = false
 
-  override func setUp() async throws {
+  // Shared setup method
+  private mutating func setUp() async throws {
     print("Setting up UIInteractionToolE2ETests")
 
     // Initialize test helpers
-    calculatorHelper = CalculatorTestHelper.sharedHelper()
-    textEditHelper = TextEditTestHelper.shared()
+    calculatorHelper = await CalculatorTestHelper.sharedHelper()
+    textEditHelper = await TextEditTestHelper.shared()
 
     // Check if apps are already running
     calculatorRunning = try await calculatorHelper.app.isRunning()
@@ -70,9 +71,9 @@ final class UIInteractionToolE2ETests: XCTestCase {
   }
 
   /// Helper method to determine if the current test requires TextEdit
-  private func testRequiresTextEdit() async throws -> Bool {
-    // Get the name of the currently running test
-    let testName = name
+  private func testRequiresTextEdit(function: String = #function) async throws -> Bool {
+    // Use the function name instead of XCTestCase.name
+    let testName = function
 
     // Return true for tests that need TextEdit
     return testName.contains("testDifferentClickTypes") || testName.contains("testRightClick")
@@ -80,7 +81,8 @@ final class UIInteractionToolE2ETests: XCTestCase {
       || testName.contains("testTypeText")
   }
 
-  override func tearDown() async throws {
+  // Shared teardown method
+  private mutating func tearDown() async throws {
     // Always terminate apps we launched during the test
     _ = try? await calculatorHelper.app.terminate()
 
@@ -93,7 +95,9 @@ final class UIInteractionToolE2ETests: XCTestCase {
   // MARK: - Test Methods
 
   /// Test basic clicking on calculator buttons
-  func testBasicClick() async throws {
+  @Test("Basic Click Operations")
+  mutating func testBasicClick() async throws {
+    try await setUp()
     print("Starting testBasicClick")
 
     // Ensure Calculator is active before interactions
@@ -223,10 +227,14 @@ final class UIInteractionToolE2ETests: XCTestCase {
     }
 
     print("testBasicClick completed successfully")
+    
+    try await tearDown()
   }
 
   /// Test clicking on a UI element at specific coordinates
-  func testClickWithCoordinates() async throws {
+  @Test("Click With Coordinates")
+  mutating func testClickWithCoordinates() async throws {
+    try await setUp()
     // First ensure Calculator is running and active
     // This is redundant with setUp, but serves as a safety measure
     if try await !(calculatorHelper.app.isRunning()) {
@@ -322,10 +330,14 @@ final class UIInteractionToolE2ETests: XCTestCase {
       "5",
       message: "Display should show '5' after clicking with int coordinates",
     )
+    
+    try await tearDown()
   }
 
   /// Test different click types (double-click, right-click)
-  func testDifferentClickTypes() async throws {
+  @Test("Different Click Types")
+  mutating func testDifferentClickTypes() async throws {
+    try await setUp()
     print("Starting testDifferentClickTypes with mouse-based interactions...")
 
     // First ensure TextEdit is running and active
@@ -436,10 +448,14 @@ final class UIInteractionToolE2ETests: XCTestCase {
       newDocumentText?.contains(newReplacement) ?? false,
       "Document should contain the new replacement text after element double-click",
     )
+    
+    try await tearDown()
   }
 
   /// Test right-click functionality
-  func testRightClick() async throws {
+  @Test("Right Click Functionality")
+  mutating func testRightClick() async throws {
+    try await setUp()
     print("Starting testRightClick...")
 
     // Ensure TextEdit is running and active
@@ -494,10 +510,14 @@ final class UIInteractionToolE2ETests: XCTestCase {
     let outsidePoint = CGPoint(x: 50, y: 50)
     _ = try await textEditHelper.toolChain.clickAtPosition(position: outsidePoint)
     try await Task.sleep(for: .milliseconds(1000))
+    
+    try await tearDown()
   }
 
   /// Test drag operation
-  func testDragOperation() async throws {
+  @Test("Drag Operation")
+  mutating func testDragOperation() async throws {
+    try await setUp()
     // This is a placeholder for a drag operation test
     // Implementing a robust drag test requires careful selection of source and target elements
     // and verification of the drag result, which depends on the specific application behavior
@@ -562,10 +582,14 @@ final class UIInteractionToolE2ETests: XCTestCase {
         "Error should indicate missing targetElementPath parameter",
       )
     }
+    
+    try await tearDown()
   }
 
   /// Test scroll operation
-  func testScrollOperation() async throws {
+  @Test("Scroll Operation")
+  mutating func testScrollOperation() async throws {
+    try await setUp()
     print("Starting testScrollOperation...")
 
     // Ensure TextEdit is running and active
@@ -992,10 +1016,14 @@ final class UIInteractionToolE2ETests: XCTestCase {
       expectedErrorContains: "amount",
       message: "Should throw an error when amount is out of range",
     )
+    
+    try await tearDown()
   }
 
   /// Test type text functionality (handled via keyboard interactions)
-  func testTypeText() async throws {
+  @Test("Type Text Functionality")
+  mutating func testTypeText() async throws {
+    try await setUp()
     // Note: Type text is typically handled via KeyboardInteractionTool rather than UIInteractionTool
     // But we should make sure that our click operations correctly position the cursor for text input
 
@@ -1104,10 +1132,14 @@ final class UIInteractionToolE2ETests: XCTestCase {
       finalText?.contains(expectedFinalText) ?? false,
       "Document should contain all three parts in correct order: 'Part1 Part2 Part3'",
     )
+    
+    try await tearDown()
   }
 
   /// Test attempting to click on a non-existent element
-  func testClickNonExistentElement() async throws {
+  @Test("Click Non-Existent Element")
+  mutating func testClickNonExistentElement() async throws {
+    try await setUp()
     print("Starting testClickNonExistentElement")
 
     // Ensure Calculator is active before interactions
@@ -1157,10 +1189,14 @@ final class UIInteractionToolE2ETests: XCTestCase {
         "Error should indicate element not found",
       )
     }
+    
+    try await tearDown()
   }
 
   /// Test invalid action parameter
-  func testInvalidAction() async throws {
+  @Test("Invalid Action Parameter")
+  mutating func testInvalidAction() async throws {
+    try await setUp()
     print("Starting testInvalidAction")
 
     // Ensure Calculator is active before interactions
@@ -1204,6 +1240,8 @@ final class UIInteractionToolE2ETests: XCTestCase {
         "Error should indicate missing action: \(errorMessage)",
       )
     }
+    
+    try await tearDown()
   }
 
   // MARK: - Helper Methods
