@@ -18,7 +18,7 @@ Each component has a specific purpose:
 
 - **`ui://` prefix**: Indicates that this is a UI element path
 - **Role segments**: Represent element types in the hierarchy (e.g., `AXApplication`, `AXWindow`, `AXButton`)
-- **Attribute selectors**: Filter elements by their properties (`[@title="Calculator"]`)
+- **Attribute selectors**: Filter elements by their properties (`[@AXTitle="Calculator"]`)
 - **Path separator**: Forward slash (`/`) separates segments in the hierarchy
 
 ### Example Paths
@@ -30,11 +30,11 @@ ui://AXApplication[@bundleIdentifier="com.apple.calculator"]/AXWindow/AXButton[@
 ```
 
 ```
-ui://AXApplication[@title="Safari"]/AXWindow/AXTextField[@AXSubrole="AXURLField"]
+ui://AXApplication[@AXTitle="Safari"]/AXWindow/AXTextField[@AXSubrole="AXURLField"]
 ```
 
 ```
-ui://AXApplication[@title="TextEdit"]/AXWindow/AXTextArea
+ui://AXApplication[@AXTitle="TextEdit"]/AXWindow/AXTextArea
 ```
 
 ## Path Components
@@ -74,7 +74,7 @@ Common attributes include:
 When multiple elements match the same path, you can select a specific one using an index selector:
 
 ```
-ui://AXApplication[@title="Safari"]/AXWindow/AXButton[0]
+ui://AXApplication[@AXTitle="Safari"]/AXWindow/AXButton[0]
 ```
 
 This selects the first button in the window. Indexes are zero-based.
@@ -133,7 +133,7 @@ Multiple attribute name variants are supported for flexibility:
 2. **Use specific attributes**:
    - Include distinguishing attributes for elements
    - Prefer unique identifiers when available
-   - Example: `ui://AXApplication[@title="Calculator"]/AXWindow/AXButton[@AXDescription="7"]`
+   - Example: `ui://AXApplication[@AXTitle="Calculator"]/AXWindow/AXButton[@AXDescription="7"]`
 
 3. **Limit path depth**:
    - Keep paths as short as possible while maintaining uniqueness
@@ -141,11 +141,11 @@ Multiple attribute name variants are supported for flexibility:
 
 4. **Handle ambiguity**:
    - Use index selectors when multiple elements match the same criteria
-   - Example: `ui://AXApplication[@title="Safari"]/AXWindow/AXGroup/AXButton[2]`
+   - Example: `ui://AXApplication[@AXTitle="Safari"]/AXWindow/AXGroup/AXButton[2]`
 
 5. **Escaping special characters**:
    - When attributes contain quotes, backslashes, or control characters, they must be escaped
-   - Example: `ui://AXApplication[@title="App with \"quotes\""]`
+   - Example: `ui://AXApplication[@AXTitle="App with \"quotes\""]`
 
 ### Path Generation vs. Writing Paths
 
@@ -194,9 +194,9 @@ await macos_ui_interact({
 
 #### Calculator Buttons
 ```
-ui://AXApplication[@title="Calculator"]/AXWindow/AXButton[@AXDescription="7"]
-ui://AXApplication[@title="Calculator"]/AXWindow/AXButton[@AXDescription="+"]
-ui://AXApplication[@title="Calculator"]/AXWindow/AXButton[@AXDescription="="]
+ui://AXApplication[@AXTitle="Calculator"]/AXWindow/AXButton[@AXDescription="7"]
+ui://AXApplication[@AXTitle="Calculator"]/AXWindow/AXButton[@AXDescription="+"]
+ui://AXApplication[@AXTitle="Calculator"]/AXWindow/AXButton[@AXDescription="="]
 ```
 
 #### Safari Toolbar Buttons
@@ -210,13 +210,13 @@ Example usage:
 // Click the Calculator's "7" button
 await macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXButton[@AXDescription=\"7\"]"
+  elementPath: "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow/AXButton[@AXDescription=\"7\"]"
 });
 
 // Double-click a button
 await macos_ui_interact({
   action: "double_click",
-  elementPath: "ui://AXApplication[@title=\"TextEdit\"]/AXWindow/AXButton[@AXTitle=\"Button\"]"
+  elementPath: "ui://AXApplication[@AXTitle=\"TextEdit\"]/AXWindow/AXButton[@AXTitle=\"Button\"]"
 });
 ```
 
@@ -224,18 +224,18 @@ await macos_ui_interact({
 
 #### Safari URL Field
 ```
-ui://AXApplication[@title="Safari"]/AXWindow/AXTextField[@AXSubrole="AXURLField"]
+ui://AXApplication[@AXTitle="Safari"]/AXWindow/AXTextField[@AXSubrole="AXURLField"]
 ```
 
 #### Login Form Fields
 ```
-ui://AXApplication[@title="Some App"]/AXWindow/AXTextField[@AXPlaceholderValue="Username"]
-ui://AXApplication[@title="Some App"]/AXWindow/AXSecureTextField[@AXPlaceholderValue="Password"]
+ui://AXApplication[@AXTitle="Some App"]/AXWindow/AXTextField[@AXPlaceholderValue="Username"]
+ui://AXApplication[@AXTitle="Some App"]/AXWindow/AXSecureTextField[@AXPlaceholderValue="Password"]
 ```
 
 #### TextEdit Document
 ```
-ui://AXApplication[@title="TextEdit"]/AXWindow/AXTextArea
+ui://AXApplication[@AXTitle="TextEdit"]/AXWindow/AXTextArea
 ```
 
 Example usage:
@@ -243,24 +243,24 @@ Example usage:
 // Type in Safari's URL field
 await macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@title=\"Safari\"]/AXWindow/AXTextField[@AXSubrole=\"AXURLField\"]"
+  elementPath: "ui://AXApplication[@AXTitle=\"Safari\"]/AXWindow/AXTextField[@AXSubrole=\"AXURLField\"]"
 });
 
 await macos_ui_interact({
   action: "type",
-  elementPath: "ui://AXApplication[@title=\"Safari\"]/AXWindow/AXTextField[@AXSubrole=\"AXURLField\"]",
+  elementPath: "ui://AXApplication[@AXTitle=\"Safari\"]/AXWindow/AXTextField[@AXSubrole=\"AXURLField\"]",
   text: "https://www.apple.com"
 });
 
 // Type in TextEdit
 await macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@title=\"TextEdit\"]/AXWindow/AXTextArea"
+  elementPath: "ui://AXApplication[@AXTitle=\"TextEdit\"]/AXWindow/AXTextArea"
 });
 
 await macos_ui_interact({
   action: "type",
-  elementPath: "ui://AXApplication[@title=\"TextEdit\"]/AXWindow/AXTextArea",
+  elementPath: "ui://AXApplication[@AXTitle=\"TextEdit\"]/AXWindow/AXTextArea",
   text: "Hello world!"
 });
 ```
@@ -269,13 +269,13 @@ await macos_ui_interact({
 
 #### Checkboxes
 ```
-ui://AXApplication[@title="System Settings"]/AXWindow/AXCheckBox[@AXTitle="Remember my credentials"]
+ui://AXApplication[@AXTitle="System Settings"]/AXWindow/AXCheckBox[@AXTitle="Remember my credentials"]
 ```
 
 #### Radio Buttons
 ```
-ui://AXApplication[@title="App"]/AXWindow/AXRadioButton[@AXTitle="Option 1"]
-ui://AXApplication[@title="App"]/AXWindow/AXRadioGroup/AXRadioButton[0]
+ui://AXApplication[@AXTitle="App"]/AXWindow/AXRadioButton[@AXTitle="Option 1"]
+ui://AXApplication[@AXTitle="App"]/AXWindow/AXRadioGroup/AXRadioButton[0]
 ```
 
 Example usage:
@@ -283,13 +283,13 @@ Example usage:
 // Toggle a checkbox
 await macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@title=\"System Settings\"]/AXWindow/AXCheckBox[@AXTitle=\"Remember my credentials\"]"
+  elementPath: "ui://AXApplication[@AXTitle=\"System Settings\"]/AXWindow/AXCheckBox[@AXTitle=\"Remember my credentials\"]"
 });
 
 // Select a radio button
 await macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@title=\"System Settings\"]/AXWindow/AXRadioGroup/AXRadioButton[@AXTitle=\"Light\"]"
+  elementPath: "ui://AXApplication[@AXTitle=\"System Settings\"]/AXWindow/AXRadioGroup/AXRadioButton[@AXTitle=\"Light\"]"
 });
 ```
 
@@ -297,17 +297,17 @@ await macos_ui_interact({
 
 #### Opening a Menu
 ```
-ui://AXApplication[@title="TextEdit"]/AXMenuBar/AXMenuBarItem[@AXTitle="File"]
+ui://AXApplication[@AXTitle="TextEdit"]/AXMenuBar/AXMenuBarItem[@AXTitle="File"]
 ```
 
 #### Selecting a Menu Item
 ```
-ui://AXApplication[@title="TextEdit"]/AXMenuBar/AXMenuBarItem[@AXTitle="File"]/AXMenu/AXMenuItem[@AXTitle="New"]
+ui://AXApplication[@AXTitle="TextEdit"]/AXMenuBar/AXMenuBarItem[@AXTitle="File"]/AXMenu/AXMenuItem[@AXTitle="New"]
 ```
 
 #### Working with Submenus
 ```
-ui://AXApplication[@title="TextEdit"]/AXMenuBar/AXMenuBarItem[@AXTitle="Format"]/AXMenu/AXMenuItem[@AXTitle="Font"]/AXMenu/AXMenuItem[@AXTitle="Bold"]
+ui://AXApplication[@AXTitle="TextEdit"]/AXMenuBar/AXMenuBarItem[@AXTitle="Format"]/AXMenu/AXMenuItem[@AXTitle="Font"]/AXMenu/AXMenuItem[@AXTitle="Bold"]
 ```
 
 Example usage with the Menu Navigation Tool:
@@ -330,19 +330,19 @@ let menus = await macos_menu_navigation({
 
 #### Alert Dialog
 ```
-ui://AXApplication[@title="Safari"]/AXSheet[@AXSubrole="AXStandardWindow"]
-ui://AXApplication[@title="Safari"]/AXSheet/AXButton[@AXTitle="Cancel"]
+ui://AXApplication[@AXTitle="Safari"]/AXSheet[@AXSubrole="AXStandardWindow"]
+ui://AXApplication[@AXTitle="Safari"]/AXSheet/AXButton[@AXTitle="Cancel"]
 ```
 
 #### File Open/Save Dialogs
 ```
-ui://AXApplication[@title="TextEdit"]/AXSheet[@AXSubrole="AXStandardWindow"]/AXButton[@AXTitle="Save"]
-ui://AXApplication[@title="TextEdit"]/AXSheet/AXTextField[@AXPlaceholderValue="Save As:"]
+ui://AXApplication[@AXTitle="TextEdit"]/AXSheet[@AXSubrole="AXStandardWindow"]/AXButton[@AXTitle="Save"]
+ui://AXApplication[@AXTitle="TextEdit"]/AXSheet/AXTextField[@AXPlaceholderValue="Save As:"]
 ```
 
 #### System Dialogs
 ```
-ui://AXApplication[@title="System Dialog"]/AXWindow/AXButton[@AXTitle="Allow"]
+ui://AXApplication[@AXTitle="System Dialog"]/AXWindow/AXButton[@AXTitle="Allow"]
 ```
 
 Example usage:
@@ -350,13 +350,13 @@ Example usage:
 // Click Cancel in a dialog
 await macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@title=\"Safari\"]/AXSheet/AXButton[@AXTitle=\"Cancel\"]"
+  elementPath: "ui://AXApplication[@AXTitle=\"Safari\"]/AXSheet/AXButton[@AXTitle=\"Cancel\"]"
 });
 
 // Type a filename in a save dialog
 await macos_ui_interact({
   action: "type",
-  elementPath: "ui://AXApplication[@title=\"TextEdit\"]/AXSheet/AXTextField[@AXPlaceholderValue=\"Save As:\"]",
+  elementPath: "ui://AXApplication[@AXTitle=\"TextEdit\"]/AXSheet/AXTextField[@AXPlaceholderValue=\"Save As:\"]",
   text: "My Document.txt"
 });
 ```
@@ -392,17 +392,17 @@ await macos_ui_interact({
 
 #### Table Row Selection
 ```
-ui://AXApplication[@title="Finder"]/AXWindow/AXTable/AXRow[@AXTitle="file.txt"]
+ui://AXApplication[@AXTitle="Finder"]/AXWindow/AXTable/AXRow[@AXTitle="file.txt"]
 ```
 
 #### Table Cell Access
 ```
-ui://AXApplication[@title="App"]/AXWindow/AXTable/AXRow[2]/AXCell[3]
+ui://AXApplication[@AXTitle="App"]/AXWindow/AXTable/AXRow[2]/AXCell[3]
 ```
 
 #### List Items
 ```
-ui://AXApplication[@title="Finder"]/AXWindow/AXList/AXStaticText[@AXValue="Downloads"]
+ui://AXApplication[@AXTitle="Finder"]/AXWindow/AXList/AXStaticText[@AXValue="Downloads"]
 ```
 
 Example usage:
@@ -410,13 +410,13 @@ Example usage:
 // Click a specific table row
 await macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@title=\"Finder\"]/AXWindow/AXTable/AXRow[@AXTitle=\"file.txt\"]"
+  elementPath: "ui://AXApplication[@AXTitle=\"Finder\"]/AXWindow/AXTable/AXRow[@AXTitle=\"file.txt\"]"
 });
 
 // Click a cell in a specific row and column
 await macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@title=\"App\"]/AXWindow/AXTable/AXRow[2]/AXCell[3]"
+  elementPath: "ui://AXApplication[@AXTitle=\"App\"]/AXWindow/AXTable/AXRow[2]/AXCell[3]"
 });
 ```
 
@@ -473,7 +473,7 @@ To filter elements by path pattern:
 The `resolvePathProgressively` method provides detailed information about each step of path resolution, helping diagnose where and why paths fail:
 
 ```swift
-let path = try ElementPath.parse("ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXButton[@AXDescription=\"7\"]")
+let path = try ElementPath.parse("ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow/AXButton[@AXDescription=\"7\"]")
 let result = await path.resolvePathProgressively(using: accessibilityService)
 
 if result.success {
@@ -504,7 +504,7 @@ The `diagnosePathResolutionIssue` function provides comprehensive troubleshootin
 
 ```swift
 let diagnosis = try await ElementPath.diagnosePathResolutionIssue(
-    "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXButton[@AXDescription=\"9\"]", 
+    "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow/AXButton[@AXDescription=\"9\"]", 
     using: accessibilityService
 )
 print(diagnosis)
@@ -521,7 +521,7 @@ This outputs a detailed report that includes:
 The path validation function checks for common issues in path syntax:
 
 ```swift
-let pathString = "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXButton[@AXDescription=\"7\"]"
+let pathString = "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow/AXButton[@AXDescription=\"7\"]"
 let (isValid, warnings) = try ElementPath.validatePath(pathString, strict: true)
 
 if isValid {

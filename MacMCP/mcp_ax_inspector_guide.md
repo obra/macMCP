@@ -111,7 +111,7 @@ ui://RoleType[@attribute="value"][@attribute2="value2"]/ChildRole[@attribute="va
 
 For example, a path to the Calculator's "7" button might look like:
 ```
-ui://AXApplication[@title="Calculator"]/AXWindow/AXGroup/AXButton[@description="7"]
+ui://AXApplication[@AXTitle="Calculator"]/AXWindow/AXGroup/AXButton[@AXDescription="7"]
 ```
 
 ### Viewing Element Paths
@@ -138,7 +138,7 @@ You can filter elements by their path pattern:
 ./.build/debug/mcp-ax-inspector --app-id com.apple.calculator --path-filter "AXButton"
 
 # Show only elements with paths containing specific attribute values
-./.build/debug/mcp-ax-inspector --app-id com.apple.calculator --path-filter '[@description="7"]'
+./.build/debug/mcp-ax-inspector --app-id com.apple.calculator --path-filter '[@AXDescription="7"]'
 
 # Combine with other filters
 ./.build/debug/mcp-ax-inspector --app-id com.apple.calculator --path-filter "AXButton" --hide-invisible
@@ -172,7 +172,7 @@ The paths displayed by the inspector can be used directly with MCP UI interactio
 
 For example, after finding a button's path:
 ```
-Path: ui://AXApplication[@title="Calculator"]/AXWindow/AXGroup/AXButton[@description="7"]
+Path: ui://AXApplication[@AXTitle="Calculator"]/AXWindow/AXGroup/AXButton[@AXDescription="7"]
 ```
 
 You can use it with the UI interaction tool:
@@ -180,7 +180,7 @@ You can use it with the UI interaction tool:
 // In MCP automation code
 macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXGroup/AXButton[@description=\"7\"]"
+  elementPath: "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow/AXGroup/AXButton[@AXDescription=\"7\"]"
 });
 ```
 
@@ -191,7 +191,7 @@ The output shows a hierarchical tree of UI elements with their properties:
 ```
 [0] AXApplication: Calculator
    Identifier: AXApplication:12345
-   Path: ui://AXApplication[@title="Calculator"]
+   Path: ui://AXApplication[@AXTitle="Calculator"]
    Frame: (x:100, y:100, w:320, h:460)
    State: Enabled, Visible, Not clickable, Unfocused, Unselected
    Role: AXApplication (application)
@@ -202,7 +202,7 @@ The output shows a hierarchical tree of UI elements with their properties:
    │
    └─+[1] AXWindow: Calculator
       Identifier: AXWindow:67890
-      Path: ui://AXApplication[@title="Calculator"]/AXWindow
+      Path: ui://AXApplication[@AXTitle="Calculator"]/AXWindow
       Frame: (x:100, y:100, w:320, h:460)
       State: Enabled, Visible, Not clickable, Unfocused, Unselected
       Role: AXWindow (window)
@@ -211,7 +211,7 @@ The output shows a hierarchical tree of UI elements with their properties:
       │
       ├─+[2] AXButton: 7
       │  Identifier: AXButton:11111
-      │  Path: ui://AXApplication[@title="Calculator"]/AXWindow/AXGroup/AXButton[@description="7"]
+      │  Path: ui://AXApplication[@AXTitle="Calculator"]/AXWindow/AXGroup/AXButton[@AXDescription="7"]
       │  Frame: (x:120, y:200, w:60, h:60)
       │  State: Enabled, Visible, Clickable, Unfocused, Unselected
       │  Role: AXButton (button)
@@ -221,7 +221,7 @@ The output shows a hierarchical tree of UI elements with their properties:
       │
       └─+[3] AXButton: +
          Identifier: AXButton:22222
-         Path: ui://AXApplication[@title="Calculator"]/AXWindow/AXGroup/AXButton[@description="Add"]
+         Path: ui://AXApplication[@AXTitle="Calculator"]/AXWindow/AXGroup/AXButton[@AXDescription="Add"]
          Frame: (x:260, y:200, w:60, h:60)
          State: Enabled, Visible, Clickable, Unfocused, Unselected
          Role: AXButton (button)

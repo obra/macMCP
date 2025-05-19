@@ -137,7 +137,7 @@ The following inventory details all occurrences of redundant 'id' and 'path' usa
      "elementPath": .object([
        "type": .string("string"),
        "description": .string(
-         "The path of the UI element to capture (required when region is 'element') - e.g., ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXButton[@title=\"1\"]"
+         "The path of the UI element to capture (required when region is 'element') - e.g., ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow/AXButton[@AXTitle=\"1\"]"
        ),
      ]),
      ```

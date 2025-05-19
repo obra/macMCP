@@ -28,7 +28,7 @@ Each path consists of:
 
 - `ui://` prefix: Indicates this is an ElementPath
 - Role segments: Element types (e.g., `AXApplication`, `AXWindow`, `AXButton`)
-- Attribute selectors: Filter elements by properties (`[@title="Calculator"]`)
+- Attribute selectors: Filter elements by properties (`[@AXTitle="Calculator"]`)
 - Path separator: Forward slash (`/`) to navigate through hierarchy
 
 ### Simple Examples

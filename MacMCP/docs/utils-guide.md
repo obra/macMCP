@@ -72,7 +72,7 @@ let escapedValue = PathNormalizer.escapeAttributeValue("Button with \"quotes\"")
 // Result: "Button with \\\"quotes\\\""
 
 // Normalize a complete path
-let path = "ui://AXWindow/AXGroup[@title=\"Controls\"]/AXButton[@description=\"OK\"]"
+let path = "ui://AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXDescription=\"OK\"]"
 let normalizedPath = PathNormalizer.normalizePathString(path)
 // Result: "ui://AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXDescription=\"OK\"]"
 ```

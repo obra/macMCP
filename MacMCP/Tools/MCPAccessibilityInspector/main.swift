@@ -366,7 +366,7 @@ struct MCPAccessibilityInspector: ParsableCommand {
         mcp-ax-inspector --app-id com.apple.calculator --interactive-paths
 
         # Filter elements by path pattern
-        mcp-ax-inspector --app-id com.apple.calculator --path-filter "AXButton[@description=\\"1\\"]"
+        mcp-ax-inspector --app-id com.apple.calculator --path-filter "AXButton[@AXDescription=\\"1\\"]"
 
         # Show full hierarchical paths (default behavior)
         mcp-ax-inspector --app-id com.apple.calculator
@@ -375,7 +375,7 @@ struct MCPAccessibilityInspector: ParsableCommand {
         mcp-ax-inspector --app-id com.apple.calculator --hide-full-paths
 
         # Inspect a specific element directly by its path
-        mcp-ax-inspector --app-id com.apple.calculator --inspect-path "ui://AXApplication[@title=\"Calculator\"]/AXWindow/AXButton[@description=\"1\"]"
+        mcp-ax-inspector --app-id com.apple.calculator --inspect-path "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow/AXButton[@AXDescription=\"1\"]"
 
       Output options:
         # Output raw JSON response instead of tree visualization
@@ -465,7 +465,7 @@ struct MCPAccessibilityInspector: ParsableCommand {
 
   @Option(
     name: [.customLong("path-filter")],
-    help: "Filter elements by path pattern (e.g., \"AXButton[@description=1]\")",
+    help: "Filter elements by path pattern (e.g., \"AXButton[@AXDescription=1]\")",
   )
   var pathFilter: String?
 
@@ -483,7 +483,7 @@ struct MCPAccessibilityInspector: ParsableCommand {
   @Option(
     name: [.customLong("inspect-path")],
     help:
-      "Directly inspect an element by its full path (e.g., \"ui://AXApplication[@title=\\\"Calculator\\\"]/AXWindow/AXButton\")",
+      "Directly inspect an element by its full path (e.g., \"ui://AXApplication[@AXTitle=\\\"Calculator\\\"]/AXWindow/AXButton\")",
   )
   var inspectPath: String?
 

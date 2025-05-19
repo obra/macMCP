@@ -242,10 +242,10 @@ This document outlines the next steps in our migration to exclusively use path-b
    - Performance benchmarks for path resolution
 
 3. Test these problematic path patterns:
-   - Paths with quotes: ui://AXApplication[@title="App with \"quotes\""]
-   - Paths with backslashes: ui://AXApplication[@title="C:\\Program Files\\App"]
+   - Paths with quotes: ui://AXApplication[@AXTitle="App with \"quotes\""]
+   - Paths with backslashes: ui://AXApplication[@AXTitle="C:\\Program Files\\App"]
    - Deep paths: ui://AXApplication/AXWindow/AXGroup/AXGroup/AXGroup/AXButton
-   - Multiple attributes: ui://AXApplication[@title="Calc"][@bundleIdentifier="com.apple.calculator"]
+   - Multiple attributes: ui://AXApplication[@AXTitle="Calc"][@bundleIdentifier="com.apple.calculator"]
 
 4. Create test utilities for path testing:
    - compareElements(original: AXUIElement, resolved: AXUIElement) -> Bool
@@ -502,7 +502,7 @@ When migrating tests or code that uses the element identifier approach, follow t
 
 4. Create a debug command-line tool for testing paths:
    ```
-   test-path --path "ui://AXApplication[@title='Calculator']/AXWindow" --verbose
+   test-path --path "ui://AXApplication[@AXTitle='Calculator']/AXWindow" --verbose
    ```
 ```
 

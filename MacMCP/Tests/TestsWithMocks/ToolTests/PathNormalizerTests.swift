@@ -100,7 +100,7 @@ struct PathNormalizerTests {
   @Test("Normalize path string")
   func testNormalizePathString() {
     // Test basic normalization
-    let path1 = "ui://AXWindow/AXGroup[@title=\"Controls\"]/AXButton[@description=\"OK\"]"
+    let path1 = "ui://AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXDescription=\"OK\"]"
     let normalized1 = PathNormalizer.normalizePathString(path1)
     #expect(normalized1 != nil)
     #expect(normalized1!.contains("AXGroup[@AXTitle=\"Controls\"]"))

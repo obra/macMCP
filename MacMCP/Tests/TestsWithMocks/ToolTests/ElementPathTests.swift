@@ -39,7 +39,7 @@ struct ElementPathTests {
       role: "AXButton",
       attributes: ["name": "Test Button"],
     )
-    #expect(attributeSegment.toString() == "AXButton[@name=\"Test Button\"]")
+    #expect(attributeSegment.toString() == "AXButton[@AXName=\"Test Button\"]")
 
     // Segment with multiple attributes (should be sorted alphabetically)
     let multiAttributeSegment = PathSegment(
@@ -51,7 +51,7 @@ struct ElementPathTests {
     )
     #expect(
       multiAttributeSegment.toString()
-        == "AXButton[@description=\"A test button\"][@name=\"Test Button\"]")
+        == "AXButton[@AXDescription=\"A test button\"][@AXName=\"Test Button\"]")
 
     // Segment with index
     let indexSegment = PathSegment(
@@ -66,14 +66,14 @@ struct ElementPathTests {
       attributes: ["name": "Test Button"],
       index: 2,
     )
-    #expect(fullSegment.toString() == "AXButton[@name=\"Test Button\"][2]")
+    #expect(fullSegment.toString() == "AXButton[@AXName=\"Test Button\"][2]")
 
     // Test escaping quotes in attribute values
     let escapedSegment = PathSegment(
       role: "AXButton",
       attributes: ["name": "Button with \"quotes\""],
     )
-    #expect(escapedSegment.toString() == "AXButton[@name=\"Button with \\\"quotes\\\"\"]")
+    #expect(escapedSegment.toString() == "AXButton[@AXName=\"Button with \\\"quotes\\\"\"]")
   }
 
   @Test("ElementPath initialization and properties")
@@ -120,7 +120,7 @@ struct ElementPathTests {
     let pathString = path.toString()
 
     #expect(
-      pathString == "ui://AXWindow/AXGroup[@name=\"Controls\"]/AXButton[@description=\"Submit\"]")
+      pathString == "ui://AXWindow/AXGroup[@AXName=\"Controls\"]/AXButton[@AXDescription=\"Submit\"]")
   }
 
   @Test("ElementPath parsing simple path")
@@ -136,7 +136,7 @@ struct ElementPathTests {
 
   @Test("ElementPath parsing with attributes")
   func elementPathParsingWithAttributes() throws {
-    let pathString = "ui://AXWindow/AXGroup[@name=\"Controls\"]/AXButton[@description=\"Submit\"]"
+    let pathString = "ui://AXWindow/AXGroup[@AXName=\"Controls\"]/AXButton[@AXDescription=\"Submit\"]"
     let path = try ElementPath.parse(pathString)
 
     #expect(path.segments.count == 3)
@@ -162,7 +162,7 @@ struct ElementPathTests {
   @Test("ElementPath parsing with attributes and index")
   func elementPathParsingWithAttributesAndIndex() throws {
     let pathString =
-      "ui://AXWindow/AXGroup[@name=\"Controls\"][2]/AXButton[@description=\"Submit\"]"
+      "ui://AXWindow/AXGroup[@AXName=\"Controls\"][2]/AXButton[@AXDescription=\"Submit\"]"
     let path = try ElementPath.parse(pathString)
 
     #expect(path.segments.count == 3)
@@ -176,7 +176,7 @@ struct ElementPathTests {
 
   @Test("ElementPath parsing with escaped quotes")
   func elementPathParsingWithEscapedQuotes() throws {
-    let pathString = "ui://AXWindow/AXGroup[@name=\"Group with \\\"quotes\\\"\"]/AXButton"
+    let pathString = "ui://AXWindow/AXGroup[@AXName=\"Group with \\\"quotes\\\"\"]/AXButton"
     let path = try ElementPath.parse(pathString)
 
     #expect(path.segments.count == 3)
@@ -189,7 +189,7 @@ struct ElementPathTests {
   @Test("ElementPath parsing with multiple attributes")
   func elementPathParsingWithMultipleAttributes() throws {
     let pathString =
-      "ui://AXWindow/AXGroup[@name=\"Controls\"][@id=\"group1\"]/AXButton[@description=\"Submit\"][@enabled=\"true\"]"
+      "ui://AXWindow/AXGroup[@AXName=\"Controls\"][@id=\"group1\"]/AXButton[@AXDescription=\"Submit\"][@enabled=\"true\"]"
     let path = try ElementPath.parse(pathString)
 
     #expect(path.segments.count == 3)
@@ -280,7 +280,7 @@ struct ElementPathTests {
   @Test("ElementPath roundtrip (parse and toString)")
   func elementPathRoundtrip() throws {
     let originalPath =
-      "ui://AXWindow/AXGroup[@name=\"Controls\"][2]/AXButton[@description=\"Submit\"]"
+      "ui://AXWindow/AXGroup[@AXName=\"Controls\"][2]/AXButton[@AXDescription=\"Submit\"]"
     let path = try ElementPath.parse(originalPath)
     let regeneratedPath = path.toString()
 
@@ -995,7 +995,7 @@ struct ElementPathTests {
     let calculatorPath =
       "ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]"
     let textEditPath =
-      "ui://AXApplication[@title=\"TextEdit\"]/AXWindow[@AXTitle=\"Untitled\"]/AXTextArea"
+      "ui://AXApplication[@AXTitle=\"TextEdit\"]/AXWindow[@AXTitle=\"Untitled\"]/AXTextArea"
 
     // Validate round-trip for Calculator path
     let calcPath = try ElementPath.parse(calculatorPath)

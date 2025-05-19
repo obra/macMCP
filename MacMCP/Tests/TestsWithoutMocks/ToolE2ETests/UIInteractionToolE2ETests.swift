@@ -1146,7 +1146,7 @@ struct UIInteractionToolE2ETests {
     try await Task.sleep(for: .milliseconds(2000))
 
     // Use a clearly non-existent element ID
-    let nonExistentId = "ui://AXApplication/AXWindow/AXButton[@description=\"NonExistentButton\"]"
+    let nonExistentId = "ui://AXApplication/AXWindow/AXButton[@AXDescription=\"NonExistentButton\"]"
     print("Attempting to click on non-existent element: \(nonExistentId)")
 
     do {

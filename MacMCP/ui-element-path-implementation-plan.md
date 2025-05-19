@@ -8,7 +8,7 @@ MacMCP currently identifies elements using a combination of approaches:
 - Hash-based identifiers: `ui:<role>:<hash>` 
 - Menu paths now use standard ElementPath format with XPath-like syntax
 
-The work on `f/ui-paths-take-2` branch has begun implementing a new path-based approach using syntax like `ui://AXWindow/AXScrollArea/AXTextArea[@name="Content"]` for non-menu elements.
+The work on `f/ui-paths-take-2` branch has begun implementing a new path-based approach using syntax like `ui://AXWindow/AXScrollArea/AXTextArea[@AXName="Content"]` for non-menu elements.
 
 ## Implementation Strategy
 
@@ -29,11 +29,11 @@ This approach allows us to:
 
 The core ElementPath model and parser has been successfully implemented with the following features:
 
-- **Path Syntax**: Supports paths like `ui://AXWindow/AXScrollArea/AXTextArea[@name="Content"]`
+- **Path Syntax**: Supports paths like `ui://AXWindow/AXScrollArea/AXTextArea[@AXName="Content"]`
 - **Path Components**:
   - Path ID prefix: `ui://`
   - Path segments with roles: `AXWindow/AXGroup/AXButton`
-  - Attribute selectors: `[@title="Save"][@description="Save button"]` 
+  - Attribute selectors: `[@AXTitle="Save"][@AXDescription="Save button"]` 
   - Index selectors: `[2]` (for selecting nth matching element)
 - **Error Handling**: Comprehensive error types for validation failures with detailed messages
 - **Parsing & Generation**: Full support for both parsing paths from strings and generating path strings
@@ -108,7 +108,7 @@ The ElementPath resolution functionality has been successfully implemented with 
 
 - **Application Resolution Strategies**:
   - Bundle identifier-based application matching: `[@bundleIdentifier="com.apple.calculator"]`
-  - Title-based application matching: `[@title="Calculator"]`
+  - Title-based application matching: `[@AXTitle="Calculator"]`
   - Fallback to focused/frontmost application when no specific attributes provided
 
 - **Robust Resolution Logic**:
@@ -246,7 +246,7 @@ The ElementPath resolution functionality has been successfully implemented with 
 static let button1ID = "ui:AXButton:123456"
 
 // To:
-static let button1Path = "ui://AXWindow/AXGroup/AXButton[@description=\"1\"]"
+static let button1Path = "ui://AXWindow/AXGroup/AXButton[@AXDescription=\"1\"]"
 ```
 
 ### Step 12: Create Integration Tests

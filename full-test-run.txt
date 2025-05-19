@@ -1464,14 +1464,14 @@ Test Case '-[TestsWithoutMocks.UIInteractionToolE2ETests testClickNonExistentEle
 2025-05-19T13:11:14-0500 info mcp.tool.ui_interact : appBundleId=com.apple.calculator [MacMCP] Using provided appBundleId alongside element path
 2025-05-19T13:11:14-0500 warning mcp.tool.ui_interact : error=The operation couldn’t be completed. (MacMCP.ElementPathError error 6.) [MacMCP] Element path did not resolve, but will still attempt click operation
 2025-05-19T13:11:14-0500 info mcp.tool.ui_interact.interaction : [MacMCP] Attempting detailed path resolution diagnosis...
-2025-05-19T13:11:14-0500 error mcp.tool.ui_interact : code=1 domain=MacMCP.MacMCPErrorInfo error=Failed to find element with path: ui://AXApplication/AXWindow/AXButton[@description="NonExistentButton"] [MacMCP] Click operation failed
-2025-05-19T13:11:14-0500 error mcp.tool.ui_interact : code=1 domain=MacMCP.MacMCPErrorInfo error=Failed to find element with path: ui://AXApplication/AXWindow/AXButton[@description="NonExistentButton"] info=[:] [MacMCP] UIInteractionTool.handler error
-/Users/jesse/Documents/GitHub/projects/mac-mcp/MacMCP/Tests/TestsWithoutMocks/ToolE2ETests/UIInteractionToolE2ETests.swift:1133: error: -[TestsWithoutMocks.UIInteractionToolE2ETests testClickNonExistentElement] : XCTAssertTrue failed - Error should indicate element not found: failed to find element with path: ui://axapplication/axwindow/axbutton[@description="nonexistentbutton"]
+2025-05-19T13:11:14-0500 error mcp.tool.ui_interact : code=1 domain=MacMCP.MacMCPErrorInfo error=Failed to find element with path: ui://AXApplication/AXWindow/AXButton[@AXDescription="NonExistentButton"] [MacMCP] Click operation failed
+2025-05-19T13:11:14-0500 error mcp.tool.ui_interact : code=1 domain=MacMCP.MacMCPErrorInfo error=Failed to find element with path: ui://AXApplication/AXWindow/AXButton[@AXDescription="NonExistentButton"] info=[:] [MacMCP] UIInteractionTool.handler error
+/Users/jesse/Documents/GitHub/projects/mac-mcp/MacMCP/Tests/TestsWithoutMocks/ToolE2ETests/UIInteractionToolE2ETests.swift:1133: error: -[TestsWithoutMocks.UIInteractionToolE2ETests testClickNonExistentElement] : XCTAssertTrue failed - Error should indicate element not found: failed to find element with path: ui://axapplication/axwindow/axbutton[@AXDescription="nonexistentbutton"]
 2025-05-19T13:11:14-0500 info mcp.tool.ui_interact : appBundleId=com.apple.calculator [MacMCP] Using provided appBundleId alongside element path
 2025-05-19T13:11:14-0500 warning mcp.tool.ui_interact : error=The operation couldn’t be completed. (MacMCP.ElementPathError error 6.) [MacMCP] Element path did not resolve, but will still attempt click operation
 2025-05-19T13:11:14-0500 info mcp.tool.ui_interact.interaction : [MacMCP] Attempting detailed path resolution diagnosis...
-2025-05-19T13:11:15-0500 error mcp.tool.ui_interact : code=1 domain=MacMCP.MacMCPErrorInfo error=Failed to find element with path: ui://AXApplication/AXWindow/AXButton[@description="NonExistentButton"] [MacMCP] Click operation failed
-2025-05-19T13:11:15-0500 error mcp.tool.ui_interact : code=1 domain=MacMCP.MacMCPErrorInfo error=Failed to find element with path: ui://AXApplication/AXWindow/AXButton[@description="NonExistentButton"] info=[:] [MacMCP] UIInteractionTool.handler error
+2025-05-19T13:11:15-0500 error mcp.tool.ui_interact : code=1 domain=MacMCP.MacMCPErrorInfo error=Failed to find element with path: ui://AXApplication/AXWindow/AXButton[@AXDescription="NonExistentButton"] [MacMCP] Click operation failed
+2025-05-19T13:11:15-0500 error mcp.tool.ui_interact : code=1 domain=MacMCP.MacMCPErrorInfo error=Failed to find element with path: ui://AXApplication/AXWindow/AXButton[@AXDescription="NonExistentButton"] info=[:] [MacMCP] UIInteractionTool.handler error
 /Users/jesse/Documents/GitHub/projects/mac-mcp/MacMCP/Tests/TestsWithoutMocks/ToolE2ETests/UIInteractionToolE2ETests.swift:1154: error: -[TestsWithoutMocks.UIInteractionToolE2ETests testClickNonExistentElement] : XCTAssertTrue failed - Error should indicate element not found
 Test Case '-[TestsWithoutMocks.UIInteractionToolE2ETests testClickNonExistentElement]' failed (13.905 seconds).
 Test Case '-[TestsWithoutMocks.UIInteractionToolE2ETests testClickWithCoordinates]' started.
@@ -1794,8 +1794,8 @@ Finding calculator buttons...
 Setting up UIInteractionToolE2ETests
 Launching Calculator
 Starting testClickNonExistentElement
-Attempting to click on non-existent element: ui://AXApplication/AXWindow/AXButton[@description="NonExistentButton"]
-Received expected error: failed to find element with path: ui://axapplication/axwindow/axbutton[@description="nonexistentbutton"]
+Attempting to click on non-existent element: ui://AXApplication/AXWindow/AXButton[@AXDescription="NonExistentButton"]
+Received expected error: failed to find element with path: ui://axapplication/axwindow/axbutton[@AXDescription="nonexistentbutton"]
 Test passed: Appropriate error thrown for non-existent element
 Setting up UIInteractionToolE2ETests
 Launching Calculator
@@ -2019,11 +2019,11 @@ Clicking to position cursor after 'Part1' at coordinates: (588.2, 681.0)
 ◇ Test "Compare paths with different hierarchies" started.
 ◇ Test "Initialize UIElement from path with index disambiguation" started.
 ◇ Test "Handle error when comparing invalid paths" started.
-✘ Test "UIElement path generation with parent hierarchy" recorded an issue at UIElementTests.swift:208:5: Expectation failed: (path → "ui://AXWindow[@AXTitle="Test Window"]/AXGroup[@AXTitle="Controls Group"]/AXButton[@AXTitle="OK Button"]").contains("[@title=\"Test Window\"]" → "[@title="Test Window"]")
-✘ Test "UIElement path generation with parent hierarchy" recorded an issue at UIElementTests.swift:210:5: Expectation failed: (path → "ui://AXWindow[@AXTitle="Test Window"]/AXGroup[@AXTitle="Controls Group"]/AXButton[@AXTitle="OK Button"]").contains("[@title=\"Controls Group\"]" → "[@title="Controls Group"]")
-✘ Test "UIElement path generation with parent hierarchy" recorded an issue at UIElementTests.swift:212:5: Expectation failed: (path → "ui://AXWindow[@AXTitle="Test Window"]/AXGroup[@AXTitle="Controls Group"]/AXButton[@AXTitle="OK Button"]").contains("[@title=\"OK Button\"]" → "[@title="OK Button"]")
-✘ Test "ElementPath roundtrip (parse and toString)" recorded an issue at ElementPathTests.swift:287:5: Expectation failed: (regeneratedPath → "ui://AXWindow/AXGroup[@AXName="Controls"][2]/AXButton[@AXDescription="Submit"]") == (originalPath → "ui://AXWindow/AXGroup[@name="Controls"][2]/AXButton[@description="Submit"]")
-✘ Test "Test path round-trip with real-world paths" recorded an issue at ElementPathTests.swift:1008:5: Expectation failed: (regeneratedTextEditPath → "ui://AXApplication[@AXTitle="TextEdit"]/AXWindow[@AXTitle="Untitled"]/AXTextArea") == (textEditPath → "ui://AXApplication[@title="TextEdit"]/AXWindow[@AXTitle="Untitled"]/AXTextArea")
+✘ Test "UIElement path generation with parent hierarchy" recorded an issue at UIElementTests.swift:208:5: Expectation failed: (path → "ui://AXWindow[@AXTitle="Test Window"]/AXGroup[@AXTitle="Controls Group"]/AXButton[@AXTitle="OK Button"]").contains("[@AXTitle=\"Test Window\"]" → "[@AXTitle="Test Window"]")
+✘ Test "UIElement path generation with parent hierarchy" recorded an issue at UIElementTests.swift:210:5: Expectation failed: (path → "ui://AXWindow[@AXTitle="Test Window"]/AXGroup[@AXTitle="Controls Group"]/AXButton[@AXTitle="OK Button"]").contains("[@AXTitle=\"Controls Group\"]" → "[@AXTitle="Controls Group"]")
+✘ Test "UIElement path generation with parent hierarchy" recorded an issue at UIElementTests.swift:212:5: Expectation failed: (path → "ui://AXWindow[@AXTitle="Test Window"]/AXGroup[@AXTitle="Controls Group"]/AXButton[@AXTitle="OK Button"]").contains("[@AXTitle=\"OK Button\"]" → "[@AXTitle="OK Button"]")
+✘ Test "ElementPath roundtrip (parse and toString)" recorded an issue at ElementPathTests.swift:287:5: Expectation failed: (regeneratedPath → "ui://AXWindow/AXGroup[@AXName="Controls"][2]/AXButton[@AXDescription="Submit"]") == (originalPath → "ui://AXWindow/AXGroup[@AXName="Controls"][2]/AXButton[@AXDescription="Submit"]")
+✘ Test "Test path round-trip with real-world paths" recorded an issue at ElementPathTests.swift:1008:5: Expectation failed: (regeneratedTextEditPath → "ui://AXApplication[@AXTitle="TextEdit"]/AXWindow[@AXTitle="Untitled"]/AXTextArea") == (textEditPath → "ui://AXApplication[@AXTitle="TextEdit"]/AXWindow[@AXTitle="Untitled"]/AXTextArea")
 2025-05-19T13:15:47-0500 error mcp.tool.ui_interact : code=3 domain=MCP.MCPError error=Invalid params: Parameters are required (toolName: macos_ui_interact) info=[:] [MacMCP] UIInteractionTool.handler error
 ◇ Test "Test ElementPath parsing errors" started.
 ✘ Test "ElementPath parsing with attributes" recorded an issue at ElementPathTests.swift:145:5: Expectation failed: (path.segments[1].attributes["name"] → nil) == "Controls"
@@ -2032,12 +2032,12 @@ Clicking to position cursor after 'Part1' at coordinates: (588.2, 681.0)
 ✘ Test "ElementPath parsing with escaped quotes" recorded an issue at ElementPathTests.swift:185:5: Expectation failed: (path.segments[1].attributes["name"] → nil) == ("Group with \"quotes\"" → "Group with "quotes"")
 ◇ Test "Test ElementPath toString" started.
 ✘ Test "ElementPath parsing with multiple attributes" recorded an issue at ElementPathTests.swift:199:5: Expectation failed: (path.segments[1].attributes["id"] → nil) == "group1"
-✘ Test "UIElement path generation with various attribute types" recorded an issue at UIElementTests.swift:248:5: Expectation failed: (path → "ui://AXTextField[@AXDescription="Search field"][@AXFocused="true"][@AXIdentifier="searchField"][@AXTitle="Search"]").contains("[@title=\"Search\"]" → "[@title="Search"]")
+✘ Test "UIElement path generation with various attribute types" recorded an issue at UIElementTests.swift:248:5: Expectation failed: (path → "ui://AXTextField[@AXDescription="Search field"][@AXFocused="true"][@AXIdentifier="searchField"][@AXTitle="Search"]").contains("[@AXTitle=\"Search\"]" → "[@AXTitle="Search"]")
 ✘ Test "ElementPath parsing with attributes" recorded an issue at ElementPathTests.swift:147:5: Expectation failed: (path.segments[2].attributes["description"] → nil) == "Submit"
 2025-05-19T13:15:47-0500 error mcp.tool.ui_interact : code=3 domain=MCP.MCPError error=Invalid params: Invalid action: invalid_action. Must be one of: click, double_click, right_click, drag, scroll (toolName: macos_ui_interact, validActions: click, double_click, right_click, drag, scroll, providedAction: invalid_action) info=[:] [MacMCP] UIInteractionTool.handler error
 ✘ Test "ElementPath parsing with multiple attributes" recorded an issue at ElementPathTests.swift:201:5: Expectation failed: (path.segments[2].attributes["description"] → nil) == "Submit"
 ◇ Test "Test appending segments to paths" started.
-✘ Test "UIElement path generation with various attribute types" recorded an issue at UIElementTests.swift:249:5: Expectation failed: (path → "ui://AXTextField[@AXDescription="Search field"][@AXFocused="true"][@AXIdentifier="searchField"][@AXTitle="Search"]").contains("[@description=\"Search field\"]" → "[@description="Search field"]")
+✘ Test "UIElement path generation with various attribute types" recorded an issue at UIElementTests.swift:249:5: Expectation failed: (path → "ui://AXTextField[@AXDescription="Search field"][@AXFocused="true"][@AXIdentifier="searchField"][@AXTitle="Search"]").contains("[@AXDescription=\"Search field\"]" → "[@AXDescription="Search field"]")
 ◇ Test "Test PathSegment toString" started.
 2025-05-19T13:15:47-0500 error mcp.tool.ui_interact : details=Click action requires either elementPath or x,y coordinates [MacMCP] Missing required parameters
 ◇ Test "Escape attribute values" started.
@@ -2063,11 +2063,11 @@ Clicking to position cursor after 'Part1' at coordinates: (588.2, 681.0)
 ◇ Test "Generate normalized path for UIElement" started.
 2025-05-19T13:15:47-0500 error mcp.tool.ui_interact : code=3 domain=MCP.MCPError error=Invalid params: Drag action requires elementPath (source) (providedParams: action, toolName: macos_ui_interact, action: drag) info=[:] [MacMCP] UIInteractionTool.handler error
 2025-05-19T13:15:47-0500 error mcp.tool.ui_interact : code=3 domain=MCP.MCPError error=Invalid params: Drag action requires targetElementPath (action: drag, sourceElementPath: ui://AXApplication[@bundleIdentifier="com.apple.calculator"]/AXWindow, providedParams: elementPath, action, toolName: macos_ui_interact) info=[:] [MacMCP] UIInteractionTool.handler error
-✘ Test "Simple UIElement path generation" recorded an issue at UIElementTests.swift:167:5: Expectation failed: (path → "ui://AXButton[@AXDescription="A test button"][@AXTitle="Test Button"]").contains("[@title=\"Test Button\"]" → "[@title="Test Button"]")
-✘ Test "Simple UIElement path generation" recorded an issue at UIElementTests.swift:170:5: Expectation failed: (path → "ui://AXButton[@AXDescription="A test button"][@AXTitle="Test Button"]").contains("[@description=\"A test button\"]" → "[@description="A test button"]")
+✘ Test "Simple UIElement path generation" recorded an issue at UIElementTests.swift:167:5: Expectation failed: (path → "ui://AXButton[@AXDescription="A test button"][@AXTitle="Test Button"]").contains("[@AXTitle=\"Test Button\"]" → "[@AXTitle="Test Button"]")
+✘ Test "Simple UIElement path generation" recorded an issue at UIElementTests.swift:170:5: Expectation failed: (path → "ui://AXButton[@AXDescription="A test button"][@AXTitle="Test Button"]").contains("[@AXDescription=\"A test button\"]" → "[@AXDescription="A test button"]")
 ↳ // The path should include useful attributes for identification
-✘ Test "Menu element path generation compatibility" recorded an issue at UIElementTests.swift:310:5: Expectation failed: (path → "ui://AXMenuBarItem[@AXTitle="File"]/AXMenu/AXMenuItem[@AXTitle="Open"]").contains("[@title=\"File\"]" → "[@title="File"]")
-✘ Test "Menu element path generation compatibility" recorded an issue at UIElementTests.swift:313:5: Expectation failed: (path → "ui://AXMenuBarItem[@AXTitle="File"]/AXMenu/AXMenuItem[@AXTitle="Open"]").contains("[@title=\"Open\"]" → "[@title="Open"]")
+✘ Test "Menu element path generation compatibility" recorded an issue at UIElementTests.swift:310:5: Expectation failed: (path → "ui://AXMenuBarItem[@AXTitle="File"]/AXMenu/AXMenuItem[@AXTitle="Open"]").contains("[@AXTitle=\"File\"]" → "[@AXTitle="File"]")
+✘ Test "Menu element path generation compatibility" recorded an issue at UIElementTests.swift:313:5: Expectation failed: (path → "ui://AXMenuBarItem[@AXTitle="File"]/AXMenu/AXMenuItem[@AXTitle="Open"]").contains("[@AXTitle=\"Open\"]" → "[@AXTitle="Open"]")
 ✘ Test "Initialize UIElement from simple path" recorded an issue at UIElementPathInitTests.swift:729:4: Caught error: Failed to resolve segment: Could not find elements matching segment: AXWindow at index 0
 ✘ Test "Initialize UIElement from complex path with multiple attributes" recorded an issue at UIElementPathInitTests.swift:752:4: Caught error: Failed to resolve segment: Could not find elements matching segment: AXWindow at index 0
 ✘ Test "Compare different paths" recorded an issue at UIElementPathInitTests.swift:897:4: Caught error: Failed to resolve segment: Could not find elements matching segment: AXWindow at index 0

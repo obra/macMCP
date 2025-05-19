@@ -52,7 +52,7 @@ run_test "highlight_paths" "$INSPECTOR --app-id $APP_ID --highlight-paths --max-
 run_test "path_filter_button" "$INSPECTOR --app-id $APP_ID --path-filter 'AXButton'"
 
 # Test filtering by path with attribute
-run_test "path_filter_attribute" "$INSPECTOR --app-id $APP_ID --path-filter '[@description=\"7\"]'"
+run_test "path_filter_attribute" "$INSPECTOR --app-id $APP_ID --path-filter '[@AXDescription=\"7\"]'"
 
 # Test interactive paths
 run_test "interactive_paths" "$INSPECTOR --app-id $APP_ID --interactive-paths"

@@ -8,7 +8,7 @@ import XCTest
 final class ElementPathInspectorTests: XCTestCase {
   // Test data for path generation
   let testElement1 = UIElement(
-    path: "ui://AXButton[@title='Test Button']",
+    path: "ui://AXButton[@AXTitle='Test Button']",
     role: "AXButton",
     title: "Test Button",
     elementDescription: "Button description",
@@ -21,7 +21,7 @@ final class ElementPathInspectorTests: XCTestCase {
   )
 
   let testElement2 = UIElement(
-    path: "ui://AXTextField[@title='Test Field']",
+    path: "ui://AXTextField[@AXTitle='Test Field']",
     role: "AXTextField",
     title: "Test Field",
     value: "Hello world",
