@@ -4,6 +4,7 @@
 import AppKit
 import CoreGraphics
 import Foundation
+import Logging
 import MCP
 
 @testable import MacMCP
