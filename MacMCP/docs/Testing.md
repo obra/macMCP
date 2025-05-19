@@ -218,6 +218,57 @@ Use these helpers to make your tests more concise and maintainable.
 - Avoid unnecessary UI operations
 - Use the MCP-based accessibility inspector to find the most direct path to UI elements
 
+### 6. Using #expect Assertions
+
+When using the Swift Testing framework's `#expect` macro, follow these guidelines:
+
+1. **Basic Assertions**:
+   ```swift
+   // Correct usage
+   #expect(value == expected, "Optional message")
+   #expect(condition == true, "Optional message")
+   #expect(value == nil, "Optional message")
+   
+   // For explicit failure cases, use Bool(false)
+   #expect(Bool(false), "This test should fail")
+   ```
+
+2. **Common Patterns**:
+   ```swift
+   // Equality checks
+   #expect(actual == expected, "Values should be equal")
+   
+   // Boolean conditions
+   #expect(condition, "Condition should be true")
+   
+   // Nil checks
+   #expect(optional == nil, "Value should be nil")
+   
+   // String contains
+   #expect(string.contains("expected"), "String should contain expected text")
+   
+   // Error handling
+   do {
+     try someOperation()
+     #expect(Bool(false), "Operation should throw")
+   } catch {
+     #expect(error is ExpectedErrorType, "Wrong error type")
+   }
+   ```
+
+3. **Avoid Common Mistakes**:
+   - Don't use `#expect(false, "message")` - use `#expect(Bool(false), "message")` instead
+   - Don't use `#expect(true, "message")` - use `#expect(condition, "message")` instead
+   - Always provide descriptive messages for failures
+   - Use appropriate comparison operators (==, !=, >, <, etc.)
+
+4. **Best Practices**:
+   - Keep assertions focused and specific
+   - Use descriptive failure messages
+   - Group related assertions together
+   - Use appropriate comparison methods for different types
+   - Consider using custom assertion helpers for complex checks
+
 ## Running Tests
 
 ### Basic Test Execution

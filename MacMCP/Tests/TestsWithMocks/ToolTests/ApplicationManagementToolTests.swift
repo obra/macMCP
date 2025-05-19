@@ -343,7 +343,7 @@ struct ApplicationManagementToolTests {
       #expect(jsonString.contains("\"processIdentifier\":12345"), "Response should include process ID")
       #expect(jsonString.contains("\"bundleIdentifier\":\"com.test.app\""), "Response should include bundle ID")
     } else {
-      #expect(false, "Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
     
     try await tearDown()
@@ -380,7 +380,7 @@ struct ApplicationManagementToolTests {
       // Basic validation of JSON format
       #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
     } else {
-      #expect(false, "Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
     
     try await tearDown()
@@ -415,7 +415,7 @@ struct ApplicationManagementToolTests {
       #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
       #expect(jsonString.contains("\"bundleIdentifier\":\"com.test.app\""), "Response should include bundle ID")
     } else {
-      #expect(false, "Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
     
     try await tearDown()
@@ -448,7 +448,7 @@ struct ApplicationManagementToolTests {
       #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
       #expect(jsonString.contains("\"bundleIdentifier\":\"com.test.app\""), "Response should include bundle ID")
     } else {
-      #expect(false, "Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
     
     try await tearDown()
@@ -484,7 +484,7 @@ struct ApplicationManagementToolTests {
       #expect(jsonString.contains("\"bundleIdentifier\":\"com.test.app\""), "Response should include bundle ID")
       #expect(jsonString.contains("\"isRunning\":true"), "Response should include running status")
     } else {
-      #expect(false, "Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
     
     try await tearDown()
@@ -520,7 +520,7 @@ struct ApplicationManagementToolTests {
       #expect(jsonString.contains("\"bundleIdentifier\":\"com.test.app2\""), "Response should include second app bundle ID")
       #expect(jsonString.contains("\"applicationName\":\"Test App 2\""), "Response should include second app name")
     } else {
-      #expect(false, "Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
     
     try await tearDown()
@@ -553,7 +553,7 @@ struct ApplicationManagementToolTests {
       #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
       #expect(jsonString.contains("\"bundleIdentifier\":\"com.test.app\""), "Response should include bundle ID")
     } else {
-      #expect(false, "Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
     
     try await tearDown()
@@ -586,7 +586,7 @@ struct ApplicationManagementToolTests {
       #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
       #expect(jsonString.contains("\"bundleIdentifier\":\"com.test.app\""), "Response should include bundle ID")
     } else {
-      #expect(false, "Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
     
     try await tearDown()
@@ -619,7 +619,7 @@ struct ApplicationManagementToolTests {
       #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
       #expect(jsonString.contains("\"bundleIdentifier\":\"com.test.app\""), "Response should include bundle ID")
     } else {
-      #expect(false, "Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
     
     try await tearDown()
@@ -652,7 +652,7 @@ struct ApplicationManagementToolTests {
       #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
       #expect(jsonString.contains("\"exceptBundleIdentifier\":\"com.test.app\""), "Response should include except bundle ID")
     } else {
-      #expect(false, "Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
     
     try await tearDown()
@@ -688,7 +688,7 @@ struct ApplicationManagementToolTests {
       #expect(jsonString.contains("\"isActive\":true"), "Response should include active status")
       #expect(jsonString.contains("\"isFinishedLaunching\":true"), "Response should include finished launching status")
     } else {
-      #expect(false, "Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
     
     try await tearDown()
@@ -721,7 +721,7 @@ struct ApplicationManagementToolTests {
       #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
       #expect(jsonString.contains("\"hasFrontmostApplication\":false"), "Response should indicate no frontmost app")
     } else {
-      #expect(false, "Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
     
     try await tearDown()
@@ -745,17 +745,17 @@ struct ApplicationManagementToolTests {
     // Test that the error is propagated
     do {
       _ = try await applicationManagementTool.handler(params)
-      #expect(false, "Should throw an error")
+      #expect(Bool(false), "Should throw an error")
     } catch let error as MCPError {
       // Verify it's the correct error type
       switch error {
       case .internalError(let message):
         #expect(message?.contains("Test error message") == true, "Error message should include the original error details")
       default:
-        #expect(false, "Wrong error type: \(error)")
+        #expect(Bool(false), "Wrong error type: \(error)")
       }
     } catch {
-      #expect(false, "Unexpected error type: \(error)")
+      #expect(Bool(false), "Unexpected error type: \(error)")
     }
     
     try await tearDown()
@@ -774,16 +774,16 @@ struct ApplicationManagementToolTests {
     // Test that parameter validation works
     do {
       _ = try await applicationManagementTool.handler(params)
-      #expect(false, "Should throw an error for missing bundleIdentifier")
+      #expect(Bool(false), "Should throw an error for missing bundleIdentifier")
     } catch let error as MCPError {
       switch error {
       case .invalidParams(let message):
         #expect(message?.contains("bundleIdentifier is required") == true, "Error should indicate missing bundleIdentifier")
       default:
-        #expect(false, "Wrong error type: \(error)")
+        #expect(Bool(false), "Wrong error type: \(error)")
       }
     } catch {
-      #expect(false, "Unexpected error type: \(error)")
+      #expect(Bool(false), "Unexpected error type: \(error)")
     }
 
     // Test missing both identifiers for launch
@@ -793,16 +793,16 @@ struct ApplicationManagementToolTests {
 
     do {
       _ = try await applicationManagementTool.handler(launchParams)
-      #expect(false, "Should throw an error for missing both applicationName and bundleIdentifier")
+      #expect(Bool(false), "Should throw an error for missing both applicationName and bundleIdentifier")
     } catch let error as MCPError {
       switch error {
       case .invalidParams(let message):
         #expect(message?.contains("Either applicationName or bundleIdentifier is required") == true, "Error should indicate missing identifiers")
       default:
-        #expect(false, "Wrong error type: \(error)")
+        #expect(Bool(false), "Wrong error type: \(error)")
       }
     } catch {
-      #expect(false, "Unexpected error type: \(error)")
+      #expect(Bool(false), "Unexpected error type: \(error)")
     }
 
     // Test invalid action
@@ -813,16 +813,16 @@ struct ApplicationManagementToolTests {
 
     do {
       _ = try await applicationManagementTool.handler(invalidActionParams)
-      #expect(false, "Should throw an error for invalid action")
+      #expect(Bool(false), "Should throw an error for invalid action")
     } catch let error as MCPError {
       switch error {
       case .invalidParams(let message):
         #expect(message?.contains("Valid action is required") == true, "Error should indicate invalid action")
       default:
-        #expect(false, "Wrong error type: \(error)")
+        #expect(Bool(false), "Wrong error type: \(error)")
       }
     } catch {
-      #expect(false, "Unexpected error type: \(error)")
+      #expect(Bool(false), "Unexpected error type: \(error)")
     }
     
     try await tearDown()
