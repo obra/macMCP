@@ -1,14 +1,16 @@
 // ABOUTME: ElementPathFilteringTests.swift
 // ABOUTME: Part of MacMCP allowing LLMs to interact with macOS applications.
 
+import AppKit
 import Foundation
 import Logging
 import MCP
-import XCTest
+import Testing
 
 @testable import MacMCP
 
-final class ElementPathFilteringTests: XCTestCase {
+@Suite(.serialized)
+struct ElementPathFilteringTests {
   // Test components
   private var toolChain: ToolChain!
   private var interfaceExplorerTool: InterfaceExplorerTool!
@@ -21,8 +23,8 @@ final class ElementPathFilteringTests: XCTestCase {
   private var logFileURL: URL?
   private var diagnosticLogPath: String?
 
-  override func setUp() async throws {
-    try await super.setUp()
+  private mutating func setUp() async throws {
+    // No super.setUp() call needed for struct
     
     // Set up logging to file for debugging
     (logger, logFileURL) = TestLogger.create(label: "mcp.test.element_path_filtering", testName: "ElementPathFilteringTests")
@@ -67,7 +69,7 @@ final class ElementPathFilteringTests: XCTestCase {
     // Check if app is running
     app = NSRunningApplication.runningApplications(withBundleIdentifier: calculatorBundleId).first
     logger.info("Calculator running status: \(app != nil)")
-    XCTAssertNotNil(app, "Failed to launch Calculator app")
+    #expect(app != nil, "Failed to launch Calculator app")
     
     // Try to activate the app to ensure it's in the foreground
     if let runningApp = app {
@@ -81,7 +83,7 @@ final class ElementPathFilteringTests: XCTestCase {
     logger.info("Setup complete - Calculator should be running")
   }
 
-  override func tearDown() async throws {
+  private mutating func tearDown() async throws {
     logger.info("====== TEST TEARDOWN STARTED ======")
     
     // Terminate test application
@@ -107,7 +109,7 @@ final class ElementPathFilteringTests: XCTestCase {
     }
     
     logger.info("====== TEST TEARDOWN COMPLETE ======")
-    try await super.tearDown()
+    // No super.tearDown() call needed for struct
   }
   
   // MARK: - Logging Setup
@@ -162,14 +164,14 @@ final class ElementPathFilteringTests: XCTestCase {
   // Helper to verify a path is fully qualified
   private func verifyFullyQualifiedPath(_ path: String?) {
     guard let path else {
-      XCTFail("Path is nil")
+      #expect(Bool(false), "Path is nil")
       return
     }
-    XCTAssertTrue(path.hasPrefix("ui://"), "Path doesn't start with ui://: \(path)")
-    XCTAssertTrue(path.contains("AXApplication"), "Path doesn't include AXApplication: \(path)")
-    XCTAssertTrue(path.contains("/"), "Path doesn't contain hierarchy separators: \(path)")
+    #expect(path.hasPrefix("ui://"), "Path doesn't start with ui://: \(path)")
+    #expect(path.contains("AXApplication"), "Path doesn't include AXApplication: \(path)")
+    #expect(path.contains("/"), "Path doesn't contain hierarchy separators: \(path)")
     let separatorCount = path.components(separatedBy: "/").count - 1
-    XCTAssertGreaterThanOrEqual(separatorCount, 1, "Path doesn't have enough segments: \(path)")
+    #expect(separatorCount >= 1, "Path doesn't have enough segments: \(path)")
   }
 
   // Helper to run a request, verify, and always attempt a click
@@ -184,7 +186,7 @@ final class ElementPathFilteringTests: XCTestCase {
     logger.info("Got response with \(response.count) items")
     
     guard case .text(let jsonString) = response.first else {
-      XCTFail("Failed to get valid response from tool")
+      #expect(Bool(false), "Failed to get valid response from tool")
       return
     }
     
@@ -239,7 +241,7 @@ final class ElementPathFilteringTests: XCTestCase {
           }
         }
         
-        XCTAssertFalse(descriptors.isEmpty, "No elements returned")
+        #expect(!descriptors.isEmpty, "No elements returned")
         return
       }
       
@@ -300,16 +302,18 @@ final class ElementPathFilteringTests: XCTestCase {
       }
     } catch {
       logger.error("Error decoding response: \(error)")
-      XCTFail("Failed to decode response JSON: \(error)")
+      #expect(Bool(false), "Failed to decode response JSON: \(error)")
     }
   }
   
   // MARK: - Test Cases
   
-  func testRoleFilteringFullPaths() async throws {
+  @Test("Role filtering with full paths")
+  mutating func testRoleFilteringFullPaths() async throws {
+    try await setUp()
     // Verify Calculator is running
     let isRunning = isApplicationRunning(calculatorBundleId)
-    XCTAssertTrue(isRunning, "Calculator should be running before test")
+    #expect(isRunning, "Calculator should be running before test")
     
     let request: [String: Value] = [
       "scope": .string("application"),
@@ -321,14 +325,18 @@ final class ElementPathFilteringTests: XCTestCase {
       ]),
     ]
     try await runRequestAndVerify(request) { descriptor in
-      XCTAssertEqual(descriptor.role, "AXButton", "Non-button element returned")
+      #expect(descriptor.role == "AXButton", "Non-button element returned")
     }
+    
+    try await tearDown()
   }
 
-  func testElementTypeFilteringFullPaths() async throws {
+  @Test("Element type filtering with full paths")
+  mutating func testElementTypeFilteringFullPaths() async throws {
+    try await setUp()
     // Verify Calculator is running
     let isRunning = isApplicationRunning(calculatorBundleId)
-    XCTAssertTrue(isRunning, "Calculator should be running before test")
+    #expect(isRunning, "Calculator should be running before test")
     
     let request: [String: Value] = [
       "scope": .string("application"),
@@ -340,12 +348,16 @@ final class ElementPathFilteringTests: XCTestCase {
       ]),
     ]
     try await runRequestAndVerify(request)
+    
+    try await tearDown()
   }
 
-  func testAttributeFilteringFullPaths() async throws {
+  @Test("Attribute filtering with full paths")
+  mutating func testAttributeFilteringFullPaths() async throws {
+    try await setUp()
     // Verify Calculator is running
     let isRunning = isApplicationRunning(calculatorBundleId)
-    XCTAssertTrue(isRunning, "Calculator should be running before test")
+    #expect(isRunning, "Calculator should be running before test")
     
     let request: [String: Value] = [
       "scope": .string("application"),
@@ -356,15 +368,19 @@ final class ElementPathFilteringTests: XCTestCase {
       ]),
     ]
     try await runRequestAndVerify(request) { descriptor in
-      XCTAssertTrue(
+      #expect(
         descriptor.description?.contains("3") ?? false, "Element doesn't match filter criteria")
     }
+    
+    try await tearDown()
   }
 
-  func testCombinedFilteringFullPaths() async throws {
+  @Test("Combined filtering with full paths")
+  mutating func testCombinedFilteringFullPaths() async throws {
+    try await setUp()
     // Verify Calculator is running
     let isRunning = isApplicationRunning(calculatorBundleId)
-    XCTAssertTrue(isRunning, "Calculator should be running before test")
+    #expect(isRunning, "Calculator should be running before test")
     
     let request: [String: Value] = [
       "scope": .string("application"),
@@ -376,10 +392,12 @@ final class ElementPathFilteringTests: XCTestCase {
       ]),
     ]
     try await runRequestAndVerify(request) { descriptor in
-      XCTAssertEqual(descriptor.role, "AXButton", "Non-button element returned")
-      XCTAssertTrue(
+      #expect(descriptor.role == "AXButton", "Non-button element returned")
+      #expect(
         descriptor.description?.contains("4") ?? false, "Element doesn't match description criteria"
       )
     }
+    
+    try await tearDown()
   }
 }

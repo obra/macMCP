@@ -9,7 +9,7 @@ import XCTest
 
 @testable import MacMCP
 
-@Suite("Action Logging Tests")
+@Suite(.serialized)
 struct ActionLoggingTests {
   @Test("Log capture and retrieval")
   func logCaptureAndRetrieval() async throws {
@@ -61,17 +61,18 @@ struct ActionLoggingTests {
 
     // Verify the result is text containing log entries
     #expect(result.count == 1)
-    if case .text(let json) = result[0] {
-      #expect(json.contains("interaction"))
-      #expect(json.contains("click"))
-      #expect(json.contains("button-123"))
-      #expect(json.contains("type"))
-      #expect(json.contains("textfield-456"))
-      #expect(json.contains("screenshot"))
-      #expect(json.contains("capture"))
-    } else {
-      XCTFail("Expected text result")
+    guard case .text(let json) = result[0] else {
+      #expect(false, "Expected text result")
+      return
     }
+    
+    #expect(json.contains("interaction"))
+    #expect(json.contains("click"))
+    #expect(json.contains("button-123"))
+    #expect(json.contains("type"))
+    #expect(json.contains("textfield-456"))
+    #expect(json.contains("screenshot"))
+    #expect(json.contains("capture"))
   }
 
   @Test("Log filtering by category")
@@ -110,15 +111,16 @@ struct ActionLoggingTests {
 
     // Verify the result only contains interaction logs
     #expect(result.count == 1)
-    if case .text(let json) = result[0] {
-      #expect(json.contains("interaction"))
-      #expect(json.contains("click"))
-      #expect(json.contains("button-123"))
-      #expect(!json.contains("screenshot"))
-      #expect(!json.contains("capture"))
-    } else {
-      XCTFail("Expected text result")
+    guard case .text(let json) = result[0] else {
+      #expect(false, "Expected text result")
+      return
     }
+    
+    #expect(json.contains("interaction"))
+    #expect(json.contains("click"))
+    #expect(json.contains("button-123"))
+    #expect(!json.contains("screenshot"))
+    #expect(!json.contains("capture"))
   }
 
   @Test("Log filtering by action")
@@ -157,15 +159,16 @@ struct ActionLoggingTests {
 
     // Verify the result only contains click logs
     #expect(result.count == 1)
-    if case .text(let json) = result[0] {
-      #expect(json.contains("interaction"))
-      #expect(json.contains("click"))
-      #expect(json.contains("button-123"))
-      #expect(!json.contains("type"))
-      #expect(!json.contains("textfield-456"))
-    } else {
-      XCTFail("Expected text result")
+    guard case .text(let json) = result[0] else {
+      #expect(false, "Expected text result")
+      return
     }
+    
+    #expect(json.contains("interaction"))
+    #expect(json.contains("click"))
+    #expect(json.contains("button-123"))
+    #expect(!json.contains("type"))
+    #expect(!json.contains("textfield-456"))
   }
 
   @Test("Log filtering by time range")
@@ -209,12 +212,13 @@ struct ActionLoggingTests {
 
     // Verify the result only contains recent logs
     #expect(result.count == 1)
-    if case .text(let json) = result[0] {
-      #expect(json.contains("new-button"))
-      #expect(!json.contains("old-button"))
-    } else {
-      XCTFail("Expected text result")
+    guard case .text(let json) = result[0] else {
+      #expect(false, "Expected text result")
+      return
     }
+    
+    #expect(json.contains("new-button"))
+    #expect(!json.contains("old-button"))
   }
 }
 

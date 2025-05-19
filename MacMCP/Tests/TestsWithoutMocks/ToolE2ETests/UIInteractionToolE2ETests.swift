@@ -139,7 +139,7 @@ struct UIInteractionToolE2ETests {
     guard let oneButton = digitOne, let twoButton = digitTwo,
       let addButton = plusButton, let eqButton = equalsButton
     else {
-      #expect(false, "Failed to find all required buttons")
+      #expect(Bool(false), "Failed to find all required buttons")
       return
     }
 
@@ -149,7 +149,7 @@ struct UIInteractionToolE2ETests {
     print("Clicking button '1'")
     let onePath = oneButton.path
     if onePath.isEmpty {
-      #expect(false, "Empty path for '1' button")
+      #expect(Bool(false), "Empty path for '1' button")
       return
     }
     let clickOneSuccess = try await calculatorHelper.toolChain.clickElement(
@@ -162,7 +162,7 @@ struct UIInteractionToolE2ETests {
     print("Clicking button '+'")
     let addPath = addButton.path
     if addPath.isEmpty {
-      #expect(false, "Empty path for '+' button")
+      #expect(Bool(false), "Empty path for '+' button")
       return
     }
     let clickPlusSuccess = try await calculatorHelper.toolChain.clickElement(
@@ -175,7 +175,7 @@ struct UIInteractionToolE2ETests {
     print("Clicking button '2'")
     let twoPath = twoButton.path
     if twoPath.isEmpty {
-      #expect(false, "Empty path for '2' button")
+      #expect(Bool(false), "Empty path for '2' button")
       return
     }
     let clickTwoSuccess = try await calculatorHelper.toolChain.clickElement(
@@ -188,7 +188,7 @@ struct UIInteractionToolE2ETests {
     print("Clicking button '='")
     let eqPath = eqButton.path
     if eqPath.isEmpty {
-      #expect(false, "Empty path for '=' button")
+      #expect(Bool(false), "Empty path for '=' button")
       return
     }
     let clickEqualsSuccess = try await calculatorHelper.toolChain.clickElement(
@@ -206,7 +206,7 @@ struct UIInteractionToolE2ETests {
     // Test direct UIInteractionTool interface to verify proper passing of parameters
     // onePath is already defined above, so we'll reuse it
     if oneButton.path.isEmpty {
-      #expect(false, "Empty path for '1' button")
+      #expect(Bool(false), "Empty path for '1' button")
       return
     }
     let result = try await calculatorHelper.toolChain.uiInteractionTool.handler([
@@ -223,7 +223,7 @@ struct UIInteractionToolE2ETests {
       )
       #expect(message.contains(onePath), "Success message should include element path")
     } else {
-      #expect(false, "Handler should return text content")
+      #expect(Bool(false), "Handler should return text content")
     }
 
     print("testBasicClick completed successfully")
@@ -261,7 +261,7 @@ struct UIInteractionToolE2ETests {
     }
 
     guard let digitFive else {
-      #expect(false, "Failed to find button '5' after multiple attempts")
+      #expect(Bool(false), "Failed to find button '5' after multiple attempts")
       return
     }
 
@@ -366,7 +366,7 @@ struct UIInteractionToolE2ETests {
 
     // Get the text area element
     guard let textArea = try await textEditHelper.app.getTextArea() else {
-      #expect(false, "Failed to find TextEdit text area")
+      #expect(Bool(false), "Failed to find TextEdit text area")
       return
     }
 
@@ -415,14 +415,14 @@ struct UIInteractionToolE2ETests {
 
     // Get the text area element again after reset
     guard let newTextArea = try await textEditHelper.app.getTextArea() else {
-      #expect(false, "Failed to find TextEdit text area after reset")
+      #expect(Bool(false), "Failed to find TextEdit text area after reset")
       return
     }
 
     // Try double-click through the handler
     let newTextAreaPath = newTextArea.path
     if newTextAreaPath.isEmpty {
-      #expect(false, "Empty path for text area")
+      #expect(Bool(false), "Empty path for text area")
       return
     }
     let doubleClickParams: [String: Value] = [
@@ -481,14 +481,14 @@ struct UIInteractionToolE2ETests {
 
     // Get the text area element
     guard let textArea = try await textEditHelper.app.getTextArea() else {
-      #expect(false, "Failed to find TextEdit text area")
+      #expect(Bool(false), "Failed to find TextEdit text area")
       return
     }
 
     // Use the UIInteractionTool handler directly to test right-click
     let textAreaPath = textArea.path
     if textAreaPath.isEmpty {
-      #expect(false, "Empty path for text area")
+      #expect(Bool(false), "Empty path for text area")
       return
     }
     let rightClickParams: [String: Value] = [
@@ -549,7 +549,7 @@ struct UIInteractionToolE2ETests {
 
     // Get the text area element
     guard let textArea = try await textEditHelper.app.getTextArea() else {
-      #expect(false, "Failed to find TextEdit text area")
+      #expect(Bool(false), "Failed to find TextEdit text area")
       return
     }
 
@@ -561,7 +561,7 @@ struct UIInteractionToolE2ETests {
     do {
       let textAreaPath = textArea.path
       if textAreaPath.isEmpty {
-        #expect(false, "Empty path for text area")
+        #expect(Bool(false), "Empty path for text area")
         return
       }
       let invalidParams: [String: Value] = [
@@ -571,7 +571,7 @@ struct UIInteractionToolE2ETests {
       ]
 
       _ = try await textEditHelper.toolChain.uiInteractionTool.handler(invalidParams)
-      #expect(false, "Should throw an error when targetElementPath is missing")
+      #expect(Bool(false), "Should throw an error when targetElementPath is missing")
     } catch {
       // Expected error - success
       let errorMessage = error.localizedDescription.lowercased()
@@ -621,7 +621,7 @@ struct UIInteractionToolE2ETests {
     if fileManager.fileExists(atPath: testFileURL.path) {
       print("Test file exists at path: \(testFileURL.path)")
     } else {
-      #expect(false, "Test file not found at path: \(testFileURL.path)")
+      #expect(Bool(false), "Test file not found at path: \(testFileURL.path)")
       return
     }
 
@@ -753,7 +753,7 @@ struct UIInteractionToolE2ETests {
       // Click the Open button
       let openButtonPath = openButton.path
       if openButtonPath.isEmpty {
-        #expect(false, "Empty path for Open button")
+        #expect(Bool(false), "Empty path for Open button")
         return
       }
       let clickParams: [String: Value] = [
@@ -789,7 +789,7 @@ struct UIInteractionToolE2ETests {
     // Get the text area element
     print("Attempting to get text area...")
     guard let textArea = try await textEditHelper.app.getTextArea() else {
-      #expect(false, "Failed to find TextEdit text area")
+      #expect(Bool(false), "Failed to find TextEdit text area")
       return
     }
     print("Found text area with path: \(textArea.path)")
@@ -947,7 +947,7 @@ struct UIInteractionToolE2ETests {
     ) async throws {
       do {
         _ = try await textEditHelper.toolChain.uiInteractionTool.handler(params)
-        #expect(false, message)
+        #expect(Bool(false), #"\(message)"#)
       } catch {
         // Expected error - success
         let errorMessage = error.localizedDescription.lowercased()
@@ -961,7 +961,7 @@ struct UIInteractionToolE2ETests {
 
     // Check the path for text area
     if textArea.path.isEmpty {
-      #expect(false, "Empty path for text area")
+      #expect(Bool(false), "Empty path for text area")
       return
     }
     // We already have textAreaPath defined above
@@ -1048,14 +1048,14 @@ struct UIInteractionToolE2ETests {
 
     // Get the text area element
     guard let textArea = try await textEditHelper.app.getTextArea() else {
-      #expect(false, "Failed to find TextEdit text area")
+      #expect(Bool(false), "Failed to find TextEdit text area")
       return
     }
 
     // 1. First click in text area to ensure it has focus
     let keyboardTextAreaPath = textArea.path
     if keyboardTextAreaPath.isEmpty {
-      #expect(false, "Empty path for text area")
+      #expect(Bool(false), "Empty path for text area")
       return
     }
     let clickResult = try await textEditHelper.toolChain.clickElement(
@@ -1091,7 +1091,7 @@ struct UIInteractionToolE2ETests {
     // First, get the text area element again to ensure we have current coordinates
     let freshTextArea = try await textEditHelper.app.getTextArea()
     guard let textArea = freshTextArea else {
-      #expect(false, "Could not find text area for positioning cursor")
+      #expect(Bool(false), "Could not find text area for positioning cursor")
       return
     }
 
@@ -1154,7 +1154,7 @@ struct UIInteractionToolE2ETests {
         elementPath: nonExistentId,
         bundleId: calculatorHelper.app.bundleId,
       )
-      #expect(false, "Should throw an error for non-existent element")
+      #expect(Bool(false), "Should throw an error for non-existent element")
     } catch {
       // Success - we expect an error
       let errorMessage = error.localizedDescription.lowercased()
@@ -1176,7 +1176,7 @@ struct UIInteractionToolE2ETests {
       ]
 
       _ = try await calculatorHelper.toolChain.uiInteractionTool.handler(nonExistentParams)
-      #expect(false, "Handler should throw an error for non-existent element")
+      #expect(Bool(false), "Handler should throw an error for non-existent element")
     } catch {
       // Expected error - success
       let errorMessage = error.localizedDescription.lowercased()
@@ -1210,7 +1210,7 @@ struct UIInteractionToolE2ETests {
       ]
 
       _ = try await calculatorHelper.toolChain.uiInteractionTool.handler(invalidParams)
-      #expect(false, "Should throw an error for invalid action")
+      #expect(Bool(false), "Should throw an error for invalid action")
     } catch {
       // Expected error - success
       let errorMessage = error.localizedDescription.lowercased()
@@ -1228,7 +1228,7 @@ struct UIInteractionToolE2ETests {
       ]
 
       _ = try await calculatorHelper.toolChain.uiInteractionTool.handler(invalidParams)
-      #expect(false, "Should throw an error for missing action")
+      #expect(Bool(false), "Should throw an error for missing action")
     } catch {
       // Expected error - success
       let errorMessage = error.localizedDescription.lowercased()

@@ -104,7 +104,7 @@ struct ScreenshotToolE2ETests {
       // Check metadata
       #expect(metadata?["region"] == "full", "Region should be 'full'")
     } else {
-      #expect(false, "Result should be an image content item")
+      #expect(Bool(false), "Result should be an image content item")
     }
     
     try await tearDown()
@@ -161,7 +161,7 @@ struct ScreenshotToolE2ETests {
       #expect(metadata?["height"] != nil, "Height metadata should be present")
       #expect(metadata?["region"] == "area", "Region should be 'area'")
     } else {
-      #expect(false, "Result should be an image content item")
+      #expect(Bool(false), "Result should be an image content item")
     }
     
     try await tearDown()
@@ -189,13 +189,13 @@ struct ScreenshotToolE2ETests {
       let image = NSImage(data: decodedData)!
 
       // Calculator window size can vary - it might be as small as 190px on some systems
-      #expect(image.size.width, 180, "Calculator window should be wider than 180px")
-      #expect(image.size.height, 180, "Calculator window should be taller than 180px")
+      #expect(image.size.width > 180, "Calculator window should be wider than 180px")
+      #expect(image.size.height > 180, "Calculator window should be taller than 180px")
 
       // Check metadata
-      #expect(metadata?["region"], "window", "Region should be 'window'")
+      #expect(metadata?["region"] == "window", "Region should be 'window'")
     } else {
-      #expect(false, "Result should be an image content item")
+      #expect(Bool(false), "Result should be an image content item")
     }
     
     try await tearDown()
@@ -297,12 +297,12 @@ struct ScreenshotToolE2ETests {
 
             // Verify image has reasonable dimensions
             #expect(
-              image.size.width, 5.0, "Element screenshot width should be reasonable")
+              image.size.width > 5.0, "Element screenshot width should be reasonable")
             #expect(
-              image.size.height, 5.0, "Element screenshot height should be reasonable")
+              image.size.height > 5.0, "Element screenshot height should be reasonable")
 
             // Verify metadata
-            #expect(metadata?["region"], "element", "Region should be 'element'")
+            #expect(metadata?["region"] == "element", "Region should be 'element'")
 
             print(
               "Successfully captured element screenshot with dimensions: \(image.size.width) x \(image.size.height)",
@@ -502,7 +502,7 @@ struct ScreenshotToolE2ETests {
     // Expect an error
     do {
       _ = try await toolChain.screenshotTool.handler(params)
-      #expect(false, "Should throw an error for non-existent element")
+      #expect(Bool(false), "Should throw an error for non-existent element")
     } catch {
       // Success - we expect an error
       #expect(error.localizedDescription.contains("not found"),
@@ -525,7 +525,7 @@ struct ScreenshotToolE2ETests {
     // Expect an error
     do {
       _ = try await toolChain.screenshotTool.handler(params)
-      #expect(false, "Should throw an error for non-running application")
+      #expect(Bool(false), "Should throw an error for non-running application")
     } catch {
       // Success - we expect an error
       #expect(error.localizedDescription.contains("not running"),
@@ -591,7 +591,7 @@ struct ScreenshotToolE2ETests {
         height: metadata?["height"] ?? "0",
       )
     } else {
-      #expect(false, "Result should be an image content item")
+      #expect(Bool(false), "Result should be an image content item")
     }
   }
 
