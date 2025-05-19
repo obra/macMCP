@@ -130,16 +130,16 @@ struct UIInteractionToolE2ETests {
       try await Task.sleep(for: .milliseconds(1000))
     }
 
-    XCTAssertNotNil(digitOne, "Should find the '1' button")
-    XCTAssertNotNil(digitTwo, "Should find the '2' button")
-    XCTAssertNotNil(plusButton, "Should find the '+' button")
-    XCTAssertNotNil(equalsButton, "Should find the '=' button")
+    #expect(digitOne != nil, "Should find the '1' button")
+    #expect(digitTwo != nil, "Should find the '2' button")
+    #expect(plusButton != nil, "Should find the '+' button")
+    #expect(equalsButton != nil, "Should find the '=' button")
 
     // Now perform a simple calculation using the UIInteractionTool directly
     guard let oneButton = digitOne, let twoButton = digitTwo,
       let addButton = plusButton, let eqButton = equalsButton
     else {
-      XCTFail("Failed to find all required buttons")
+      #expect(false, "Failed to find all required buttons")
       return
     }
 
@@ -149,27 +149,27 @@ struct UIInteractionToolE2ETests {
     print("Clicking button '1'")
     let onePath = oneButton.path
     if onePath.isEmpty {
-      XCTFail("Empty path for '1' button")
+      #expect(false, "Empty path for '1' button")
       return
     }
     let clickOneSuccess = try await calculatorHelper.toolChain.clickElement(
       elementPath: onePath,
       bundleId: calculatorHelper.app.bundleId,
     )
-    XCTAssertTrue(clickOneSuccess, "Should click '1' button successfully")
+    #expect(clickOneSuccess, "Should click '1' button successfully")
     try await Task.sleep(for: .milliseconds(1000))
 
     print("Clicking button '+'")
     let addPath = addButton.path
     if addPath.isEmpty {
-      XCTFail("Empty path for '+' button")
+      #expect(false, "Empty path for '+' button")
       return
     }
     let clickPlusSuccess = try await calculatorHelper.toolChain.clickElement(
       elementPath: addPath,
       bundleId: calculatorHelper.app.bundleId,
     )
-    XCTAssertTrue(clickPlusSuccess, "Should click '+' button successfully")
+    #expect(clickPlusSuccess, "Should click '+' button successfully")
     try await Task.sleep(for: .milliseconds(1000))
 
     print("Clicking button '2'")
