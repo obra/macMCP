@@ -261,6 +261,31 @@ public enum FrameSource: String, Codable {
     // Resolve the path to an AXUIElement
     let axElement = try await elementPath.resolve(using: accessibilityService)
 
+    // Fetch all AX attributes for this element
+    var attributes: [String: Any] = [:]
+    var attrNamesRef: CFArray?
+    if AXUIElementCopyAttributeNames(axElement, &attrNamesRef) == .success,
+       let attrNames = attrNamesRef as? [String] {
+      for attrName in attrNames {
+        var attrValueRef: CFTypeRef?
+        if AXUIElementCopyAttributeValue(axElement, attrName as CFString, &attrValueRef) == .success,
+           let value = attrValueRef {
+          // Try to convert value to something JSON-serializable
+          if let str = value as? String {
+            attributes[attrName] = str
+          } else if let num = value as? NSNumber {
+            attributes[attrName] = num
+          } else if let bool = value as? Bool {
+            attributes[attrName] = bool
+          } else if let arr = value as? [Any] {
+            attributes[attrName] = arr.map { "\($0)" }
+          } else {
+            attributes[attrName] = "\(value)"
+          }
+        }
+      }
+    }
+
     // Get essential properties for UIElement initialization
     var pathString = ""
     var role = ""
@@ -268,7 +293,6 @@ public enum FrameSource: String, Codable {
     var value: String?
     var elementDescription: String?
     var frame = CGRect.zero
-    var attributes: [String: Any] = [:]
     var actions: [String] = []
 
     // Get the role
@@ -665,10 +689,21 @@ public enum FrameSource: String, Codable {
         attributes["AXValue"] = PathNormalizer.escapeAttributeValue(value)
       }
 
-      // Add custom identifier if available
-      if let identifier = element.attributes["identifier"] as? String, !identifier.isEmpty {
-        attributes["AXIdentifier"] = identifier
+      // Add custom identifier if available (check all common identifier attribute formats)
+      // Try multiple attribute variations to catch all possible identifier formats
+      let identifierKeys = ["AXIdentifier", "identifier", "Identifier"]
+      var foundIdentifier = false
+      
+      for key in identifierKeys {
+          if let identifier = element.attributes[key] as? String, !identifier.isEmpty {
+              // Always consistently use "AXIdentifier" in the final path
+              attributes["AXIdentifier"] = identifier
+              // Diagnostic logging
+              foundIdentifier = true
+              break  // Stop after finding the first valid identifier
+          }
       }
+      
 
       // For generic containers with no identifying attributes, consider adding index for disambiguation
       if isGenericContainer, attributes.isEmpty, element.parent != nil {

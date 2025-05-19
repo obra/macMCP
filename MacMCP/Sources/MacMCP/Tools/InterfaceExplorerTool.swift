@@ -202,11 +202,20 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
             attributes["AXDescription"] = PathNormalizer.escapeAttributeValue(desc)
           }
 
-          // Include identifier if available
-          if let identifier = elem.attributes["identifier"] as? String, !identifier.isEmpty {
-            attributes["AXIdentifier"] = identifier
+          // Include identifier if available (check all common identifier attribute formats)
+          // Try multiple attribute variations to catch all possible identifier formats
+          let identifierKeys = ["AXIdentifier", "identifier", "Identifier"]
+          var foundIdentifier = false
+          
+          for key in identifierKeys {
+              if let identifier = elem.attributes[key] as? String, !identifier.isEmpty {
+                  // Always consistently use "AXIdentifier" in the final path
+                  attributes["AXIdentifier"] = identifier
+                  // Diagnostic logging
+                  foundIdentifier = true
+                  break  // Stop after finding the first valid identifier
+              }
           }
-
           // For applications, include bundle identifier if available
           if elem.role == "AXApplication" {
             if let bundleId = elem.attributes["bundleIdentifier"] as? String, !bundleId.isEmpty {
@@ -396,39 +405,9 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
   /// - Returns: Dictionary of filtered and cleaned attributes
   private static func filterAttributes(_ element: UIElement) -> [String: String] {
     var result: [String: String] = [:]
-
-    // Only include attributes that aren't already covered by other properties
     for (key, value) in element.attributes {
-      // Skip attributes already covered by capabilities, state, or primary properties
-      if [
-        "role",
-        "title",
-        "value",
-        "description",
-        "identifier",
-        "enabled",
-        "visible",
-        "focused",
-        "selected",
-      ].contains(key) {
-        continue
-      }
-
-      // Include keyboard shortcuts and other useful properties
-      if let keyboardShortcut = element.attributes["keyboardShortcut"] as? String,
-        !keyboardShortcut.isEmpty
-      {
-        result["keyboardShortcut"] = keyboardShortcut
-      }
-
-      if let helpText = element.attributes["help"] as? String, !helpText.isEmpty {
-        result["helpText"] = helpText
-      }
-
-      // Include other attributes with string conversion
       result[key] = String(describing: value)
     }
-
     return result
   }
 }
