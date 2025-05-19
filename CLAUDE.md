@@ -39,15 +39,21 @@ swift build -c release
 
 ### Testing
 ```bash
-# Run all tests
+# Run all tests (serialized execution)
 cd MacMCP
-swift test
+swift test --no-parallel
 
 # Run specific test
-swift test --filter MacMCPTests.BasicArithmeticE2ETests/testAddition
+swift test --filter MacMCPTests.BasicArithmeticE2ETests/testAddition --no-parallel
 
 # Run tests with verbose output
-swift test --verbose
+swift test --verbose --no-parallel
+
+# Run tests with a specific number of workers (when parallel execution is needed for non-UI tests)
+swift test --num-workers 1
+
+# Run tests with code coverage
+swift test --no-parallel --enable-code-coverage
 ```
 
 ### Checking Accessibility Permissions
@@ -192,6 +198,16 @@ The project includes end-to-end tests that use the macOS Calculator app to valid
 - `KeyboardInputE2ETests.swift`: Tests keyboard input
 - `ScreenshotE2ETests.swift`: Tests screenshot functionality
 - `UIStateInspectionE2ETests.swift`: Tests UI state inspection
+
+#### Test Serialization
+
+Since our tests interact with the UI, they must be run serially to avoid conflicts:
+
+1. **Test Classes**: Use `@Suite(.serialized)` annotation to ensure tests within a class run serially
+2. **Test Execution**: Use `--no-parallel` flag when running `swift test` to ensure all tests run serially
+3. **XCTSerialSuites.txt**: This file at the package root lists test suites that should always run serially
+
+See `docs/Testing.md` for full details on our testing approach and practices.
 
 ## Accessibility Inspection
 

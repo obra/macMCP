@@ -3,9 +3,11 @@
 
 import MCP
 import MacMCP
-import XCTest
+import Foundation
+import Testing
 
-final class ClipboardManagementE2ETests: XCTestCase {
+@Suite(.serialized)
+struct ClipboardManagementE2ETests {
   // System under test
   private var clipboardService: ClipboardService!
   private var tool: ClipboardManagementTool!
@@ -21,9 +23,7 @@ final class ClipboardManagementE2ETests: XCTestCase {
   private var tempFilePath1: String!
   private var tempFilePath2: String!
 
-  override func setUp() async throws {
-    try await super.setUp()
-
+  private mutating func setUp() async throws {
     // Create temporary test files
     let fileName1 = "clipboard_test_file1_\(UUID().uuidString).txt"
     let fileName2 = "clipboard_test_file2_\(UUID().uuidString).txt"
@@ -43,7 +43,7 @@ final class ClipboardManagementE2ETests: XCTestCase {
     try await clipboardService.clearClipboard()
   }
 
-  override func tearDown() async throws {
+  private mutating func tearDown() async throws {
     // Clear clipboard after tests
     try? await clipboardService.clearClipboard()
 
@@ -58,13 +58,14 @@ final class ClipboardManagementE2ETests: XCTestCase {
 
     clipboardService = nil
     tool = nil
-
-    try await super.tearDown()
   }
 
   // MARK: - Text Operations Tests
 
-  func testTextOperations() async throws {
+  @Test("Text Operations")
+  mutating func testTextOperations() async throws {
+    try await setUp()
+    
     // 1. Set text
     var input: [String: Any] = [
       "action": "setText",
@@ -72,38 +73,43 @@ final class ClipboardManagementE2ETests: XCTestCase {
     ]
 
     var result = try await tool.execute(with: input, env: [:])
-    XCTAssertEqual(result["success"] as? Bool, true)
+    #expect(result["success"] as? Bool == true)
 
     // 2. Verify clipboard info
     input = ["action": "getInfo"]
     result = try await tool.execute(with: input, env: [:])
 
     let availableTypes = result["availableTypes"] as? [String]
-    XCTAssertNotNil(availableTypes)
-    XCTAssertTrue(availableTypes?.contains("text") ?? false)
-    XCTAssertEqual(result["isEmpty"] as? Bool, false)
+    #expect(availableTypes != nil)
+    #expect(availableTypes?.contains("text") == true)
+    #expect(result["isEmpty"] as? Bool == false)
 
     // 3. Get text
     input = ["action": "getText"]
     result = try await tool.execute(with: input, env: [:])
 
-    XCTAssertEqual(result["text"] as? String, testText)
+    #expect(result["text"] as? String == testText)
 
     // 4. Clear clipboard
     input = ["action": "clear"]
     result = try await tool.execute(with: input, env: [:])
-    XCTAssertEqual(result["success"] as? Bool, true)
+    #expect(result["success"] as? Bool == true)
 
     // 5. Verify clipboard is empty
     input = ["action": "getInfo"]
     result = try await tool.execute(with: input, env: [:])
 
-    XCTAssertEqual(result["isEmpty"] as? Bool, true)
+    #expect(result["isEmpty"] as? Bool == true)
+    
+    try await tearDown()
   }
 
   // MARK: - Image Operations Tests
 
-  func testImageOperations() async throws {
+  @Test("Image Operations")
+  mutating func testImageOperations() async throws {
+    try await setUp()
+    
     // 1. Set image
     var input: [String: Any] = [
       "action": "setImage",
@@ -111,16 +117,16 @@ final class ClipboardManagementE2ETests: XCTestCase {
     ]
 
     var result = try await tool.execute(with: input, env: [:])
-    XCTAssertEqual(result["success"] as? Bool, true)
+    #expect(result["success"] as? Bool == true)
 
     // 2. Verify clipboard info
     input = ["action": "getInfo"]
     result = try await tool.execute(with: input, env: [:])
 
     let availableTypes = result["availableTypes"] as? [String]
-    XCTAssertNotNil(availableTypes)
-    XCTAssertTrue(availableTypes?.contains("image") ?? false)
-    XCTAssertEqual(result["isEmpty"] as? Bool, false)
+    #expect(availableTypes != nil)
+    #expect(availableTypes?.contains("image") == true)
+    #expect(result["isEmpty"] as? Bool == false)
 
     // 3. Get image
     // Note: The exact base64 might differ due to format conversions in NSPasteboard
@@ -129,18 +135,23 @@ final class ClipboardManagementE2ETests: XCTestCase {
     result = try await tool.execute(with: input, env: [:])
 
     let returnedImage = result["imageData"] as? String
-    XCTAssertNotNil(returnedImage)
-    XCTAssertFalse(returnedImage?.isEmpty ?? true)
+    #expect(returnedImage != nil)
+    #expect(returnedImage?.isEmpty == false)
 
     // 4. Clear clipboard
     input = ["action": "clear"]
     result = try await tool.execute(with: input, env: [:])
-    XCTAssertEqual(result["success"] as? Bool, true)
+    #expect(result["success"] as? Bool == true)
+    
+    try await tearDown()
   }
 
   // MARK: - File Operations Tests
 
-  func testFileOperations() async throws {
+  @Test("File Operations")
+  mutating func testFileOperations() async throws {
+    try await setUp()
+    
     // 1. Set files
     var input: [String: Any] = [
       "action": "setFiles",
@@ -148,16 +159,16 @@ final class ClipboardManagementE2ETests: XCTestCase {
     ]
 
     var result = try await tool.execute(with: input, env: [:])
-    XCTAssertEqual(result["success"] as? Bool, true)
+    #expect(result["success"] as? Bool == true)
 
     // 2. Verify clipboard info
     input = ["action": "getInfo"]
     result = try await tool.execute(with: input, env: [:])
 
     let availableTypes = result["availableTypes"] as? [String]
-    XCTAssertNotNil(availableTypes)
-    XCTAssertTrue(availableTypes?.contains("files") ?? false)
-    XCTAssertEqual(result["isEmpty"] as? Bool, false)
+    #expect(availableTypes != nil)
+    #expect(availableTypes?.contains("files") == true)
+    #expect(result["isEmpty"] as? Bool == false)
 
     // 3. Get files
     // Note: macOS might normalize paths, so we check for path existence rather than exact matches
@@ -165,32 +176,37 @@ final class ClipboardManagementE2ETests: XCTestCase {
     result = try await tool.execute(with: input, env: [:])
 
     let returnedPaths = result["filePaths"] as? [String]
-    XCTAssertNotNil(returnedPaths)
-    XCTAssertEqual(returnedPaths?.count, 2)
+    #expect(returnedPaths != nil)
+    #expect(returnedPaths?.count == 2)
 
     // 4. Clear clipboard
     input = ["action": "clear"]
     result = try await tool.execute(with: input, env: [:])
-    XCTAssertEqual(result["success"] as? Bool, true)
+    #expect(result["success"] as? Bool == true)
+    
+    try await tearDown()
   }
 
   // MARK: - Error Handling Tests
 
-  func testInvalidInputParameters() async throws {
+  @Test("Invalid Input Parameters")
+  mutating func testInvalidInputParameters() async throws {
+    try await setUp()
+    
     // Test invalid action
     var input: [String: Any] = ["action": "invalidAction"]
 
     do {
       _ = try await tool.execute(with: input, env: [:])
-      XCTFail("Should have thrown an error for invalid action")
+      #expect(Bool(false), "Should have thrown an error for invalid action")
     } catch let error as MCPError {
       if case .invalidParams(let message) = error {
-        XCTAssertTrue(message?.contains("INVALID_ACTION") ?? false)
+        #expect(message?.contains("INVALID_ACTION") == true)
       } else {
-        XCTFail("Wrong error type thrown: \(error)")
+        #expect(Bool(false), "Wrong error type thrown: \(error)")
       }
     } catch {
-      XCTFail("Unexpected error: \(error)")
+      #expect(Bool(false), "Unexpected error: \(error)")
     }
 
     // Test missing text parameter
@@ -198,15 +214,15 @@ final class ClipboardManagementE2ETests: XCTestCase {
 
     do {
       _ = try await tool.execute(with: input, env: [:])
-      XCTFail("Should have thrown an error for missing text")
+      #expect(Bool(false), "Should have thrown an error for missing text")
     } catch let error as MCPError {
       if case .invalidParams(let message) = error {
-        XCTAssertTrue(message?.contains("MISSING_TEXT") ?? false)
+        #expect(message?.contains("MISSING_TEXT") == true)
       } else {
-        XCTFail("Wrong error type thrown: \(error)")
+        #expect(Bool(false), "Wrong error type thrown: \(error)")
       }
     } catch {
-      XCTFail("Unexpected error: \(error)")
+      #expect(Bool(false), "Unexpected error: \(error)")
     }
 
     // Test missing imageData parameter
@@ -214,15 +230,15 @@ final class ClipboardManagementE2ETests: XCTestCase {
 
     do {
       _ = try await tool.execute(with: input, env: [:])
-      XCTFail("Should have thrown an error for missing imageData")
+      #expect(Bool(false), "Should have thrown an error for missing imageData")
     } catch let error as MCPError {
       if case .invalidParams(let message) = error {
-        XCTAssertTrue(message?.contains("MISSING_IMAGE_DATA") ?? false)
+        #expect(message?.contains("MISSING_IMAGE_DATA") == true)
       } else {
-        XCTFail("Wrong error type thrown: \(error)")
+        #expect(Bool(false), "Wrong error type thrown: \(error)")
       }
     } catch {
-      XCTFail("Unexpected error: \(error)")
+      #expect(Bool(false), "Unexpected error: \(error)")
     }
 
     // Test missing filePaths parameter
@@ -230,15 +246,15 @@ final class ClipboardManagementE2ETests: XCTestCase {
 
     do {
       _ = try await tool.execute(with: input, env: [:])
-      XCTFail("Should have thrown an error for missing filePaths")
+      #expect(Bool(false), "Should have thrown an error for missing filePaths")
     } catch let error as MCPError {
       if case .invalidParams(let message) = error {
-        XCTAssertTrue(message?.contains("MISSING_FILE_PATHS") ?? false)
+        #expect(message?.contains("MISSING_FILE_PATHS") == true)
       } else {
-        XCTFail("Wrong error type thrown: \(error)")
+        #expect(Bool(false), "Wrong error type thrown: \(error)")
       }
     } catch {
-      XCTFail("Unexpected error: \(error)")
+      #expect(Bool(false), "Unexpected error: \(error)")
     }
 
     // Test empty filePaths array
@@ -246,19 +262,24 @@ final class ClipboardManagementE2ETests: XCTestCase {
 
     do {
       _ = try await tool.execute(with: input, env: [:])
-      XCTFail("Should have thrown an error for empty filePaths")
+      #expect(Bool(false), "Should have thrown an error for empty filePaths")
     } catch let error as MCPError {
       if case .invalidParams(let message) = error {
-        XCTAssertTrue(message?.contains("EMPTY_FILE_PATHS") ?? false)
+        #expect(message?.contains("EMPTY_FILE_PATHS") == true)
       } else {
-        XCTFail("Wrong error type thrown: \(error)")
+        #expect(Bool(false), "Wrong error type thrown: \(error)")
       }
     } catch {
-      XCTFail("Unexpected error: \(error)")
+      #expect(Bool(false), "Unexpected error: \(error)")
     }
+    
+    try await tearDown()
   }
 
-  func testNonExistentFiles() async throws {
+  @Test("Non Existent Files")
+  mutating func testNonExistentFiles() async throws {
+    try await setUp()
+    
     // Try to set non-existent files
     let nonExistentPath = tempDir.appendingPathComponent(
       "non_existent_file_\(UUID().uuidString).txt"
@@ -271,20 +292,25 @@ final class ClipboardManagementE2ETests: XCTestCase {
 
     do {
       _ = try await tool.execute(with: input, env: [:])
-      XCTFail("Should have thrown an error for non-existent files")
+      #expect(Bool(false), "Should have thrown an error for non-existent files")
     } catch let error as MCPError {
       if case .internalError(let message) = error {
-        XCTAssertTrue(
-          message?.contains("FILES_NOT_FOUND") ?? false, "Error should indicate files not found")
+        #expect(
+          message?.contains("FILES_NOT_FOUND") == true, "Error should indicate files not found")
       } else {
-        XCTFail("Wrong error type thrown: \(error)")
+        #expect(Bool(false), "Wrong error type thrown: \(error)")
       }
     } catch {
-      XCTFail("Unexpected error: \(error)")
+      #expect(Bool(false), "Unexpected error: \(error)")
     }
+    
+    try await tearDown()
   }
 
-  func testInvalidImageData() async throws {
+  @Test("Invalid Image Data")
+  mutating func testInvalidImageData() async throws {
+    try await setUp()
+    
     // Try to set invalid base64 data as an image
     let input: [String: Any] = [
       "action": "setImage",
@@ -293,18 +319,20 @@ final class ClipboardManagementE2ETests: XCTestCase {
 
     do {
       _ = try await tool.execute(with: input, env: [:])
-      XCTFail("Should have thrown an error for invalid base64 data")
+      #expect(Bool(false), "Should have thrown an error for invalid base64 data")
     } catch let error as MCPError {
       if case .internalError(let message) = error {
-        XCTAssertTrue(
-          message?.contains("INVALID_IMAGE_DATA") ?? false,
+        #expect(
+          message?.contains("INVALID_IMAGE_DATA") == true,
           "Error should indicate invalid image data",
         )
       } else {
-        XCTFail("Wrong error type thrown: \(error)")
+        #expect(Bool(false), "Wrong error type thrown: \(error)")
       }
     } catch {
-      XCTFail("Unexpected error: \(error)")
+      #expect(Bool(false), "Unexpected error: \(error)")
     }
+    
+    try await tearDown()
   }
 }

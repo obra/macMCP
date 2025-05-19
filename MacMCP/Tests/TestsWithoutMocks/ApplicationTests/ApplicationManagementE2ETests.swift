@@ -5,7 +5,7 @@ import AppKit
 import Foundation
 import Logging
 import MCP
-import XCTest
+import Testing
 
 @testable import MacMCP
 
@@ -13,7 +13,8 @@ import XCTest
 // @_implementationOnly import TestsWithoutMocks
 
 /// End-to-end tests for the ApplicationManagementTool
-final class ApplicationManagementE2ETests: XCTestCase {
+@Suite(.serialized)
+struct ApplicationManagementE2ETests {
   // Test components
   private var toolChain: ToolChain!
 
@@ -21,9 +22,7 @@ final class ApplicationManagementE2ETests: XCTestCase {
   private let calculatorBundleId = "com.apple.calculator"
   private let textEditBundleId = "com.apple.TextEdit"
 
-  override func setUp() async throws {
-    try await super.setUp()
-
+  private mutating func setUp() async throws {
     // Create the test components
     toolChain = ToolChain()
 
@@ -35,7 +34,7 @@ final class ApplicationManagementE2ETests: XCTestCase {
     try await Task.sleep(for: .milliseconds(1000))
   }
 
-  override func tearDown() async throws {
+  private mutating func tearDown() async throws {
     // Terminate test applications
     for bundleId in [calculatorBundleId, textEditBundleId] {
       await terminateApplication(bundleId: bundleId)
@@ -44,8 +43,6 @@ final class ApplicationManagementE2ETests: XCTestCase {
     try await Task.sleep(for: .milliseconds(1000))
 
     toolChain = nil
-
-    try await super.tearDown()
   }
 
   /// Helper method to terminate an application
@@ -57,10 +54,13 @@ final class ApplicationManagementE2ETests: XCTestCase {
   }
 
   /// Test launching and terminating an application
-  func testLaunchAndTerminate() async throws {
+  @Test("Launch and Terminate")
+  mutating func testLaunchAndTerminate() async throws {
+    try await setUp()
+    
     // Verify Calculator is not running at start
     let initialIsRunning = isApplicationRunning(calculatorBundleId)
-    XCTAssertFalse(initialIsRunning, "Calculator should not be running at test start")
+    #expect(!initialIsRunning, "Calculator should not be running at test start")
 
     // Create launch parameters
     let launchParams: [String: Value] = [
@@ -72,14 +72,14 @@ final class ApplicationManagementE2ETests: XCTestCase {
     let launchResult = try await toolChain.applicationManagementTool.handler(launchParams)
 
     // Verify launch result
-    XCTAssertEqual(launchResult.count, 1, "Should return one content item")
+    #expect(launchResult.count == 1, "Should return one content item")
 
     // Wait for the app to launch fully
     try await Task.sleep(for: .milliseconds(2000))
 
     // Check if app is running
     let isRunning = isApplicationRunning(calculatorBundleId)
-    XCTAssertTrue(isRunning, "Calculator should be running after launch")
+    #expect(isRunning, "Calculator should be running after launch")
 
     // Create terminate parameters
     let terminateParams: [String: Value] = [
@@ -91,18 +91,23 @@ final class ApplicationManagementE2ETests: XCTestCase {
     let terminateResult = try await toolChain.applicationManagementTool.handler(terminateParams)
 
     // Verify terminate result
-    XCTAssertEqual(terminateResult.count, 1, "Should return one content item")
+    #expect(terminateResult.count == 1, "Should return one content item")
 
     // Wait for app to terminate
     try await Task.sleep(for: .milliseconds(1000))
 
     // Check if app is still running
     let isStillRunning = isApplicationRunning(calculatorBundleId)
-    XCTAssertFalse(isStillRunning, "Calculator should not be running after termination")
+    #expect(!isStillRunning, "Calculator should not be running after termination")
+    
+    try await tearDown()
   }
 
   /// Test getting running applications
-  func testGetRunningApplications() async throws {
+  @Test("Get Running Applications")
+  mutating func testGetRunningApplications() async throws {
+    try await setUp()
+    
     // Launch a test application
     let launchParams: [String: Value] = [
       "action": .string("launch"),
@@ -123,19 +128,24 @@ final class ApplicationManagementE2ETests: XCTestCase {
     let result = try await toolChain.applicationManagementTool.handler(getRunningParams)
 
     // Verify result
-    XCTAssertEqual(result.count, 1, "Should return one content item")
+    #expect(result.count == 1, "Should return one content item")
 
     if case .text(let jsonString) = result[0] {
       // Verify that Calculator is listed in the running applications
-      XCTAssertTrue(
+      #expect(
         jsonString.contains(calculatorBundleId), "Running applications should include Calculator")
     } else {
-      XCTFail("Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
+    
+    try await tearDown()
   }
 
   /// Test checking if an application is running
-  func testIsRunning() async throws {
+  @Test("Check if Application is Running")
+  mutating func testIsRunning() async throws {
+    try await setUp()
+    
     // Launch Calculator
     let launchParams: [String: Value] = [
       "action": .string("launch"),
@@ -156,14 +166,14 @@ final class ApplicationManagementE2ETests: XCTestCase {
     let calcResult = try await toolChain.applicationManagementTool.handler(isRunningParams)
 
     // Verify result for running application
-    XCTAssertEqual(calcResult.count, 1, "Should return one content item")
+    #expect(calcResult.count == 1, "Should return one content item")
 
     do {
       let json = try toolChain.parseJsonResponse(calcResult[0])
       let isRunning = toolChain.getBoolValue(from: json, forKey: "isRunning")
-      XCTAssertTrue(isRunning, "Calculator should be reported as running")
+      #expect(isRunning, "Calculator should be reported as running")
     } catch {
-      XCTFail("Failed to parse JSON response: \(error)")
+      #expect(Bool(false), "Failed to parse JSON response: \(error)")
     }
 
     // Check if a non-running application is reported correctly
@@ -175,19 +185,24 @@ final class ApplicationManagementE2ETests: XCTestCase {
     let nonRunningResult = try await toolChain.applicationManagementTool.handler(notRunningParams)
 
     // Verify result for non-running application
-    XCTAssertEqual(nonRunningResult.count, 1, "Should return one content item")
+    #expect(nonRunningResult.count == 1, "Should return one content item")
 
     do {
       let json = try toolChain.parseJsonResponse(nonRunningResult[0])
       let isRunning = toolChain.getBoolValue(from: json, forKey: "isRunning")
-      XCTAssertFalse(isRunning, "Non-existent app should be reported as not running")
+      #expect(!isRunning, "Non-existent app should be reported as not running")
     } catch {
-      XCTFail("Failed to parse JSON response: \(error)")
+      #expect(Bool(false), "Failed to parse JSON response: \(error)")
     }
+    
+    try await tearDown()
   }
 
   /// Test hiding, unhiding and activating an application
-  func testHideUnhideActivate() async throws {
+  @Test("Hide Unhide Activate")
+  mutating func testHideUnhideActivate() async throws {
+    try await setUp()
+    
     // First launch both test applications
 
     // Launch Calculator
@@ -223,14 +238,14 @@ final class ApplicationManagementE2ETests: XCTestCase {
 
     // Verify hide result - but don't assert on the actual success value
     // since it may legitimately fail in some cases
-    XCTAssertEqual(hideResult.count, 1, "Should return one content item")
+    #expect(hideResult.count == 1, "Should return one content item")
 
     if case .text(let jsonString) = hideResult[0] {
       // We don't assert on success since hiding can sometimes fail
       // when an app doesn't have focus in automated tests
       print("Hide operation result: \(jsonString)")
     } else {
-      XCTFail("Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
 
     // Allow time for UI to update
@@ -245,14 +260,14 @@ final class ApplicationManagementE2ETests: XCTestCase {
     let activateResult = try await toolChain.applicationManagementTool.handler(activateParams)
 
     // Verify activate result - activating should succeed reliably
-    XCTAssertEqual(activateResult.count, 1, "Should return one content item")
+    #expect(activateResult.count == 1, "Should return one content item")
 
     do {
       let json = try toolChain.parseJsonResponse(activateResult[0])
       let success = toolChain.getBoolValue(from: json, forKey: "success")
-      XCTAssertTrue(success, "Activate operation should succeed")
+      #expect(success, "Activate operation should succeed")
     } catch {
-      XCTFail("Failed to parse JSON response: \(error)")
+      #expect(Bool(false), "Failed to parse JSON response: \(error)")
     }
 
     // Allow time for UI to update
@@ -266,19 +281,24 @@ final class ApplicationManagementE2ETests: XCTestCase {
     let frontmostResult = try await toolChain.applicationManagementTool.handler(frontmostParams)
 
     // Verify frontmost result
-    XCTAssertEqual(frontmostResult.count, 1, "Should return one content item")
+    #expect(frontmostResult.count == 1, "Should return one content item")
 
     if case .text(let jsonString) = frontmostResult[0] {
       // Calculator should now be the frontmost application
-      XCTAssertTrue(
+      #expect(
         jsonString.contains(calculatorBundleId), "Calculator should be the frontmost application")
     } else {
-      XCTFail("Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
+    
+    try await tearDown()
   }
 
   /// Test hiding other applications
-  func testHideOtherApplications() async throws {
+  @Test("Hide Other Applications")
+  mutating func testHideOtherApplications() async throws {
+    try await setUp()
+    
     // First launch both test applications
 
     // Launch Calculator
@@ -312,14 +332,14 @@ final class ApplicationManagementE2ETests: XCTestCase {
     let hideOthersResult = try await toolChain.applicationManagementTool.handler(hideOthersParams)
 
     // Verify hide others result
-    XCTAssertEqual(hideOthersResult.count, 1, "Should return one content item")
+    #expect(hideOthersResult.count == 1, "Should return one content item")
 
     do {
       let json = try toolChain.parseJsonResponse(hideOthersResult[0])
       let success = toolChain.getBoolValue(from: json, forKey: "success")
-      XCTAssertTrue(success, "Hide others operation should succeed")
+      #expect(success, "Hide others operation should succeed")
     } catch {
-      XCTFail("Failed to parse JSON response: \(error)")
+      #expect(Bool(false), "Failed to parse JSON response: \(error)")
     }
 
     // Allow time for UI to update
@@ -333,19 +353,24 @@ final class ApplicationManagementE2ETests: XCTestCase {
     let frontmostResult = try await toolChain.applicationManagementTool.handler(frontmostParams)
 
     // Verify frontmost result
-    XCTAssertEqual(frontmostResult.count, 1, "Should return one content item")
+    #expect(frontmostResult.count == 1, "Should return one content item")
 
     if case .text(let jsonString) = frontmostResult[0] {
       // Calculator should now be the frontmost application
-      XCTAssertTrue(
+      #expect(
         jsonString.contains(calculatorBundleId), "Calculator should be the frontmost application")
     } else {
-      XCTFail("Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
+    
+    try await tearDown()
   }
 
   /// Test force terminating an application
-  func testForceTerminate() async throws {
+  @Test("Force Terminate")
+  mutating func testForceTerminate() async throws {
+    try await setUp()
+    
     // Launch Calculator
     let launchParams: [String: Value] = [
       "action": .string("launch"),
@@ -359,7 +384,7 @@ final class ApplicationManagementE2ETests: XCTestCase {
 
     // Verify Calculator is running
     let isRunning = isApplicationRunning(calculatorBundleId)
-    XCTAssertTrue(isRunning, "Calculator should be running after launch")
+    #expect(isRunning, "Calculator should be running after launch")
 
     // Force terminate Calculator
     let forceTerminateParams: [String: Value] = [
@@ -371,14 +396,14 @@ final class ApplicationManagementE2ETests: XCTestCase {
       forceTerminateParams)
 
     // Verify force terminate result
-    XCTAssertEqual(forceTerminateResult.count, 1, "Should return one content item")
+    #expect(forceTerminateResult.count == 1, "Should return one content item")
 
     do {
       let json = try toolChain.parseJsonResponse(forceTerminateResult[0])
       let success = toolChain.getBoolValue(from: json, forKey: "success")
-      XCTAssertTrue(success, "Force terminate operation should succeed")
+      #expect(success, "Force terminate operation should succeed")
     } catch {
-      XCTFail("Failed to parse JSON response: \(error)")
+      #expect(Bool(false), "Failed to parse JSON response: \(error)")
     }
 
     // Wait for app to terminate
@@ -386,7 +411,9 @@ final class ApplicationManagementE2ETests: XCTestCase {
 
     // Verify Calculator is no longer running
     let isStillRunning = isApplicationRunning(calculatorBundleId)
-    XCTAssertFalse(isStillRunning, "Calculator should not be running after force termination")
+    #expect(!isStillRunning, "Calculator should not be running after force termination")
+    
+    try await tearDown()
   }
 
   // MARK: - Helper Methods
