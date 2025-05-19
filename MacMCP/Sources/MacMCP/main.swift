@@ -6,19 +6,9 @@ import Foundation
 import Logging
 import MCP
 
-// Test command line argument for verifying tool names
-let TEST_TOOL_NAMES_ARG = "--test-tool-names"
-
-// Check for test tool names flag
-if CommandLine.arguments.contains(TEST_TOOL_NAMES_ARG) {
-  // Run tool names test
-  ToolNamesTest.runTest()
-  exit(0)
-}
-
 // Check for direct invocation (when no arguments are provided)
 // This is important for the Claude desktop app which launches the MCP server without arguments
-else if CommandLine.arguments.count <= 1 {
+if CommandLine.arguments.count <= 1 {
   // Configure logging to stderr only (never stdout)
   let logger = Logger(label: "mcp.macos") { label in
     var handler = StreamLogHandler.standardError(label: label)
