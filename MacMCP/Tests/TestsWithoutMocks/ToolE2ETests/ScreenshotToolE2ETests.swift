@@ -5,7 +5,7 @@ import AppKit
 import Foundation
 import Logging
 import MCP
-import XCTest
+import Testing
 
 @testable import MacMCP
 
@@ -13,7 +13,8 @@ import XCTest
 // @_implementationOnly import TestsWithoutMocks
 
 /// End-to-end tests for the ScreenshotTool using the Calculator app
-final class ScreenshotToolE2ETests: XCTestCase {
+@Suite(.serialized)
+struct ScreenshotToolE2ETests {
   // Test components
   private var toolChain: ToolChain!
   private let calculatorBundleId = "com.apple.calculator"
@@ -21,9 +22,8 @@ final class ScreenshotToolE2ETests: XCTestCase {
   // Save references for cleanup
   private var calculatorRunning = false
 
-  override func setUp() async throws {
-    try await super.setUp()
-
+  // Shared setup method
+  private mutating func setUp() async throws {
     // Create tool chain
     toolChain = ToolChain(logLabel: "test.screenshot.e2e")
 
@@ -49,7 +49,8 @@ final class ScreenshotToolE2ETests: XCTestCase {
     try await Task.sleep(for: .milliseconds(1000))
   }
 
-  override func tearDown() async throws {
+  // Shared teardown method
+  private mutating func tearDown() async throws {
     // Clean up only if we launched Calculator (don't close if it was already running)
     if !calculatorRunning {
       // Close Calculator
@@ -57,13 +58,14 @@ final class ScreenshotToolE2ETests: XCTestCase {
     }
 
     toolChain = nil
-    try await super.tearDown()
   }
 
   // MARK: - Test Methods
 
   /// Test capturing screenshot of full screen
-  func testFullScreenCapture() async throws {
+  @Test("Full Screen Capture")
+  mutating func testFullScreenCapture() async throws {
+    try await setUp()
     // Create parameters for the screenshot tool
     let params: [String: Value] = [
       "region": .string("full")
@@ -104,10 +106,14 @@ final class ScreenshotToolE2ETests: XCTestCase {
     } else {
       XCTFail("Result should be an image content item")
     }
+    
+    try await tearDown()
   }
 
   /// Test capturing screenshot of an area of the screen
-  func testAreaCapture() async throws {
+  @Test("Area Screenshot Capture")
+  mutating func testAreaCapture() async throws {
+    try await setUp()
     // Define an area that should contain part of the Calculator window
     // We use the center of the screen to increase the chances of capturing Calculator
     let screenFrame = NSScreen.main!.frame
@@ -157,10 +163,14 @@ final class ScreenshotToolE2ETests: XCTestCase {
     } else {
       XCTFail("Result should be an image content item")
     }
+    
+    try await tearDown()
   }
 
   /// Test capturing screenshot of the Calculator window
-  func testWindowCapture() async throws {
+  @Test("Window Screenshot Capture")
+  mutating func testWindowCapture() async throws {
+    try await setUp()
     // Create parameters for the screenshot tool
     let params: [String: Value] = [
       "region": .string("window"),
@@ -187,10 +197,14 @@ final class ScreenshotToolE2ETests: XCTestCase {
     } else {
       XCTFail("Result should be an image content item")
     }
+    
+    try await tearDown()
   }
 
   /// Test capturing screenshot of a UI element in the Calculator
-  func testElementCapture() async throws {
+  @Test("Element Screenshot Capture")
+  mutating func testElementCapture() async throws {
+    try await setUp()
     // First make sure Calculator is fully active
     NSRunningApplication.runningApplications(withBundleIdentifier: calculatorBundleId).first?
       .activate(options: [])
@@ -366,11 +380,15 @@ final class ScreenshotToolE2ETests: XCTestCase {
       print("Window element screenshot failed: \(error.localizedDescription)")
       // This is not a critical test, so we won't fail the test if this part fails
     }
+    
+    try await tearDown()
   }
 
   /// Test capturing screenshot of individual elements discovered by the UI inspector
   /// This test tries to find specific UI elements in the Calculator app
-  func testSpecificElementScreenshot() async throws {
+  @Test("Specific Element Screenshot")
+  mutating func testSpecificElementScreenshot() async throws {
+    try await setUp()
     // First make sure Calculator is fully active and has time to stabilize
     NSRunningApplication.runningApplications(withBundleIdentifier: calculatorBundleId).first?
       .activate(options: [])
@@ -468,12 +486,16 @@ final class ScreenshotToolE2ETests: XCTestCase {
       let elementToScreenshot = buttonElements[0]
       print("First button element path: \(elementToScreenshot.path)")
     }
+    
+    try await tearDown()
   }
 
   // MARK: - Error Tests
 
   /// Test behavior when element cannot be found
-  func testNonExistentElement() async throws {
+  @Test("Non-Existent Element")
+  mutating func testNonExistentElement() async throws {
+    try await setUp()
     // Create parameters for the screenshot tool with a non-existent element path
     let params: [String: Value] = [
       "region": .string("element"),
@@ -491,10 +513,14 @@ final class ScreenshotToolE2ETests: XCTestCase {
         "Error should indicate element not found",
       )
     }
+    
+    try await tearDown()
   }
 
   /// Test behavior when application is not running
-  func testNonRunningApplication() async throws {
+  @Test("Non-Running Application")
+  mutating func testNonRunningApplication() async throws {
+    try await setUp()
     // Create parameters for the screenshot tool with a non-running application
     let params: [String: Value] = [
       "region": .string("window"),
@@ -512,6 +538,8 @@ final class ScreenshotToolE2ETests: XCTestCase {
         "Error should indicate application not running",
       )
     }
+    
+    try await tearDown()
   }
 
   // MARK: - Helper Methods
@@ -540,27 +568,27 @@ final class ScreenshotToolE2ETests: XCTestCase {
   /// Verify that a result contains a valid image
   private func verifyScreenshotResult(_ result: [Tool.Content], mimeType: String) {
     // Make sure we have exactly one result item
-    XCTAssertEqual(result.count, 1, "Should return one content item")
+    #expect(result.count == 1, "Should return one content item")
 
     // Check that it's an image with the right MIME type
     if case .image(let data, let resultMimeType, let metadata) = result[0] {
-      XCTAssertEqual(resultMimeType, mimeType, "MIME type should be correct")
-      XCTAssertFalse(data.isEmpty, "Image data should not be empty")
+      #expect(resultMimeType == mimeType, "MIME type should be correct")
+      #expect(!data.isEmpty, "Image data should not be empty")
 
       // Try to decode the Base64 data
       let decodedData = Data(base64Encoded: data)
-      XCTAssertNotNil(decodedData, "Should be able to decode Base64 data")
+      #expect(decodedData != nil, "Should be able to decode Base64 data")
 
       // Try to create an image from the data
       let image = NSImage(data: decodedData!)
-      XCTAssertNotNil(image, "Should be able to create an image from the data")
+      #expect(image != nil, "Should be able to create an image from the data")
 
       // Check that metadata is present
-      XCTAssertNotNil(metadata, "Metadata should be present")
-      XCTAssertNotNil(metadata?["width"], "Width metadata should be present")
-      XCTAssertNotNil(metadata?["height"], "Height metadata should be present")
-      XCTAssertNotNil(metadata?["scale"], "Scale metadata should be present")
-      XCTAssertNotNil(metadata?["region"], "Region metadata should be present")
+      #expect(metadata != nil, "Metadata should be present")
+      #expect(metadata?["width"] != nil, "Width metadata should be present")
+      #expect(metadata?["height"] != nil, "Height metadata should be present")
+      #expect(metadata?["scale"] != nil, "Scale metadata should be present")
+      #expect(metadata?["region"] != nil, "Region metadata should be present")
 
       // Save the image to disk for manual inspection
       saveScreenshotForInspection(
