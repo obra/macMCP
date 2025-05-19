@@ -325,7 +325,7 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
     if error == .success {
     } else {
       // Log details about the error
-      logger.error(
+      logger.trace(
         "Accessibility action failed",
         metadata: [
           "action": .string(action),
@@ -337,19 +337,19 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
       // Print specific advice based on error code
       switch error {
       case .illegalArgument:
-        logger.error("Illegal argument - The action name might be incorrect")
+        logger.trace("Illegal argument - The action name might be incorrect")
       case .invalidUIElement:
-        logger.error("Invalid UI element - The element might no longer exist or be invalid")
+        logger.trace("Invalid UI element - The element might no longer exist or be invalid")
       case .cannotComplete:
-        logger.error("Cannot complete - The operation timed out or could not be completed")
+        logger.trace("Cannot complete - The operation timed out or could not be completed")
       case .actionUnsupported:
-        logger.error("Action unsupported - The element does not support this action")
+        logger.trace("Action unsupported - The element does not support this action")
       case .notImplemented:
-        logger.error("Not implemented - The application has not implemented this action")
+        logger.trace("Not implemented - The application has not implemented this action")
       case .apiDisabled:
-        logger.error("API disabled - Accessibility permissions might be missing")
+        logger.trace("API disabled - Accessibility permissions might be missing")
       default:
-        logger.error("Unknown error code - Consult macOS Accessibility API documentation")
+        logger.trace("Unknown error code - Consult macOS Accessibility API documentation")
       }
 
       // If action not supported, try fallback to mouse click for button elements
@@ -370,7 +370,7 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
             "availableActions": "\(availableActions)",
           ])
 
-        logger.error(
+        logger.trace(
           "Element does not support AXPress action and no fallback is allowed",
           metadata: [
             "role": .string(role as? String ?? "unknown"),
@@ -457,7 +457,11 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
 
     // Post the events
     mouseDown.post(tap: .cghidEventTap)
+    // delay for 100ms
+    Thread.sleep(forTimeInterval: 0.5) // 100 milliseconds
     mouseUp.post(tap: .cghidEventTap)
+        Thread.sleep(forTimeInterval: 0.5) // 100 milliseconds
+
   }
 
   /// Simulate a right mouse click at a specific position
@@ -707,6 +711,374 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
       context: ["internalErrorCode": "\(code)"],
     )
   }
+  
+  /// DIAGNOSTIC: Dump the accessibility tree structure starting from a given element
+  /// This is used for debugging path resolution issues
+  private func dumpAccessibilityTree(_ element: AXUIElement, level: Int, maxDepth: Int) async {
+    // Avoid infinite recursion
+    if level > maxDepth {
+      return
+    }
+    
+    // Get element basic info
+    var roleRef: CFTypeRef?
+    var titleRef: CFTypeRef?
+    var descRef: CFTypeRef?
+    var idRef: CFTypeRef?
+    var enabledRef: CFTypeRef?
+    var hiddenRef: CFTypeRef?
+    var focusedRef: CFTypeRef?
+    
+    let indentation = String(repeating: "  ", count: level)
+    
+    // Get role (critical for path matching)
+    let roleStatus = AXUIElementCopyAttributeValue(element, "AXRole" as CFString, &roleRef)
+    let role = (roleStatus == .success) ? (roleRef as? String ?? "unknown") : "unknown"
+    
+    // Gather element metadata
+    var metadata = "\(indentation)[\(level)] \(role)"
+    
+    // Get title if available (important for path matching)
+    if AXUIElementCopyAttributeValue(element, "AXTitle" as CFString, &titleRef) == .success,
+       let title = titleRef as? String {
+      metadata += " - Title: \"\(title)\""
+    }
+    
+    // Get description if available (critical for calculator buttons)
+    if AXUIElementCopyAttributeValue(element, "AXDescription" as CFString, &descRef) == .success,
+       let desc = descRef as? String {
+      metadata += " - Desc: \"\(desc)\""
+    }
+    
+    // Get identifier if available (critical for path matching)
+    if AXUIElementCopyAttributeValue(element, "AXIdentifier" as CFString, &idRef) == .success,
+       let id = idRef as? String {
+      metadata += " - ID: \"\(id)\""
+    }
+    
+    // Get enabled state (affects interactivity)
+    var isEnabled = true
+    if AXUIElementCopyAttributeValue(element, "AXEnabled" as CFString, &enabledRef) == .success,
+       let enabled = enabledRef as? Bool {
+      isEnabled = enabled
+      if !enabled {
+        metadata += " - Disabled"
+      }
+    }
+    
+    // Get hidden state (affects visibility)
+    var isHidden = false
+    if AXUIElementCopyAttributeValue(element, "AXHidden" as CFString, &hiddenRef) == .success,
+       let hidden = hiddenRef as? Bool {
+      isHidden = hidden
+      if hidden {
+        metadata += " - Hidden"
+      }
+    }
+    
+    // Get focused state
+    if AXUIElementCopyAttributeValue(element, "AXFocused" as CFString, &focusedRef) == .success,
+       let focused = focusedRef as? Bool, focused {
+      metadata += " - Focused"
+    }
+    
+    // Get position and size for spatial information
+    var position = CGPoint.zero
+    var size = CGSize.zero
+    var hasPosition = false
+    var hasSize = false
+    
+    var positionRef: CFTypeRef?
+    if AXUIElementCopyAttributeValue(element, "AXPosition" as CFString, &positionRef) == .success,
+       CFGetTypeID(positionRef!) == AXValueGetTypeID() {
+       AXValueGetValue(positionRef as! AXValue, .cgPoint, &position)
+       metadata += " - Pos: (\(Int(position.x)), \(Int(position.y)))"
+       hasPosition = true
+    }
+    
+    var sizeRef: CFTypeRef?
+    if AXUIElementCopyAttributeValue(element, "AXSize" as CFString, &sizeRef) == .success,
+       CFGetTypeID(sizeRef!) == AXValueGetTypeID() {
+       AXValueGetValue(sizeRef as! AXValue, .cgSize, &size)
+       metadata += " - Size: (\(Int(size.width)), \(Int(size.height)))"
+       hasSize = true
+    }
+    
+    // Get frame for easier spatial understanding
+    if hasPosition && hasSize {
+      let frameStr = "Frame: (\(Int(position.x)), \(Int(position.y)), \(Int(size.width)), \(Int(size.height)))"
+      metadata += " - \(frameStr)"
+    }
+    
+    // Get available actions (critical for interactivity)
+    var actionNamesRef: CFArray?
+    if AXUIElementCopyActionNames(element, &actionNamesRef) == .success,
+       let actionNames = actionNamesRef as? [String], !actionNames.isEmpty {
+      metadata += " - Actions: \(actionNames.joined(separator: ", "))"
+    }
+    
+    // Add element uniqueness attributes (help for path matching)
+    var uniqueAttrs: [String] = []
+    if !isHidden && isEnabled {
+      if let desc = descRef as? String, !desc.isEmpty {
+        uniqueAttrs.append("description=\"\(desc)\"")
+      }
+      if let id = idRef as? String, !id.isEmpty {
+        uniqueAttrs.append("identifier=\"\(id)\"")
+      }
+      if let title = titleRef as? String, !title.isEmpty {
+        uniqueAttrs.append("title=\"\(title)\"")
+      }
+    }
+    
+    if !uniqueAttrs.isEmpty {
+      metadata += " - Path attrs: [\(uniqueAttrs.joined(separator: ", "))]"
+    }
+    
+    // Log element information both to the logger and directly to a file
+    logger.trace("DIAGNOSTIC: TREE: \(metadata)")
+    
+    // Also write directly to a diagnostic file if the environment variable is set
+    if let diagPath = ProcessInfo.processInfo.environment["MCP_AX_DIAGNOSTIC_LOG"] {
+      let message = "TREE: \(metadata)\n"
+      if let data = message.data(using: .utf8) {
+        do {
+          let fileHandle = try FileHandle(forWritingTo: URL(fileURLWithPath: diagPath))
+          defer { fileHandle.closeFile() }
+          fileHandle.seekToEndOfFile()
+          fileHandle.write(data)
+        } catch {
+          logger.trace("Failed to write to diagnostic log: \(error)")
+        }
+      }
+    }
+    
+    // Special handling for elements that are often problematic in path resolution
+    let problematicRoles = ["AXGroup", "AXSplitGroup", "AXBox", "AXGeneric", "AXScrollArea", "AXList", "AXOutline"]
+    if problematicRoles.contains(role) {
+      // For problematic elements, perform a more detailed analysis
+      logger.trace("DIAGNOSTIC: TREE: \(indentation)  === DETAILED ANALYSIS OF \(role) ===")
+      
+      if let diagPath = ProcessInfo.processInfo.environment["MCP_AX_DIAGNOSTIC_LOG"] {
+        let detailHeader = "TREE: \(indentation)  === DETAILED ANALYSIS OF \(role) ===\n"
+        if let data = detailHeader.data(using: .utf8) {
+          do {
+            let fileHandle = try FileHandle(forWritingTo: URL(fileURLWithPath: diagPath))
+            defer { fileHandle.closeFile() }
+            fileHandle.seekToEndOfFile()
+            fileHandle.write(data)
+          } catch {
+            logger.trace("Failed to write detail header to diagnostic log: \(error)")
+          }
+        }
+      }
+      
+      // Get all attributes to help debug these problematic elements
+      var attrNamesRef: CFArray?
+      if AXUIElementCopyAttributeNames(element, &attrNamesRef) == .success,
+         let attrNames = attrNamesRef as? [String] {
+        
+        // Log all attributes for this element, not just the "important" ones
+        for attrName in attrNames {
+          var attrValueRef: CFTypeRef?
+          if AXUIElementCopyAttributeValue(element, attrName as CFString, &attrValueRef) == .success {
+            var valueDesc: String
+            if let stringValue = attrValueRef as? String {
+              valueDesc = "String: \"\(stringValue)\""
+            } else if let numValue = attrValueRef as? NSNumber {
+              valueDesc = "Number: \(numValue)"
+            } else if let boolValue = attrValueRef as? Bool {
+              valueDesc = "Bool: \(boolValue)"
+            } else if let arrayValue = attrValueRef as? [AnyObject] {
+              valueDesc = "Array with \(arrayValue.count) items"
+              
+              // For AXChildren attribute, log more details about child elements
+              if attrName == "AXChildren" && arrayValue.count > 0 {
+                var childDetails: [String] = []
+                for (i, child) in arrayValue.prefix(10).enumerated() {
+                  // Since child is already known to be of AXUIElement type from the array context
+                  let childElement = child as! AXUIElement
+                  var childRoleRef: CFTypeRef?
+                  var childDescRef: CFTypeRef?
+                  var childIdRef: CFTypeRef?
+                  var childRoleStr = "unknown"
+                  var childDescStr = ""
+                  var childIdStr = ""
+                  
+                  if AXUIElementCopyAttributeValue(childElement, "AXRole" as CFString, &childRoleRef) == .success,
+                     let role = childRoleRef as? String {
+                    childRoleStr = role
+                  }
+                  
+                  if AXUIElementCopyAttributeValue(childElement, "AXDescription" as CFString, &childDescRef) == .success,
+                     let desc = childDescRef as? String, !desc.isEmpty {
+                    childDescStr = " desc=\"\(desc)\""
+                  }
+                  
+                  if AXUIElementCopyAttributeValue(childElement, "AXIdentifier" as CFString, &childIdRef) == .success,
+                     let id = childIdRef as? String, !id.isEmpty {
+                    childIdStr = " id=\"\(id)\""
+                  }
+                  
+                  childDetails.append("Child \(i): \(childRoleStr)\(childDescStr)\(childIdStr)")
+                }
+                
+                // Add the child details directly to the value description
+                if !childDetails.isEmpty {
+                  valueDesc += " - " + childDetails.joined(separator: ", ")
+                }
+              }
+            } else if attrName == "AXPosition" || attrName == "AXSize", 
+                    CFGetTypeID(attrValueRef!) == AXValueGetTypeID() {
+              if attrName == "AXPosition" {
+                var point = CGPoint.zero
+                AXValueGetValue(attrValueRef as! AXValue, .cgPoint, &point)
+                valueDesc = "Position: (\(point.x), \(point.y))"
+              } else {
+                var size = CGSize.zero
+                AXValueGetValue(attrValueRef as! AXValue, .cgSize, &size)
+                valueDesc = "Size: (\(size.width), \(size.height))"
+              }
+            } else {
+              valueDesc = "Unknown type"
+            }
+            
+            // Log ALL attributes for these problematic elements, not just a subset
+            let attrLog = "\(indentation)    - \(attrName): \(valueDesc)"
+            logger.trace("DIAGNOSTIC: TREE: \(attrLog)")
+            
+            // Write to diagnostic file
+            if let diagPath = ProcessInfo.processInfo.environment["MCP_AX_DIAGNOSTIC_LOG"] {
+              let message = "TREE: \(attrLog)\n"
+              if let data = message.data(using: .utf8) {
+                do {
+                  let fileHandle = try FileHandle(forWritingTo: URL(fileURLWithPath: diagPath))
+                  defer { fileHandle.closeFile() }
+                  fileHandle.seekToEndOfFile()
+                  fileHandle.write(data)
+                } catch {
+                  logger.trace("Failed to write attribute to diagnostic log: \(error)")
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      // Add a specific diagnostic section for path attributes
+      let pathLog = "\(indentation)  === PATH ATTRIBUTES FOR THIS \(role) ==="
+      logger.trace("DIAGNOSTIC: TREE: \(pathLog)")
+      
+      if let diagPath = ProcessInfo.processInfo.environment["MCP_AX_DIAGNOSTIC_LOG"] {
+        let message = "TREE: \(pathLog)\n"
+        if let data = message.data(using: .utf8) {
+          do {
+            let fileHandle = try FileHandle(forWritingTo: URL(fileURLWithPath: diagPath))
+            defer { fileHandle.closeFile() }
+            fileHandle.seekToEndOfFile()
+            fileHandle.write(data)
+          } catch {
+            logger.trace("Failed to write path attributes header to diagnostic log: \(error)")
+          }
+        }
+      }
+      
+      // Build a path segment representation for this element
+      var pathAttributesDesc = "\(indentation)    role=\"\(role)\""
+      if let desc = descRef as? String, !desc.isEmpty {
+        pathAttributesDesc += ", description=\"\(desc)\""
+      }
+      if let id = idRef as? String, !id.isEmpty {
+        pathAttributesDesc += ", identifier=\"\(id)\""
+      }
+      if let title = titleRef as? String, !title.isEmpty {
+        pathAttributesDesc += ", title=\"\(title)\""
+      }
+      
+      logger.trace("DIAGNOSTIC: TREE: \(pathAttributesDesc)")
+      
+      if let diagPath = ProcessInfo.processInfo.environment["MCP_AX_DIAGNOSTIC_LOG"] {
+        let message = "TREE: \(pathAttributesDesc)\n"
+        if let data = message.data(using: .utf8) {
+          do {
+            let fileHandle = try FileHandle(forWritingTo: URL(fileURLWithPath: diagPath))
+            defer { fileHandle.closeFile() }
+            fileHandle.seekToEndOfFile()
+            fileHandle.write(data)
+          } catch {
+            logger.trace("Failed to write path attributes to diagnostic log: \(error)")
+          }
+        }
+      }
+    }
+    
+    // Get and process children
+    var childrenRef: CFTypeRef?
+    if AXUIElementCopyAttributeValue(element, "AXChildren" as CFString, &childrenRef) == .success,
+       let children = childrenRef as? [AXUIElement] {
+      if !children.isEmpty {
+        let childrenLog = "\(indentation)  (\(children.count) children)"
+        logger.trace("DIAGNOSTIC: TREE: \(childrenLog)")
+        
+        // Write to diagnostic file
+        if let diagPath = ProcessInfo.processInfo.environment["MCP_AX_DIAGNOSTIC_LOG"] {
+          let message = "TREE: \(childrenLog)\n"
+          if let data = message.data(using: .utf8) {
+            do {
+              let fileHandle = try FileHandle(forWritingTo: URL(fileURLWithPath: diagPath))
+              defer { fileHandle.closeFile() }
+              fileHandle.seekToEndOfFile()
+              fileHandle.write(data)
+            } catch {
+              logger.trace("Failed to write children count to diagnostic log: \(error)")
+            }
+          }
+        }
+        
+        // Add a separator before children
+        if level == 0 && children.count > 5 {
+          let separator = "\(indentation)  -------------------------------------"
+          logger.trace("DIAGNOSTIC: TREE: \(separator)")
+          
+          if let diagPath = ProcessInfo.processInfo.environment["MCP_AX_DIAGNOSTIC_LOG"] {
+            let message = "TREE: \(separator)\n"
+            if let data = message.data(using: .utf8) {
+              do {
+                let fileHandle = try FileHandle(forWritingTo: URL(fileURLWithPath: diagPath))
+                defer { fileHandle.closeFile() }
+                fileHandle.seekToEndOfFile()
+                fileHandle.write(data)
+              } catch {
+                logger.trace("Failed to write separator to diagnostic log: \(error)")
+              }
+            }
+          }
+        }
+      }
+      
+      // Process each child
+      for child in children {
+        await dumpAccessibilityTree(child, level: level + 1, maxDepth: maxDepth)
+      }
+    } else {
+      logger.trace("DIAGNOSTIC: TREE: \(indentation)  (no children)")
+      
+      // Write to diagnostic file
+      if let diagPath = ProcessInfo.processInfo.environment["MCP_AX_DIAGNOSTIC_LOG"] {
+        let message = "TREE: \(indentation)  (no children)\n"
+        if let data = message.data(using: .utf8) {
+          do {
+            let fileHandle = try FileHandle(forWritingTo: URL(fileURLWithPath: diagPath))
+            defer { fileHandle.closeFile() }
+            fileHandle.seekToEndOfFile()
+            fileHandle.write(data)
+          } catch {
+            logger.trace("Failed to write no children info to diagnostic log: \(error)")
+          }
+        }
+      }
+    }
+  }
 }
 
 // MARK: - Path-based Element Interaction Methods Extension
@@ -723,17 +1095,200 @@ extension UIInteractionService {
         "path": "\(path)",
         "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil",
       ])
+    
+    // DIAGNOSTIC: Add detailed path information before attempting resolution
+    logger.trace("DIAGNOSTIC: Starting path resolution for click operation")
+    logger.trace("DIAGNOSTIC: Path to resolve: \(path)")
+    
+    // DIAGNOSTIC: Dump the entire accessibility tree for the application
+    // to compare with what InterfaceExplorerTool finds
+    if let bundleId = appBundleId ?? path.components(separatedBy: "bundleIdentifier=\"").last?.components(separatedBy: "\"").first {
+      logger.trace("DIAGNOSTIC: Dumping accessibility tree for application with bundleId: \(bundleId)")
+      
+      // Extract the path segments for diagnostic purposes
+      var pathSegments: [String] = []
+      do {
+        let parsedPath = try ElementPath.parse(path)
+        pathSegments = parsedPath.segments.map { seg -> String in
+          let attrs = seg.attributes.map { key, val in "\(key)=\"\(val)\"" }.joined(separator: ", ")
+          return "\(seg.role)[\(attrs)]"
+        }
+        logger.trace("DIAGNOSTIC: Path segments: \(pathSegments.joined(separator: " -> "))")
+      } catch {
+        logger.trace("DIAGNOSTIC: Could not parse path for diagnostics: \(error)")
+      }
+      
+      // Find the application
+      let apps = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId)
+      if let app = apps.first {
+        let appElement = AXUIElementCreateApplication(app.processIdentifier)
+        logger.trace("DIAGNOSTIC: Found application with pid: \(app.processIdentifier)")
+        
+        // Log more details about the app element
+        var appTitle: String = "unknown"
+        var appRole: String = "unknown"
+        
+        var titleRef: CFTypeRef?
+        var roleRef: CFTypeRef?
+        
+        if AXUIElementCopyAttributeValue(appElement, "AXTitle" as CFString, &titleRef) == .success,
+           let title = titleRef as? String {
+          appTitle = title
+        }
+        
+        if AXUIElementCopyAttributeValue(appElement, "AXRole" as CFString, &roleRef) == .success,
+           let role = roleRef as? String {
+          appRole = role
+        }
+        
+        logger.trace("DIAGNOSTIC: App element - Title: \"\(appTitle)\", Role: \"\(appRole)\"")
+        
+        // Write header to the diagnostic file
+        if let diagPath = ProcessInfo.processInfo.environment["MCP_AX_DIAGNOSTIC_LOG"] {
+          let header = """
+          
+          ===============================================================
+          ACCESSIBILITY TREE DUMP FOR PATH RESOLUTION DIAGNOSTICS
+          Application: \(app.localizedName ?? "unknown") (pid: \(app.processIdentifier), bundleId: \(bundleId))
+          Path to resolve: \(path)
+          Path segments: \(pathSegments.joined(separator: " -> "))
+          Timestamp: \(ISO8601DateFormatter().string(from: Date()))
+          ===============================================================
+          
+          """
+          
+          if let data = header.data(using: .utf8) {
+            do {
+              let fileHandle = try FileHandle(forWritingTo: URL(fileURLWithPath: diagPath))
+              defer { fileHandle.closeFile() }
+              fileHandle.seekToEndOfFile()
+              fileHandle.write(data)
+            } catch {
+              logger.trace("Failed to write header to diagnostic log: \(error)")
+            }
+          }
+        }
+        
+        // Dump the tree from this root with increased max depth for better diagnostics
+        logger.trace("DIAGNOSTIC: Starting tree dump - this may take a few seconds for complex UIs")
+        await dumpAccessibilityTree(appElement, level: 0, maxDepth: 10)
+        logger.trace("DIAGNOSTIC: Tree dump completed")
+        
+        // Try to do additional focused dumps for specific parts of the path
+        // This helps diagnose where exactly the path resolution fails
+        if pathSegments.count > 1 {
+          logger.trace("DIAGNOSTIC: Attempting to follow partial path segments...")
+          
+          // Try to follow the path as far as we can to pinpoint the failure point
+          let currentElement = appElement
+          var resolved = true
+          
+          // Skip the first segment (which is the application) since we already have it
+          for (index, segmentDesc) in pathSegments.enumerated().dropFirst() {
+            if !resolved { break }
+            
+            logger.trace("DIAGNOSTIC: Trying to follow segment \(index): \(segmentDesc)")
+            
+            // Get children of current element
+            var childrenRef: CFTypeRef?
+            if AXUIElementCopyAttributeValue(currentElement, "AXChildren" as CFString, &childrenRef) == .success,
+               let children = childrenRef as? [AXUIElement] {
+              
+              logger.trace("DIAGNOSTIC: Found \(children.count) children at level \(index)")
+              
+              // Write to diagnostic file
+              if let diagPath = ProcessInfo.processInfo.environment["MCP_AX_DIAGNOSTIC_LOG"] {
+                let message = "\n--- CHILDREN AT SEGMENT \(index) (\(segmentDesc)) ---\n"
+                if let data = message.data(using: .utf8) {
+                  do {
+                    let fileHandle = try FileHandle(forWritingTo: URL(fileURLWithPath: diagPath))
+                    defer { fileHandle.closeFile() }
+                    fileHandle.seekToEndOfFile()
+                    fileHandle.write(data)
+                  } catch {
+                    logger.trace("Failed to write segment header to diagnostic log: \(error)")
+                  }
+                }
+              }
+              
+              // Dump all children at this level to see what's available
+              for (_, child) in children.prefix(30).enumerated() {
+                await dumpAccessibilityTree(child, level: 0, maxDepth: 1)
+                
+                // For AXGroup segments, add more comprehensive dumps since they're problematic
+                if segmentDesc.contains("AXGroup") || segmentDesc.contains("AXSplitGroup") {
+                  var childRoleRef: CFTypeRef?
+                  if AXUIElementCopyAttributeValue(child, "AXRole" as CFString, &childRoleRef) == .success,
+                     let childRole = childRoleRef as? String, 
+                     childRole == "AXGroup" || childRole == "AXSplitGroup" {
+                    
+                    logger.trace("DIAGNOSTIC: Found AXGroup child, dumping deeper...")
+                    
+                    // For AXGroup children, dump one more level deep
+                    await dumpAccessibilityTree(child, level: 0, maxDepth: 3)
+                  }
+                }
+              }
+              
+              // For now, we don't try to find the matching child - that would require
+              // reimplementing the complex matching logic. We're just dumping the children
+              // so we can see what's available at each step.
+              resolved = false
+            } else {
+              logger.trace("DIAGNOSTIC: Failed to get children at level \(index)")
+              resolved = false
+            }
+          }
+        }
+        
+        // After dumping the tree, add a footer to the diagnostic file
+        if let diagPath = ProcessInfo.processInfo.environment["MCP_AX_DIAGNOSTIC_LOG"] {
+          let footer = """
+          
+          ===============================================================
+          END OF ACCESSIBILITY TREE DUMP
+          ===============================================================
+          
+          """
+          
+          if let data = footer.data(using: .utf8) {
+            do {
+              let fileHandle = try FileHandle(forWritingTo: URL(fileURLWithPath: diagPath))
+              defer { fileHandle.closeFile() }
+              fileHandle.seekToEndOfFile()
+              fileHandle.write(data)
+            } catch {
+              logger.trace("Failed to write footer to diagnostic log: \(error)")
+            }
+          }
+        }
+      } else {
+        logger.trace("DIAGNOSTIC: No running application found for bundleId: \(bundleId)")
+      }
+    }
 
     // Parse the path
     let elementPath: ElementPath
     do {
+      // Log more detailed parsing information
+      logger.debug("Parsing path: \(path)")
       elementPath = try ElementPath.parse(path)
+      
+      // Enhanced logging of the parsed path segments
+      let segmentInfo = elementPath.segments.enumerated().map { idx, seg -> String in
+        let attrStr = seg.attributes.map { key, val in "\(key)=\"\(val)\"" }.joined(separator: ", ")
+        return "Segment \(idx): role=\(seg.role), attrs=[\(attrStr)], index=\(String(describing: seg.index))"
+      }.joined(separator: "; ")
+      
+      logger.debug("Path parsed successfully with \(elementPath.segments.count) segments: \(segmentInfo)")
     } catch {
-      logger.error(
+      logger.trace(
         "Failed to parse element path",
         metadata: [
           "path": .string(path),
           "error": .string(error.localizedDescription),
+          "errorType": .string("\(type(of: error))"),
+          "detailedError": .string("\(error)"),
         ])
       throw createInvalidPathError(
         message: "Invalid element path format: \(path)",
@@ -745,16 +1300,206 @@ extension UIInteractionService {
     // Resolve the path to get the AXUIElement
     let element: AXUIElement
     do {
+      logger.debug("Starting path resolution process for path with \(elementPath.segments.count) segments")
+      
+      // Log the first segment which should be the application
+      if !elementPath.segments.isEmpty {
+        let firstSegment = elementPath.segments[0]
+        let appAttrs = firstSegment.attributes.map { key, val in "\(key)=\"\(val)\"" }.joined(separator: ", ")
+        logger.debug("Application segment: role=\(firstSegment.role), attrs=[\(appAttrs)]")
+      }
+      
+      // Capture start time for performance measurement
+      let startTime = Date()
       element = try await accessibilityService.run {
         try await elementPath.resolve(using: accessibilityService)
       }
+      
+      // Calculate resolution time
+      let elapsedTime = Date().timeIntervalSince(startTime)
+      logger.debug("Path resolved successfully in \(String(format: "%.3f", elapsedTime))s")
+      
+      // Get some basic info about the resolved element for validation
+      var role: String = "unknown"
+      var position = CGPoint.zero
+      
+      var roleRef: CFTypeRef?
+      let roleStatus = AXUIElementCopyAttributeValue(element, "AXRole" as CFString, &roleRef)
+      if roleStatus == .success, let roleStr = roleRef as? String {
+        role = roleStr
+      }
+      
+      var positionRef: CFTypeRef?
+      let positionStatus = AXUIElementCopyAttributeValue(element, "AXPosition" as CFString, &positionRef)
+      if positionStatus == .success, CFGetTypeID(positionRef!) == AXValueGetTypeID() {
+        let value = positionRef as! AXValue
+        AXValueGetValue(value, .cgPoint, &position)
+      }
+      
+      logger.debug("Resolved element info: role=\(role), position=(\(position.x), \(position.y))")
     } catch {
-      logger.error(
+      logger.trace(
         "Failed to resolve element path",
         metadata: [
           "path": .string(path),
           "error": .string(error.localizedDescription),
+          "errorType": .string("\(type(of: error))"),
         ])
+      
+      // Enhanced error logging for ElementPathError
+      if let pathError = error as? ElementPathError {
+        switch pathError {
+        case .segmentResolutionFailed(let segment, let index):
+          logger.trace(
+            "Failed to resolve segment",
+            metadata: [
+              "segment": .string(segment),
+              "index": .string("\(index)"),
+              "totalSegments": .string("\(elementPath.segments.count)")
+            ])
+          
+          // Enhanced debugging for AXGroup resolution failures
+          if segment.contains("AXGroup") {
+            logger.trace(
+              "Generic container resolution failure debugging:",
+              metadata: [
+                "segment": .string(segment),
+                "pathBeforeFailure": .string(elementPath.segments.prefix(index).map { $0.toString() }.joined(separator: "/"))
+              ])
+            
+            // Get the segment details
+            let failingSegment = elementPath.segments[index]
+            let segmentAttributes = failingSegment.attributes.map { key, value in "\(key)=\(value)" }.joined(separator: ", ")
+            logger.trace(
+              "Failing segment details:",
+              metadata: [
+                "role": .string(failingSegment.role),
+                "attributes": .string(segmentAttributes),
+                "hasIndex": .string("\(failingSegment.index != nil)"),
+                "index": .string(failingSegment.index.map { "\($0)" } ?? "nil")
+              ])
+            
+            // Try to get information about previous segment (parent) if available
+            if index > 0 {
+              let parentSegment = elementPath.segments[index - 1]
+              let parentAttributes = parentSegment.attributes.map { key, value in "\(key)=\(value)" }.joined(separator: ", ")
+              logger.trace(
+                "Parent segment details:",
+                metadata: [
+                  "role": .string(parentSegment.role),
+                  "attributes": .string(parentAttributes),
+                  "hasIndex": .string("\(parentSegment.index != nil)"),
+                  "index": .string(parentSegment.index.map { "\($0)" } ?? "nil")
+                ])
+              
+              // Try to analyze the hierarchy before the AXGroup
+              Task {
+                do {
+                  // Try to resolve the parent segment to explore its children
+                  logger.trace("Attempting to diagnose parent element structure...")
+                  
+                  // Create a partial path up to the parent
+                  let parentSegments = Array(elementPath.segments.prefix(index))
+                  if !parentSegments.isEmpty {
+                    let parentPath = try ElementPath(segments: parentSegments)
+                    let parentElement = try await accessibilityService.run {
+                      try await parentPath.resolve(using: accessibilityService)
+                    }
+                    
+                    // Get information about the parent's children
+                    logger.trace("Successfully resolved parent, examining children...")
+                    
+                    var childrenRef: CFTypeRef?
+                    let childrenResult = AXUIElementCopyAttributeValue(parentElement, "AXChildren" as CFString, &childrenRef)
+                    
+                    if childrenResult == .success, let children = childrenRef as? [AXUIElement] {
+                      logger.trace("Parent has \(children.count) children")
+                      
+                      // Examine each child's role to see if AXGroup exists
+                      for (i, child) in children.prefix(10).enumerated() {
+                        var roleRef: CFTypeRef?
+                        if AXUIElementCopyAttributeValue(child, "AXRole" as CFString, &roleRef) == .success,
+                           let roleStr = roleRef as? String {
+                          logger.trace("Child \(i) role: \(roleStr)")
+                          
+                          // If this is a group, try to get its children too
+                          if roleStr == "AXGroup" || roleStr == "AXSplitGroup" {
+                            var groupChildrenRef: CFTypeRef?
+                            if AXUIElementCopyAttributeValue(child, "AXChildren" as CFString, &groupChildrenRef) == .success,
+                               let groupChildren = groupChildrenRef as? [AXUIElement] {
+                              logger.trace("Group child \(i) has \(groupChildren.count) children")
+                              
+                              // Log roles of a few group children
+                              for (j, groupChild) in groupChildren.prefix(5).enumerated() {
+                                var groupChildRoleRef: CFTypeRef?
+                                if AXUIElementCopyAttributeValue(groupChild, "AXRole" as CFString, &groupChildRoleRef) == .success,
+                                   let groupChildRole = groupChildRoleRef as? String {
+                                  logger.trace("Group \(i) child \(j) role: \(groupChildRole)")
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    } else {
+                      logger.trace("Failed to get children of parent: \(getAXErrorName(childrenResult))")
+                    }
+                  }
+                } catch {
+                  logger.trace("Error during hierarchy diagnosis: \(error)")
+                }
+              }
+            }
+          }
+            
+        case .noMatchingElements(let segment, let index):
+          logger.trace(
+            "No matching elements found",
+            metadata: [
+              "segment": .string(segment),
+              "index": .string("\(index)"),
+              "totalSegments": .string("\(elementPath.segments.count)")
+            ])
+            
+        case .ambiguousMatch(let segment, let count, let index):
+          logger.trace(
+            "Ambiguous match (multiple elements)",
+            metadata: [
+              "segment": .string(segment),
+              "matchCount": .string("\(count)"),
+              "index": .string("\(index)"),
+            ])
+            
+        case .resolutionFailed(let segment, let index, let candidates, let reason):
+          logger.trace(
+            "Resolution failed with candidates",
+            metadata: [
+              "segment": .string(segment),
+              "index": .string("\(index)"),
+              "reason": .string(reason),
+              "candidateCount": .string("\(candidates.count)"),
+            ])
+            
+            // Log some candidate examples if available
+            if !candidates.isEmpty {
+              let candidateSamples = candidates.prefix(5).joined(separator: ", ")
+              logger.trace("Candidate examples: \(candidateSamples)")
+            }
+            
+        default:
+          logger.trace("Element path error: \(pathError.description)")
+        }
+        
+        // Try to get detailed diagnostic information if possible
+        do {
+          logger.info("Attempting detailed path resolution diagnosis...")
+          let diagnosticInfo = try await ElementPath.diagnosePathResolutionIssue(path, using: accessibilityService)
+          logger.debug("Diagnostic info available (truncated): \(String(diagnosticInfo.prefix(200)))...")
+        } catch {
+          logger.trace("Failed to get diagnostic information: \(error)")
+        }
+      }
+      
       throw createPathResolutionError(
         message: "Failed to find element with path: \(path)",
         context: ["path": path],
@@ -1174,7 +1919,7 @@ extension UIInteractionService {
       // Both AXPress and mouse simulation failed
       let nsError = error as NSError
 
-      logger.error(
+      logger.trace(
         "Both AXPress and mouse simulation failed for path-based element",
         metadata: [
           "error": .string(error.localizedDescription),
