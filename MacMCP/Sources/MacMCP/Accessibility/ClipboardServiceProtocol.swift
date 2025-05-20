@@ -39,6 +39,11 @@ public protocol ClipboardServiceProtocol: Sendable {
   /// Clears the clipboard content
   /// - Throws: MacMCPError if clipboard access fails
   func clearClipboard() async throws
+  
+  /// Gets information about the current clipboard content
+  /// - Returns: ClipboardContentInfo with available types and empty status
+  /// - Throws: MacMCPError if clipboard access fails
+  func getClipboardInfo() async throws -> ClipboardContentInfo
 }
 
 /// Struct representing clipboard content types
@@ -95,9 +100,9 @@ public struct ClipboardContentInfo: Sendable, Encodable {
   }
 }
 
-// Extension to make ClipboardServiceProtocol provide additional methods
+// Extension to provide a default implementation of getClipboardInfo
 extension ClipboardServiceProtocol {
-  /// Gets information about the current clipboard content
+  /// Default implementation to get information about the current clipboard content
   /// - Returns: ClipboardContentInfo with available types and empty status
   /// - Throws: MacMCPError if clipboard access fails
   public func getClipboardInfo() async throws -> ClipboardContentInfo {

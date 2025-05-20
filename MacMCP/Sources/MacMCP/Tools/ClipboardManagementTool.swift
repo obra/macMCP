@@ -131,7 +131,10 @@ public struct ClipboardManagementTool: @unchecked Sendable {
   /// - Returns: JSON with the clipboard content info
   /// - Throws: Error if operation fails
   private func handleGetInfo() async throws -> [String: Any] {
+    // Get information about clipboard contents from the service
     let info = try await clipboardService.getClipboardInfo()
+    
+    // Return a dictionary with the clipboard information
     return [
       "availableTypes": info.availableTypes.map(\.rawValue),
       "isEmpty": info.isEmpty,
