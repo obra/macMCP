@@ -30,7 +30,7 @@ struct UIElementPathInitIntegrationTests {
     try await Task.sleep(nanoseconds: 1_000_000_000)
 
     // Create a simple path to the Calculator window
-    let windowPath = "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]"
+    let windowPath = "macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]"
 
     // Create a UIElement from the path
     let windowElement = try await UIElement(
@@ -76,7 +76,7 @@ struct UIElementPathInitIntegrationTests {
     // Create a complex path to a button in Calculator
     // Use the same format to match the output of the element initializer's toString() method
     let buttonPath =
-      "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]"
+      "macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]"
 
     // Get diagnostics on the path before attempting resolution
     _ = try await ElementPath.diagnosePathResolutionIssue(
@@ -154,8 +154,8 @@ struct UIElementPathInitIntegrationTests {
     try await Task.sleep(nanoseconds: 1_000_000_000)
 
     // Create two different paths to the same window
-    let path1 = "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]"
-    let path2 = "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[0]"
+    let path1 = "macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]"
+    let path2 = "macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow[0]"
 
     // Compare the paths
     let areSame = try await UIElement.areSameElement(
@@ -200,9 +200,9 @@ struct UIElementPathInitIntegrationTests {
     try await Task.sleep(nanoseconds: 1_000_000_000)
 
     // Create paths to different elements
-    let windowPath = "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]"
+    let windowPath = "macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]"
     let buttonPath =
-      "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]"
+      "macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]"
 
     // Compare the paths
     let areSame = try await UIElement.areSameElement(
@@ -248,7 +248,7 @@ struct UIElementPathInitIntegrationTests {
 
     // Create an invalid path
     let invalidPath =
-      "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXNonExistentElement"
+      "macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXNonExistentElement"
 
     // Attempt to create a UIElement (should throw)
     do {

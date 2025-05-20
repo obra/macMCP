@@ -90,7 +90,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
         "elementPath": .object([
           "type": .string("string"),
           "description": .string(
-            "The path of a specific element to retrieve using ui:// notation (required for 'path' scope)"
+            "The path of a specific element to retrieve using macos://ui/ notation (required for 'path' scope)"
           ),
         ]),
         "x": .object([
@@ -790,7 +790,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
         // This ensures we have complete hierarchy information
         for resultElement in resultElements {
           // For path filtering, we need to handle both fully qualified and partial paths
-          if elementPath.hasPrefix("ui://"), elementPath.contains("/") {
+          if elementPath.hasPrefix("macos://ui/"), elementPath.contains("/") {
             // This appears to be a fully qualified path, so use it directly
             resultElement.path = elementPath
             logger.debug(
@@ -832,7 +832,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
         for resultElement in resultElements {
           // For path filtering, we set a base path that the element will extend
           // when creating its fully qualified path
-          if elementPath.hasPrefix("ui://"), elementPath.contains("/") {
+          if elementPath.hasPrefix("macos://ui/"), elementPath.contains("/") {
             // This appears to be a fully qualified path, so use it directly
             resultElement.path = elementPath
             logger.debug(
@@ -1004,7 +1004,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
           logger.warning(
             "Could not generate fully qualified path for element: \(error.localizedDescription)")
         }
-      } else if !element.path.hasPrefix("ui://") {
+      } else if !element.path.hasPrefix("macos://ui/") {
         // Path exists but isn't fully qualified - try to generate a proper one
         do {
           element.path = try element.generatePath()
@@ -1016,7 +1016,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
           logger.warning("Could not replace non-qualified path: \(error.localizedDescription)")
         }
       } else if !element.path.contains("/") {
-        // Path has ui:// prefix but doesn't contain hierarchy separators
+        // Path has macos://ui/ prefix but doesn't contain hierarchy separators
         // This indicates it's a partial path, not a fully qualified one
         do {
           // Try to generate a more complete path
@@ -1044,7 +1044,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
       }
 
       // Verify the path is fully qualified
-      if !element.path.hasPrefix("ui://") || !element.path.contains("/") {
+      if !element.path.hasPrefix("macos://ui/") || !element.path.contains("/") {
         logger.warning("Path may not be fully qualified", metadata: ["path": .string(element.path)])
       }
 

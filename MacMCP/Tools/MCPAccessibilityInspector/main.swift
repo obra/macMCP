@@ -59,7 +59,7 @@ final class JsonFetcher: @unchecked Sendable {
     // Create the request parameters based on whether we're doing a path-based lookup
     let arguments: [String: Value]
 
-    if let path = inspectPath, path.hasPrefix("ui://") {
+    if let path = inspectPath, path.hasPrefix("macos://ui/") {
       // Path-based inspection
       arguments = [
         "scope": .string("path"),
@@ -375,14 +375,14 @@ struct MCPAccessibilityInspector: ParsableCommand {
         mcp-ax-inspector --app-id com.apple.calculator --hide-full-paths
 
         # Inspect a specific element directly by its path
-        mcp-ax-inspector --app-id com.apple.calculator --inspect-path "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow/AXButton[@AXDescription=\"1\"]"
+        mcp-ax-inspector --app-id com.apple.calculator --inspect-path "macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow/AXButton[@AXDescription=\"1\"]"
 
       Output options:
         # Output raw JSON response instead of tree visualization
         mcp-ax-inspector --app-id com.apple.calculator --raw-json
 
         # Output raw JSON for a specific element path
-        mcp-ax-inspector --app-id com.apple.calculator --inspect-path "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow" --raw-json
+        mcp-ax-inspector --app-id com.apple.calculator --inspect-path "macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow" --raw-json
       """,
   )
 
@@ -483,7 +483,7 @@ struct MCPAccessibilityInspector: ParsableCommand {
   @Option(
     name: [.customLong("inspect-path")],
     help:
-      "Directly inspect an element by its full path (e.g., \"ui://AXApplication[@AXTitle=\\\"Calculator\\\"]/AXWindow/AXButton\")",
+      "Directly inspect an element by its full path (e.g., \"macos://ui/AXApplication[@AXTitle=\\\"Calculator\\\"]/AXWindow/AXButton\")",
   )
   var inspectPath: String?
 

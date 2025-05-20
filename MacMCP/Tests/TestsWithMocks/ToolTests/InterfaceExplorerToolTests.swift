@@ -240,7 +240,7 @@ struct InterfaceExplorerToolTests {
           // Verify path was returned and matches our expected format
           #expect(element["path"] != nil, "Element should have a path")
           if let path = element["path"] as? String {
-            #expect(path.hasPrefix("ui://"), "Path should start with ui://")
+            #expect(path.hasPrefix("macos://ui/"), "Path should start with macos://ui/")
             #expect(path.contains("AXWindow"), "Path should include AXWindow")
           }
           
@@ -510,7 +510,7 @@ struct InterfaceExplorerToolTests {
       // Function to search recursively through the element tree
       func checkElementsForPaths(element: [String: Any]) {
         // Check if this element has a path
-        if let path = element["path"] as? String, path.hasPrefix("ui://") {
+        if let path = element["path"] as? String, path.hasPrefix("macos://ui/") {
           foundElementWithPath = true
         }
 
@@ -539,7 +539,7 @@ struct InterfaceExplorerToolTests {
           let path = element["path"] as? String
         {
           // Verify the path has the correct format
-          #expect(path.hasPrefix("ui://"), "Path should start with ui://")
+          #expect(path.hasPrefix("macos://ui/"), "Path should start with macos://ui/")
           #expect(path.contains("AXButton"), "Button path should contain AXButton")
           foundButtonWithValidPath = true
         }

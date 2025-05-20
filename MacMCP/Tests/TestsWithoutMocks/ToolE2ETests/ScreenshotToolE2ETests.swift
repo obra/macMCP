@@ -442,7 +442,7 @@ struct ScreenshotToolE2ETests {
     // Create parameters for the screenshot tool with a non-existent element path
     let params: [String: Value] = [
       "region": .string("element"),
-      "elementPath": .string("ui://AXApplication[@AXTitle=\"NonExistentApp\"]/AXWindow/AXButton"),
+      "elementPath": .string("macos://ui/AXApplication[@AXTitle=\"NonExistentApp\"]/AXWindow/AXButton"),
     ]
 
     // Expect an error

@@ -13,15 +13,15 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
   public enum Control {
     /// Formatting controls with path-based identifiers
     public static let boldCheckbox =
-      "ui://AXApplication[@AXTitle=\"TextEdit\"]/AXWindow/AXToolbar/AXCheckBox[@AXDescription=\"Bold\"]"
+      "macos://ui/AXApplication[@AXTitle=\"TextEdit\"]/AXWindow/AXToolbar/AXCheckBox[@AXDescription=\"Bold\"]"
     public static let italicCheckbox =
-      "ui://AXApplication[@AXTitle=\"TextEdit\"]/AXWindow/AXToolbar/AXCheckBox[@AXDescription=\"Italic\"]"
+      "macos://ui/AXApplication[@AXTitle=\"TextEdit\"]/AXWindow/AXToolbar/AXCheckBox[@AXDescription=\"Italic\"]"
     public static let underlineCheckbox =
-      "ui://AXApplication[@AXTitle=\"TextEdit\"]/AXWindow/AXToolbar/AXCheckBox[@AXDescription=\"Underline\"]"
+      "macos://ui/AXApplication[@AXTitle=\"TextEdit\"]/AXWindow/AXToolbar/AXCheckBox[@AXDescription=\"Underline\"]"
 
     /// Text area with path-based identifier
     public static let textArea =
-      "ui://AXApplication[@AXTitle=\"TextEdit\"]/AXWindow/AXGroup/AXScrollArea/AXTextArea"
+      "macos://ui/AXApplication[@AXTitle=\"TextEdit\"]/AXWindow/AXGroup/AXScrollArea/AXTextArea"
 
     /// Format menu item paths
     public static let fontMenuItem = "Format/Font"

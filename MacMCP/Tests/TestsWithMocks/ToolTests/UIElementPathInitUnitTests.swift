@@ -16,7 +16,7 @@ struct UIElementPathInitUnitTests {
   @Test("Test ElementPath parsing")
   func elementPathParsing() throws {
     // Simple path
-    let simplePath = try ElementPath.parse("ui://AXApplication/AXWindow")
+    let simplePath = try ElementPath.parse("macos://ui/AXApplication/AXWindow")
     #expect(simplePath.segments.count == 2)
     #expect(simplePath.segments[0].role == "AXApplication")
     #expect(simplePath.segments[1].role == "AXWindow")
@@ -24,13 +24,13 @@ struct UIElementPathInitUnitTests {
     // Path with attributes
     let attributePath =
       try ElementPath
-      .parse("ui://AXApplication[@bundleIdentifier=\"com.test\"]/AXWindow[@AXTitle=\"Title\"]")
+      .parse("macos://ui/AXApplication[@bundleIdentifier=\"com.test\"]/AXWindow[@AXTitle=\"Title\"]")
     #expect(attributePath.segments.count == 2)
     #expect(attributePath.segments[0].attributes["bundleIdentifier"] == "com.test")
     #expect(attributePath.segments[1].attributes["AXTitle"] == "Title")
 
     // Path with index
-    let indexPath = try ElementPath.parse("ui://AXApplication/AXGroup[1]/AXButton")
+    let indexPath = try ElementPath.parse("macos://ui/AXApplication/AXGroup[1]/AXButton")
     #expect(indexPath.segments.count == 3)
     #expect(indexPath.segments[1].index == 1)
   }
@@ -54,7 +54,7 @@ struct UIElementPathInitUnitTests {
 
     // Empty path
     do {
-      _ = try ElementPath.parse("ui://")
+      _ = try ElementPath.parse("macos://ui/")
       #expect(Bool(false), "Expected an error but none was thrown")
     } catch let error as ElementPathError {
       switch error {
@@ -119,17 +119,17 @@ struct UIElementPathInitUnitTests {
   @Test("Test ElementPath toString")
   func elementPathToString() throws {
     // Simple path
-    let simplePath = try ElementPath.parse("ui://AXApplication/AXWindow")
-    #expect(simplePath.toString() == "ui://AXApplication/AXWindow")
+    let simplePath = try ElementPath.parse("macos://ui/AXApplication/AXWindow")
+    #expect(simplePath.toString() == "macos://ui/AXApplication/AXWindow")
 
     // Complex path
     let complexPath =
       try ElementPath
-      .parse("ui://AXApplication[@bundleIdentifier=\"com.test\"]/AXWindow[@AXTitle=\"Title\"][1]")
+      .parse("macos://ui/AXApplication[@bundleIdentifier=\"com.test\"]/AXWindow[@AXTitle=\"Title\"][1]")
     #expect(
       complexPath
         .toString()
-        == "ui://AXApplication[@bundleIdentifier=\"com.test\"]/AXWindow[@AXTitle=\"Title\"][1]",
+        == "macos://ui/AXApplication[@bundleIdentifier=\"com.test\"]/AXWindow[@AXTitle=\"Title\"][1]",
     )
   }
 
@@ -137,7 +137,7 @@ struct UIElementPathInitUnitTests {
   @Test("Test appending segments to paths")
   func testAppendingSegments() throws {
     // Start with a simple path
-    let startPath = try ElementPath.parse("ui://AXApplication")
+    let startPath = try ElementPath.parse("macos://ui/AXApplication")
 
     // Create a new segment
     let newSegment = PathSegment(role: "AXWindow", attributes: ["AXTitle": "Window"])
@@ -149,7 +149,7 @@ struct UIElementPathInitUnitTests {
     #expect(extendedPath.segments.count == 2)
     #expect(extendedPath.segments[1].role == "AXWindow")
     #expect(extendedPath.segments[1].attributes["AXTitle"] == "Window")
-    #expect(extendedPath.toString() == "ui://AXApplication/AXWindow[@AXTitle=\"Window\"]")
+    #expect(extendedPath.toString() == "macos://ui/AXApplication/AXWindow[@AXTitle=\"Window\"]")
 
     // Append multiple segments
     let moreSegments = [
@@ -161,6 +161,6 @@ struct UIElementPathInitUnitTests {
     #expect(fullPath.segments.count == 3)
     #expect(fullPath.segments[1].role == "AXGroup")
     #expect(fullPath.segments[2].role == "AXButton")
-    #expect(fullPath.toString() == "ui://AXApplication/AXGroup/AXButton[@AXTitle=\"OK\"]")
+    #expect(fullPath.toString() == "macos://ui/AXApplication/AXGroup/AXButton[@AXTitle=\"OK\"]")
   }
 }

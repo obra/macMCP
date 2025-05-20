@@ -115,8 +115,8 @@ public class PathNormalizer {
   /// - Parameter path: The path string to normalize
   /// - Returns: Normalized path string, or nil if the path is invalid
   public static func normalizePathString(_ path: String) -> String? {
-    // Ensure ui:// prefix is present
-    guard path.hasPrefix("ui://") else {
+    // Ensure macos://ui/ prefix is present
+    guard path.hasPrefix("macos://ui/") else {
       return nil
     }
 
@@ -157,7 +157,7 @@ public class PathNormalizer {
       }
     }
 
-    var path = "ui://" + role
+    var path = "macos://ui/" + role
 
     // Add normalized attributes
     if let titleChild = mirror.children.first(where: { $0.label == "title" }) {

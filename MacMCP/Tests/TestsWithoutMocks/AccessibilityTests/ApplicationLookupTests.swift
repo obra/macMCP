@@ -119,7 +119,7 @@ struct ApplicationLookupTests {
   mutating func testApplicationLookupByTitleOnly() async throws {
     try await setUp()
     
-    let path = "ui://AXApplication[@AXTitle=\"Calculator\"]"
+    let path = "macos://ui/AXApplication[@AXTitle=\"Calculator\"]"
     try await testApplicationLookup(path: path, description: "Lookup by title only")
     
     try await tearDown()
@@ -129,7 +129,7 @@ struct ApplicationLookupTests {
   mutating func testApplicationLookupByBundleIdOnly() async throws {
     try await setUp()
     
-    let path = "ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]"
+    let path = "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]"
     try await testApplicationLookup(path: path, description: "Lookup by bundleId only")
     
     try await tearDown()
@@ -140,7 +140,7 @@ struct ApplicationLookupTests {
     try await setUp()
     
     let path =
-      "ui://AXApplication[@AXTitle=\"Calculator\"][@bundleIdentifier=\"com.apple.calculator\"]"
+      "macos://ui/AXApplication[@AXTitle=\"Calculator\"][@bundleIdentifier=\"com.apple.calculator\"]"
     try await testApplicationLookup(
       path: path, description: "Lookup by title and bundleId (title first)")
       
@@ -152,7 +152,7 @@ struct ApplicationLookupTests {
     try await setUp()
     
     let path =
-      "ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"][@AXTitle=\"Calculator\"]"
+      "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"][@AXTitle=\"Calculator\"]"
     try await testApplicationLookup(
       path: path, description: "Lookup by bundleId and title (bundleId first)")
       
@@ -164,7 +164,7 @@ struct ApplicationLookupTests {
     try await setUp()
     
     let path =
-      "ui://AXApplication[@AXTitle=\"Calculator\"][@AXbundleIdentifier=\"com.apple.calculator\"]"
+      "macos://ui/AXApplication[@AXTitle=\"Calculator\"][@AXbundleIdentifier=\"com.apple.calculator\"]"
     try await testApplicationLookup(
       path: path, description: "Lookup by title and AX-prefixed bundleId")
       
@@ -177,7 +177,7 @@ struct ApplicationLookupTests {
   mutating func testApplicationLookupByTitleOnlyWithForeground() async throws {
     try await setUp()
     
-    let path = "ui://AXApplication[@AXTitle=\"Calculator\"]"
+    let path = "macos://ui/AXApplication[@AXTitle=\"Calculator\"]"
     try await testApplicationLookup(
       path: path,
       description: "Lookup by title only (with foreground)",
@@ -191,7 +191,7 @@ struct ApplicationLookupTests {
   mutating func testApplicationLookupByBundleIdOnlyWithForeground() async throws {
     try await setUp()
     
-    let path = "ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]"
+    let path = "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]"
     try await testApplicationLookup(
       path: path,
       description: "Lookup by bundleId only (with foreground)",

@@ -590,7 +590,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
     let bundleIdentifier = params["bundleIdentifier"]?.stringValue
 
     do {
-      let hidden = try await applicationService.hideOtherApplications(
+      let _ = try await applicationService.hideOtherApplications(
         exceptBundleIdentifier: bundleIdentifier,
       )
 

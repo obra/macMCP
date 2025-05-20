@@ -314,7 +314,7 @@ struct ElementPathIntegrationTests {
     // Create a path to the Calculator application using bundleId
     // print("Creating ElementPath with bundleId")
     let appPath = try ElementPath.parse(
-      "ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]")
+      "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]")
 
     // Resolve the application element
     let appElement = try await appPath.resolve(using: accessibilityService)
@@ -576,7 +576,7 @@ struct ElementPathIntegrationTests {
     // Create path using a generic application path without specific identification
     // This will rely on the focused application fallback
     // print("Creating generic application path for fallback")
-    let appPath = try ElementPath.parse("ui://AXApplication")
+    let appPath = try ElementPath.parse("macos://ui/AXApplication")
 
     // Resolve the application element using the fallback to focused app
     let appElement = try await appPath.resolve(using: accessibilityService)
@@ -741,17 +741,17 @@ struct ElementPathIntegrationTests {
     // Use index to get the first window, and also use title for the specific window
     let baseWindowPath =
       try ElementPath
-      .parse("ui://AXApplication[@bundleIdentifier=\"com.apple.TextEdit\"]/AXWindow[0]")
+      .parse("macos://ui/AXApplication[@bundleIdentifier=\"com.apple.TextEdit\"]/AXWindow[0]")
     let untitledWindowPath =
       try ElementPath
       .parse(
-        "ui://AXApplication[@bundleIdentifier=\"com.apple.TextEdit\"]/AXWindow[@AXTitle=\"\(windowTitle)\"]"
+        "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.TextEdit\"]/AXWindow[@AXTitle=\"\(windowTitle)\"]"
       )
     // Since there's only one text area in the ScrollArea, we can just target it directly
     let textAreaPath =
       try ElementPath
       .parse(
-        "ui://AXApplication[@bundleIdentifier=\"com.apple.TextEdit\"]/AXWindow[0]/AXScrollArea/AXTextArea"
+        "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.TextEdit\"]/AXWindow[0]/AXScrollArea/AXTextArea"
       )
 
     // print("TextEdit resolving window elements")
@@ -807,7 +807,7 @@ struct ElementPathIntegrationTests {
     let menuPath =
       try ElementPath
       .parse(
-        "ui://AXApplication[@bundleIdentifier=\"com.apple.TextEdit\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"Format\"]",
+        "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.TextEdit\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"Format\"]",
       )
     let menuElement = try? await menuPath.resolve(using: accessibilityService)
     // print("TextEdit Format menu resolved")
@@ -875,7 +875,7 @@ struct ElementPathIntegrationTests {
     let ambiguousPath =
       try ElementPath
       .parse(
-        "ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton",
+        "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton",
       )
 
     // Attempt to resolve the ambiguous path - this should fail or return multiple elements
@@ -905,7 +905,7 @@ struct ElementPathIntegrationTests {
     let indexPath =
       try ElementPath
       .parse(
-        "ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[0][@AXDescription=\"1\"]",
+        "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[0][@AXDescription=\"1\"]",
       )
 
     // This should succeed
@@ -925,7 +925,7 @@ struct ElementPathIntegrationTests {
     let attributePath =
       try ElementPath
       .parse(
-        "ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]",
+        "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]",
       )
 
     // This should succeed and find button 1
@@ -983,7 +983,7 @@ struct ElementPathIntegrationTests {
     let validPath =
       try ElementPath
       .parse(
-        "ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]",
+        "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]",
       )
 
     // Use the regular resolution API
@@ -1009,7 +1009,7 @@ struct ElementPathIntegrationTests {
     let invalidPath =
       try ElementPath
       .parse(
-        "ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXNonExistentElement",
+        "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXNonExistentElement",
       )
 
     // This should fail with a descriptive error
@@ -1082,17 +1082,17 @@ struct ElementPathIntegrationTests {
     let simplePath =
       try ElementPath
       .parse(
-        "ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]"
+        "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]"
       )
     let moderatePath =
       try ElementPath
       .parse(
-        "ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup",
+        "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup",
       )
     let complexPath =
       try ElementPath
       .parse(
-        "ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]",
+        "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]",
       )
 
     // Measure simple path resolution time

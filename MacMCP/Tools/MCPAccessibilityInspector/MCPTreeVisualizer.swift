@@ -59,7 +59,7 @@ class MCPTreeVisualizer {
     }
 
     // Add a message if this is a path-based result
-    if pathPattern != nil, pathPattern!.hasPrefix("ui://") {
+    if pathPattern != nil, pathPattern!.hasPrefix("macos://ui/") {
       output += "   └─+ [Server-side path filtering used for: \(pathPattern!)]\n\n"
     }
 

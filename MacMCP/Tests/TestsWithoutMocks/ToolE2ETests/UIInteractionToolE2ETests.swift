@@ -746,7 +746,7 @@ struct UIInteractionToolE2ETests {
 
     // Create a path to the text area for path-based element identification
     let textAreaPath =
-      "ui://AXApplication[@bundleIdentifier=\"\(textEditHelper.app.bundleId)\"]/AXWindow/AXTextArea"
+      "macos://ui/AXApplication[@bundleIdentifier=\"\(textEditHelper.app.bundleId)\"]/AXWindow/AXTextArea"
 
     // Get initial document content position information
     // We'll check this to verify that scrolling actually worked
@@ -1030,7 +1030,7 @@ struct UIInteractionToolE2ETests {
     try await Task.sleep(for: .milliseconds(2000))
 
     // Use a clearly non-existent element ID
-    let nonExistentId = "ui://AXApplication/AXWindow/AXButton[@AXDescription=\"NonExistentButton\"]"
+    let nonExistentId = "macos://ui/AXApplication/AXWindow/AXButton[@AXDescription=\"NonExistentButton\"]"
 
     do {
       _ = try await calculatorHelper.toolChain.clickElement(
@@ -1086,7 +1086,7 @@ struct UIInteractionToolE2ETests {
     do {
       let invalidParams: [String: Value] = [
         "action": .string("invalid_action"),
-        "elementPath": .string("ui://AXApplication/AXButton"),
+        "elementPath": .string("macos://ui/AXApplication/AXButton"),
       ]
 
       _ = try await calculatorHelper.toolChain.uiInteractionTool.handler(invalidParams)
@@ -1103,7 +1103,7 @@ struct UIInteractionToolE2ETests {
     // Test with missing action
     do {
       let invalidParams: [String: Value] = [
-        "elementPath": .string("ui://AXApplication/AXButton")
+        "elementPath": .string("macos://ui/AXApplication/AXButton")
         // Missing action
       ]
 

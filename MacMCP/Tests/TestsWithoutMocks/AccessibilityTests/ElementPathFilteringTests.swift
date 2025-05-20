@@ -168,7 +168,7 @@ struct ElementPathFilteringTests {
       #expect(Bool(false), "Path is nil")
       return
     }
-    #expect(path.hasPrefix("ui://"), "Path doesn't start with ui://: \(path)")
+    #expect(path.hasPrefix("macos://ui/"), "Path doesn't start with macos://ui/: \(path)")
     #expect(path.contains("AXApplication"), "Path doesn't include AXApplication: \(path)")
     #expect(path.contains("/"), "Path doesn't contain hierarchy separators: \(path)")
     let separatorCount = path.components(separatedBy: "/").count - 1
@@ -266,8 +266,8 @@ struct ElementPathFilteringTests {
         var appBundleId: String? = nil
         let path = first.id
         if let pathComponents = path.split(separator: "/").first {
-          // Extract app bundle ID from path format like "ui://com.apple.calculator/AXApplication..."
-          let uiPrefix = "ui://"
+          // Extract app bundle ID from path format like "macos://ui/com.apple.calculator/AXApplication..."
+          let uiPrefix = "macos://ui/"
           if pathComponents.hasPrefix(uiPrefix) {
             let startIndex = pathComponents.index(pathComponents.startIndex, offsetBy: uiPrefix.count)
             let appIdEndIndex = pathComponents.firstIndex(of: "/") ?? pathComponents.endIndex

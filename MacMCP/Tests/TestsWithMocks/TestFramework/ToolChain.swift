@@ -25,7 +25,7 @@ public class MockAccessibilityService: @unchecked Sendable, AccessibilityService
 
   public func findElementByPath(path: String) async throws -> UIElement? {
     // Special case for the path used in the testElementScope test
-    if path == "ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow" {
+    if path == "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow" {
       // Create a window element with child elements specifically for this test
       let windowElement = createMockUIElement(
         role: "AXWindow", 
@@ -173,7 +173,7 @@ public class MockAccessibilityService: @unchecked Sendable, AccessibilityService
       let calculatorWindow = createMockUIElement(
         role: "AXWindow", 
         title: "Calculator",
-        customPath: "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]"
+        customPath: "macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]"
       )
       
       // Create display element
@@ -181,7 +181,7 @@ public class MockAccessibilityService: @unchecked Sendable, AccessibilityService
         role: "AXStaticText", 
         title: "Calculator Display",
         value: "0",
-        customPath: "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXStaticText[@AXTitle=\"Calculator Display\"]"
+        customPath: "macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXStaticText[@AXTitle=\"Calculator Display\"]"
       )
       
       // Create a few buttons for tests
@@ -190,14 +190,14 @@ public class MockAccessibilityService: @unchecked Sendable, AccessibilityService
           role: "AXButton", 
           title: "One",
           elementDescription: "1",
-          customPath: "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXButton[@AXDescription=\"1\"]",
+          customPath: "macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXButton[@AXDescription=\"1\"]",
           attributes: ["visible": true, "enabled": true]
         ),
         createMockUIElement(
           role: "AXButton", 
           title: "Two",
           elementDescription: "2",
-          customPath: "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXButton[@AXDescription=\"2\"]",
+          customPath: "macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXButton[@AXDescription=\"2\"]",
           attributes: ["visible": true, "enabled": true]
         )
       ]
@@ -259,7 +259,7 @@ public class MockAccessibilityService: @unchecked Sendable, AccessibilityService
       role: "AXButton", 
       title: "Element at Position",
       elementDescription: "5", // Arbitrary button description for Calculator
-      customPath: "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXButton[@AXDescription=\"5\"]",
+      customPath: "macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXButton[@AXDescription=\"5\"]",
       attributes: ["visible": true, "enabled": true]
     )
   }
@@ -288,7 +288,7 @@ public class MockAccessibilityService: @unchecked Sendable, AccessibilityService
       let calculatorWindow = createMockUIElement(
         role: "AXWindow", 
         title: "Calculator",
-        customPath: "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]"
+        customPath: "macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]"
       )
       
       // Create numeric button elements for Calculator
@@ -299,7 +299,7 @@ public class MockAccessibilityService: @unchecked Sendable, AccessibilityService
         role: "AXButton", 
         title: "One With Capabilities",
         elementDescription: "1",
-        customPath: "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXButton[@AXDescription=\"1\"]",
+        customPath: "macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXButton[@AXDescription=\"1\"]",
         attributes: [
           "visible": true, 
           "enabled": true,
@@ -315,7 +315,7 @@ public class MockAccessibilityService: @unchecked Sendable, AccessibilityService
         role: "AXStaticText", 
         title: "Calculator Display",
         value: "0",
-        customPath: "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXStaticText[@AXTitle=\"Calculator Display\"]"
+        customPath: "macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXStaticText[@AXTitle=\"Calculator Display\"]"
       )
       
       // Filter based on role if specified
@@ -399,7 +399,7 @@ public class MockAccessibilityService: @unchecked Sendable, AccessibilityService
         role: "AXButton", 
         title: title,
         elementDescription: description,
-        customPath: "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXButton[@AXDescription=\"\(description)\"]",
+        customPath: "macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXButton[@AXDescription=\"\(description)\"]",
         attributes: ["visible": true, "enabled": true]
       )
     }
@@ -519,7 +519,7 @@ public class MockAccessibilityService: @unchecked Sendable, AccessibilityService
       path = customPath
     } else {
       // Construct a path based on available properties
-      path = "ui://AXApplication[@AXRole=\"AXApplication\"]/"
+      path = "macos://ui/AXApplication[@AXRole=\"AXApplication\"]/"
       path += role
       
       // Add title if available

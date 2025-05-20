@@ -11,7 +11,7 @@ Failed to resolve segment: Could not find elements matching segment: AXGroup at 
 
 The path that failed to resolve was:
 ```
-ui://AXApplication[@AXTitle="Calculator"][@bundleIdentifier="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="1"]
+macos://ui/AXApplication[@AXTitle="Calculator"][@bundleIdentifier="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="1"]
 ```
 
 ## Root Cause Identified

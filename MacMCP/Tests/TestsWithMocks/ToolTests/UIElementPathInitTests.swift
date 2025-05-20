@@ -486,7 +486,7 @@ struct UIElementPathInitTests {
     // Minimum implementations to satisfy protocol
     func getSystemUIElement(recursive _: Bool, maxDepth _: Int) async throws -> UIElement {
       UIElement(
-        path: "ui://AXApplication[@AXTitle=\"System\"][@identifier=\"mock-system\"]",
+        path: "macos://ui/AXApplication[@AXTitle=\"System\"][@identifier=\"mock-system\"]",
         role: "AXApplication",
         frame: CGRect.zero,
         axElement: nil,
@@ -499,7 +499,7 @@ struct UIElementPathInitTests {
       maxDepth _: Int,
     ) async throws -> UIElement {
       UIElement(
-        path: "ui://AXApplication[@AXTitle=\"Application\"][@bundleIdentifier=\"mock-app\"]",
+        path: "macos://ui/AXApplication[@AXTitle=\"Application\"][@bundleIdentifier=\"mock-app\"]",
         role: "AXApplication",
         frame: CGRect.zero,
         axElement: nil,
@@ -511,7 +511,7 @@ struct UIElementPathInitTests {
     {
       UIElement(
         path:
-          "ui://AXApplication[@AXTitle=\"Focused Application\"][@bundleIdentifier=\"mock-focused-app\"]",
+          "macos://ui/AXApplication[@AXTitle=\"Focused Application\"][@bundleIdentifier=\"mock-focused-app\"]",
         role: "AXApplication",
         frame: CGRect.zero,
         axElement: nil,
@@ -524,7 +524,7 @@ struct UIElementPathInitTests {
       maxDepth _: Int,
     ) async throws -> UIElement? {
       UIElement(
-        path: "ui://AXElement[@identifier=\"mock-position\"]",
+        path: "macos://ui/AXElement[@identifier=\"mock-position\"]",
         role: "AXElement",
         frame: CGRect.zero,
         axElement: nil,
@@ -593,7 +593,7 @@ struct UIElementPathInitTests {
 
     func getElementWithFocus() async throws -> UIElement {
       UIElement(
-        path: "ui://AXElement[@identifier=\"mock-focused-element\"]",
+        path: "macos://ui/AXElement[@identifier=\"mock-focused-element\"]",
         role: "AXElement",
         frame: CGRect.zero,
         axElement: nil,
@@ -618,7 +618,7 @@ struct UIElementPathInitTests {
       pollInterval _: TimeInterval,
     ) async throws -> UIElement {
       UIElement(
-        path: "ui://AXElement[@identifier=\"mock-wait-element\"]",
+        path: "macos://ui/AXElement[@identifier=\"mock-wait-element\"]",
         role: "AXElement",
         frame: CGRect.zero,
         axElement: nil,
@@ -746,7 +746,7 @@ struct UIElementPathInitTests {
   @Test("Initialize UIElement from simple path")
   func initFromSimplePath() async throws {
     // Path to the OK button
-    let pathString = "ui://AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
+    let pathString = "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
 
     // Create a mock UIElement for testing
     let element = UIElement.createMockElement(
@@ -769,7 +769,7 @@ struct UIElementPathInitTests {
   func initFromComplexPath() async throws {
     // Path to the text field with multiple attributes
     let pathString =
-      "ui://AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXTextField[@AXDescription=\"Text input\"][@AXValue=\"Sample text\"]"
+      "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXTextField[@AXDescription=\"Text input\"][@AXValue=\"Sample text\"]"
 
     // Create a mock UIElement for testing
     let element = UIElement.createMockElement(
@@ -790,7 +790,7 @@ struct UIElementPathInitTests {
   @Test("Initialize UIElement from path with index disambiguation")
   func initFromPathWithIndex() async throws {
     // Path to the second duplicate group using index disambiguation
-    let pathString = "ui://AXWindow/AXGroup[@AXTitle=\"Duplicate\"][1]"
+    let pathString = "macos://ui/AXWindow/AXGroup[@AXTitle=\"Duplicate\"][1]"
 
     // Create a mock UIElement for testing
     let element = UIElement.createMockElement(
@@ -848,7 +848,7 @@ struct UIElementPathInitTests {
   @Test("Initialize UIElement from ElementPath object")
   func initFromElementPathObject() async throws {
     // For path object tests, we'll verify the path parsing works correctly
-    let pathString = "ui://AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
+    let pathString = "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
     
     // Parse the path into an ElementPath
     let elementPath = try ElementPath.parse(pathString)
@@ -911,8 +911,8 @@ struct UIElementPathInitTests {
   @Test("Compare identical paths")
   func compareIdenticalPaths() async throws {
     // Two identical paths to the same element
-    let path1 = "ui://AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
-    let path2 = "ui://AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
+    let path1 = "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
+    let path2 = "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
 
     // Compare the paths
     let result = comparePathsForEquality(path1: path1, path2: path2)
@@ -924,8 +924,8 @@ struct UIElementPathInitTests {
   @Test("Compare semantically equivalent paths")
   func compareEquivalentPaths() async throws {
     // Two different paths that should resolve to the same element
-    let path1 = "ui://AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
-    let path2 = "ui://AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXDescription=\"OK Button\"]"
+    let path1 = "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
+    let path2 = "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXDescription=\"OK Button\"]"
 
     // Test paths with semantically equivalent attributes
     // In a real implementation, we would look at the actual UI elements
@@ -948,8 +948,8 @@ struct UIElementPathInitTests {
   @Test("Compare different paths")
   func compareDifferentPaths() async throws {
     // Two paths to different elements
-    let path1 = "ui://AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
-    let path2 = "ui://AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"Cancel\"]"
+    let path1 = "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
+    let path2 = "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"Cancel\"]"
 
     // Parse both paths
     let elementPath1 = try ElementPath.parse(path1)
@@ -963,8 +963,8 @@ struct UIElementPathInitTests {
   @Test("Compare paths with different hierarchies")
   func comparePathsWithDifferentHierarchies() async throws {
     // Two paths with different hierarchies
-    let path1 = "ui://AXWindow/AXScrollArea/AXStaticText[@AXValue=\"Hello World\"]"
-    let path2 = "ui://AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
+    let path1 = "macos://ui/AXWindow/AXScrollArea/AXStaticText[@AXValue=\"Hello World\"]"
+    let path2 = "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
 
     // Parse both paths
     let elementPath1 = try ElementPath.parse(path1)
@@ -978,7 +978,7 @@ struct UIElementPathInitTests {
   @Test("Handle error when comparing invalid paths")
   func compareInvalidPaths() async throws {
     // One valid path and one invalid path that can't be parsed
-    let validPath = "ui://AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
+    let validPath = "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
     let invalidPath = "this is not a valid path!"
 
     // Trying to parse an invalid path should throw an error

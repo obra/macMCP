@@ -10,7 +10,7 @@ import Testing
 struct ElementPathInspectorTests {
   // Test data for path generation
   let testElement1 = UIElement(
-    path: "ui://AXButton[@AXTitle='Test Button']",
+    path: "macos://ui/AXButton[@AXTitle='Test Button']",
     role: "AXButton",
     title: "Test Button",
     elementDescription: "Button description",
@@ -23,7 +23,7 @@ struct ElementPathInspectorTests {
   )
 
   let testElement2 = UIElement(
-    path: "ui://AXTextField[@AXTitle='Test Field']",
+    path: "macos://ui/AXTextField[@AXTitle='Test Field']",
     role: "AXTextField",
     title: "Test Field",
     value: "Hello world",
@@ -43,11 +43,11 @@ struct ElementPathInspectorTests {
     let path2 = try testElement2.generatePath()
 
     // Verify that paths have the correct format
-    #expect(path1.hasPrefix("ui://"), "Path should start with ui://")
+    #expect(path1.hasPrefix("macos://ui/"), "Path should start with macos://ui/")
     #expect(path1.contains("AXButton"), "Path should include the element's role")
     #expect(path1.contains("AXTitle"), "Path should include title attribute")
 
-    #expect(path2.hasPrefix("ui://"), "Path should start with ui://")
+    #expect(path2.hasPrefix("macos://ui/"), "Path should start with macos://ui/")
     #expect(path2.contains("AXTextField"), "Path should include the element's role")
     #expect(path2.contains("AXTitle"), "Path should include title attribute")
   }
@@ -75,7 +75,7 @@ struct ElementPathInspectorTests {
   mutating func testElementPathHierarchy() throws {
     // Create a parent element
     let parentElement = UIElement(
-      path: "ui://AXGroup[@AXTitle=\"Parent Group\"][@identifier=\"test-parent\"]",
+      path: "macos://ui/AXGroup[@AXTitle=\"Parent Group\"][@identifier=\"test-parent\"]",
       role: "AXGroup",
       title: "Parent Group",
       frame: CGRect(x: 50, y: 50, width: 400, height: 300),
@@ -89,7 +89,7 @@ struct ElementPathInspectorTests {
     // Create a child element with the parent
     let childElement = UIElement(
       path:
-        "ui://AXGroup[@AXTitle=\"Parent Group\"]/AXButton[@AXTitle=\"Child Button\"][@identifier=\"test-child\"]",
+        "macos://ui/AXGroup[@AXTitle=\"Parent Group\"]/AXButton[@AXTitle=\"Child Button\"][@identifier=\"test-child\"]",
       role: "AXButton",
       title: "Child Button",
       frame: CGRect(x: 100, y: 100, width: 100, height: 50),

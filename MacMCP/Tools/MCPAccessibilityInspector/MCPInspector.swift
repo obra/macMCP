@@ -105,7 +105,7 @@ class MCPInspector: @unchecked Sendable {
 
     // If we have a path filter, process it properly based on its format
     if let pathFilter {
-      if pathFilter.hasPrefix("ui://") {
+      if pathFilter.hasPrefix("macos://ui/") {
         // This is a complete path - use server-side path resolution
         print("Using server-side path resolution for: \(pathFilter)")
         do {

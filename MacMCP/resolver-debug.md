@@ -14,12 +14,12 @@ This document outlines a structured approach to debug and fix both issues.
 
 - When InterfaceExplorerTool generates paths to Calculator buttons, it produces paths like:
   ```
-  ui://AXApplication[@AXTitle="Calculator"][@bundleIdentifier="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="3"]
+  macos://ui/AXApplication[@AXTitle="Calculator"][@bundleIdentifier="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="3"]
   ```
 
 - The path should include the AXIdentifier for the calculator keypad:
   ```
-  ui://AXApplication[@AXTitle="Calculator"][@bundleIdentifier="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup[@AXIdentifier="CalculatorKeypadView"]/AXButton[@AXDescription="3"]
+  macos://ui/AXApplication[@AXTitle="Calculator"][@bundleIdentifier="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup[@AXIdentifier="CalculatorKeypadView"]/AXButton[@AXDescription="3"]
   ```
 
 - UIInteractionService fails to resolve the path at the second-to-last AXGroup segment (the keypad container).
@@ -70,7 +70,7 @@ This document outlines a structured approach to debug and fix both issues.
 
    But the generated path is still:
    ```
-   Element path: ui://AXApplication[@AXTitle="Calculator"][@bundleIdentifier="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="1"]
+   Element path: macos://ui/AXApplication[@AXTitle="Calculator"][@bundleIdentifier="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="1"]
    ```
 
    There appears to be a disconnect between the attributes being found during tree traversal and the attributes being included in the final path string. Further investigation is needed.

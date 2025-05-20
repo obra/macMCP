@@ -190,7 +190,7 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
   }
 
   /// Capture a screenshot of a specific UI element using path-based identification
-  /// - Parameter elementPath: The path of the UI element using ui:// notation
+  /// - Parameter elementPath: The path of the UI element using macos://ui/ notation
   /// - Returns: Screenshot result
   public func captureElementByPath(elementPath: String) async throws -> ScreenshotResult {
     logger.debug(

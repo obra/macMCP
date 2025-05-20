@@ -11,12 +11,12 @@ UI Element Paths provide a standardized way to identify and locate UI elements w
 UI Element Paths follow this format:
 
 ```
-ui://RoleType[@attribute="value"][@attribute2="value2"]/ChildRole[@attribute="value"]
+macos://ui/RoleType[@attribute="value"][@attribute2="value2"]/ChildRole[@attribute="value"]
 ```
 
 Each component has a specific purpose:
 
-- **`ui://` prefix**: Indicates that this is a UI element path
+- **`macos://ui/` prefix**: Indicates that this is a UI element path
 - **Role segments**: Represent element types in the hierarchy (e.g., `AXApplication`, `AXWindow`, `AXButton`)
 - **Attribute selectors**: Filter elements by their properties (`[@AXTitle="Calculator"]`)
 - **Path separator**: Forward slash (`/`) separates segments in the hierarchy
@@ -26,15 +26,15 @@ Each component has a specific purpose:
 Here are some examples of valid UI Element Paths:
 
 ```
-ui://AXApplication[@bundleIdentifier="com.apple.calculator"]/AXWindow/AXButton[@AXDescription="7"]
+macos://ui/AXApplication[@bundleIdentifier="com.apple.calculator"]/AXWindow/AXButton[@AXDescription="7"]
 ```
 
 ```
-ui://AXApplication[@AXTitle="Safari"]/AXWindow/AXTextField[@AXSubrole="AXURLField"]
+macos://ui/AXApplication[@AXTitle="Safari"]/AXWindow/AXTextField[@AXSubrole="AXURLField"]
 ```
 
 ```
-ui://AXApplication[@AXTitle="TextEdit"]/AXWindow/AXTextArea
+macos://ui/AXApplication[@AXTitle="TextEdit"]/AXWindow/AXTextArea
 ```
 
 ## Path Components
@@ -74,7 +74,7 @@ Common attributes include:
 When multiple elements match the same path, you can select a specific one using an index selector:
 
 ```
-ui://AXApplication[@AXTitle="Safari"]/AXWindow/AXButton[0]
+macos://ui/AXApplication[@AXTitle="Safari"]/AXWindow/AXButton[0]
 ```
 
 This selects the first button in the window. Indexes are zero-based.
@@ -128,12 +128,12 @@ Multiple attribute name variants are supported for flexibility:
 
 1. **Start with the application**:
    - Always begin with `AXApplication` and specify either `bundleIdentifier` or `title`
-   - Example: `ui://AXApplication[@bundleIdentifier="com.apple.safari"]`
+   - Example: `macos://ui/AXApplication[@bundleIdentifier="com.apple.safari"]`
 
 2. **Use specific attributes**:
    - Include distinguishing attributes for elements
    - Prefer unique identifiers when available
-   - Example: `ui://AXApplication[@AXTitle="Calculator"]/AXWindow/AXButton[@AXDescription="7"]`
+   - Example: `macos://ui/AXApplication[@AXTitle="Calculator"]/AXWindow/AXButton[@AXDescription="7"]`
 
 3. **Limit path depth**:
    - Keep paths as short as possible while maintaining uniqueness
@@ -141,11 +141,11 @@ Multiple attribute name variants are supported for flexibility:
 
 4. **Handle ambiguity**:
    - Use index selectors when multiple elements match the same criteria
-   - Example: `ui://AXApplication[@AXTitle="Safari"]/AXWindow/AXGroup/AXButton[2]`
+   - Example: `macos://ui/AXApplication[@AXTitle="Safari"]/AXWindow/AXGroup/AXButton[2]`
 
 5. **Escaping special characters**:
    - When attributes contain quotes, backslashes, or control characters, they must be escaped
-   - Example: `ui://AXApplication[@AXTitle="App with \"quotes\""]`
+   - Example: `macos://ui/AXApplication[@AXTitle="App with \"quotes\""]`
 
 ### Path Generation vs. Writing Paths
 
@@ -162,17 +162,17 @@ Generation is preferred for accuracy, but manual writing is sometimes necessary.
 
 #### Get All Windows of an Application
 ```
-ui://AXApplication[@bundleIdentifier="com.apple.safari"]/AXWindow
+macos://ui/AXApplication[@bundleIdentifier="com.apple.safari"]/AXWindow
 ```
 
 #### Get Main Window
 ```
-ui://AXApplication[@bundleIdentifier="com.apple.safari"]/AXWindow[@AXMain="true"]
+macos://ui/AXApplication[@bundleIdentifier="com.apple.safari"]/AXWindow[@AXMain="true"]
 ```
 
 #### Get Window By Title
 ```
-ui://AXApplication[@bundleIdentifier="com.apple.safari"]/AXWindow[@AXTitle="Apple"]
+macos://ui/AXApplication[@bundleIdentifier="com.apple.safari"]/AXWindow[@AXTitle="Apple"]
 ```
 
 Example usage:
@@ -186,7 +186,7 @@ let windowInfo = await macos_window_management({
 // Use with UI interaction
 await macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXButton[@AXTitle=\"Back\"]"
+  elementPath: "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXButton[@AXTitle=\"Back\"]"
 });
 ```
 
@@ -194,15 +194,15 @@ await macos_ui_interact({
 
 #### Calculator Buttons
 ```
-ui://AXApplication[@AXTitle="Calculator"]/AXWindow/AXButton[@AXDescription="7"]
-ui://AXApplication[@AXTitle="Calculator"]/AXWindow/AXButton[@AXDescription="+"]
-ui://AXApplication[@AXTitle="Calculator"]/AXWindow/AXButton[@AXDescription="="]
+macos://ui/AXApplication[@AXTitle="Calculator"]/AXWindow/AXButton[@AXDescription="7"]
+macos://ui/AXApplication[@AXTitle="Calculator"]/AXWindow/AXButton[@AXDescription="+"]
+macos://ui/AXApplication[@AXTitle="Calculator"]/AXWindow/AXButton[@AXDescription="="]
 ```
 
 #### Safari Toolbar Buttons
 ```
-ui://AXApplication[@bundleIdentifier="com.apple.safari"]/AXWindow/AXToolbar/AXButton[@AXDescription="Back"]
-ui://AXApplication[@bundleIdentifier="com.apple.safari"]/AXWindow/AXToolbar/AXButton[@AXDescription="Forward"]
+macos://ui/AXApplication[@bundleIdentifier="com.apple.safari"]/AXWindow/AXToolbar/AXButton[@AXDescription="Back"]
+macos://ui/AXApplication[@bundleIdentifier="com.apple.safari"]/AXWindow/AXToolbar/AXButton[@AXDescription="Forward"]
 ```
 
 Example usage:
@@ -210,13 +210,13 @@ Example usage:
 // Click the Calculator's "7" button
 await macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow/AXButton[@AXDescription=\"7\"]"
+  elementPath: "macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow/AXButton[@AXDescription=\"7\"]"
 });
 
 // Double-click a button
 await macos_ui_interact({
   action: "double_click",
-  elementPath: "ui://AXApplication[@AXTitle=\"TextEdit\"]/AXWindow/AXButton[@AXTitle=\"Button\"]"
+  elementPath: "macos://ui/AXApplication[@AXTitle=\"TextEdit\"]/AXWindow/AXButton[@AXTitle=\"Button\"]"
 });
 ```
 
@@ -224,18 +224,18 @@ await macos_ui_interact({
 
 #### Safari URL Field
 ```
-ui://AXApplication[@AXTitle="Safari"]/AXWindow/AXTextField[@AXSubrole="AXURLField"]
+macos://ui/AXApplication[@AXTitle="Safari"]/AXWindow/AXTextField[@AXSubrole="AXURLField"]
 ```
 
 #### Login Form Fields
 ```
-ui://AXApplication[@AXTitle="Some App"]/AXWindow/AXTextField[@AXPlaceholderValue="Username"]
-ui://AXApplication[@AXTitle="Some App"]/AXWindow/AXSecureTextField[@AXPlaceholderValue="Password"]
+macos://ui/AXApplication[@AXTitle="Some App"]/AXWindow/AXTextField[@AXPlaceholderValue="Username"]
+macos://ui/AXApplication[@AXTitle="Some App"]/AXWindow/AXSecureTextField[@AXPlaceholderValue="Password"]
 ```
 
 #### TextEdit Document
 ```
-ui://AXApplication[@AXTitle="TextEdit"]/AXWindow/AXTextArea
+macos://ui/AXApplication[@AXTitle="TextEdit"]/AXWindow/AXTextArea
 ```
 
 Example usage:
@@ -243,24 +243,24 @@ Example usage:
 // Type in Safari's URL field
 await macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@AXTitle=\"Safari\"]/AXWindow/AXTextField[@AXSubrole=\"AXURLField\"]"
+  elementPath: "macos://ui/AXApplication[@AXTitle=\"Safari\"]/AXWindow/AXTextField[@AXSubrole=\"AXURLField\"]"
 });
 
 await macos_ui_interact({
   action: "type",
-  elementPath: "ui://AXApplication[@AXTitle=\"Safari\"]/AXWindow/AXTextField[@AXSubrole=\"AXURLField\"]",
+  elementPath: "macos://ui/AXApplication[@AXTitle=\"Safari\"]/AXWindow/AXTextField[@AXSubrole=\"AXURLField\"]",
   text: "https://www.apple.com"
 });
 
 // Type in TextEdit
 await macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@AXTitle=\"TextEdit\"]/AXWindow/AXTextArea"
+  elementPath: "macos://ui/AXApplication[@AXTitle=\"TextEdit\"]/AXWindow/AXTextArea"
 });
 
 await macos_ui_interact({
   action: "type",
-  elementPath: "ui://AXApplication[@AXTitle=\"TextEdit\"]/AXWindow/AXTextArea",
+  elementPath: "macos://ui/AXApplication[@AXTitle=\"TextEdit\"]/AXWindow/AXTextArea",
   text: "Hello world!"
 });
 ```
@@ -269,13 +269,13 @@ await macos_ui_interact({
 
 #### Checkboxes
 ```
-ui://AXApplication[@AXTitle="System Settings"]/AXWindow/AXCheckBox[@AXTitle="Remember my credentials"]
+macos://ui/AXApplication[@AXTitle="System Settings"]/AXWindow/AXCheckBox[@AXTitle="Remember my credentials"]
 ```
 
 #### Radio Buttons
 ```
-ui://AXApplication[@AXTitle="App"]/AXWindow/AXRadioButton[@AXTitle="Option 1"]
-ui://AXApplication[@AXTitle="App"]/AXWindow/AXRadioGroup/AXRadioButton[0]
+macos://ui/AXApplication[@AXTitle="App"]/AXWindow/AXRadioButton[@AXTitle="Option 1"]
+macos://ui/AXApplication[@AXTitle="App"]/AXWindow/AXRadioGroup/AXRadioButton[0]
 ```
 
 Example usage:
@@ -283,13 +283,13 @@ Example usage:
 // Toggle a checkbox
 await macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@AXTitle=\"System Settings\"]/AXWindow/AXCheckBox[@AXTitle=\"Remember my credentials\"]"
+  elementPath: "macos://ui/AXApplication[@AXTitle=\"System Settings\"]/AXWindow/AXCheckBox[@AXTitle=\"Remember my credentials\"]"
 });
 
 // Select a radio button
 await macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@AXTitle=\"System Settings\"]/AXWindow/AXRadioGroup/AXRadioButton[@AXTitle=\"Light\"]"
+  elementPath: "macos://ui/AXApplication[@AXTitle=\"System Settings\"]/AXWindow/AXRadioGroup/AXRadioButton[@AXTitle=\"Light\"]"
 });
 ```
 
@@ -297,17 +297,17 @@ await macos_ui_interact({
 
 #### Opening a Menu
 ```
-ui://AXApplication[@AXTitle="TextEdit"]/AXMenuBar/AXMenuBarItem[@AXTitle="File"]
+macos://ui/AXApplication[@AXTitle="TextEdit"]/AXMenuBar/AXMenuBarItem[@AXTitle="File"]
 ```
 
 #### Selecting a Menu Item
 ```
-ui://AXApplication[@AXTitle="TextEdit"]/AXMenuBar/AXMenuBarItem[@AXTitle="File"]/AXMenu/AXMenuItem[@AXTitle="New"]
+macos://ui/AXApplication[@AXTitle="TextEdit"]/AXMenuBar/AXMenuBarItem[@AXTitle="File"]/AXMenu/AXMenuItem[@AXTitle="New"]
 ```
 
 #### Working with Submenus
 ```
-ui://AXApplication[@AXTitle="TextEdit"]/AXMenuBar/AXMenuBarItem[@AXTitle="Format"]/AXMenu/AXMenuItem[@AXTitle="Font"]/AXMenu/AXMenuItem[@AXTitle="Bold"]
+macos://ui/AXApplication[@AXTitle="TextEdit"]/AXMenuBar/AXMenuBarItem[@AXTitle="Format"]/AXMenu/AXMenuItem[@AXTitle="Font"]/AXMenu/AXMenuItem[@AXTitle="Bold"]
 ```
 
 Example usage with the Menu Navigation Tool:
@@ -330,19 +330,19 @@ let menus = await macos_menu_navigation({
 
 #### Alert Dialog
 ```
-ui://AXApplication[@AXTitle="Safari"]/AXSheet[@AXSubrole="AXStandardWindow"]
-ui://AXApplication[@AXTitle="Safari"]/AXSheet/AXButton[@AXTitle="Cancel"]
+macos://ui/AXApplication[@AXTitle="Safari"]/AXSheet[@AXSubrole="AXStandardWindow"]
+macos://ui/AXApplication[@AXTitle="Safari"]/AXSheet/AXButton[@AXTitle="Cancel"]
 ```
 
 #### File Open/Save Dialogs
 ```
-ui://AXApplication[@AXTitle="TextEdit"]/AXSheet[@AXSubrole="AXStandardWindow"]/AXButton[@AXTitle="Save"]
-ui://AXApplication[@AXTitle="TextEdit"]/AXSheet/AXTextField[@AXPlaceholderValue="Save As:"]
+macos://ui/AXApplication[@AXTitle="TextEdit"]/AXSheet[@AXSubrole="AXStandardWindow"]/AXButton[@AXTitle="Save"]
+macos://ui/AXApplication[@AXTitle="TextEdit"]/AXSheet/AXTextField[@AXPlaceholderValue="Save As:"]
 ```
 
 #### System Dialogs
 ```
-ui://AXApplication[@AXTitle="System Dialog"]/AXWindow/AXButton[@AXTitle="Allow"]
+macos://ui/AXApplication[@AXTitle="System Dialog"]/AXWindow/AXButton[@AXTitle="Allow"]
 ```
 
 Example usage:
@@ -350,13 +350,13 @@ Example usage:
 // Click Cancel in a dialog
 await macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@AXTitle=\"Safari\"]/AXSheet/AXButton[@AXTitle=\"Cancel\"]"
+  elementPath: "macos://ui/AXApplication[@AXTitle=\"Safari\"]/AXSheet/AXButton[@AXTitle=\"Cancel\"]"
 });
 
 // Type a filename in a save dialog
 await macos_ui_interact({
   action: "type",
-  elementPath: "ui://AXApplication[@AXTitle=\"TextEdit\"]/AXSheet/AXTextField[@AXPlaceholderValue=\"Save As:\"]",
+  elementPath: "macos://ui/AXApplication[@AXTitle=\"TextEdit\"]/AXSheet/AXTextField[@AXPlaceholderValue=\"Save As:\"]",
   text: "My Document.txt"
 });
 ```
@@ -365,12 +365,12 @@ await macos_ui_interact({
 
 #### Browser Tabs
 ```
-ui://AXApplication[@bundleIdentifier="com.apple.safari"]/AXWindow/AXTabGroup/AXTab[@AXTitle="Apple"]
+macos://ui/AXApplication[@bundleIdentifier="com.apple.safari"]/AXWindow/AXTabGroup/AXTab[@AXTitle="Apple"]
 ```
 
 #### Selecting Tabs
 ```
-ui://AXApplication[@bundleIdentifier="com.apple.safari"]/AXWindow/AXTabGroup/AXTab[0]
+macos://ui/AXApplication[@bundleIdentifier="com.apple.safari"]/AXWindow/AXTabGroup/AXTab[0]
 ```
 
 Example usage:
@@ -378,13 +378,13 @@ Example usage:
 // Click a tab by title
 await macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXTabGroup/AXTab[@AXTitle=\"Apple\"]"
+  elementPath: "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXTabGroup/AXTab[@AXTitle=\"Apple\"]"
 });
 
 // Click the first tab
 await macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXTabGroup/AXTab[0]"
+  elementPath: "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXTabGroup/AXTab[0]"
 });
 ```
 
@@ -392,17 +392,17 @@ await macos_ui_interact({
 
 #### Table Row Selection
 ```
-ui://AXApplication[@AXTitle="Finder"]/AXWindow/AXTable/AXRow[@AXTitle="file.txt"]
+macos://ui/AXApplication[@AXTitle="Finder"]/AXWindow/AXTable/AXRow[@AXTitle="file.txt"]
 ```
 
 #### Table Cell Access
 ```
-ui://AXApplication[@AXTitle="App"]/AXWindow/AXTable/AXRow[2]/AXCell[3]
+macos://ui/AXApplication[@AXTitle="App"]/AXWindow/AXTable/AXRow[2]/AXCell[3]
 ```
 
 #### List Items
 ```
-ui://AXApplication[@AXTitle="Finder"]/AXWindow/AXList/AXStaticText[@AXValue="Downloads"]
+macos://ui/AXApplication[@AXTitle="Finder"]/AXWindow/AXList/AXStaticText[@AXValue="Downloads"]
 ```
 
 Example usage:
@@ -410,13 +410,13 @@ Example usage:
 // Click a specific table row
 await macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@AXTitle=\"Finder\"]/AXWindow/AXTable/AXRow[@AXTitle=\"file.txt\"]"
+  elementPath: "macos://ui/AXApplication[@AXTitle=\"Finder\"]/AXWindow/AXTable/AXRow[@AXTitle=\"file.txt\"]"
 });
 
 // Click a cell in a specific row and column
 await macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@AXTitle=\"App\"]/AXWindow/AXTable/AXRow[2]/AXCell[3]"
+  elementPath: "macos://ui/AXApplication[@AXTitle=\"App\"]/AXWindow/AXTable/AXRow[2]/AXCell[3]"
 });
 ```
 
@@ -473,7 +473,7 @@ To filter elements by path pattern:
 The `resolvePathProgressively` method provides detailed information about each step of path resolution, helping diagnose where and why paths fail:
 
 ```swift
-let path = try ElementPath.parse("ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow/AXButton[@AXDescription=\"7\"]")
+let path = try ElementPath.parse("macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow/AXButton[@AXDescription=\"7\"]")
 let result = await path.resolvePathProgressively(using: accessibilityService)
 
 if result.success {
@@ -504,7 +504,7 @@ The `diagnosePathResolutionIssue` function provides comprehensive troubleshootin
 
 ```swift
 let diagnosis = try await ElementPath.diagnosePathResolutionIssue(
-    "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow/AXButton[@AXDescription=\"9\"]", 
+    "macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow/AXButton[@AXDescription=\"9\"]", 
     using: accessibilityService
 )
 print(diagnosis)
@@ -521,7 +521,7 @@ This outputs a detailed report that includes:
 The path validation function checks for common issues in path syntax:
 
 ```swift
-let pathString = "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow/AXButton[@AXDescription=\"7\"]"
+let pathString = "macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow/AXButton[@AXDescription=\"7\"]"
 let (isValid, warnings) = try ElementPath.validatePath(pathString, strict: true)
 
 if isValid {
@@ -536,7 +536,7 @@ if isValid {
 ```
 
 The validation checks for:
-- Correct path prefix (`ui://`)
+- Correct path prefix (`macos://ui/`)
 - Valid segment syntax
 - Attribute format correctness
 - Potential ambiguity issues
@@ -551,146 +551,146 @@ The validation checks for:
 
 | Control Type | Example Path | Notes |
 |--------------|--------------|-------|
-| Button | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXButton[@AXTitle="OK"]` | Use `AXTitle` for labeled buttons |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXButton[@AXDescription="Action"]` | Use `AXDescription` for buttons with descriptions |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXToolbar/AXButton[@AXIdentifier="refresh-button"]` | Use `AXIdentifier` when available |
-| Toolbar Button | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXToolbar/AXButton[@AXDescription="Back"]` | Toolbar buttons are typically in an `AXToolbar` container |
-| Image Button | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXButton[@AXSubrole="AXImageButton"]` | Buttons that primarily display images |
-| Disclosure Button | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXDisclosureTriangle` | Used for expandable/collapsible sections |
-| Checkbox | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXCheckBox[@AXTitle="Remember Me"]` | Use `AXValue=1` to find checked boxes |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXCheckBox[@AXValue="1"]` | Value 1=checked, 0=unchecked |
-| Radio Button | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXRadioButton[@AXTitle="Option 1"]` | Individual radio buttons |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXRadioGroup/AXRadioButton[@AXValue="1"]` | Selected radio button in a group |
-| Dropdown/Popup | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXPopUpButton[@AXTitle="Select:"]` | Closed popup menu |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXPopUpButton/AXMenu/AXMenuItem[@AXTitle="Option"]` | Item in an open popup menu |
-| Combobox | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXComboBox[@AXTitle="Choose an option"]` | Combination of popup and text field |
-| Slider | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXSlider[@AXDescription="Volume"]` | Use `AXValue` for the current position |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXSlider[@AXValue="0.5"]` | Value typically ranges from 0.0 to 1.0 |
-| Stepper | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXStepper` | Increment/decrement control |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXStepper/AXButton[@AXDescription="Increment"]` | Increment button of a stepper |
-| Toggle | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXCheckBox[@AXSubrole="AXToggle"]` | Modern toggle switch |
-| Progress Bar | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXProgressIndicator` | Shows progress of operations |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXProgressIndicator[@AXValue="0.5"]` | Progress at 50% |
+| Button | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXButton[@AXTitle="OK"]` | Use `AXTitle` for labeled buttons |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXButton[@AXDescription="Action"]` | Use `AXDescription` for buttons with descriptions |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXToolbar/AXButton[@AXIdentifier="refresh-button"]` | Use `AXIdentifier` when available |
+| Toolbar Button | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXToolbar/AXButton[@AXDescription="Back"]` | Toolbar buttons are typically in an `AXToolbar` container |
+| Image Button | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXButton[@AXSubrole="AXImageButton"]` | Buttons that primarily display images |
+| Disclosure Button | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXDisclosureTriangle` | Used for expandable/collapsible sections |
+| Checkbox | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXCheckBox[@AXTitle="Remember Me"]` | Use `AXValue=1` to find checked boxes |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXCheckBox[@AXValue="1"]` | Value 1=checked, 0=unchecked |
+| Radio Button | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXRadioButton[@AXTitle="Option 1"]` | Individual radio buttons |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXRadioGroup/AXRadioButton[@AXValue="1"]` | Selected radio button in a group |
+| Dropdown/Popup | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXPopUpButton[@AXTitle="Select:"]` | Closed popup menu |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXPopUpButton/AXMenu/AXMenuItem[@AXTitle="Option"]` | Item in an open popup menu |
+| Combobox | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXComboBox[@AXTitle="Choose an option"]` | Combination of popup and text field |
+| Slider | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXSlider[@AXDescription="Volume"]` | Use `AXValue` for the current position |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXSlider[@AXValue="0.5"]` | Value typically ranges from 0.0 to 1.0 |
+| Stepper | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXStepper` | Increment/decrement control |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXStepper/AXButton[@AXDescription="Increment"]` | Increment button of a stepper |
+| Toggle | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXCheckBox[@AXSubrole="AXToggle"]` | Modern toggle switch |
+| Progress Bar | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXProgressIndicator` | Shows progress of operations |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXProgressIndicator[@AXValue="0.5"]` | Progress at 50% |
 
 #### Text Editing Controls
 
 | Control Type | Example Path | Notes |
 |--------------|--------------|-------|
-| Text Field | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXTextField[@AXPlaceholderValue="Username"]` | Single-line text input |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXTextField[@AXValue="Current text"]` | Field with existing text |
-| Text Area | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXTextArea` | Multi-line text input |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXScrollArea/AXTextArea` | Text area in a scroll container |
-| Password Field | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXSecureTextField` | Password entry field |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXSecureTextField[@AXPlaceholderValue="Password"]` | Password field with placeholder |
-| Search Field | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXTextField[@AXSubrole="AXSearchField"]` | Search input field |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXSearchField` | Alternative representation |
-| Token Field | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXGroup[@AXSubrole="AXTokenField"]` | Text field with token objects (like tags) |
-| Rich Text Field | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXTextArea[@AXSubrole="AXRichText"]` | Text with formatting capabilities |
-| Form Field | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXGroup[@AXSubrole="AXForm"]/AXTextField` | Text field within a form group |
+| Text Field | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXTextField[@AXPlaceholderValue="Username"]` | Single-line text input |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXTextField[@AXValue="Current text"]` | Field with existing text |
+| Text Area | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXTextArea` | Multi-line text input |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXScrollArea/AXTextArea` | Text area in a scroll container |
+| Password Field | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXSecureTextField` | Password entry field |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXSecureTextField[@AXPlaceholderValue="Password"]` | Password field with placeholder |
+| Search Field | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXTextField[@AXSubrole="AXSearchField"]` | Search input field |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXSearchField` | Alternative representation |
+| Token Field | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXGroup[@AXSubrole="AXTokenField"]` | Text field with token objects (like tags) |
+| Rich Text Field | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXTextArea[@AXSubrole="AXRichText"]` | Text with formatting capabilities |
+| Form Field | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXGroup[@AXSubrole="AXForm"]/AXTextField` | Text field within a form group |
 
 #### Navigation and Container Controls
 
 | Control Type | Example Path | Notes |
 |--------------|--------------|-------|
-| Tab Group | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXTabGroup` | Container for tabs |
-| Tab | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXTabGroup/AXTab[@AXTitle="Settings"]` | Individual tab within a tab group |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXTabGroup/AXTab[@AXValue="1"]` | Selected tab (value=1) |
-| Table | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXTable` | Data table/grid |
-| Table Header | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXTable/AXRow[@AXSubrole="AXTableHeaderRow"]` | Header row of a table |
-| Table Row | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXTable/AXRow[2]` | Third row in a table (zero-indexed) |
-| Table Cell | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXTable/AXRow[1]/AXCell[0]` | First cell in second row |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXTable/AXRow/AXCell[@AXTitle="Data"]` | Cell with specific content |
-| List | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXList` | Vertical list of items |
-| List Item | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXList/AXStaticText[@AXValue="Item 1"]` | Item in a list |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXList/AXGroup[3]` | Fourth group in a list |
-| Outline/Tree | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXOutline` | Hierarchical tree view |
-| Outline Item | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXOutline/AXOutlineRow[@AXTitle="Item"]` | Item in an outline/tree |
-| Scroll Area | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXScrollArea` | Scrollable container |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXScrollArea/AXGroup` | Content within scroll area |
-| Split View | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXSplitGroup` | Split pane container |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXSplitGroup/AXGroup[0]` | Left/top pane |
-| Sidebar | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXGroup[@AXSubrole="AXSidebar"]` | Sidebar navigation panel |
-| Toolbar | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXToolbar` | Application toolbar |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXToolbar/AXGroup` | Group in toolbar |
+| Tab Group | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXTabGroup` | Container for tabs |
+| Tab | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXTabGroup/AXTab[@AXTitle="Settings"]` | Individual tab within a tab group |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXTabGroup/AXTab[@AXValue="1"]` | Selected tab (value=1) |
+| Table | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXTable` | Data table/grid |
+| Table Header | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXTable/AXRow[@AXSubrole="AXTableHeaderRow"]` | Header row of a table |
+| Table Row | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXTable/AXRow[2]` | Third row in a table (zero-indexed) |
+| Table Cell | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXTable/AXRow[1]/AXCell[0]` | First cell in second row |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXTable/AXRow/AXCell[@AXTitle="Data"]` | Cell with specific content |
+| List | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXList` | Vertical list of items |
+| List Item | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXList/AXStaticText[@AXValue="Item 1"]` | Item in a list |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXList/AXGroup[3]` | Fourth group in a list |
+| Outline/Tree | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXOutline` | Hierarchical tree view |
+| Outline Item | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXOutline/AXOutlineRow[@AXTitle="Item"]` | Item in an outline/tree |
+| Scroll Area | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXScrollArea` | Scrollable container |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXScrollArea/AXGroup` | Content within scroll area |
+| Split View | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXSplitGroup` | Split pane container |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXSplitGroup/AXGroup[0]` | Left/top pane |
+| Sidebar | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXGroup[@AXSubrole="AXSidebar"]` | Sidebar navigation panel |
+| Toolbar | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXToolbar` | Application toolbar |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXToolbar/AXGroup` | Group in toolbar |
 
 #### Window Management Controls
 
 | Control Type | Example Path | Notes |
 |--------------|--------------|-------|
-| Window | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow` | Application window |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow[@AXMain="1"]` | Main application window |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow[@AXTitle="Document"]` | Window with specific title |
-| Close Button | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXButton[@AXSubrole="AXCloseButton"]` | Window close button (red) |
-| Minimize Button | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXButton[@AXSubrole="AXMinimizeButton"]` | Window minimize button (yellow) |
-| Zoom Button | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXButton[@AXSubrole="AXZoomButton"]` | Window zoom/maximize button (green) |
-| Title Bar | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXGroup[@AXSubrole="AXTitleBar"]` | Window title bar |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXGroup[@AXSubrole="AXTitleBar"]/AXStaticText` | Window title text |
-| Resize Handle | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXGrowArea` | Window resize handle (bottom right) |
-| Toolbar | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXToolbar` | Window toolbar |
-| Status Bar | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXGroup[@AXSubrole="AXStatusBar"]` | Status bar (usually at bottom) |
+| Window | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow` | Application window |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow[@AXMain="1"]` | Main application window |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow[@AXTitle="Document"]` | Window with specific title |
+| Close Button | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXButton[@AXSubrole="AXCloseButton"]` | Window close button (red) |
+| Minimize Button | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXButton[@AXSubrole="AXMinimizeButton"]` | Window minimize button (yellow) |
+| Zoom Button | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXButton[@AXSubrole="AXZoomButton"]` | Window zoom/maximize button (green) |
+| Title Bar | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXGroup[@AXSubrole="AXTitleBar"]` | Window title bar |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXGroup[@AXSubrole="AXTitleBar"]/AXStaticText` | Window title text |
+| Resize Handle | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXGrowArea` | Window resize handle (bottom right) |
+| Toolbar | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXToolbar` | Window toolbar |
+| Status Bar | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXGroup[@AXSubrole="AXStatusBar"]` | Status bar (usually at bottom) |
 
 #### Dialog and Popover Elements
 
 | Control Type | Example Path | Notes |
 |--------------|--------------|-------|
-| Alert | `ui://AXApplication[@bundleIdentifier="app"]/AXSheet[@AXSubrole="AXStandardWindow"]` | Alert dialog |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXSheet/AXStaticText[@AXRole="AXHeading"]` | Alert heading text |
-| Sheet | `ui://AXApplication[@bundleIdentifier="app"]/AXSheet` | Sheet dialog attached to a window |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXSheet/AXGroup` | Content group in a sheet |
-| Dialog | `ui://AXApplication[@bundleIdentifier="app"]/AXDialog` | Modal dialog |
-| File Open Dialog | `ui://AXApplication[@bundleIdentifier="app"]/AXSheet/AXPopUpButton[@AXTitle="Enable:"]` | Typical file dialog control |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXSheet/AXButton[@AXTitle="Open"]` | Open button in file dialog |
-| Save Dialog | `ui://AXApplication[@bundleIdentifier="app"]/AXSheet/AXTextField[@AXPlaceholderValue="Save As:"]` | Filename field in save dialog |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXSheet/AXButton[@AXTitle="Save"]` | Save button in save dialog |
-| Popover | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXGroup[@AXSubrole="AXPopover"]` | Popup information panel |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXGroup[@AXSubrole="AXPopover"]/AXButton` | Button in popover |
-| Toast/Notification | `ui://AXApplication[@bundleIdentifier="app"]/AXGroup[@AXSubrole="AXNotification"]` | Temporary notification |
+| Alert | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXSheet[@AXSubrole="AXStandardWindow"]` | Alert dialog |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXSheet/AXStaticText[@AXRole="AXHeading"]` | Alert heading text |
+| Sheet | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXSheet` | Sheet dialog attached to a window |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXSheet/AXGroup` | Content group in a sheet |
+| Dialog | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXDialog` | Modal dialog |
+| File Open Dialog | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXSheet/AXPopUpButton[@AXTitle="Enable:"]` | Typical file dialog control |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXSheet/AXButton[@AXTitle="Open"]` | Open button in file dialog |
+| Save Dialog | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXSheet/AXTextField[@AXPlaceholderValue="Save As:"]` | Filename field in save dialog |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXSheet/AXButton[@AXTitle="Save"]` | Save button in save dialog |
+| Popover | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXGroup[@AXSubrole="AXPopover"]` | Popup information panel |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXGroup[@AXSubrole="AXPopover"]/AXButton` | Button in popover |
+| Toast/Notification | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXGroup[@AXSubrole="AXNotification"]` | Temporary notification |
 
 #### Menu Elements
 
 | Control Type | Example Path | Notes |
 |--------------|--------------|-------|
-| Menu Bar | `ui://AXApplication[@bundleIdentifier="app"]/AXMenuBar` | Application menu bar (top of screen) |
-| Menu Bar Item | `ui://AXApplication[@bundleIdentifier="app"]/AXMenuBar/AXMenuBarItem[@AXTitle="File"]` | Top-level menu item |
-| Menu | `ui://AXApplication[@bundleIdentifier="app"]/AXMenuBar/AXMenuBarItem[@AXTitle="File"]/AXMenu` | Dropdown menu |
-| Menu Item | `ui://AXApplication[@bundleIdentifier="app"]/AXMenuBar/AXMenuBarItem[@AXTitle="File"]/AXMenu/AXMenuItem[@AXTitle="Open"]` | Item in a menu |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXMenuBar/AXMenuBarItem/AXMenu/AXMenuItem[@AXTitle="Save"]/AXMenu/AXMenuItem` | Item in a submenu |
-| Menu Item Checkbox | `ui://AXApplication[@bundleIdentifier="app"]/AXMenuBar/AXMenuBarItem/AXMenu/AXMenuItem[@AXSubrole="AXMenuItemCheckbox"]` | Checkbox menu item |
-| Menu Item Radio | `ui://AXApplication[@bundleIdentifier="app"]/AXMenuBar/AXMenuBarItem/AXMenu/AXMenuItem[@AXSubrole="AXMenuItemRadio"]` | Radio menu item |
-| Context Menu | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXMenu[@AXSubrole="AXContextMenu"]` | Right-click context menu |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXMenu[@AXSubrole="AXContextMenu"]/AXMenuItem` | Item in context menu |
-| Dock Menu | `ui://AXApplication[@bundleIdentifier="com.apple.dock"]/AXMenu` | macOS Dock app menu |
+| Menu Bar | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXMenuBar` | Application menu bar (top of screen) |
+| Menu Bar Item | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXMenuBar/AXMenuBarItem[@AXTitle="File"]` | Top-level menu item |
+| Menu | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXMenuBar/AXMenuBarItem[@AXTitle="File"]/AXMenu` | Dropdown menu |
+| Menu Item | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXMenuBar/AXMenuBarItem[@AXTitle="File"]/AXMenu/AXMenuItem[@AXTitle="Open"]` | Item in a menu |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXMenuBar/AXMenuBarItem/AXMenu/AXMenuItem[@AXTitle="Save"]/AXMenu/AXMenuItem` | Item in a submenu |
+| Menu Item Checkbox | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXMenuBar/AXMenuBarItem/AXMenu/AXMenuItem[@AXSubrole="AXMenuItemCheckbox"]` | Checkbox menu item |
+| Menu Item Radio | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXMenuBar/AXMenuBarItem/AXMenu/AXMenuItem[@AXSubrole="AXMenuItemRadio"]` | Radio menu item |
+| Context Menu | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXMenu[@AXSubrole="AXContextMenu"]` | Right-click context menu |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXMenu[@AXSubrole="AXContextMenu"]/AXMenuItem` | Item in context menu |
+| Dock Menu | `macos://ui/AXApplication[@bundleIdentifier="com.apple.dock"]/AXMenu` | macOS Dock app menu |
 
 #### Special Application Elements
 
 | Control Type | Example Path | Notes |
 |--------------|--------------|-------|
-| Safari URL Field | `ui://AXApplication[@bundleIdentifier="com.apple.safari"]/AXWindow/AXTextField[@AXSubrole="AXURLField"]` | Safari address bar |
-| Safari Bookmark | `ui://AXApplication[@bundleIdentifier="com.apple.safari"]/AXWindow/AXToolbar/AXGroup/AXButton[@AXSubrole="AXBookmark"]` | Safari bookmark button |
-| Finder Sidebar | `ui://AXApplication[@bundleIdentifier="com.apple.finder"]/AXWindow/AXGroup[@AXSubrole="AXSidebar"]` | Finder sidebar navigation |
-| Finder Item | `ui://AXApplication[@bundleIdentifier="com.apple.finder"]/AXWindow/AXTable/AXRow[@AXTitle="file.txt"]` | Item in Finder list view |
-| System Dialog | `ui://AXApplication[@bundleIdentifier="com.apple.systempreferences"]/AXWindow/AXSheet` | System preference confirmation dialog |
-| Calendar Event | `ui://AXApplication[@bundleIdentifier="com.apple.iCal"]/AXWindow/AXGroup[@AXSubrole="AXCalendarView"]/AXGroup[@AXSubrole="AXCalendarEvent"]` | Event in Calendar app |
-| Photos Item | `ui://AXApplication[@bundleIdentifier="com.apple.Photos"]/AXWindow/AXGrid/AXCell` | Photo in Photos app grid |
+| Safari URL Field | `macos://ui/AXApplication[@bundleIdentifier="com.apple.safari"]/AXWindow/AXTextField[@AXSubrole="AXURLField"]` | Safari address bar |
+| Safari Bookmark | `macos://ui/AXApplication[@bundleIdentifier="com.apple.safari"]/AXWindow/AXToolbar/AXGroup/AXButton[@AXSubrole="AXBookmark"]` | Safari bookmark button |
+| Finder Sidebar | `macos://ui/AXApplication[@bundleIdentifier="com.apple.finder"]/AXWindow/AXGroup[@AXSubrole="AXSidebar"]` | Finder sidebar navigation |
+| Finder Item | `macos://ui/AXApplication[@bundleIdentifier="com.apple.finder"]/AXWindow/AXTable/AXRow[@AXTitle="file.txt"]` | Item in Finder list view |
+| System Dialog | `macos://ui/AXApplication[@bundleIdentifier="com.apple.systempreferences"]/AXWindow/AXSheet` | System preference confirmation dialog |
+| Calendar Event | `macos://ui/AXApplication[@bundleIdentifier="com.apple.iCal"]/AXWindow/AXGroup[@AXSubrole="AXCalendarView"]/AXGroup[@AXSubrole="AXCalendarEvent"]` | Event in Calendar app |
+| Photos Item | `macos://ui/AXApplication[@bundleIdentifier="com.apple.Photos"]/AXWindow/AXGrid/AXCell` | Photo in Photos app grid |
 
 #### Other Specialized Controls
 
 | Control Type | Example Path | Notes |
 |--------------|--------------|-------|
-| Color Well | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXColorWell` | Color picker control |
-| Date Picker | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXDateField` | Date selection control |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXDateField/AXCalendar` | Calendar in date picker |
-| Segmented Control | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXSegmentedControl` | Button bar with segments |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXSegmentedControl/AXRadioButton[@AXValue="1"]` | Selected segment |
-| Image | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXImage` | Image element |
-| Link | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXLink[@AXTitle="Learn more"]` | Hyperlink or clickable text |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXWebArea/AXLink` | Web link in web content |
-| Static Text | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXStaticText[@AXValue="Welcome"]` | Non-editable text |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXStaticText[@AXSubrole="AXHeading"]` | Heading text |
-| Scroll Bar | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXScrollArea/AXScrollBar` | Scroll bar control |
-| | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXScrollArea/AXScrollBar/AXValueIndicator` | Scroll bar thumb/indicator |
-| Splitter | `ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXSplitGroup/AXSplitter` | Draggable divider between split views |
-| Web Area | `ui://AXApplication[@bundleIdentifier="com.apple.safari"]/AXWindow/AXWebArea` | Web content container |
+| Color Well | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXColorWell` | Color picker control |
+| Date Picker | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXDateField` | Date selection control |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXDateField/AXCalendar` | Calendar in date picker |
+| Segmented Control | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXSegmentedControl` | Button bar with segments |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXSegmentedControl/AXRadioButton[@AXValue="1"]` | Selected segment |
+| Image | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXImage` | Image element |
+| Link | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXLink[@AXTitle="Learn more"]` | Hyperlink or clickable text |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXWebArea/AXLink` | Web link in web content |
+| Static Text | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXStaticText[@AXValue="Welcome"]` | Non-editable text |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXStaticText[@AXSubrole="AXHeading"]` | Heading text |
+| Scroll Bar | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXScrollArea/AXScrollBar` | Scroll bar control |
+| | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXScrollArea/AXScrollBar/AXValueIndicator` | Scroll bar thumb/indicator |
+| Splitter | `macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXSplitGroup/AXSplitter` | Draggable divider between split views |
+| Web Area | `macos://ui/AXApplication[@bundleIdentifier="com.apple.safari"]/AXWindow/AXWebArea` | Web content container |
 
 ## Migration from Element IDs
 
@@ -705,7 +705,7 @@ If you're updating code that used element IDs, here's how to convert to path-bas
 
    After:
    ```swift
-   toolChain.clickElement(elementPath: "ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow/AXButton[@AXDescription=\"7\"]")
+   toolChain.clickElement(elementPath: "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow/AXButton[@AXDescription=\"7\"]")
    ```
 
 2. **Update parameter names**:

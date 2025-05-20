@@ -236,7 +236,7 @@ class MCPUIElementNode {
   func generatePathSegment() -> String {
     // Get the path provided by the MCP server directly if available
     if let elementPath,
-      !elementPath.hasPrefix("ui://"),  // It shouldn't be a full path already
+      !elementPath.hasPrefix("macos://ui/"),  // It shouldn't be a full path already
       !elementPath.contains("/")
     {  // It shouldn't contain path separators
       return elementPath  // Return the server-provided segment as-is
@@ -267,10 +267,10 @@ class MCPUIElementNode {
   /// Used as a fallback when the element doesn't have a path attribute
   func generateSyntheticPath() -> String? {
     // Start with the parent path (if we have one) or start a new path
-    var pathBase = parentPath ?? "ui://"
+    var pathBase = parentPath ?? "macos://ui/"
 
-    // Don't add a separator if we're starting a new path (ui://)
-    if !pathBase.hasSuffix("/"), pathBase != "ui://" {
+    // Don't add a separator if we're starting a new path (macos://ui/)
+    if !pathBase.hasSuffix("/"), pathBase != "macos://ui/" {
       pathBase += "/"
     }
 

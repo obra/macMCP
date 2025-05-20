@@ -52,27 +52,27 @@ public final class CalculatorModel {
 
     /// Button mappings for modern macOS calculator with path-based identifiers
     public static let buttonMappings: [String: String] = [
-      "0": "ui://AXButton[@AXDescription=\"0\"]",
-      "1": "ui://AXButton[@AXDescription=\"1\"]",
-      "2": "ui://AXButton[@AXDescription=\"2\"]",
-      "3": "ui://AXButton[@AXDescription=\"3\"]",
-      "4": "ui://AXButton[@AXDescription=\"4\"]",
-      "5": "ui://AXButton[@AXDescription=\"5\"]",
-      "6": "ui://AXButton[@AXDescription=\"6\"]",
-      "7": "ui://AXButton[@AXDescription=\"7\"]",
-      "8": "ui://AXButton[@AXDescription=\"8\"]",
-      "9": "ui://AXButton[@AXDescription=\"9\"]",
-      "+": "ui://AXButton[@AXDescription=\"+\"]",
-      "-": "ui://AXButton[@AXDescription=\"-\"]",
-      "×": "ui://AXButton[@AXDescription=\"×\"]",
-      "÷": "ui://AXButton[@AXDescription=\"÷\"]",
-      "=": "ui://AXButton[@AXDescription=\"=\"]",
-      ".": "ui://AXButton[@AXDescription=\".\"]",
-      "%": "ui://AXButton[@AXDescription=\"%\"]",
-      "±": "ui://AXButton[@AXDescription=\"±\"]",
-      "C": "ui://AXButton[@AXDescription=\"C\"]",
-      "AC": "ui://AXButton[@AXDescription=\"AC\"]",
-      "Delete": "ui://AXButton[@AXDescription=\"Delete\"]",
+      "0": "macos://ui/AXButton[@AXDescription=\"0\"]",
+      "1": "macos://ui/AXButton[@AXDescription=\"1\"]",
+      "2": "macos://ui/AXButton[@AXDescription=\"2\"]",
+      "3": "macos://ui/AXButton[@AXDescription=\"3\"]",
+      "4": "macos://ui/AXButton[@AXDescription=\"4\"]",
+      "5": "macos://ui/AXButton[@AXDescription=\"5\"]",
+      "6": "macos://ui/AXButton[@AXDescription=\"6\"]",
+      "7": "macos://ui/AXButton[@AXDescription=\"7\"]",
+      "8": "macos://ui/AXButton[@AXDescription=\"8\"]",
+      "9": "macos://ui/AXButton[@AXDescription=\"9\"]",
+      "+": "macos://ui/AXButton[@AXDescription=\"+\"]",
+      "-": "macos://ui/AXButton[@AXDescription=\"-\"]",
+      "×": "macos://ui/AXButton[@AXDescription=\"×\"]",
+      "÷": "macos://ui/AXButton[@AXDescription=\"÷\"]",
+      "=": "macos://ui/AXButton[@AXDescription=\"=\"]",
+      ".": "macos://ui/AXButton[@AXDescription=\".\"]",
+      "%": "macos://ui/AXButton[@AXDescription=\"%\"]",
+      "±": "macos://ui/AXButton[@AXDescription=\"±\"]",
+      "C": "macos://ui/AXButton[@AXDescription=\"C\"]",
+      "AC": "macos://ui/AXButton[@AXDescription=\"AC\"]",
+      "Delete": "macos://ui/AXButton[@AXDescription=\"Delete\"]",
     ]
   }
 
@@ -167,7 +167,7 @@ public final class CalculatorModel {
 
   private func createMockCalculatorWindow() -> UIElement {
     UIElement(
-      path: "ui://AXWindow[@AXTitle=\"Calculator\"]",
+      path: "macos://ui/AXWindow[@AXTitle=\"Calculator\"]",
       role: "AXWindow",
       title: "Calculator",
       frame: CGRect(x: 0, y: 0, width: 300, height: 400),
@@ -179,7 +179,7 @@ public final class CalculatorModel {
 
   private func createMockDisplayElement() -> UIElement {
     UIElement(
-      path: "ui://AXStaticText[@AXTitle=\"Display\"]",
+      path: "macos://ui/AXStaticText[@AXTitle=\"Display\"]",
       role: "AXStaticText",
       title: "Display",
       value: "0",
@@ -191,7 +191,7 @@ public final class CalculatorModel {
   }
 
   private func createMockButtonElement(_ button: String) -> UIElement {
-    let path = Button.buttonMappings[button] ?? "ui://AXButton[@AXDescription=\"button\"]"
+    let path = Button.buttonMappings[button] ?? "macos://ui/AXButton[@AXDescription=\"button\"]"
     return UIElement(
       path: path,
       role: "AXButton",

@@ -2,7 +2,7 @@
 
 ## Issue Description
 
-The `--path-filter` option in `mcp-ax-inspector` doesn't work correctly when the filter is a UI element selector pattern (e.g., "AXButton[@AXDescription=\"1\"]") rather than a fully qualified path. The current implementation only handles path filters that start with "ui://" and doesn't properly process non-path UI element filters.
+The `--path-filter` option in `mcp-ax-inspector` doesn't work correctly when the filter is a UI element selector pattern (e.g., "AXButton[@AXDescription=\"1\"]") rather than a fully qualified path. The current implementation only handles path filters that start with "macos://ui/" and doesn't properly process non-path UI element filters.
 
 When running:
 ```
@@ -17,9 +17,9 @@ The tool returns a full tree dump instead of filtering for the specific AXButton
 
 2. The `effectiveInspectPath` is set to:
    ```swift
-   let effectiveInspectPath = inspectPath ?? (pathFilter?.hasPrefix("ui://") == true ? pathFilter : nil)
+   let effectiveInspectPath = inspectPath ?? (pathFilter?.hasPrefix("macos://ui/") == true ? pathFilter : nil)
    ```
-   This only uses the `pathFilter` value if it starts with "ui://", otherwise it's ignored.
+   This only uses the `pathFilter` value if it starts with "macos://ui/", otherwise it's ignored.
 
 3. For non-path filters (like "AXButton[@AXDescription=\"1\"]"), there's no handling to convert it to an appropriate filter query for InterfaceExplorerTool.
 
@@ -27,7 +27,7 @@ The tool returns a full tree dump instead of filtering for the specific AXButton
 
 ## Proposed Fix
 
-1. Update the `MCPInspector.inspectApplication` method to properly handle path filter patterns that don't have the "ui://" prefix:
+1. Update the `MCPInspector.inspectApplication` method to properly handle path filter patterns that don't have the "macos://ui/" prefix:
 
 ```swift
 func inspectApplication(pathFilter: String? = nil) async throws -> MCPUIElementNode {
@@ -35,7 +35,7 @@ func inspectApplication(pathFilter: String? = nil) async throws -> MCPUIElementN
     
     // If we have a path filter, process it properly based on its format
     if let pathFilter = pathFilter {
-        if pathFilter.hasPrefix("ui://") {
+        if pathFilter.hasPrefix("macos://ui/") {
             // This is a complete path - use server-side path resolution
             print("Using server-side path resolution for: \(pathFilter)")
             do {
@@ -198,7 +198,7 @@ private func fetchFilteredUIStateData(
 
 ```swift
 // Instead of:
-let effectiveInspectPath = inspectPath ?? (pathFilter?.hasPrefix("ui://") == true ? pathFilter : nil)
+let effectiveInspectPath = inspectPath ?? (pathFilter?.hasPrefix("macos://ui/") == true ? pathFilter : nil)
 
 // Do this:
 let effectiveInspectPath = inspectPath

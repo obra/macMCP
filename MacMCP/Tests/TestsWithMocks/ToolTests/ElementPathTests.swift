@@ -121,12 +121,12 @@ struct ElementPathTests {
     let pathString = path.toString()
 
     #expect(
-      pathString == "ui://AXWindow/AXGroup[@AXName=\"Controls\"]/AXButton[@AXDescription=\"Submit\"]")
+      pathString == "macos://ui/AXWindow/AXGroup[@AXName=\"Controls\"]/AXButton[@AXDescription=\"Submit\"]")
   }
 
   @Test("ElementPath parsing simple path")
   func elementPathParsing() throws {
-    let pathString = "ui://AXWindow/AXGroup/AXButton"
+    let pathString = "macos://ui/AXWindow/AXGroup/AXButton"
     let path = try ElementPath.parse(pathString)
 
     #expect(path.segments.count == 3)
@@ -137,7 +137,7 @@ struct ElementPathTests {
 
   @Test("ElementPath parsing with attributes")
   func elementPathParsingWithAttributes() throws {
-    let pathString = "ui://AXWindow/AXGroup[@AXName=\"Controls\"]/AXButton[@AXDescription=\"Submit\"]"
+    let pathString = "macos://ui/AXWindow/AXGroup[@AXName=\"Controls\"]/AXButton[@AXDescription=\"Submit\"]"
     let path = try ElementPath.parse(pathString)
 
     #expect(path.segments.count == 3)
@@ -150,7 +150,7 @@ struct ElementPathTests {
 
   @Test("ElementPath parsing with index")
   func elementPathParsingWithIndex() throws {
-    let pathString = "ui://AXWindow/AXGroup[2]/AXButton"
+    let pathString = "macos://ui/AXWindow/AXGroup[2]/AXButton"
     let path = try ElementPath.parse(pathString)
 
     #expect(path.segments.count == 3)
@@ -163,7 +163,7 @@ struct ElementPathTests {
   @Test("ElementPath parsing with attributes and index")
   func elementPathParsingWithAttributesAndIndex() throws {
     let pathString =
-      "ui://AXWindow/AXGroup[@AXName=\"Controls\"][2]/AXButton[@AXDescription=\"Submit\"]"
+      "macos://ui/AXWindow/AXGroup[@AXName=\"Controls\"][2]/AXButton[@AXDescription=\"Submit\"]"
     let path = try ElementPath.parse(pathString)
 
     #expect(path.segments.count == 3)
@@ -177,7 +177,7 @@ struct ElementPathTests {
 
   @Test("ElementPath parsing with escaped quotes")
   func elementPathParsingWithEscapedQuotes() throws {
-    let pathString = "ui://AXWindow/AXGroup[@AXName=\"Group with \\\"quotes\\\"\"]/AXButton"
+    let pathString = "macos://ui/AXWindow/AXGroup[@AXName=\"Group with \\\"quotes\\\"\"]/AXButton"
     let path = try ElementPath.parse(pathString)
 
     #expect(path.segments.count == 3)
@@ -190,7 +190,7 @@ struct ElementPathTests {
   @Test("ElementPath parsing with multiple attributes")
   func elementPathParsingWithMultipleAttributes() throws {
     let pathString =
-      "ui://AXWindow/AXGroup[@AXName=\"Controls\"][@id=\"group1\"]/AXButton[@AXDescription=\"Submit\"][@enabled=\"true\"]"
+      "macos://ui/AXWindow/AXGroup[@AXName=\"Controls\"][@id=\"group1\"]/AXButton[@AXDescription=\"Submit\"][@enabled=\"true\"]"
     let path = try ElementPath.parse(pathString)
 
     #expect(path.segments.count == 3)
@@ -219,7 +219,7 @@ struct ElementPathTests {
 
   @Test("ElementPath parsing empty path")
   func elementPathParsingEmptyPath() {
-    let pathString = "ui://"
+    let pathString = "macos://ui/"
 
     do {
       _ = try ElementPath.parse(pathString)
@@ -272,8 +272,8 @@ struct ElementPathTests {
 
   @Test("ElementPath isElementPath check")
   func testIsElementPath() {
-    #expect(ElementPath.isElementPath("ui://AXWindow/AXGroup/AXButton") == true)
-    #expect(ElementPath.isElementPath("ui://") == true)  // Empty path is still an element path (will fail on parse)
+    #expect(ElementPath.isElementPath("macos://ui/AXWindow/AXGroup/AXButton") == true)
+    #expect(ElementPath.isElementPath("macos://ui/") == true)  // Empty path is still an element path (will fail on parse)
     #expect(ElementPath.isElementPath("somestring") == false)
     #expect(ElementPath.isElementPath("") == false)
   }
@@ -281,7 +281,7 @@ struct ElementPathTests {
   @Test("ElementPath roundtrip (parse and toString)")
   func elementPathRoundtrip() throws {
     let originalPath =
-      "ui://AXWindow/AXGroup[@AXName=\"Controls\"][2]/AXButton[@AXDescription=\"Submit\"]"
+      "macos://ui/AXWindow/AXGroup[@AXName=\"Controls\"][2]/AXButton[@AXDescription=\"Submit\"]"
     let path = try ElementPath.parse(originalPath)
     let regeneratedPath = path.toString()
 
@@ -348,7 +348,7 @@ struct ElementPathTests {
     // Minimal implementations to satisfy the protocol
     func getSystemUIElement(recursive _: Bool, maxDepth _: Int) async throws -> UIElement {
       UIElement(
-        path: "ui://AXApplication[@AXTitle=\"System\"][@identifier=\"mock-system\"]",
+        path: "macos://ui/AXApplication[@AXTitle=\"System\"][@identifier=\"mock-system\"]",
         role: "AXApplication",
         frame: CGRect.zero,
         axElement: nil,
@@ -361,7 +361,7 @@ struct ElementPathTests {
       maxDepth _: Int,
     ) async throws -> UIElement {
       UIElement(
-        path: "ui://AXApplication[@AXTitle=\"Application\"][@bundleIdentifier=\"mock-app\"]",
+        path: "macos://ui/AXApplication[@AXTitle=\"Application\"][@bundleIdentifier=\"mock-app\"]",
         role: "AXApplication",
         frame: CGRect.zero,
         axElement: nil,
@@ -373,7 +373,7 @@ struct ElementPathTests {
     {
       UIElement(
         path:
-          "ui://AXApplication[@AXTitle=\"Focused App\"][@bundleIdentifier=\"mock-focused-app\"]",
+          "macos://ui/AXApplication[@AXTitle=\"Focused App\"][@bundleIdentifier=\"mock-focused-app\"]",
         role: "AXApplication",
         frame: CGRect.zero,
         axElement: nil,
@@ -386,7 +386,7 @@ struct ElementPathTests {
       maxDepth _: Int,
     ) async throws -> UIElement? {
       UIElement(
-        path: "ui://AXElement[@identifier=\"mock-position\"]",
+        path: "macos://ui/AXElement[@identifier=\"mock-position\"]",
         role: "AXElement",
         frame: CGRect.zero,
         axElement: nil,
@@ -425,7 +425,7 @@ struct ElementPathTests {
 
     func findElementByPath(_: String) async throws -> UIElement? {
       UIElement(
-        path: "ui://AXElement[@identifier=\"mock-path-element\"]",
+        path: "macos://ui/AXElement[@identifier=\"mock-path-element\"]",
         role: "AXElement",
         frame: CGRect.zero,
         axElement: nil,
@@ -434,7 +434,7 @@ struct ElementPathTests {
 
     func findElementByPath(path _: String) async throws -> UIElement? {
       UIElement(
-        path: "ui://AXElement[@identifier=\"mock-path-element\"]",
+        path: "macos://ui/AXElement[@identifier=\"mock-path-element\"]",
         role: "AXElement",
         frame: CGRect.zero,
         axElement: nil,
@@ -463,7 +463,7 @@ struct ElementPathTests {
 
     func getElementWithFocus() async throws -> UIElement {
       UIElement(
-        path: "ui://AXElement[@identifier=\"mock-focused-element\"]",
+        path: "macos://ui/AXElement[@identifier=\"mock-focused-element\"]",
         role: "AXElement",
         frame: CGRect.zero,
         axElement: nil,
@@ -488,7 +488,7 @@ struct ElementPathTests {
       pollInterval _: TimeInterval,
     ) async throws -> UIElement {
       UIElement(
-        path: "ui://AXElement[@identifier=\"mock-wait-element\"]",
+        path: "macos://ui/AXElement[@identifier=\"mock-wait-element\"]",
         role: "AXElement",
         frame: CGRect.zero,
         axElement: nil,
@@ -612,7 +612,7 @@ struct ElementPathTests {
     let mockService = MockAccessibilityService(rootElement: mockHierarchy)
 
     // Test resolving a simple path
-    let pathString = "ui://AXWindow/AXGroup[@AXTitle=\"Controls\"]"
+    let pathString = "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]"
     let path = try ElementPath.parse(pathString)
 
     let mockResolveResult = mockResolvePathForTest(service: mockService, path: path)
@@ -628,7 +628,7 @@ struct ElementPathTests {
     let mockService = MockAccessibilityService(rootElement: mockHierarchy)
 
     // Test resolving a path with attribute constraints
-    let pathString = "ui://AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
+    let pathString = "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
     let path = try ElementPath.parse(pathString)
 
     let mockResolveResult = mockResolvePathForTest(service: mockService, path: path)
@@ -644,7 +644,7 @@ struct ElementPathTests {
     let mockService = MockAccessibilityService(rootElement: mockHierarchy)
 
     // Test resolving a path with index for disambiguation
-    let pathString = "ui://AXWindow/AXGroup[@AXTitle=\"Duplicate\"][1]"
+    let pathString = "macos://ui/AXWindow/AXGroup[@AXTitle=\"Duplicate\"][1]"
     let path = try ElementPath.parse(pathString)
 
     let mockResolveResult = mockResolvePathForTest(service: mockService, path: path)
@@ -660,7 +660,7 @@ struct ElementPathTests {
     let mockService = MockAccessibilityService(rootElement: mockHierarchy)
 
     // Test resolving a path that has no matches
-    let pathString = "ui://AXWindow/AXGroup[@AXTitle=\"NonExistent\"]"
+    let pathString = "macos://ui/AXWindow/AXGroup[@AXTitle=\"NonExistent\"]"
     let path = try ElementPath.parse(pathString)
 
     let mockResolveResult = mockResolvePathForTest(service: mockService, path: path)
@@ -674,7 +674,7 @@ struct ElementPathTests {
     let mockService = MockAccessibilityService(rootElement: mockHierarchy)
 
     // Test resolving a path with ambiguous matches (both duplicate groups)
-    let pathString = "ui://AXWindow/AXGroup[@AXTitle=\"Duplicate\"]"
+    let pathString = "macos://ui/AXWindow/AXGroup[@AXTitle=\"Duplicate\"]"
     let path = try ElementPath.parse(pathString)
 
     let mockResolveException = mockResolvePathWithExceptionForTest(service: mockService, path: path)
@@ -704,7 +704,7 @@ struct ElementPathTests {
     let mockService = MockAccessibilityService(rootElement: mockHierarchy)
 
     // Simple path test
-    let path = try ElementPath.parse("ui://AXWindow/AXGroup[@AXTitle=\"Controls\"]")
+    let path = try ElementPath.parse("macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]")
     let result = mockResolvePathForTest(service: mockService, path: path)
     #expect(result != nil)
     #expect(result?.role == "AXGroup")
@@ -841,7 +841,7 @@ struct ElementPathTests {
     let mockService = MockAccessibilityService(rootElement: mockHierarchy)
 
     // Test ambiguous match with enhanced error
-    let ambiguousPath = try ElementPath.parse("ui://AXWindow/AXGroup[@AXTitle=\"Duplicate\"]")
+    let ambiguousPath = try ElementPath.parse("macos://ui/AXWindow/AXGroup[@AXTitle=\"Duplicate\"]")
     let ambiguousError = mockResolvePathWithExceptionForTest(
       service: mockService, path: ambiguousPath)
     #expect(ambiguousError != nil)
@@ -857,7 +857,7 @@ struct ElementPathTests {
     }
 
     // Test no matching elements with enhanced error
-    let nonExistentPath = try ElementPath.parse("ui://AXWindow/AXNonExistentElement")
+    let nonExistentPath = try ElementPath.parse("macos://ui/AXWindow/AXNonExistentElement")
     let nonExistentError = mockResolvePathWithExceptionForTest(
       service: mockService, path: nonExistentPath)
     #expect(nonExistentError != nil)
@@ -980,7 +980,7 @@ struct ElementPathTests {
   func pathValidationWithValidPath() throws {
     // Test a well-formed path
     let pathString =
-      "ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow/AXButton[@AXTitle=\"1\"]"
+      "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow/AXButton[@AXTitle=\"1\"]"
 
     let (isValid, warnings) = try ElementPath.validatePath(pathString)
 
@@ -994,9 +994,9 @@ struct ElementPathTests {
   func realWorldPathRoundTrip() throws {
     // Test with realistic paths seen in real applications
     let calculatorPath =
-      "ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]"
+      "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]"
     let textEditPath =
-      "ui://AXApplication[@AXTitle=\"TextEdit\"]/AXWindow[@AXTitle=\"Untitled\"]/AXTextArea"
+      "macos://ui/AXApplication[@AXTitle=\"TextEdit\"]/AXWindow[@AXTitle=\"Untitled\"]/AXTextArea"
 
     // Validate round-trip for Calculator path
     let calcPath = try ElementPath.parse(calculatorPath)
@@ -1051,7 +1051,7 @@ struct ElementPathTests {
 
     // Create a complex path to resolve
     let pathString =
-      "ui://AXWindow/AXGroup/AXGroup/AXGroup/AXGroup/AXButton[@AXTitle=\"Deep Button\"]"
+      "macos://ui/AXWindow/AXGroup/AXGroup/AXGroup/AXGroup/AXButton[@AXTitle=\"Deep Button\"]"
     let path = try ElementPath.parse(pathString)
 
     // Basic performance check
@@ -1073,7 +1073,7 @@ struct ElementPathTests {
     // We'll simply test that the diagnostic method produces appropriate output
     // for different types of path issues by checking the text format
     let pathString =
-      "ui://AXApplication[@bundleIdentifier=\"com.example.app\"]/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
+      "macos://ui/AXApplication[@bundleIdentifier=\"com.example.app\"]/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
 
     // Create a simple mock diagnostic result for testing
     let mockDiagnosticOutput = """

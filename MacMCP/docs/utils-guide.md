@@ -72,9 +72,9 @@ let escapedValue = PathNormalizer.escapeAttributeValue("Button with \"quotes\"")
 // Result: "Button with \\\"quotes\\\""
 
 // Normalize a complete path
-let path = "ui://AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXDescription=\"OK\"]"
+let path = "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXDescription=\"OK\"]"
 let normalizedPath = PathNormalizer.normalizePathString(path)
-// Result: "ui://AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXDescription=\"OK\"]"
+// Result: "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXDescription=\"OK\"]"
 ```
 
 ## When to Use MacMCPUtilities

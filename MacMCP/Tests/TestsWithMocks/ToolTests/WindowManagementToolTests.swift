@@ -262,7 +262,7 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
     children: [UIElement] = [],
   ) -> UIElement {
     // Generate a path based on the element's role and title
-    var path = "ui://"
+    var path = "macos://ui/"
     path += role
 
     // Add title if available
@@ -302,15 +302,15 @@ struct WindowManagementToolTests {
 
   // Common test constants
   private let testWindowPath =
-    "ui://AXWindow[@AXTitle=\"Test Window\"][@AXDescription=\"Test Window\"]"
+    "macos://ui/AXWindow[@AXTitle=\"Test Window\"][@AXDescription=\"Test Window\"]"
   private let secondWindowPath =
-    "ui://AXWindow[@AXTitle=\"Second Window\"][@AXDescription=\"Second Window\"]"
+    "macos://ui/AXWindow[@AXTitle=\"Second Window\"][@AXDescription=\"Second Window\"]"
 
   @Test("Test getting application windows")
   mutating func testGetApplicationWindows() async throws {
     // Setup mock window
     let window1 = UIElement(
-      path: "ui://AXWindow[@AXTitle=\"Test Window 1\"][@AXDescription=\"Test Window 1\"]",
+      path: "macos://ui/AXWindow[@AXTitle=\"Test Window 1\"][@AXDescription=\"Test Window 1\"]",
       role: AXAttribute.Role.window,
       title: "Test Window 1",
       value: nil,
@@ -326,7 +326,7 @@ struct WindowManagementToolTests {
     )
 
     let window2 = UIElement(
-      path: "ui://AXWindow[@AXTitle=\"Test Window 2\"][@AXDescription=\"Test Window 2\"]",
+      path: "macos://ui/AXWindow[@AXTitle=\"Test Window 2\"][@AXDescription=\"Test Window 2\"]",
       role: AXAttribute.Role.window,
       title: "Test Window 2",
       value: nil,
@@ -343,7 +343,7 @@ struct WindowManagementToolTests {
 
     // Create mock application with windows
     let app = UIElement(
-      path: "ui://AXApplication[@AXTitle=\"Test App\"][@bundleIdentifier=\"com.test.app\"]",
+      path: "macos://ui/AXApplication[@AXTitle=\"Test App\"][@bundleIdentifier=\"com.test.app\"]",
       role: "AXApplication",
       title: "Test App",
       value: nil,
@@ -391,7 +391,7 @@ struct WindowManagementToolTests {
       // Verify first window
       let firstWindow = json[0]
       #expect(
-        firstWindow["id"] as? String == "ui://AXWindow[@AXTitle=\"Test Window 1\"][@AXDescription=\"Test Window 1\"]",
+        firstWindow["id"] as? String == "macos://ui/AXWindow[@AXTitle=\"Test Window 1\"][@AXDescription=\"Test Window 1\"]",
         "First window should have the correct ID"
       )
       #expect(firstWindow["title"] as? String == "Test Window 1", "First window should have the correct title")
@@ -399,7 +399,7 @@ struct WindowManagementToolTests {
       // Verify second window
       let secondWindow = json[1]
       #expect(
-        secondWindow["id"] as? String == "ui://AXWindow[@AXTitle=\"Test Window 2\"][@AXDescription=\"Test Window 2\"]",
+        secondWindow["id"] as? String == "macos://ui/AXWindow[@AXTitle=\"Test Window 2\"][@AXDescription=\"Test Window 2\"]",
         "Second window should have the correct ID"
       )
       #expect(secondWindow["title"] as? String == "Test Window 2", "Second window should have the correct title")
@@ -412,7 +412,7 @@ struct WindowManagementToolTests {
   mutating func testGetActiveWindow() async throws {
     // Setup mock window
     let window = UIElement(
-      path: "ui://AXWindow[@AXTitle=\"Active Window\"][@AXDescription=\"Active Test Window\"]",
+      path: "macos://ui/AXWindow[@AXTitle=\"Active Window\"][@AXDescription=\"Active Test Window\"]",
       role: AXAttribute.Role.window,
       title: "Active Window",
       value: nil,
@@ -429,7 +429,7 @@ struct WindowManagementToolTests {
 
     // Create mock focused application with window
     let app = UIElement(
-      path: "ui://AXApplication[@AXTitle=\"Test App\"][@bundleIdentifier=\"com.test.app\"]",
+      path: "macos://ui/AXApplication[@AXTitle=\"Test App\"][@bundleIdentifier=\"com.test.app\"]",
       role: "AXApplication",
       title: "Test App",
       value: nil,
@@ -474,7 +474,7 @@ struct WindowManagementToolTests {
 
       let activeWindow = json[0]
       #expect(
-        activeWindow["id"] as? String == "ui://AXWindow[@AXTitle=\"Active Window\"][@AXDescription=\"Active Test Window\"]",
+        activeWindow["id"] as? String == "macos://ui/AXWindow[@AXTitle=\"Active Window\"][@AXDescription=\"Active Test Window\"]",
         "Active window should have the correct ID"
       )
       #expect(activeWindow["title"] as? String == "Active Window", "Active window should have the correct title")

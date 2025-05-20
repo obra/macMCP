@@ -140,9 +140,9 @@ public class AccessibilityElement {
     // Build the complete hierarchical path for this element
     let hierarchicalPath = path.isEmpty ? elementPathSegment : "\(path)/\(elementPathSegment)"
 
-    // Use the hierarchical path as the identifier, prefixed with ui://
+    // Use the hierarchical path as the identifier, prefixed with macos://ui/
     let fullHierarchicalPath =
-      "ui://\(hierarchicalPath.hasPrefix("AX") ? hierarchicalPath : "AX\(hierarchicalPath)")"
+      "macos://ui/\(hierarchicalPath.hasPrefix("AX") ? hierarchicalPath : "AX\(hierarchicalPath)")"
     let identifier = fullHierarchicalPath
 
     // Now that we have an identifier, we'll use the frame-related variables that are already defined
@@ -1199,7 +1199,7 @@ public class AccessibilityElement {
   /// - Parameters:
   ///   - role: The accessibility role of the element
   ///   - attributes: Key-value pairs of attributes to include in the path
-  /// - Returns: A properly formatted path segment string (role[@attr="value"]) without ui:// prefix
+  /// - Returns: A properly formatted path segment string (role[@attr="value"]) without macos://ui/ prefix
   private static func createElementPathString(role: String, attributes: [String: String]) -> String
   {
     var pathString = role

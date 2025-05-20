@@ -44,7 +44,7 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
   /// Additional element attributes
   public let attributes: [String: String]
   
-  /// Fully qualified path-based identifier for the element (always starts with ui://)
+  /// Fully qualified path-based identifier for the element (always starts with macos://ui/)
   public let path: String?
   
   /// Children elements, if within maxDepth

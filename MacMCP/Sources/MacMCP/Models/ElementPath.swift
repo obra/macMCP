@@ -14,7 +14,7 @@ public enum ElementPathError: Error, CustomStringConvertible, Equatable {
   /// The path syntax is invalid
   case invalidPathSyntax(String, details: String)
 
-  /// The path prefix is missing or incorrect (should start with ui://)
+  /// The path prefix is missing or incorrect (should start with macos://ui/)
   case invalidPathPrefix(String)
 
   /// A segment has an invalid role
@@ -73,7 +73,7 @@ public enum ElementPathError: Error, CustomStringConvertible, Equatable {
     case .invalidPathSyntax(let path, let details):
       return "Invalid path syntax: \(path)\nDetails: \(details)"
     case .invalidPathPrefix(let prefix):
-      return "Invalid path prefix: \(prefix), should start with ui://"
+      return "Invalid path prefix: \(prefix), should start with macos://ui/"
     case .invalidSegmentRole(let role):
       return "Invalid segment role: \(role)"
     case .invalidAttributeSyntax(let attr, let segmentIndex):
@@ -275,8 +275,8 @@ public struct ElementPath: Sendable {
     let pathSoFar: String
   }
 
-  /// The path ID prefix (ui://)
-  public static let pathPrefix = "ui://"
+  /// The path ID prefix (macos://ui/)
+  public static let pathPrefix = "macos://ui/"
 
   /// Path segments that make up the full path
   public let segments: [PathSegment]

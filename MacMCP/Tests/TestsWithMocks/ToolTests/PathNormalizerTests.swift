@@ -99,7 +99,7 @@ struct PathNormalizerTests {
   @Test("Normalize path string")
   func testNormalizePathString() {
     // Test basic normalization
-    let path1 = "ui://AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXDescription=\"OK\"]"
+    let path1 = "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXDescription=\"OK\"]"
     let normalized1 = PathNormalizer.normalizePathString(path1)
     #expect(normalized1 != nil)
     #expect(normalized1!.contains("AXGroup[@AXTitle=\"Controls\"]"))
@@ -107,7 +107,7 @@ struct PathNormalizerTests {
 
     // Test with mixed attributes
     let path2 =
-      "ui://AXWindow/AXGroup[@AXTitle=\"Main\"][@id=\"mainGroup\"]/AXButton[@value=\"Click\"]"
+      "macos://ui/AXWindow/AXGroup[@AXTitle=\"Main\"][@id=\"mainGroup\"]/AXButton[@value=\"Click\"]"
     let normalized2 = PathNormalizer.normalizePathString(path2)
     #expect(normalized2 != nil)
     #expect(normalized2!.contains("AXGroup"))
@@ -117,7 +117,7 @@ struct PathNormalizerTests {
 
     // Test with already normalized path
     let path3 =
-      "ui://AXWindow/AXGroup[@AXTitle=\"Already Normalized\"]/AXButton[@AXEnabled=\"false\"]"
+      "macos://ui/AXWindow/AXGroup[@AXTitle=\"Already Normalized\"]/AXButton[@AXEnabled=\"false\"]"
     let normalized3 = PathNormalizer.normalizePathString(path3)
     #expect(normalized3 != nil)
     #expect(normalized3!.contains("AXGroup[@AXTitle=\"Already Normalized\"]"))
@@ -135,7 +135,7 @@ struct PathNormalizerTests {
     // Create a sample element hierarchy
     let buttonElement = UIElement(
       path:
-        "ui://AXButton[@AXTitle=\"OK\"][@AXDescription=\"OK Button\"][@AXIdentifier=\"okButton\"]",
+        "macos://ui/AXButton[@AXTitle=\"OK\"][@AXDescription=\"OK Button\"][@AXIdentifier=\"okButton\"]",
       role: "AXButton",
       title: "OK",
       elementDescription: "OK Button",
@@ -144,7 +144,7 @@ struct PathNormalizerTests {
     )
 
     let groupElement = UIElement(
-      path: "ui://AXGroup[@AXTitle=\"Controls\"][@AXIdentifier=\"controlGroup\"]",
+      path: "macos://ui/AXGroup[@AXTitle=\"Controls\"][@AXIdentifier=\"controlGroup\"]",
       role: "AXGroup",
       title: "Controls",
       frame: CGRect(x: 0, y: 0, width: 200, height: 100),
@@ -157,7 +157,7 @@ struct PathNormalizerTests {
     // This is a test-only workaround as UIElement uses weak parent references
     let buttonWithParent = UIElement(
       path:
-        "ui://AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"][@AXDescription=\"OK Button\"][@AXIdentifier=\"okButton\"]",
+        "macos://ui/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"][@AXDescription=\"OK Button\"][@AXIdentifier=\"okButton\"]",
       role: "AXButton",
       title: "OK",
       elementDescription: "OK Button",

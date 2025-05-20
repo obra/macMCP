@@ -62,7 +62,7 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
   {
     // Basic implementation - just uses path-based approach directly
     let elementPath =
-      "ui://AXApplication[@bundleIdentifier=\"\(bundleId)\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"\(path)\"]"
+      "macos://ui/AXApplication[@bundleIdentifier=\"\(bundleId)\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"\(path)\"]"
     let parsedPath = try ElementPath.parse(elementPath)
     let axElement = try await accessibilityService.run {
       try await parsedPath.resolve(using: accessibilityService)

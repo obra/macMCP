@@ -77,7 +77,7 @@ public struct UIInteractionTool {
         "elementPath": .object([
           "type": .string("string"),
           "description": .string(
-            "The path of the UI element to interact with (in ui:// path format)"),
+            "The path of the UI element to interact with (in macos://ui/ path format)"),
         ]),
         "appBundleId": .object([
           "type": .string("string"),
@@ -98,7 +98,7 @@ public struct UIInteractionTool {
         "targetElementPath": .object([
           "type": .string("string"),
           "description": .string(
-            "Target element path for drag action (required for drag action, in ui:// path format)"),
+            "Target element path for drag action (required for drag action, in macos://ui/ path format)"),
         ]),
         "direction": .object([
           "type": .string("string"),

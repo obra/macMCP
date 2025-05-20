@@ -308,7 +308,7 @@ public final class ToolChain: @unchecked Sendable {
 
   /// Click on a UI element using its path
   /// - Parameters:
-  ///   - elementPath: Path of the element to click in ui:// format
+  ///   - elementPath: Path of the element to click in macos://ui/ format
   ///   - bundleId: Optional bundle identifier of the application
   /// - Returns: True if the click was successful
   public func clickElement(
@@ -362,7 +362,7 @@ public final class ToolChain: @unchecked Sendable {
 
   /// Type text into a UI element using its path
   /// - Parameters:
-  ///   - elementPath: Path of the element to type into in ui:// format
+  ///   - elementPath: Path of the element to type into in macos://ui/ format
   ///   - text: Text to type
   ///   - bundleId: Optional bundle identifier of the application
   /// - Returns: True if the text was successfully typed
@@ -500,7 +500,7 @@ public final class ToolChain: @unchecked Sendable {
   /// - Parameters:
   ///   - scope: Scope of the search ("system", "application", "focused", "position", "path")
   ///   - bundleId: Bundle identifier for application scope
-  ///   - elementPath: Element path for path scope (using ui:// notation)
+  ///   - elementPath: Element path for path scope (using macos://ui/ notation)
   ///   - position: Position (x,y) for position scope
   ///   - filter: Optional filter criteria for elements
   ///   - elementTypes: Types of elements to find

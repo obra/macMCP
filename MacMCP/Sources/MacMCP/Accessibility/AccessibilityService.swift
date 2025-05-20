@@ -413,7 +413,7 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
 
   /// Find a UI element by its path using ElementPath
   /// - Parameters:
-  ///   - path: The path to the element in ui:// notation
+  ///   - path: The path to the element in macos://ui/ notation
   /// - Returns: The UIElement if found, nil otherwise
   public func findElementByPath(path: String) async throws -> UIElement? {
     logger.debug("Finding element by path", metadata: ["path": "\(path)"])

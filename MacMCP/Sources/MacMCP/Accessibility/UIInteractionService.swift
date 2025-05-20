@@ -1086,7 +1086,7 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
 extension UIInteractionService {
   /// Click on a UI element using its path
   /// - Parameters:
-  ///   - path: The UI element path using ui:// notation
+  ///   - path: The UI element path using macos://ui/ notation
   ///   - appBundleId: Optional bundle ID of the application containing the element
   public func clickElementByPath(path: String, appBundleId: String?) async throws {
     logger.debug(
@@ -1513,7 +1513,7 @@ extension UIInteractionService {
 
   /// Double click on a UI element using its path
   /// - Parameters:
-  ///   - path: The UI element path using ui:// notation
+  ///   - path: The UI element path using macos://ui/ notation
   ///   - appBundleId: Optional bundle ID of the application containing the element
   public func doubleClickElementByPath(path: String, appBundleId: String?) async throws {
     logger.debug(
@@ -1537,7 +1537,7 @@ extension UIInteractionService {
 
   /// Right click on a UI element using its path
   /// - Parameters:
-  ///   - path: The UI element path using ui:// notation
+  ///   - path: The UI element path using macos://ui/ notation
   ///   - appBundleId: Optional bundle ID of the application containing the element
   public func rightClickElementByPath(path: String, appBundleId: String?) async throws {
     logger.debug(
@@ -1561,7 +1561,7 @@ extension UIInteractionService {
 
   /// Type text into a UI element using its path
   /// - Parameters:
-  ///   - path: The UI element path using ui:// notation
+  ///   - path: The UI element path using macos://ui/ notation
   ///   - text: The text to type
   ///   - appBundleId: Optional bundle ID of the application containing the element
   public func typeTextByPath(path: String, text: String, appBundleId: String?) async throws {
@@ -1619,8 +1619,8 @@ extension UIInteractionService {
 
   /// Drag and drop from one element to another using paths
   /// - Parameters:
-  ///   - sourcePath: The source element path using ui:// notation
-  ///   - targetPath: The target element path using ui:// notation
+  ///   - sourcePath: The source element path using macos://ui/ notation
+  ///   - targetPath: The target element path using macos://ui/ notation
   ///   - appBundleId: Optional bundle ID of the application containing the elements
   public func dragElementByPath(sourcePath: String, targetPath: String, appBundleId: String?)
     async throws
@@ -1703,7 +1703,7 @@ extension UIInteractionService {
 
   /// Scroll a UI element using its path
   /// - Parameters:
-  ///   - path: The UI element path using ui:// notation
+  ///   - path: The UI element path using macos://ui/ notation
   ///   - direction: The scroll direction
   ///   - amount: The amount to scroll (normalized 0-1)
   ///   - appBundleId: Optional bundle ID of the application containing the element
@@ -1811,7 +1811,7 @@ extension UIInteractionService {
 
   /// Perform a specific accessibility action on an element by path
   /// - Parameters:
-  ///   - path: The element path using ui:// notation
+  ///   - path: The element path using macos://ui/ notation
   ///   - action: The accessibility action to perform (e.g., "AXPress", "AXPick")
   ///   - appBundleId: Optional application bundle ID
   public func performActionByPath(path: String, action: String, appBundleId: String?) async throws {

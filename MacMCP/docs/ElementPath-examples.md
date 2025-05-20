@@ -8,95 +8,95 @@ This document provides practical examples of using ElementPath in common UI auto
 
 ```
 # By bundle identifier (recommended for stability)
-ui://AXApplication[@bundleIdentifier="com.apple.calculator"]
+macos://ui/AXApplication[@bundleIdentifier="com.apple.calculator"]
 
 # By title 
-ui://AXApplication[@AXTitle="Calculator"]
+macos://ui/AXApplication[@AXTitle="Calculator"]
 
 # System-wide element
-ui://AXSystemWide
+macos://ui/AXSystemWide
 ```
 
 ### Window Selection
 
 ```
 # Main window
-ui://AXApplication[@bundleIdentifier="com.apple.safari"]/AXWindow[@AXMain="1"]
+macos://ui/AXApplication[@bundleIdentifier="com.apple.safari"]/AXWindow[@AXMain="1"]
 
 # Window by title
-ui://AXApplication[@bundleIdentifier="com.apple.safari"]/AXWindow[@AXTitle="Apple"]
+macos://ui/AXApplication[@bundleIdentifier="com.apple.safari"]/AXWindow[@AXTitle="Apple"]
 
 # First window (when multiple exist)
-ui://AXApplication[@bundleIdentifier="com.apple.safari"]/AXWindow[0]
+macos://ui/AXApplication[@bundleIdentifier="com.apple.safari"]/AXWindow[0]
 ```
 
 ### Button Interaction
 
 ```
 # Button by description
-ui://AXApplication[@bundleIdentifier="com.apple.calculator"]/AXWindow/AXButton[@AXDescription="7"]
+macos://ui/AXApplication[@bundleIdentifier="com.apple.calculator"]/AXWindow/AXButton[@AXDescription="7"]
 
 # Button by title
-ui://AXApplication[@bundleIdentifier="com.apple.TextEdit"]/AXWindow/AXButton[@AXTitle="Save"]
+macos://ui/AXApplication[@bundleIdentifier="com.apple.TextEdit"]/AXWindow/AXButton[@AXTitle="Save"]
 
 # Toolbar button
-ui://AXApplication[@bundleIdentifier="com.apple.safari"]/AXWindow/AXToolbar/AXButton[@AXDescription="Back"]
+macos://ui/AXApplication[@bundleIdentifier="com.apple.safari"]/AXWindow/AXToolbar/AXButton[@AXDescription="Back"]
 
 # Window control buttons
-ui://AXApplication[@bundleIdentifier="com.apple.TextEdit"]/AXWindow/AXButton[@AXSubrole="AXCloseButton"]
-ui://AXApplication[@bundleIdentifier="com.apple.TextEdit"]/AXWindow/AXButton[@AXSubrole="AXMinimizeButton"]
-ui://AXApplication[@bundleIdentifier="com.apple.TextEdit"]/AXWindow/AXButton[@AXSubrole="AXZoomButton"]
+macos://ui/AXApplication[@bundleIdentifier="com.apple.TextEdit"]/AXWindow/AXButton[@AXSubrole="AXCloseButton"]
+macos://ui/AXApplication[@bundleIdentifier="com.apple.TextEdit"]/AXWindow/AXButton[@AXSubrole="AXMinimizeButton"]
+macos://ui/AXApplication[@bundleIdentifier="com.apple.TextEdit"]/AXWindow/AXButton[@AXSubrole="AXZoomButton"]
 ```
 
 ### Text Interaction
 
 ```
 # Single-line text field
-ui://AXApplication[@bundleIdentifier="com.apple.safari"]/AXWindow/AXTextField[@AXSubrole="AXURLField"]
+macos://ui/AXApplication[@bundleIdentifier="com.apple.safari"]/AXWindow/AXTextField[@AXSubrole="AXURLField"]
 
 # Multi-line text area
-ui://AXApplication[@bundleIdentifier="com.apple.TextEdit"]/AXWindow/AXScrollArea/AXTextArea
+macos://ui/AXApplication[@bundleIdentifier="com.apple.TextEdit"]/AXWindow/AXScrollArea/AXTextArea
 
 # Password field
-ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXSecureTextField[@AXPlaceholderValue="Password"]
+macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXSecureTextField[@AXPlaceholderValue="Password"]
 
 # Text field by placeholder
-ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXTextField[@AXPlaceholderValue="Search..."]
+macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXTextField[@AXPlaceholderValue="Search..."]
 ```
 
 ### Tables and Lists
 
 ```
 # Table selection
-ui://AXApplication[@bundleIdentifier="com.apple.finder"]/AXWindow/AXTable
+macos://ui/AXApplication[@bundleIdentifier="com.apple.finder"]/AXWindow/AXTable
 
 # Table row by index (zero-based)
-ui://AXApplication[@bundleIdentifier="com.apple.finder"]/AXWindow/AXTable/AXRow[3]
+macos://ui/AXApplication[@bundleIdentifier="com.apple.finder"]/AXWindow/AXTable/AXRow[3]
 
 # Table row by title
-ui://AXApplication[@bundleIdentifier="com.apple.finder"]/AXWindow/AXTable/AXRow[@AXTitle="file.txt"]
+macos://ui/AXApplication[@bundleIdentifier="com.apple.finder"]/AXWindow/AXTable/AXRow[@AXTitle="file.txt"]
 
 # Table cell by coordinates
-ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXTable/AXRow[2]/AXCell[1]
+macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXTable/AXRow[2]/AXCell[1]
 
 # List with items
-ui://AXApplication[@bundleIdentifier="com.apple.finder"]/AXWindow/AXList/AXStaticText[@AXValue="Documents"]
+macos://ui/AXApplication[@bundleIdentifier="com.apple.finder"]/AXWindow/AXList/AXStaticText[@AXValue="Documents"]
 ```
 
 ### Checkboxes and Radio Buttons
 
 ```
 # Checkbox
-ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXCheckBox[@AXTitle="Remember me"]
+macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXCheckBox[@AXTitle="Remember me"]
 
 # Selected checkbox
-ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXCheckBox[@AXValue="1"]
+macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXCheckBox[@AXValue="1"]
 
 # Radio button
-ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXRadioButton[@AXTitle="Option 1"]
+macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXRadioButton[@AXTitle="Option 1"]
 
 # Radio button in a group
-ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXRadioGroup/AXRadioButton[2]
+macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXRadioGroup/AXRadioButton[2]
 ```
 
 ## Real-World Scenarios
@@ -107,25 +107,25 @@ ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXRadioGroup/AXRadioButton[
 // Click the "7" button
 await macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow/AXButton[@AXDescription=\"7\"]"
+  elementPath: "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow/AXButton[@AXDescription=\"7\"]"
 });
 
 // Click the addition button
 await macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow/AXButton[@AXDescription=\"Add\"]"
+  elementPath: "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow/AXButton[@AXDescription=\"Add\"]"
 });
 
 // Click the "9" button
 await macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow/AXButton[@AXDescription=\"9\"]"
+  elementPath: "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow/AXButton[@AXDescription=\"9\"]"
 });
 
 // Click the equals button
 await macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow/AXButton[@AXDescription=\"Equals\"]"
+  elementPath: "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow/AXButton[@AXDescription=\"Equals\"]"
 });
 
 // Get the result from the display
@@ -150,13 +150,13 @@ await macos_open_application({
 // Click the URL field
 await macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXTextField[@AXSubrole=\"AXURLField\"]"
+  elementPath: "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXTextField[@AXSubrole=\"AXURLField\"]"
 });
 
 // Type a URL
 await macos_ui_interact({
   action: "type",
-  elementPath: "ui://AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXTextField[@AXSubrole=\"AXURLField\"]",
+  elementPath: "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXTextField[@AXSubrole=\"AXURLField\"]",
   text: "https://www.apple.com"
 });
 
@@ -169,7 +169,7 @@ await macos_ui_interact({
 // Click on a link (after allowing time for the page to load)
 await macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXWebArea/AXLink[@AXTitle=\"Mac\"]"
+  elementPath: "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXWebArea/AXLink[@AXTitle=\"Mac\"]"
 });
 ```
 
@@ -184,13 +184,13 @@ await macos_open_application({
 // Click in the text area
 await macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@bundleIdentifier=\"com.apple.TextEdit\"]/AXWindow/AXScrollArea/AXTextArea"
+  elementPath: "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.TextEdit\"]/AXWindow/AXScrollArea/AXTextArea"
 });
 
 // Type some text
 await macos_ui_interact({
   action: "type",
-  elementPath: "ui://AXApplication[@bundleIdentifier=\"com.apple.TextEdit\"]/AXWindow/AXScrollArea/AXTextArea",
+  elementPath: "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.TextEdit\"]/AXWindow/AXScrollArea/AXTextArea",
   text: "Hello, ElementPath!"
 });
 
@@ -204,14 +204,14 @@ await macos_menu_navigation({
 // Type a filename in the save dialog
 await macos_ui_interact({
   action: "type",
-  elementPath: "ui://AXApplication[@bundleIdentifier=\"com.apple.TextEdit\"]/AXSheet/AXTextField[@AXPlaceholderValue=\"Save As:\"]",
+  elementPath: "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.TextEdit\"]/AXSheet/AXTextField[@AXPlaceholderValue=\"Save As:\"]",
   text: "MyDocument.txt"
 });
 
 // Click the Save button
 await macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@bundleIdentifier=\"com.apple.TextEdit\"]/AXSheet/AXButton[@AXTitle=\"Save\"]"
+  elementPath: "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.TextEdit\"]/AXSheet/AXButton[@AXTitle=\"Save\"]"
 });
 ```
 
@@ -226,7 +226,7 @@ await macos_open_application({
 // Click on Documents in the sidebar
 await macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@bundleIdentifier=\"com.apple.finder\"]/AXWindow/AXSplitGroup/AXGroup[@AXSubrole=\"AXSidebar\"]/AXList/AXStaticText[@AXValue=\"Documents\"]"
+  elementPath: "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.finder\"]/AXWindow/AXSplitGroup/AXGroup[@AXSubrole=\"AXSidebar\"]/AXList/AXStaticText[@AXValue=\"Documents\"]"
 });
 
 // Create a new folder using menu navigation
@@ -251,7 +251,7 @@ await macos_ui_interact({
 // Select the new folder
 await macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@bundleIdentifier=\"com.apple.finder\"]/AXWindow/AXTable/AXRow[@AXTitle=\"My New Folder\"]"
+  elementPath: "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.finder\"]/AXWindow/AXTable/AXRow[@AXTitle=\"My New Folder\"]"
 });
 ```
 
@@ -266,13 +266,13 @@ await macos_open_application({
 // Navigate to a specific preference pane
 await macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@bundleIdentifier=\"com.apple.systempreferences\"]/AXWindow/AXList/AXButton[@AXTitle=\"Wi-Fi\"]"
+  elementPath: "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.systempreferences\"]/AXWindow/AXList/AXButton[@AXTitle=\"Wi-Fi\"]"
 });
 
 // Toggle a switch (example for Wi-Fi)
 await macos_ui_interact({
   action: "click",
-  elementPath: "ui://AXApplication[@bundleIdentifier=\"com.apple.systempreferences\"]/AXWindow/AXGroup/AXSwitch[@AXTitle=\"Wi-Fi\"]"
+  elementPath: "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.systempreferences\"]/AXWindow/AXGroup/AXSwitch[@AXTitle=\"Wi-Fi\"]"
 });
 ```
 
@@ -285,14 +285,14 @@ For applications with dynamic UI elements that change position or properties:
 ```javascript
 // Approach 1: Use more general attributes
 // Instead of position-specific paths like:
-"ui://AXApplication[@bundleIdentifier=\"app\"]/AXWindow/AXGroup[2]/AXButton[3]"
+"macos://ui/AXApplication[@bundleIdentifier=\"app\"]/AXWindow/AXGroup[2]/AXButton[3]"
 
 // Use attribute-based paths:
-"ui://AXApplication[@bundleIdentifier=\"app\"]/AXWindow/AXButton[@AXTitle=\"Save\"]"
+"macos://ui/AXApplication[@bundleIdentifier=\"app\"]/AXWindow/AXButton[@AXTitle=\"Save\"]"
 
 // Approach 2: Use partial attribute matching
 // For elements whose text might change slightly:
-"ui://AXApplication[@bundleIdentifier=\"app\"]/AXWindow/AXStaticText[contains(@AXValue, \"Welcome\")]"
+"macos://ui/AXApplication[@bundleIdentifier=\"app\"]/AXWindow/AXStaticText[contains(@AXValue, \"Welcome\")]"
 ```
 
 ### Finding Elements with Complex Paths
@@ -301,7 +301,7 @@ Sometimes UI elements are deeply nested or have no unique attributes. In these c
 
 ```javascript
 // Method 1: First find a unique parent element
-const parentPath = "ui://AXApplication[@bundleIdentifier=\"app\"]/AXWindow/AXGroup[@AXIdentifier=\"unique-id\"]";
+const parentPath = "macos://ui/AXApplication[@bundleIdentifier=\"app\"]/AXWindow/AXGroup[@AXIdentifier=\"unique-id\"]";
 
 // Then use the UI State Tool to explore its children
 const result = await macos_ui_state({
@@ -318,31 +318,31 @@ const result = await macos_ui_state({
 
 1. **Start with the application**
    ```
-   ui://AXApplication[@bundleIdentifier="com.example.app"]
+   macos://ui/AXApplication[@bundleIdentifier="com.example.app"]
    ```
 
 2. **Use unique attributes when possible**
    ```
    // Good (unique identifiers)
-   ui://AXApplication[@bundleIdentifier="com.example.app"]/AXWindow/AXButton[@AXIdentifier="submit-button"]
+   macos://ui/AXApplication[@bundleIdentifier="com.example.app"]/AXWindow/AXButton[@AXIdentifier="submit-button"]
    
    // Also good (descriptive attributes)
-   ui://AXApplication[@bundleIdentifier="com.example.app"]/AXWindow/AXButton[@AXTitle="Submit"]
+   macos://ui/AXApplication[@bundleIdentifier="com.example.app"]/AXWindow/AXButton[@AXTitle="Submit"]
    ```
 
 3. **Avoid excessive depth**
    ```
    // Too deep and brittle
-   ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXGroup/AXGroup/AXGroup/AXGroup/AXButton
+   macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXGroup/AXGroup/AXGroup/AXGroup/AXButton
    
    // Better
-   ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXButton[@AXTitle="Submit"]
+   macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXButton[@AXTitle="Submit"]
    ```
 
 4. **Use index selectors when needed**
    ```
    // For multiple similar elements
-   ui://AXApplication[@bundleIdentifier="app"]/AXWindow/AXTable/AXRow[5]
+   macos://ui/AXApplication[@bundleIdentifier="app"]/AXWindow/AXTable/AXRow[5]
    ```
 
 5. **Prefer stable attributes**
@@ -361,7 +361,7 @@ const result = await macos_ui_state({
 
 2. **Multiple elements match the path**
    - Add more specific attributes
-   - Use an index selector: `ui://AXApplication/AXWindow/AXButton[0]`
+   - Use an index selector: `macos://ui/AXApplication/AXWindow/AXButton[0]`
 
 3. **Element properties change between launches**
    - Use more stable attributes like identifiers

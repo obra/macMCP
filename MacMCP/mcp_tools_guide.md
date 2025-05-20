@@ -111,7 +111,7 @@ The UI Interaction Tool allows direct interaction with UI elements. It's the pri
 ```json
 {
   "action": "click",
-  "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXButton[@AXTitle=\"Back\"]",
+  "elementPath": "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXButton[@AXTitle=\"Back\"]",
   "appBundleId": "com.apple.safari"
 }
 ```
@@ -119,7 +119,7 @@ The UI Interaction Tool allows direct interaction with UI elements. It's the pri
 ```json
 {
   "action": "type",
-  "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXTextField[@AXSubrole=\"AXURLField\"]",
+  "elementPath": "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXTextField[@AXSubrole=\"AXURLField\"]",
   "text": "Hello, world!"
 }
 ```
@@ -314,7 +314,7 @@ The Element Capabilities Tool provides detailed information about what actions c
 ### Example Usage
 ```json
 {
-  "elementPath": "ui://AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXButton[@AXTitle=\"Back\"]",
+  "elementPath": "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXButton[@AXTitle=\"Back\"]",
   "bundleId": "com.apple.safari",
   "includeChildren": true
 }
