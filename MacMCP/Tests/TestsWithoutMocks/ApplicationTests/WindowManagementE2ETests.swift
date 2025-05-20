@@ -84,8 +84,8 @@ final class WindowManagementE2ETests: XCTestCase {
       // Verify window properties
       let window = json[0]
       XCTAssertNotNil(window["id"], "Window should have an ID")
-      XCTAssertEqual(window["role"] as? String, "AXWindow", "Role should be AXWindow")
-
+      XCTAssertEqual(window["AXRole"] as? String, "AXWindow", "Role should be AXWindow")
+  
       // Save window ID for other tests
       if let windowId = window["id"] as? String {
         calculator.windowId = windowId
