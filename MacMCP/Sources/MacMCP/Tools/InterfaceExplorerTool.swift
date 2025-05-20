@@ -5,412 +5,9 @@ import Foundation
 import Logging
 import MCP
 import MacMCPUtilities
+import CoreGraphics
 
-// Logger for EnhancedElementDescriptor
-private let elementDescriptorLogger = Logger(label: "mcp.models.enhanced_element_descriptor")
-
-/// A descriptor for UI elements with enhanced information about states and capabilities
-public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
-  /// Unique identifier for the element
-  public let id: String
-
-  /// The accessibility role of the element
-  public let role: String
-
-  /// Human-readable name of the element (derived from title or description)
-  public let name: String
-
-  /// The title or label of the element (if any)
-  public let title: String?
-
-  /// The current value of the element (if applicable)
-  public let value: String?
-
-  /// Human-readable description of the element
-  public let description: String?
-
-  /// Element position and size
-  public let frame: ElementFrame
-
-  /// Current state values as string array
-  public let state: [String]
-
-  /// Higher-level interaction capabilities
-  public let capabilities: [String]
-
-  /// Available accessibility actions
-  public let actions: [String]
-
-  /// Additional element attributes
-  public let attributes: [String: String]
-
-  /// Fully qualified path-based identifier for the element (always starts with ui://)
-  public let path: String?
-
-  /// Children elements, if within maxDepth
-  public let children: [EnhancedElementDescriptor]?
-
-  /// Create a new element descriptor with enhanced state and capability information
-  /// - Parameters:
-  ///   - id: Unique identifier
-  ///   - role: Accessibility role
-  ///   - name: Human-readable name
-  ///   - title: Title or label (optional)
-  ///   - value: Current value (optional)
-  ///   - description: Human-readable description (optional)
-  ///   - frame: Element position and size
-  ///   - state: Current state values as strings
-  ///   - capabilities: Interaction capabilities
-  ///   - actions: Available actions
-  ///   - attributes: Additional attributes
-  ///   - path: Path-based identifier (optional)
-  ///   - children: Child elements (optional)
-  public init(
-    id: String,
-    role: String,
-    name: String,
-    title: String? = nil,
-    value: String? = nil,
-    description: String? = nil,
-    frame: ElementFrame,
-    state: [String],
-    capabilities: [String],
-    actions: [String],
-    attributes: [String: String] = [:],
-    path: String? = nil,
-    children: [EnhancedElementDescriptor]? = nil
-  ) {
-    self.id = id
-    self.role = role
-    self.name = name
-    self.title = title
-    self.value = value
-    self.description = description
-    self.frame = frame
-    self.state = state
-    self.capabilities = capabilities
-    self.actions = actions
-    self.attributes = attributes
-    self.path = path
-    self.children = children
-  }
-
-  /// Convert a UIElement to an EnhancedElementDescriptor with detailed state and capability information
-  /// - Parameters:
-  ///   - element: The UIElement to convert
-  ///   - maxDepth: Maximum depth of the hierarchy to traverse
-  ///   - currentDepth: Current depth in the hierarchy
-  /// - Returns: An EnhancedElementDescriptor
-  public static func from(
-    element: UIElement,
-    maxDepth: Int = 10,
-    currentDepth: Int = 0,
-  ) -> EnhancedElementDescriptor {
-    // Generate a human-readable name
-    let name: String =
-      if let title = element.title, !title.isEmpty {
-        title
-      } else if let desc = element.elementDescription, !desc.isEmpty {
-        desc
-      } else if let val = element.value, !val.isEmpty {
-        "\(element.role) with value \(val)"
-      } else {
-        element.role
-      }
-
-    // Create the frame
-    let frame = ElementFrame(
-      x: element.frame.origin.x,
-      y: element.frame.origin.y,
-      width: element.frame.size.width,
-      height: element.frame.size.height,
-    )
-
-    // Determine element state
-    let state = determineElementState(element)
-
-    // Determine element capabilities
-    let capabilities = determineElementCapabilities(element)
-
-    // Clean and filter attributes
-    let filteredAttributes = filterAttributes(element)
-
-    // Always generate the fully qualified path
-    var path: String?
-
-    // First check if the element already has a path set
-    // Use the element's already set path - this should be the fully qualified path
-    path = element.path
-    elementDescriptorLogger.debug(
-      "Using path on element", metadata: ["path": .string(path ?? "<nil>")])
-
-    // Always generate a more detailed path if the current one isn't fully qualified
-    if path == nil || !path!.contains("/") {  // Generate full path if missing or incomplete
-      // No pre-existing path, so we need to generate one
-      do {
-        // Always generate a fully qualified path from root to current element
-        // Start with the complete path segments
-        var pathSegments: [PathSegment] = []
-
-        // Collect all elements from current to root
-        var elementsChain: [UIElement] = []
-        var currentElement: UIElement? = element
-
-        // Build chain of elements from current to root
-        while let elem = currentElement {
-          elementsChain.insert(elem, at: 0)
-          currentElement = elem.parent
-        }
-
-        // Make sure we include the application at the root if not already in chain
-        if !elementsChain.isEmpty, elementsChain[0].role != "AXApplication" {
-          // Try to get the application from the chain's parent links
-          var foundApp = false
-          currentElement = element.parent
-          while let elem = currentElement {
-            if elem.role == "AXApplication" {
-              elementsChain.insert(elem, at: 0)
-              foundApp = true
-              break
-            }
-            currentElement = elem.parent
-          }
-
-          // If we still don't have an app, create a generic application segment
-          if !foundApp {
-            var appAttributes: [String: String] = [:]
-            if let bundleId = element.attributes["bundleIdentifier"] as? String {
-              appAttributes["bundleIdentifier"] = bundleId
-            } else if let appTitle = element.attributes["applicationTitle"] as? String {
-              appAttributes["AXTitle"] = PathNormalizer.escapeAttributeValue(appTitle)
-            }
-            pathSegments.append(PathSegment(role: "AXApplication", attributes: appAttributes))
-          }
-        }
-
-        // Process each element in the chain to create path segments
-        for elem in elementsChain {
-          // Create appropriate attributes for this segment
-          var attributes: [String: String] = [:]
-
-          // Add useful identifying attributes
-          if let title = elem.title, !title.isEmpty {
-            attributes["AXTitle"] = PathNormalizer.escapeAttributeValue(title)
-          }
-
-          if let desc = elem.elementDescription, !desc.isEmpty {
-            attributes["AXDescription"] = PathNormalizer.escapeAttributeValue(desc)
-          }
-
-          // Include identifier if available (check all common identifier attribute formats)
-          // Try multiple attribute variations to catch all possible identifier formats
-          let identifierKeys = ["AXIdentifier", "identifier", "Identifier"]
-          var foundIdentifier = false
-          
-          for key in identifierKeys {
-              if let identifier = elem.attributes[key] as? String, !identifier.isEmpty {
-                  // Always consistently use "AXIdentifier" in the final path
-                  attributes["AXIdentifier"] = identifier
-                  // Diagnostic logging
-                  foundIdentifier = true
-                  break  // Stop after finding the first valid identifier
-              }
-          }
-          // For applications, include bundle identifier if available
-          if elem.role == "AXApplication" {
-            if let bundleId = elem.attributes["bundleIdentifier"] as? String, !bundleId.isEmpty {
-              attributes["bundleIdentifier"] = bundleId
-            }
-          }
-
-          // Create the path segment with proper attributes
-          let segment = PathSegment(role: elem.role, attributes: attributes)
-          pathSegments.append(segment)
-        }
-
-        // Create the ElementPath
-        let elementPath = try ElementPath(segments: pathSegments)
-
-        // Convert to string
-        path = elementPath.toString()
-
-        // Store the path on the element itself so that child elements can access it
-        if let unwrappedPath = path {
-          element.path = unwrappedPath
-        }
-      } catch {
-        // If path generation fails, we'll still return the descriptor without a path
-        path = nil
-      }
-    }
-    // The else block for includePath=false is removed as we always want a path
-
-    // Handle children if we haven't reached maximum depth
-    let children: [EnhancedElementDescriptor]?
-    if currentDepth < maxDepth, !element.children.isEmpty {
-      // Make sure each child has a proper parent reference before processing
-      for child in element.children {
-        // Ensure parent relationship is set properly
-        child.parent = element
-      }
-
-      // Recursively convert children with incremented depth
-      children = element.children.map {
-        from(element: $0, maxDepth: maxDepth, currentDepth: currentDepth + 1)
-      }
-    } else {
-      children = nil
-    }
-
-    // Ensure the full path is always used for both id and path fields
-    let finalPath = path ?? (try? element.generatePath()) ?? element.path
-
-    return EnhancedElementDescriptor(
-      id: finalPath,  // Always use fully qualified path for id
-      role: element.role,
-      name: name,
-      title: element.title,
-      value: element.value,
-      description: element.elementDescription,
-      frame: frame,
-      state: state,
-      capabilities: capabilities,
-      actions: element.actions,
-      attributes: filteredAttributes,
-      path: finalPath,  // Always use fully qualified path
-      children: children,
-    )
-  }
-
-  /// Determine element state based on its attributes
-  /// - Parameter element: The UIElement to evaluate
-  /// - Returns: Array of state strings
-  private static func determineElementState(_ element: UIElement) -> [String] {
-    var states: [String] = []
-
-    // Map boolean attributes to string state values
-    if element.isEnabled {
-      states.append("enabled")
-    } else {
-      states.append("disabled")
-    }
-
-    if element.isVisible {
-      states.append("visible")
-    } else {
-      states.append("hidden")
-    }
-
-    if element.isFocused {
-      states.append("focused")
-    } else {
-      states.append("unfocused")
-    }
-
-    if element.isSelected {
-      states.append("selected")
-    } else {
-      states.append("unselected")
-    }
-
-    // Add other state mappings based on attributes
-    if let expanded = element.attributes["expanded"] as? Bool {
-      states.append(expanded ? "expanded" : "collapsed")
-    }
-
-    if let readonly = element.attributes["readonly"] as? Bool {
-      states.append(readonly ? "readonly" : "editable")
-    }
-
-    if let required = element.attributes["required"] as? Bool {
-      states.append(required ? "required" : "optional")
-    }
-
-    return states
-  }
-
-  /// Determine element capabilities based on role and actions
-  /// - Parameter element: The UIElement to evaluate
-  /// - Returns: Array of capability strings
-  private static func determineElementCapabilities(_ element: UIElement) -> [String] {
-    var capabilities: [String] = []
-
-    // Map element roles and actions to higher-level capabilities
-    if element.isClickable || element.role == AXAttribute.Role.button
-      || element.actions
-        .contains(AXAttribute.Action.press)
-    {
-      capabilities.append("clickable")
-    }
-
-    if element.isEditable || element.role == AXAttribute.Role.textField
-      || element.role
-        == AXAttribute.Role
-        .textArea
-    {
-      capabilities.append("editable")
-    }
-
-    if element.isToggleable || element.role == AXAttribute.Role.checkbox
-      || element.role
-        == AXAttribute.Role
-        .radioButton
-    {
-      capabilities.append("toggleable")
-    }
-
-    if element.isSelectable {
-      capabilities.append("selectable")
-    }
-
-    if element.isAdjustable {
-      capabilities.append("adjustable")
-    }
-
-    if element.role == "AXScrollArea"
-      || element.actions.contains(AXAttribute.Action.scrollToVisible)
-    {
-      capabilities.append("scrollable")
-    }
-
-    if !element.children.isEmpty {
-      capabilities.append("hasChildren")
-    }
-
-    if element.actions.contains(AXAttribute.Action.showMenu) {
-      capabilities.append("hasMenu")
-    }
-
-    if element.attributes["help"] != nil || element.attributes["helpText"] != nil {
-      capabilities.append("hasHelp")
-    }
-
-    if element.attributes["tooltip"] != nil || element.attributes["toolTip"] != nil {
-      capabilities.append("hasTooltip")
-    }
-
-    if element.role == AXAttribute.Role.link {
-      capabilities.append("navigable")
-    }
-
-    if element.attributes["focusable"] as? Bool == true {
-      capabilities.append("focusable")
-    }
-
-    return capabilities
-  }
-
-  /// Filter and clean attributes to remove duplicates with other properties
-  /// - Parameter element: The UIElement to process
-  /// - Returns: Dictionary of filtered and cleaned attributes
-  private static func filterAttributes(_ element: UIElement) -> [String: String] {
-    var result: [String: String] = [:]
-    for (key, value) in element.attributes {
-      result[key] = String(describing: value)
-    }
-    return result
-  }
-}
+private let elementDescriptorLogger = Logger(label: "mcp.tool.interface_explorer_descriptor")
 
 /// A tool for exploring UI elements and their capabilities in macOS applications
 public struct InterfaceExplorerTool: @unchecked Sendable {
@@ -1294,105 +891,25 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
     maxDepth: Int,
     limit: Int,
   ) -> [UIElement] {
-    var results: [UIElement] = []
-
-    // Define type-to-role mappings
-    let typeToRoles: [String: [String]] = [
-      "button": [AXAttribute.Role.button, "AXButtonSubstitute", "AXButtton"],
-      "checkbox": [AXAttribute.Role.checkbox],
-      "radio": [AXAttribute.Role.radioButton, "AXRadioGroup"],
-      "textfield": [AXAttribute.Role.textField, AXAttribute.Role.textArea, "AXSecureTextField"],
-      "dropdown": [AXAttribute.Role.popUpButton, "AXComboBox", "AXPopover"],
-      "slider": ["AXSlider", "AXScrollBar"],
-      "link": [AXAttribute.Role.link],
-      "tab": ["AXTabGroup", "AXTab", "AXTabButton"],
-      "any": [],  // Special case - matches all
-    ]
-
-    // Collect all roles to match
-    var targetRoles = Set<String>()
-    if elementTypes.contains("any") {
-      // If "any" is selected, collect all roles
-      for (_, roles) in typeToRoles where !roles.isEmpty {
-        targetRoles.formUnion(roles)
-      }
-    } else {
-      // Otherwise, just include roles for the specified types
-      for type in elementTypes {
-        if let roles = typeToRoles[type] {
-          targetRoles.formUnion(roles)
-        }
-      }
-    }
-
-    // Helper function to check if an element matches all criteria
-    func elementMatches(_ element: UIElement) -> Bool {
-      let roleMatches = role == nil || element.role == role
-      let typeMatches =
-        targetRoles.isEmpty || elementTypes.contains("any") || targetRoles.contains(element.role)
-      let titleMatches =
-        (title == nil || element.title == title)
-        && (titleContains == nil
-          || (element.title?.localizedCaseInsensitiveContains(titleContains!) ?? false))
-      let valueMatches =
-        (value == nil || element.value == value)
-        && (valueContains == nil
-          || (element.value?.localizedCaseInsensitiveContains(valueContains!) ?? false))
-      let descriptionMatches =
-        (description == nil || element.elementDescription == description)
-        && (descriptionContains == nil
-          || (element.elementDescription?.localizedCaseInsensitiveContains(descriptionContains!)
-            ?? false))
-      let visibilityMatches = includeHidden || element.isVisible
-      return roleMatches && typeMatches && titleMatches && valueMatches && descriptionMatches
-        && visibilityMatches
-    }
-
-    // Recursive function to search for matching elements
-    func findElements(in element: UIElement, depth: Int = 0) {
-      // Stop if we've reached the limit
-      if results.count >= limit {
-        return
-      }
-
-      // Check if this element matches
-      if elementMatches(element) {
-        // IMPORTANT: Build up the parent hierarchy before adding to results
-        // This ensures each element has a proper parent chain for path generation
-
-        // We've already properly set up the parent relationship in convertToUIElement
-        // No need to do it again, but we should validate
-        if element.parent == nil, depth > 0 {
-          // If a non-root element is missing its parent, this is unusual and might
-          // cause path generation to fail, but we'll still include the element
-          logger.warning(
-            "Element at depth \(depth) has no parent - path generation may be incomplete")
-        }
-
-        results.append(element)
-      }
-
-      // Stop recursion if we're at max depth
-      if depth >= maxDepth {
-        return
-      }
-
-      // Process children and ensure they have a reference to this element as their parent
-      for child in element.children {
-        // IMPORTANT: Make sure the parent relationship is set
-        // This is critical for proper path generation later
-        if child.parent == nil {
-          child.parent = element
-        }
-
-        findElements(in: child, depth: depth + 1)
-      }
-    }
-
-    // Start the search
-    findElements(in: element)
-
-    return results
+    // Create a filter criteria from the parameters
+    let criteria = UIElement.FilterCriteria(
+      role: role,
+      title: title,
+      titleContains: titleContains,
+      value: value,
+      valueContains: valueContains,
+      description: description,
+      descriptionContains: descriptionContains,
+      elementTypes: elementTypes,
+      includeHidden: includeHidden
+    )
+    
+    // Use the UIElement's findMatchingDescendants method
+    return element.findMatchingDescendants(
+      criteria: criteria,
+      maxDepth: maxDepth,
+      limit: limit
+    )
   }
 
   /// Apply additional filters not handled by the accessibility service
@@ -1433,77 +950,25 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
     includeHidden: Bool = true,
     limit: Int = 100,
   ) -> [UIElement] {
-    var results: [UIElement] = []
-
-    // Define type-to-role mappings if we need to filter by element type
-    var targetRoles = Set<String>()
-    if let types = elementTypes, !types.contains("any") {
-      let typeToRoles: [String: [String]] = [
-        "button": [AXAttribute.Role.button, "AXButtonSubstitute", "AXButtton"],
-        "checkbox": [AXAttribute.Role.checkbox],
-        "radio": [AXAttribute.Role.radioButton, "AXRadioGroup"],
-        "textfield": [AXAttribute.Role.textField, AXAttribute.Role.textArea, "AXSecureTextField"],
-        "dropdown": [AXAttribute.Role.popUpButton, "AXComboBox", "AXPopover"],
-        "slider": ["AXSlider", "AXScrollBar"],
-        "link": [AXAttribute.Role.link],
-        "tab": ["AXTabGroup", "AXTab", "AXTabButton"],
-      ]
-
-      for type in types {
-        if let roles = typeToRoles[type] {
-          targetRoles.formUnion(roles)
-        }
-      }
-    }
-
-    // Process each element
-    for element in elements {
-      // Skip if we've reached the limit
-      if results.count >= limit {
-        break
-      }
-
-      // Role filter (if not already handled by accessibility service)
-      if let role, element.role != role {
-        continue
-      }
-
-      // Element type filter
-      if !targetRoles.isEmpty, !targetRoles.contains(element.role) {
-        continue
-      }
-
-      // Title filter (if not already handled by accessibility service)
-      if let titleFilter = titleContains,
-        !(element.title?.localizedCaseInsensitiveContains(titleFilter) ?? false)
-      {
-        continue
-      }
-
-      // Value filter
-      if let valueFilter = valueContains,
-        !(element.value?.localizedCaseInsensitiveContains(valueFilter) ?? false)
-      {
-        continue
-      }
-
-      // Description filter
-      if let descriptionFilter = descriptionContains,
-        !(element.elementDescription?.localizedCaseInsensitiveContains(descriptionFilter) ?? false)
-      {
-        continue
-      }
-
-      // Visibility filter
-      if !includeHidden, !element.isVisible {
-        continue
-      }
-
-      // Element passed all filters
-      results.append(element)
-    }
-
-    return results
+    // Create filter criteria from the parameters
+    let criteria = UIElement.FilterCriteria(
+      role: role,
+      title: title,
+      titleContains: titleContains,
+      value: value,
+      valueContains: valueContains,
+      description: description,
+      descriptionContains: descriptionContains,
+      elementTypes: elementTypes ?? ["any"],
+      includeHidden: includeHidden
+    )
+    
+    // Use the static UIElement filterElements method
+    return UIElement.filterElements(
+      elements: elements,
+      criteria: criteria,
+      limit: limit
+    )
   }
 
   /// Filter to only include visible elements
@@ -1583,7 +1048,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
         logger.warning("Path may not be fully qualified", metadata: ["path": .string(element.path)])
       }
 
-      // Convert the element to an enhanced descriptor with its fully qualified path
+      // Use the EnhancedElementDescriptor from the Models directory
       return EnhancedElementDescriptor.from(element: element, maxDepth: maxDepth)
     }
   }

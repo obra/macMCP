@@ -602,6 +602,326 @@ public enum FrameSource: String, Codable {
     )
     return elementCopy
   }
+  
+  /// Get an array of state strings describing the current state of this element
+  /// - Returns: Array of state strings (e.g., "enabled", "disabled", "visible", etc.)
+  public func getStateArray() -> [String] {
+    var states: [String] = []
+    
+    // Map boolean attributes to string state values
+    if isEnabled {
+      states.append("enabled")
+    } else {
+      states.append("disabled")
+    }
+    
+    if isVisible {
+      states.append("visible")
+    } else {
+      states.append("hidden")
+    }
+    
+    if isFocused {
+      states.append("focused")
+    } else {
+      states.append("unfocused")
+    }
+    
+    if isSelected {
+      states.append("selected")
+    } else {
+      states.append("unselected")
+    }
+    
+    // Add other state mappings based on attributes
+    if let expanded = attributes["expanded"] as? Bool {
+      states.append(expanded ? "expanded" : "collapsed")
+    }
+    
+    if let readonly = attributes["readonly"] as? Bool {
+      states.append(readonly ? "readonly" : "editable")
+    }
+    
+    if let required = attributes["required"] as? Bool {
+      states.append(required ? "required" : "optional")
+    }
+    
+    return states
+  }
+  
+  /// Get an array of capability strings describing the element's interaction capabilities
+  /// - Returns: Array of capability strings (e.g., "clickable", "editable", "scrollable", etc.)
+  public func getCapabilitiesArray() -> [String] {
+    var capabilities: [String] = []
+    
+    // Add capability based on element properties
+    if isClickable {
+      capabilities.append("clickable")
+    }
+    
+    if isEditable {
+      capabilities.append("editable")
+    }
+    
+    if isToggleable {
+      capabilities.append("toggleable")
+    }
+    
+    if isSelectable {
+      capabilities.append("selectable")
+    }
+    
+    if isAdjustable {
+      capabilities.append("adjustable")
+    }
+    
+    // Add additional capabilities based on role and actions
+    if role == "AXScrollArea" || actions.contains(AXAttribute.Action.scrollToVisible) {
+      capabilities.append("scrollable")
+    }
+    
+    if !children.isEmpty {
+      capabilities.append("hasChildren")
+    }
+    
+    if actions.contains(AXAttribute.Action.showMenu) {
+      capabilities.append("hasMenu")
+    }
+    
+    if attributes["help"] != nil || attributes["helpText"] != nil {
+      capabilities.append("hasHelp")
+    }
+    
+    if attributes["tooltip"] != nil || attributes["toolTip"] != nil {
+      capabilities.append("hasTooltip")
+    }
+    
+    if role == AXAttribute.Role.link {
+      capabilities.append("navigable")
+    }
+    
+    if attributes["focusable"] as? Bool == true {
+      capabilities.append("focusable")
+    }
+    
+    return capabilities
+  }
+  
+  /// Get a filtered and cleaned dictionary of attributes
+  /// - Returns: Dictionary of string attributes with all values converted to strings
+  public func getFilteredAttributes() -> [String: String] {
+    var result: [String: String] = [:]
+    for (key, value) in attributes {
+      result[key] = String(describing: value)
+    }
+    return result
+  }
+  
+  /// Filter criteria for searching UI elements
+  public struct FilterCriteria {
+    /// Filter by accessibility role (exact match)
+    public let role: String?
+    
+    /// Filter by title (exact match)
+    public let title: String?
+    
+    /// Filter by title containing this text (case-insensitive)
+    public let titleContains: String?
+    
+    /// Filter by value (exact match)
+    public let value: String?
+    
+    /// Filter by value containing this text (case-insensitive)
+    public let valueContains: String?
+    
+    /// Filter by description (exact match)
+    public let description: String?
+    
+    /// Filter by description containing this text (case-insensitive)
+    public let descriptionContains: String?
+    
+    /// Filter by element types (matches elements with these roles)
+    public let elementTypes: [String]
+    
+    /// Whether to include hidden elements in results
+    public let includeHidden: Bool
+    
+    /// Initialize filter criteria
+    /// - Parameters:
+    ///   - role: Filter by role (exact match)
+    ///   - title: Filter by title (exact match)
+    ///   - titleContains: Filter by title containing text
+    ///   - value: Filter by value (exact match)
+    ///   - valueContains: Filter by value containing text
+    ///   - description: Filter by description (exact match)
+    ///   - descriptionContains: Filter by description containing text
+    ///   - elementTypes: Filter by element types
+    ///   - includeHidden: Whether to include hidden elements
+    public init(
+      role: String? = nil,
+      title: String? = nil,
+      titleContains: String? = nil,
+      value: String? = nil,
+      valueContains: String? = nil,
+      description: String? = nil,
+      descriptionContains: String? = nil,
+      elementTypes: [String] = ["any"],
+      includeHidden: Bool = true
+    ) {
+      self.role = role
+      self.title = title
+      self.titleContains = titleContains
+      self.value = value
+      self.valueContains = valueContains
+      self.description = description
+      self.descriptionContains = descriptionContains
+      self.elementTypes = elementTypes
+      self.includeHidden = includeHidden
+    }
+  }
+  
+  /// Check if this element matches the specified filter criteria
+  /// - Parameter criteria: The filter criteria to check against
+  /// - Returns: True if the element matches all criteria, false otherwise
+  public func matchesFilter(criteria: FilterCriteria) -> Bool {
+    // Define type-to-role mappings
+    let typeToRoles: [String: [String]] = [
+      "button": [AXAttribute.Role.button, "AXButtonSubstitute", "AXButtton"],
+      "checkbox": [AXAttribute.Role.checkbox],
+      "radio": [AXAttribute.Role.radioButton, "AXRadioGroup"],
+      "textfield": [AXAttribute.Role.textField, AXAttribute.Role.textArea, "AXSecureTextField"],
+      "dropdown": [AXAttribute.Role.popUpButton, "AXComboBox", "AXPopover"],
+      "slider": ["AXSlider", "AXScrollBar"],
+      "link": [AXAttribute.Role.link],
+      "tab": ["AXTabGroup", "AXTab", "AXTabButton"],
+      "any": [],  // Special case - matches all
+    ]
+    
+    // Collect all roles to match based on elementTypes
+    var targetRoles = Set<String>()
+    
+    if criteria.elementTypes.contains("any") {
+      // If "any" is selected, we don't filter by role
+      targetRoles = [] // Empty set means no filtering
+    } else {
+      // Otherwise, include roles for the specified types
+      for type in criteria.elementTypes {
+        if let roles = typeToRoles[type] {
+          targetRoles.formUnion(roles)
+        }
+      }
+    }
+    
+    // Role filter
+    let roleMatches = criteria.role == nil || role == criteria.role
+    
+    // Element type filter
+    let typeMatches = targetRoles.isEmpty || targetRoles.contains(role)
+    
+    // Title filter
+    let titleMatches = 
+      (criteria.title == nil || title == criteria.title) &&
+      (criteria.titleContains == nil || (title?.localizedCaseInsensitiveContains(criteria.titleContains!) ?? false))
+    
+    // Value filter
+    let valueMatches = 
+      (criteria.value == nil || value == criteria.value) &&
+      (criteria.valueContains == nil || (value?.localizedCaseInsensitiveContains(criteria.valueContains!) ?? false))
+    
+    // Description filter
+    let descriptionMatches = 
+      (criteria.description == nil || elementDescription == criteria.description) &&
+      (criteria.descriptionContains == nil || (elementDescription?.localizedCaseInsensitiveContains(criteria.descriptionContains!) ?? false))
+    
+    // Visibility filter
+    let visibilityMatches = criteria.includeHidden || isVisible
+    
+    // Element matches if it passes all applicable filters
+    return roleMatches && typeMatches && titleMatches && valueMatches && descriptionMatches && visibilityMatches
+  }
+  
+  /// Static method to filter a collection of elements by criteria
+  /// - Parameters:
+  ///   - elements: The elements to filter
+  ///   - criteria: The filter criteria
+  ///   - limit: Maximum number of elements to return (default 100)
+  /// - Returns: Filtered elements (up to the limit)
+  public static func filterElements(
+    elements: [UIElement],
+    criteria: FilterCriteria,
+    limit: Int = 100
+  ) -> [UIElement] {
+    var results: [UIElement] = []
+    
+    // Process each element
+    for element in elements {
+      // Skip if we've reached the limit
+      if results.count >= limit {
+        break
+      }
+      
+      // Check if element matches criteria
+      if element.matchesFilter(criteria: criteria) {
+        results.append(element)
+      }
+    }
+    
+    return results
+  }
+  
+  /// Find matching descendants in this element's hierarchy
+  /// - Parameters:
+  ///   - criteria: The filter criteria
+  ///   - maxDepth: Maximum depth to search
+  ///   - limit: Maximum number of elements to return
+  /// - Returns: Matching descendant elements (up to the limit)
+  public func findMatchingDescendants(
+    criteria: FilterCriteria,
+    maxDepth: Int,
+    limit: Int = 100
+  ) -> [UIElement] {
+    var results: [UIElement] = []
+    
+    // Recursive function to search for matching elements
+    func findElements(in element: UIElement, depth: Int = 0) {
+      // Stop if we've reached the limit
+      if results.count >= limit {
+        return
+      }
+      
+      // Check if this element matches
+      if element.matchesFilter(criteria: criteria) {
+        // We've already properly set up the parent relationship in constructor
+        // No need to do it again, but we should validate
+        if element.parent == nil, depth > 0 {
+          // If a non-root element is missing its parent, this is unusual
+          // but we'll still include the element
+        }
+        
+        results.append(element)
+      }
+      
+      // Stop recursion if we're at max depth
+      if depth >= maxDepth {
+        return
+      }
+      
+      // Process children
+      for child in element.children {
+        // Ensure the parent relationship is set
+        if child.parent == nil {
+          child.parent = element
+        }
+        
+        findElements(in: child, depth: depth + 1)
+      }
+    }
+    
+    // Start the search from this element
+    findElements(in: self)
+    
+    return results
+  }
 
   /// Compare two path strings to determine if they refer to the same UI element
   /// - Parameters:
