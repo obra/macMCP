@@ -54,74 +54,7 @@ struct MenuNavigationCalculatorTest {
     }
   }
 
-  /// Test listing application menus (helpful for debugging menu navigation)
-  @Test("List Calculator Menus")
-  mutating func testListCalculatorMenus() async throws {
-    try await setUp()
-    
-    // Ensure Calculator is activated and in the foreground
-    try await activateCalculatorWithMCP()
-    try await Task.sleep(for: .milliseconds(2000))
 
-    // List all menu items in the application menu bar
-    let menuParams: [String: Value] = [
-      "action": .string("getApplicationMenus"),
-      "bundleId": .string("com.apple.calculator"),
-    ]
-
-    let result = try await helper.toolChain.menuNavigationTool.handler(menuParams)
-
-    // Print the menu structure for debugging
-    if let content = result.first, case .text(let text) = content {
-      print("Calculator Menu Bar Structure:")
-      print(text)
-
-      // Parse the JSON to examine the menu structure in detail
-      if let data = text.data(using: .utf8),
-        let menuItems = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]
-      {
-        print("\nDetailed Menu Analysis:")
-        print("Total menu items found: \(menuItems.count)")
-
-        for (index, item) in menuItems.enumerated() {
-          let title = item["title"] as? String ?? "Untitled"
-          let id = item["id"] as? String ?? "No ID"
-          let enabled = item["isEnabled"] as? Bool ?? false
-          let selected = item["isSelected"] as? Bool ?? false
-
-          print(
-            "Item \(index): Title='\(title)', ID=\(id), Enabled=\(enabled), Selected=\(selected)")
-        }
-
-        // Identify "View" menu specifically
-        if let viewMenu = menuItems.first(where: { ($0["title"] as? String) == "View" }) {
-          print("\nView menu details:")
-          print("ID: \(viewMenu["id"] ?? "No ID")")
-          print("Is enabled: \(viewMenu["isEnabled"] ?? "unknown")")
-        }
-      }
-    }
-
-    // Now get the View menu items specifically
-    let viewMenuParams: [String: Value] = [
-      "action": .string("getMenuItems"),
-      "bundleId": .string("com.apple.calculator"),
-      "menuTitle": .string("View"),
-    ]
-
-    let viewMenuResult = try await helper.toolChain.menuNavigationTool.handler(viewMenuParams)
-
-    // Print the View menu items for debugging
-    if let content = viewMenuResult.first, case .text(let text) = content {
-      print("Calculator View Menu Items:")
-      print(text)
-    }
-
-    // This is just for debugging menu structure, so no assertions needed
-    #expect(true, "Successfully retrieved menu structure")
-    
-    try await tearDown()
-  }
 
   /// Test basic menu navigation: switch from Basic to Scientific calculator mode
   @Test("View Menu Navigation")
@@ -141,9 +74,6 @@ struct MenuNavigationCalculatorTest {
     
     let _ = try await helper.toolChain.menuNavigationTool.handler(menuParams)
 
-    // Get initial mode of calculator
-    let initialMode = try await getCalculatorMode()
-    print("Initial calculator mode: \(initialMode)")
 
     // Use Menu Navigation Tool to switch to Scientific mode via View menu
     let scientificSuccess = try await switchToCalculatorMode("Scientific")
@@ -156,7 +86,6 @@ struct MenuNavigationCalculatorTest {
 
     // Get updated calculator mode
     let scientificMode = try await getCalculatorMode()
-    print("Calculator mode after Scientific: \(scientificMode)")
 
     // Now try switching to Basic mode
     let basicSuccess = try await switchToCalculatorMode("Basic")
@@ -165,9 +94,6 @@ struct MenuNavigationCalculatorTest {
     // Wait for mode change to take effect
     try await Task.sleep(for: .milliseconds(2000))
 
-    // Get final calculator mode
-    let basicMode = try await getCalculatorMode()
-    print("Calculator mode after Basic: \(basicMode)")
     
     try await tearDown()
   }
@@ -181,11 +107,9 @@ struct MenuNavigationCalculatorTest {
     ]
 
     let result = try await helper.toolChain.applicationManagementTool.handler(params)
-    print("Activation result received with \(result.count) items")
 
     // Check if activation was successful
     if let content = result.first, case .text(let text) = content {
-      print("Activation response: \(text)")
       let success = text.contains("success") && text.contains("true")
       if !success {
         throw MCPError.internalError("Failed to activate Calculator application")
@@ -203,7 +127,6 @@ struct MenuNavigationCalculatorTest {
 
     // Parse the response to get application info
     if let content = result.first, case .text(let text) = content {
-      print("Frontmost app response: \(text)")
 
       // Extract application info from the JSON response
       if let data = text.data(using: .utf8),
@@ -263,7 +186,6 @@ struct MenuNavigationCalculatorTest {
 
     // Check if navigation was successful
     if let content = result.first, case .text(let text) = content {
-      print("Menu navigation result: \(text)")
 
       // Add a longer delay to allow menu action to take effect
       try await Task.sleep(for: .milliseconds(1000))

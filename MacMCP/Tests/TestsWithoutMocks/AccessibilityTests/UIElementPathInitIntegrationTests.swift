@@ -80,46 +80,27 @@ struct UIElementPathInitIntegrationTests {
       "ui://AXApplication[@AXTitle=\"Calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]"
 
     // Get diagnostics on the path before attempting resolution
-    print("\n==== PATH DIAGNOSTICS ====")
-    print("Attempting to diagnose path resolution for: \(buttonPath)")
-    let diagnosis = try await ElementPath.diagnosePathResolutionIssue(
+    _ = try await ElementPath.diagnosePathResolutionIssue(
       buttonPath, using: accessibilityService)
-    print(diagnosis)
-    print("==== END PATH DIAGNOSTICS ====\n")
-
+ 
     // Create a UIElement from the path
     let buttonElement = try await UIElement(
       fromPath: buttonPath, accessibilityService: accessibilityService)
 
-    // Print extensive debug information about the button and resolution process
-    print("\n==== BUTTON RESOLUTION DEBUG ====")
-    print("1. Input path: \(buttonPath)")
-
     // Check if the AXUIElement is a valid reference
     if let axElement = buttonElement.axElement {
-      print("2. AXUIElement resolved: YES (valid reference)")
 
-      // Print AXUIElement memory address to verify it's a real object
-      print("   - AXUIElement memory address: \(Unmanaged.passUnretained(axElement).toOpaque())")
 
-      // Try to get the PID of the element (should be Calculator's PID)
-      var pid: pid_t = 0
-      let pidStatus = AXUIElementGetPid(axElement, &pid)
-      print("   - AXUIElement PID status: \(pidStatus), PID: \(pid)")
 
       // Try to get role directly from AXUIElement (double-check)
       var roleRef: CFTypeRef?
       let roleStatus = AXUIElementCopyAttributeValue(
         axElement, AXAttribute.role as CFString, &roleRef)
-      print("   - Direct role check status: \(roleStatus), Value: \(roleRef as? String ?? "nil")")
 
       // Try to get description directly from AXUIElement (double-check)
       var descRef: CFTypeRef?
       let descStatus = AXUIElementCopyAttributeValue(
         axElement, AXAttribute.description as CFString, &descRef)
-      print(
-        "   - Direct description check status: \(descStatus), Value: \(descRef as? String ?? "nil")"
-      )
 
       // Try to get actions directly from AXUIElement
       var actionsArrayRef: CFTypeRef?
@@ -128,29 +109,13 @@ struct UIElementPathInitIntegrationTests {
         AXAttribute.actions as CFString,
         &actionsArrayRef,
       )
-      if actionsStatus == .success, let actionsArray = actionsArrayRef as? [String] {
-        print("   - Direct actions check status: \(actionsStatus), Actions: \(actionsArray)")
-      } else {
-        print("   - Direct actions check status: \(actionsStatus), Actions: nil")
-      }
+  
     } else {
       print(
         "2. AXUIElement resolved: NO (nil reference) - This indicates the path did not resolve to a real UI element",
       )
     }
 
-    // Print all the UIElement properties
-    print("3. UIElement properties:")
-    print("   - Role: \(buttonElement.role)")
-    print("   - Description: \(buttonElement.elementDescription ?? "nil")")
-    print("   - Title: \(buttonElement.title ?? "nil")")
-    print("   - Value: \(buttonElement.value ?? "nil")")
-    print("   - Frame: \(buttonElement.frame)")
-    print("   - Path: \(buttonElement.path)")
-    print("   - Actions array (count: \(buttonElement.actions.count)): \(buttonElement.actions)")
-    print("   - Attributes: \(buttonElement.attributes)")
-    print("   - isClickable: \(buttonElement.isClickable)")
-    print("==== END DEBUG ====\n")
 
     // Verify properties of the created UIElement
     #expect(buttonElement.role == "AXButton")
