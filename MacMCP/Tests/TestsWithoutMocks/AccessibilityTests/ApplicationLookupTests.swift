@@ -72,11 +72,8 @@ struct ApplicationLookupTests {
   private func testApplicationLookup(
     path: String, description: String, shouldForeground: Bool = false
   ) async throws {
-    print("\n=== TEST: \(description) ===")
-    print("Path: \(path)")
 
     if shouldForeground {
-      print("Bringing Calculator to foreground first...")
       try await bringCalculatorToForeground()
       try await Task.sleep(for: .milliseconds(500))
     }
@@ -89,10 +86,7 @@ struct ApplicationLookupTests {
       // We use a hack to extract just the application element by passing a path with only the first segment
       let truncatedPath = try ElementPath(segments: [elementPath.segments[0]])
 
-      // Time the resolution for performance comparison
-      let startTime = Date()
       let appElement = try await truncatedPath.resolve(using: accessibilityService)
-      let timeElapsed = Date().timeIntervalSince(startTime)
 
       // Basic validation - we don't have much we can check, but we can get the role
       var roleRef: CFTypeRef?
@@ -100,32 +94,20 @@ struct ApplicationLookupTests {
       #expect(status == .success, "Failed to get role from application element")
       #expect(roleRef as? String == "AXApplication", "Element is not an application")
 
-      print(
-        "✅ SUCCESS: Application lookup succeeded in \(String(format: "%.3f", timeElapsed)) seconds."
-      )
+      
 
-      // Get additional details for debugging
-      var titleRef: CFTypeRef?
-      let titleStatus = AXUIElementCopyAttributeValue(appElement, "AXTitle" as CFString, &titleRef)
-      if titleStatus == .success, let title = titleRef as? String {
-        print("Application title: \(title)")
-      }
+
 
       // Try to get a pid to validate it's the right app
       var pid: pid_t = 0
       let pidStatus = AXUIElementGetPid(appElement, &pid)
       if pidStatus == .success {
         if let app = NSRunningApplication(processIdentifier: pid) {
-          print(
-            "Application: \(app.localizedName ?? "unknown") (Bundle ID: \(app.bundleIdentifier ?? "unknown"))"
-          )
+     
           #expect(app.bundleIdentifier == calculatorBundleId, "Wrong application was found")
-        } else {
-          print("Application process: \(pid) (no NSRunningApplication available)")
         }
       }
     } catch {
-      print("❌ FAILED: \(description) failed with error: \(error)")
       throw error
     }
   }
@@ -226,31 +208,6 @@ struct ApplicationLookupTests {
     let apps = NSRunningApplication.runningApplications(withBundleIdentifier: calculatorBundleId)
     #expect(!apps.isEmpty, "Calculator not found in running applications")
 
-    if let app = apps.first {
-      print("Calculator is running:")
-      print("- PID: \(app.processIdentifier)")
-      print("- Name: \(app.localizedName ?? "unknown")")
-      print("- Bundle ID: \(app.bundleIdentifier ?? "unknown")")
-      print("- Is active: \(app.isActive)")
-      print("- Is hidden: \(app.isHidden)")
-
-      // Try raw AX API approach
-      let axElement = AXUIElementCreateApplication(app.processIdentifier)
-
-      var roleRef: CFTypeRef?
-      let status = AXUIElementCopyAttributeValue(axElement, "AXRole" as CFString, &roleRef)
-
-      print("AX API direct check result: \(status == .success ? "Success" : "Failed")")
-      if status == .success {
-        print("AX Role: \(roleRef as? String ?? "unknown")")
-      }
-
-      var titleRef: CFTypeRef?
-      let titleStatus = AXUIElementCopyAttributeValue(axElement, "AXTitle" as CFString, &titleRef)
-      if titleStatus == .success {
-        print("AX Title: \(titleRef as? String ?? "unknown")")
-      }
-    }
     
     try await tearDown()
   }
@@ -266,7 +223,6 @@ struct ApplicationLookupTests {
     let status = AXUIElementCopyAttributeValue(systemWideElement, "AXRole" as CFString, &roleRef)
 
     let permissionsGranted = (status == .success)
-    print("Accessibility permissions status: \(permissionsGranted)")
     #expect(permissionsGranted, "Accessibility permissions are not granted")
     
     try await tearDown()
