@@ -2,25 +2,24 @@
 // ABOUTME: Part of MacMCP allowing LLMs to interact with macOS applications.
 
 import Foundation
+import AppKit  // For NSRunningApplication
 import MCP
-import XCTest
+import Testing
 
 @testable import MacMCP
 
 // Test utilities are directly available in this module
 
 /// Test the InterfaceExplorerTool
-final class InterfaceExplorerToolTests: XCTestCase {
+@Suite(.serialized)
+struct InterfaceExplorerToolTests {
   // Test components
   private var toolChain: ToolChain!
   private var calculator: CalculatorModel!
 
-  override func setUp() async throws {
-    // Create the test components
-    toolChain = ToolChain()
-    calculator = CalculatorModel(toolChain: toolChain)
-
-    // Force terminate any existing Calculator instances
+  // Setup method to replace setUp and tearDown
+  private mutating func setupTest() async throws {
+    // Force terminate any existing Calculator instances first
     for app in NSRunningApplication.runningApplications(
       withBundleIdentifier: "com.apple.calculator")
     {
@@ -28,9 +27,14 @@ final class InterfaceExplorerToolTests: XCTestCase {
     }
 
     try await Task.sleep(for: .milliseconds(1000))
+
+    // Create the test components
+    toolChain = ToolChain()
+    calculator = CalculatorModel(toolChain: toolChain)
   }
 
-  override func tearDown() async throws {
+  // Helper method to clean up after tests
+  private func cleanupTest() async throws {
     // Terminate Calculator
     for app in NSRunningApplication.runningApplications(
       withBundleIdentifier: "com.apple.calculator")
@@ -51,7 +55,10 @@ final class InterfaceExplorerToolTests: XCTestCase {
   }
 
   /// Test system scope with the interface explorer tool
-  func testSystemScope() async throws {
+  @Test("Test system scope")
+  mutating func testSystemScope() async throws {
+    try await setupTest()
+    
     // Define direct handler access for more precise testing
     let interfaceExplorerTool = InterfaceExplorerTool(
       accessibilityService: toolChain.accessibilityService,
@@ -69,7 +76,7 @@ final class InterfaceExplorerToolTests: XCTestCase {
     let result = try await interfaceExplorerTool.handler(params)
 
     // Verify we got a result
-    XCTAssertFalse(result.isEmpty, "Should receive a non-empty result")
+    #expect(!result.isEmpty, "Should receive a non-empty result")
 
     // Verify result is text content
     if case .text(let jsonString) = result[0] {
@@ -78,33 +85,38 @@ final class InterfaceExplorerToolTests: XCTestCase {
       let elements = try JSONSerialization.jsonObject(with: jsonData) as! [[String: Any]]
 
       // Verify we got UI elements back
-      XCTAssertFalse(elements.isEmpty, "Should receive UI elements")
+      #expect(!elements.isEmpty, "Should receive UI elements")
 
       // Verify each element has the expected properties
       for element in elements {
-        XCTAssertNotNil(element["id"], "Element should have an ID")
-        XCTAssertNotNil(element["role"], "Element should have a role")
-        XCTAssertNotNil(element["name"], "Element should have a name")
-        XCTAssertNotNil(element["state"], "Element should have state information")
-        XCTAssertNotNil(element["capabilities"], "Element should have capabilities")
+        #expect(element["id"] != nil, "Element should have an ID")
+        #expect(element["role"] != nil, "Element should have a role")
+        #expect(element["name"] != nil, "Element should have a name")
+        #expect(element["state"] != nil, "Element should have state information")
+        #expect(element["capabilities"] != nil, "Element should have capabilities")
 
         // Check frame data
         if let frame = element["frame"] as? [String: Any] {
-          XCTAssertNotNil(frame["x"], "Frame should have x coordinate")
-          XCTAssertNotNil(frame["y"], "Frame should have y coordinate")
-          XCTAssertNotNil(frame["width"], "Frame should have width")
-          XCTAssertNotNil(frame["height"], "Frame should have height")
+          #expect(frame["x"] != nil, "Frame should have x coordinate")
+          #expect(frame["y"] != nil, "Frame should have y coordinate")
+          #expect(frame["width"] != nil, "Frame should have width")
+          #expect(frame["height"] != nil, "Frame should have height")
         } else {
-          XCTFail("Element should have frame information")
+          #expect(Bool(false), "Element should have frame information")
         }
       }
     } else {
-      XCTFail("Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
+
+    try await cleanupTest()
   }
 
   /// Test application scope with the interface explorer tool
-  func testApplicationScope() async throws {
+  @Test("Test application scope")
+  mutating func testApplicationScope() async throws {
+    try await setupTest()
+    
     // Launch calculator first
     try await launchCalculator()
 
@@ -126,7 +138,7 @@ final class InterfaceExplorerToolTests: XCTestCase {
     let result = try await interfaceExplorerTool.handler(params)
 
     // Verify we got a result
-    XCTAssertFalse(result.isEmpty, "Should receive a non-empty result")
+    #expect(!result.isEmpty, "Should receive a non-empty result")
 
     // Verify result is text content
     if case .text(let jsonString) = result[0] {
@@ -135,12 +147,12 @@ final class InterfaceExplorerToolTests: XCTestCase {
       let elements = try JSONSerialization.jsonObject(with: jsonData) as! [[String: Any]]
 
       // Verify we got UI elements back
-      XCTAssertFalse(elements.isEmpty, "Should receive UI elements")
+      #expect(!elements.isEmpty, "Should receive UI elements")
 
       // Verify the root element looks like a Calculator application
       let rootElement = elements[0]
-      XCTAssertEqual(
-        rootElement["role"] as? String, "AXApplication", "Root element should be an application")
+      #expect(
+        rootElement["role"] as? String == "AXApplication", "Root element should be an application")
 
       // With the new InterfaceExplorerTool, we should still be able to find some
       // basic elements like buttons, but windows may be handled by WindowManagementTool
@@ -167,14 +179,19 @@ final class InterfaceExplorerToolTests: XCTestCase {
       }
 
       // Now assert that we found buttons - windows are handled by WindowManagementTool now
-      XCTAssertTrue(foundButton, "Should find at least one button in the Calculator")
+      #expect(foundButton, "Should find at least one button in the Calculator")
     } else {
-      XCTFail("Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
+
+    try await cleanupTest()
   }
 
   /// Test element scope with the interface explorer tool
-  func testElementScope() async throws {
+  @Test("Test element scope")
+  mutating func testElementScope() async throws {
+    try await setupTest()
+    
     // Launch calculator first
     try await launchCalculator()
 
@@ -201,7 +218,7 @@ final class InterfaceExplorerToolTests: XCTestCase {
     let result = try await interfaceExplorerTool.handler(params)
 
     // Verify we got a result
-    XCTAssertFalse(result.isEmpty, "Should receive a non-empty result")
+    #expect(!result.isEmpty, "Should receive a non-empty result")
 
     // Verify result is text content
     if case .text(let jsonString) = result[0] {
@@ -210,29 +227,34 @@ final class InterfaceExplorerToolTests: XCTestCase {
       let elements = try JSONSerialization.jsonObject(with: jsonData) as! [[String: Any]]
 
       // Verify we got UI elements back
-      XCTAssertFalse(elements.isEmpty, "Should receive UI elements")
+      #expect(!elements.isEmpty, "Should receive UI elements")
 
       // Verify the element we got back matches our path
       let element = elements[0]
-      XCTAssertEqual(element["role"] as? String, "AXWindow", "Element should be a window")
+      #expect(element["role"] as? String == "AXWindow", "Element should be a window")
 
       // Verify path was returned and matches our expected format
-      XCTAssertNotNil(element["path"], "Element should have a path")
+      #expect(element["path"] != nil, "Element should have a path")
       if let path = element["path"] as? String {
-        XCTAssertTrue(
+        #expect(
           path.hasPrefix("ui://AXApplication"), "Path should start with ui://AXApplication")
-        XCTAssertTrue(path.contains("AXWindow"), "Path should include AXWindow")
+        #expect(path.contains("AXWindow"), "Path should include AXWindow")
       }
 
       // Verify children were also returned
-      XCTAssertNotNil(element["children"], "Element should have children")
+      #expect(element["children"] != nil, "Element should have children")
     } else {
-      XCTFail("Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
+
+    try await cleanupTest()
   }
 
   /// Test filtering with the interface explorer tool
-  func testFilteringElements() async throws {
+  @Test("Test filtering elements")
+  mutating func testFilteringElements() async throws {
+    try await setupTest()
+    
     // Launch calculator first
     try await launchCalculator()
 
@@ -256,7 +278,7 @@ final class InterfaceExplorerToolTests: XCTestCase {
     let result = try await interfaceExplorerTool.handler(params)
 
     // Verify we got a result
-    XCTAssertFalse(result.isEmpty, "Should receive a non-empty result")
+    #expect(!result.isEmpty, "Should receive a non-empty result")
 
     // Verify result is text content
     if case .text(let jsonString) = result[0] {
@@ -265,22 +287,27 @@ final class InterfaceExplorerToolTests: XCTestCase {
       let elements = try JSONSerialization.jsonObject(with: jsonData) as! [[String: Any]]
 
       // Verify we got UI elements back
-      XCTAssertFalse(elements.isEmpty, "Should receive UI elements")
+      #expect(!elements.isEmpty, "Should receive UI elements")
 
       // Verify all returned elements are buttons
       for element in elements {
-        XCTAssertEqual(element["role"] as? String, "AXButton", "All elements should be buttons")
+        #expect(element["role"] as? String == "AXButton", "All elements should be buttons")
       }
 
       // Verify we got multiple button elements (Calculator has many)
-      XCTAssertGreaterThan(elements.count, 5, "Should find multiple button elements")
+      #expect(elements.count > 5, "Should find multiple button elements")
     } else {
-      XCTFail("Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
+
+    try await cleanupTest()
   }
 
   /// Test element types filtering with the interface explorer tool
-  func testElementTypesFiltering() async throws {
+  @Test("Test element types filtering")
+  mutating func testElementTypesFiltering() async throws {
+    try await setupTest()
+    
     // Launch calculator first
     try await launchCalculator()
 
@@ -302,7 +329,7 @@ final class InterfaceExplorerToolTests: XCTestCase {
     let result = try await interfaceExplorerTool.handler(params)
 
     // Verify we got a result
-    XCTAssertFalse(result.isEmpty, "Should receive a non-empty result")
+    #expect(!result.isEmpty, "Should receive a non-empty result")
 
     // Verify result is text content
     if case .text(let jsonString) = result[0] {
@@ -311,25 +338,30 @@ final class InterfaceExplorerToolTests: XCTestCase {
       let elements = try JSONSerialization.jsonObject(with: jsonData) as! [[String: Any]]
 
       // Verify we got UI elements back
-      XCTAssertFalse(elements.isEmpty, "Should receive UI elements")
+      #expect(!elements.isEmpty, "Should receive UI elements")
 
       // Verify all returned elements are buttons
       for element in elements {
-        XCTAssertEqual(element["role"] as? String, "AXButton", "All elements should be buttons")
+        #expect(element["role"] as? String == "AXButton", "All elements should be buttons")
 
         // Also check that the element has the clickable capability
         if let capabilities = element["capabilities"] as? [String] {
-          XCTAssertTrue(
+          #expect(
             capabilities.contains("clickable"), "Button should have clickable capability")
         }
       }
     } else {
-      XCTFail("Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
+
+    try await cleanupTest()
   }
 
   /// Test enhanced capabilities reporting
-  func testEnhancedCapabilities() async throws {
+  @Test("Test enhanced capabilities")
+  mutating func testEnhancedCapabilities() async throws {
+    try await setupTest()
+    
     // Launch calculator first
     try await launchCalculator()
 
@@ -350,7 +382,7 @@ final class InterfaceExplorerToolTests: XCTestCase {
     let result = try await interfaceExplorerTool.handler(params)
 
     // Verify we got a result
-    XCTAssertFalse(result.isEmpty, "Should receive a non-empty result")
+    #expect(!result.isEmpty, "Should receive a non-empty result")
 
     // Verify result is text content
     if case .text(let jsonString) = result[0] {
@@ -396,17 +428,22 @@ final class InterfaceExplorerToolTests: XCTestCase {
       }
 
       // Verify that we found elements with the expected capabilities and state
-      XCTAssertTrue(
+      #expect(
         foundButtonWithCapabilities || foundTextFieldWithState,
         "Should find at least one button with capabilities or text field with state",
       )
     } else {
-      XCTFail("Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
+
+    try await cleanupTest()
   }
 
   /// Test path support in interface explorer tool
-  func testElementPathSupport() async throws {
+  @Test("Test element path support")
+  mutating func testElementPathSupport() async throws {
+    try await setupTest()
+    
     // Launch calculator first
     try await launchCalculator()
 
@@ -427,7 +464,7 @@ final class InterfaceExplorerToolTests: XCTestCase {
     let result = try await interfaceExplorerTool.handler(params)
 
     // Verify we got a result
-    XCTAssertFalse(result.isEmpty, "Should receive a non-empty result")
+    #expect(!result.isEmpty, "Should receive a non-empty result")
 
     // Verify result is text content
     if case .text(let jsonString) = result[0] {
@@ -436,7 +473,7 @@ final class InterfaceExplorerToolTests: XCTestCase {
       let elements = try JSONSerialization.jsonObject(with: jsonData) as! [[String: Any]]
 
       // Verify we got UI elements back
-      XCTAssertFalse(elements.isEmpty, "Should receive UI elements")
+      #expect(!elements.isEmpty, "Should receive UI elements")
 
       // Check the elements for path information
       var foundElementWithPath = false
@@ -462,7 +499,7 @@ final class InterfaceExplorerToolTests: XCTestCase {
       }
 
       // Verify that we found at least one element with a path
-      XCTAssertTrue(foundElementWithPath, "Should find at least one element with a path")
+      #expect(foundElementWithPath, "Should find at least one element with a path")
 
       // Find a specific type of element and check its path in more detail
       var foundButtonWithValidPath = false
@@ -473,8 +510,8 @@ final class InterfaceExplorerToolTests: XCTestCase {
           let path = element["path"] as? String
         {
           // Verify the path has the correct format
-          XCTAssert(path.hasPrefix("ui://"), "Path should start with ui://")
-          XCTAssert(path.contains("AXButton"), "Button path should contain AXButton")
+          #expect(path.hasPrefix("ui://"), "Path should start with ui://")
+          #expect(path.contains("AXButton"), "Button path should contain AXButton")
           foundButtonWithValidPath = true
         }
 
@@ -492,14 +529,19 @@ final class InterfaceExplorerToolTests: XCTestCase {
       }
 
       // Verify that we found at least one button with a valid path
-      XCTAssertTrue(foundButtonWithValidPath, "Should find at least one button with a valid path")
+      #expect(foundButtonWithValidPath, "Should find at least one button with a valid path")
     } else {
-      XCTFail("Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
+
+    try await cleanupTest()
   }
 
   /// Test position scope with the interface explorer tool
-  func testPositionScope() async throws {
+  @Test("Test position scope")
+  mutating func testPositionScope() async throws {
+    try await setupTest()
+    
     // Launch calculator first
     try await launchCalculator()
 
@@ -518,7 +560,10 @@ final class InterfaceExplorerToolTests: XCTestCase {
     )
 
     guard let window = windows.first else {
-      throw XCTSkip("No window found in Calculator for position scope test")
+      // Instead of throwing MCPError.elementNotFound since we can't access that enum,
+      // Just throw a simple error for testing
+      #expect(Bool(false), "No window found in Calculator for position scope test")
+      throw MCPError.invalidParams("No window found in Calculator for position scope test")
     }
 
     // Get the center of the window
@@ -543,7 +588,7 @@ final class InterfaceExplorerToolTests: XCTestCase {
     let result = try await interfaceExplorerTool.handler(params)
 
     // Verify we got a result
-    XCTAssertFalse(result.isEmpty, "Should receive a non-empty result")
+    #expect(!result.isEmpty, "Should receive a non-empty result")
 
     // Verify result is text content
     if case .text(let jsonString) = result[0] {
@@ -552,13 +597,15 @@ final class InterfaceExplorerToolTests: XCTestCase {
       let elements = try JSONSerialization.jsonObject(with: jsonData) as! [[String: Any]]
 
       // Verify we got UI elements back
-      XCTAssertFalse(elements.isEmpty, "Should receive UI elements")
+      #expect(!elements.isEmpty, "Should receive UI elements")
 
       // Not testing specific element properties here as the element
       // at the center of a window can vary, but we should at least
       // have received something from the Calculator app
     } else {
-      XCTFail("Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
+
+    try await cleanupTest()
   }
 }

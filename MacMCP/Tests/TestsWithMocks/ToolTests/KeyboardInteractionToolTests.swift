@@ -4,11 +4,12 @@
 import AppKit
 import Foundation
 import MCP
-import XCTest
+import Testing
 
 @testable import MacMCP
 
-final class KeyboardInteractionToolTests: XCTestCase {
+@Suite(.serialized)
+struct KeyboardInteractionToolTests {
   // Test components
   private var accessibilityService: AccessibilityService!
   private var interactionService: UIInteractionServiceStub!
@@ -18,7 +19,7 @@ final class KeyboardInteractionToolTests: XCTestCase {
   private var keyboardEventMonitor: KeyboardEventMonitor!
   private var capturedEvents: [CapturedKeyEvent] = []
 
-  override func setUp() async throws {
+  private mutating func setupTest() async throws {
     // Create dependencies
     accessibilityService = AccessibilityService()
     interactionService = UIInteractionServiceStub()
@@ -30,15 +31,19 @@ final class KeyboardInteractionToolTests: XCTestCase {
 
     // Set up keyboard event monitor
     keyboardEventMonitor = KeyboardEventMonitor()
-    keyboardEventMonitor.startMonitoring { [weak self] event in
-      self?.capturedEvents.append(event)
+    
+    // Use a local handler that doesn't capture self
+    let handler: (CapturedKeyEvent) -> Void = { _ in 
+      // We're not actually doing anything with the events in the test
+      // Just using the monitor to set up the environment
     }
+    keyboardEventMonitor.startMonitoring(handler: handler)
 
     // Clear captured events
     capturedEvents = []
   }
 
-  override func tearDown() async throws {
+  private mutating func cleanupTest() async throws {
     // Stop monitoring keyboard events
     keyboardEventMonitor.stopMonitoring()
 
@@ -48,7 +53,10 @@ final class KeyboardInteractionToolTests: XCTestCase {
 
   // MARK: - Type Text Tests
 
-  func testTypeText() async throws {
+  @Test("Test type text")
+  mutating func testTypeText() async throws {
+    try await setupTest()
+    
     // Prepare test data
     let text = "Hello"
     let params: [String: Value] = [
@@ -64,11 +72,16 @@ final class KeyboardInteractionToolTests: XCTestCase {
 
     // Verify with the stub service
     let interactionStub = interactionService!
-    XCTAssertEqual(
-      interactionStub.keyPressCount, text.count, "Should have pressed one key for each character")
+    #expect(
+      interactionStub.keyPressCount == text.count, "Should have pressed one key for each character")
+      
+    try await cleanupTest()
   }
 
-  func testTypeTextSpecialCharacters() async throws {
+  @Test("Test type text special characters")
+  mutating func testTypeTextSpecialCharacters() async throws {
+    try await setupTest()
+    
     // Prepare test data with special characters
     let text = "Hello, World!"
     let params: [String: Value] = [
@@ -84,17 +97,22 @@ final class KeyboardInteractionToolTests: XCTestCase {
 
     // Verify with the stub service
     let interactionStub = interactionService!
-    XCTAssertEqual(
-      interactionStub.keyPressCount, text.count, "Should have pressed one key for each character")
+    #expect(
+      interactionStub.keyPressCount == text.count, "Should have pressed one key for each character")
 
     // Check for modifiers on special characters
-    XCTAssertTrue(
+    #expect(
       interactionStub.usedModifiers, "Should have used modifiers for special characters")
+      
+    try await cleanupTest()
   }
 
   // MARK: - Key Sequence Tests
 
-  func testKeySequenceSimpleTap() async throws {
+  @Test("Test key sequence simple tap")
+  mutating func testKeySequenceSimpleTap() async throws {
+    try await setupTest()
+    
     // Test a simple key tap
     let params: [String: Value] = [
       "action": .string("key_sequence"),
@@ -108,11 +126,16 @@ final class KeyboardInteractionToolTests: XCTestCase {
 
     // Verify the key presses
     let interactionStub = interactionService!
-    XCTAssertEqual(interactionStub.keyPressCount, 1, "Should have pressed one key")
-    XCTAssertFalse(interactionStub.usedModifiers, "Should not have used modifiers")
+    #expect(interactionStub.keyPressCount == 1, "Should have pressed one key")
+    #expect(!interactionStub.usedModifiers, "Should not have used modifiers")
+    
+    try await cleanupTest()
   }
 
-  func testKeySequenceWithModifiers() async throws {
+  @Test("Test key sequence with modifiers")
+  mutating func testKeySequenceWithModifiers() async throws {
+    try await setupTest()
+    
     // Test a key tap with modifiers
     let params: [String: Value] = [
       "action": .string("key_sequence"),
@@ -129,11 +152,16 @@ final class KeyboardInteractionToolTests: XCTestCase {
 
     // Verify the key presses
     let interactionStub = interactionService!
-    XCTAssertEqual(interactionStub.keyPressCount, 1, "Should have pressed one key")
-    XCTAssertTrue(interactionStub.usedModifiers, "Should have used modifiers")
+    #expect(interactionStub.keyPressCount == 1, "Should have pressed one key")
+    #expect(interactionStub.usedModifiers, "Should have used modifiers")
+    
+    try await cleanupTest()
   }
 
-  func testKeySequencePressRelease() async throws {
+  @Test("Test key sequence press release")
+  mutating func testKeySequencePressRelease() async throws {
+    try await setupTest()
+    
     // Test separate press and release events
     let params: [String: Value] = [
       "action": .string("key_sequence"),
@@ -149,10 +177,15 @@ final class KeyboardInteractionToolTests: XCTestCase {
 
     // For this test, we're more interested in the fact that it completes without errors
     // since actual key events are handled by the CGEvent system directly
-    XCTAssert(true, "Key sequence with press/release completed successfully")
+    #expect(Bool(true), "Key sequence with press/release completed successfully")
+    
+    try await cleanupTest()
   }
 
-  func testComplexKeySequence() async throws {
+  @Test("Test complex key sequence")
+  mutating func testComplexKeySequence() async throws {
+    try await setupTest()
+    
     // Test a complex key sequence
     let params: [String: Value] = [
       "action": .string("key_sequence"),
@@ -169,7 +202,9 @@ final class KeyboardInteractionToolTests: XCTestCase {
     _ = try await keyboardInteractionTool.handler(params)
 
     // For complex sequences, we're more interested in the fact that it completes without errors
-    XCTAssert(true, "Complex key sequence completed successfully")
+    #expect(Bool(true), "Complex key sequence completed successfully")
+    
+    try await cleanupTest()
   }
 }
 

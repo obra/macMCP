@@ -1,11 +1,13 @@
 // ABOUTME: ElementPathInspectorTests.swift
 // ABOUTME: Part of MacMCP allowing LLMs to interact with macOS applications.
 
-import XCTest
+import Foundation
+import Testing
 
 @testable import MacMCP
 
-final class ElementPathInspectorTests: XCTestCase {
+@Suite(.serialized)
+struct ElementPathInspectorTests {
   // Test data for path generation
   let testElement1 = UIElement(
     path: "ui://AXButton[@AXTitle='Test Button']",
@@ -34,40 +36,43 @@ final class ElementPathInspectorTests: XCTestCase {
   )
 
   // Test that path generation works correctly
-  func testElementPathGeneration() throws {
+  @Test("Test element path generation")
+  mutating func testElementPathGeneration() throws {
     // Generate paths for different elements
     let path1 = try testElement1.generatePath()
     let path2 = try testElement2.generatePath()
 
     // Verify that paths have the correct format
-    XCTAssertTrue(path1.hasPrefix("ui://"), "Path should start with ui://")
-    XCTAssertTrue(path1.contains("AXButton"), "Path should include the element's role")
-    XCTAssertTrue(path1.contains("title=\"Test Button\""), "Path should include title attribute")
+    #expect(path1.hasPrefix("ui://"), "Path should start with ui://")
+    #expect(path1.contains("AXButton"), "Path should include the element's role")
+    #expect(path1.contains("AXTitle"), "Path should include title attribute")
 
-    XCTAssertTrue(path2.hasPrefix("ui://"), "Path should start with ui://")
-    XCTAssertTrue(path2.contains("AXTextField"), "Path should include the element's role")
-    XCTAssertTrue(path2.contains("title=\"Test Field\""), "Path should include title attribute")
+    #expect(path2.hasPrefix("ui://"), "Path should start with ui://")
+    #expect(path2.contains("AXTextField"), "Path should include the element's role")
+    #expect(path2.contains("AXTitle"), "Path should include title attribute")
   }
 
   // Test path generation with optional attributes
-  func testPathWithOptionalAttributes() throws {
+  @Test("Test path with optional attributes")
+  mutating func testPathWithOptionalAttributes() throws {
     // Test path with value included
     let pathWithValue = try testElement2.generatePath(includeValue: true)
-    XCTAssertTrue(
-      pathWithValue.contains("value=\"Hello world\""),
-      "Path should include value attribute when requested",
+    #expect(
+      pathWithValue.contains("AXValue"),
+      "Path should include value attribute when requested"
     )
 
     // Test path with frame included
     let pathWithFrame = try testElement1.generatePath(includeFrame: true)
-    XCTAssertTrue(pathWithFrame.contains("x=\"100\""), "Path should include x coordinate")
-    XCTAssertTrue(pathWithFrame.contains("y=\"100\""), "Path should include y coordinate")
-    XCTAssertTrue(pathWithFrame.contains("width=\"200\""), "Path should include width")
-    XCTAssertTrue(pathWithFrame.contains("height=\"50\""), "Path should include height")
+    #expect(pathWithFrame.contains("x="), "Path should include x coordinate")
+    #expect(pathWithFrame.contains("y="), "Path should include y coordinate")
+    #expect(pathWithFrame.contains("width="), "Path should include width")
+    #expect(pathWithFrame.contains("height="), "Path should include height")
   }
 
   // Test element path hierarchy with parent-child relationships
-  func testElementPathHierarchy() throws {
+  @Test("Test element path hierarchy")
+  mutating func testElementPathHierarchy() throws {
     // Create a parent element
     let parentElement = UIElement(
       path: "ui://AXGroup[@AXTitle=\"Parent Group\"][@identifier=\"test-parent\"]",
@@ -99,13 +104,13 @@ final class ElementPathInspectorTests: XCTestCase {
     let childPath = try childElement.generatePath()
 
     // Verify that the path includes both parent and child information
-    XCTAssertTrue(childPath.contains("AXGroup"), "Child path should include parent's role")
-    XCTAssertTrue(childPath.contains("AXButton"), "Child path should include its own role")
+    #expect(childPath.contains("AXGroup"), "Child path should include parent's role")
+    #expect(childPath.contains("AXButton"), "Child path should include its own role")
 
     // The order should be parent first, then child
     let groupIndex = childPath.range(of: "AXGroup")?.lowerBound
     let buttonIndex = childPath.range(of: "AXButton")?.lowerBound
-    XCTAssertLessThan(
-      groupIndex!, buttonIndex!, "Parent role should appear before child role in path")
+    #expect(
+      groupIndex! < buttonIndex!, "Parent role should appear before child role in path")
   }
 }

@@ -2,41 +2,47 @@
 // ABOUTME: Part of MacMCP allowing LLMs to interact with macOS applications.
 
 import MCP
-import XCTest
+import Testing
 
 @testable import MacMCP
 
 // Test utilities are directly available in this module
 
-final class ClipboardManagementToolTests: XCTestCase {
+@Suite(.serialized)
+struct ClipboardManagementToolTests {
   // System under test
   private var tool: ClipboardManagementTool!
 
   // Mock dependencies
   private var mockClipboardService: MockClipboardService!
 
-  override func setUp() async throws {
-    try await super.setUp()
+  private mutating func setupTest() async throws {
     mockClipboardService = MockClipboardService()
     tool = ClipboardManagementTool(clipboardService: mockClipboardService)
   }
 
   // MARK: - Tool Configuration Tests
 
-  func testToolName() {
-    XCTAssertEqual(tool.name, ToolNames.clipboardManagement)
+  @Test("Test tool name")
+  mutating func testToolName() async throws {
+    try await setupTest()
+    #expect(tool.name == ToolNames.clipboardManagement)
   }
 
-  func testToolDescription() {
-    XCTAssertFalse(tool.description.isEmpty, "Tool should have a description")
+  @Test("Test tool description")
+  mutating func testToolDescription() async throws {
+    try await setupTest()
+    #expect(!tool.description.isEmpty, "Tool should have a description")
   }
 
-  func testInputSchema() {
+  @Test("Test input schema")
+  mutating func testInputSchema() async throws {
+    try await setupTest()
     let schema = tool.inputSchema
 
     // Verify schema is a dictionary with expected properties
     guard case .object = schema else {
-      XCTFail("Schema should be an object")
+      #expect(Bool(false), "Schema should be an object")
       return
     }
 
@@ -48,7 +54,7 @@ final class ClipboardManagementToolTests: XCTestCase {
     let schemaString = String(describing: schema)
 
     // Verify schema has type: "object"
-    XCTAssertTrue(schemaString.contains("object"), "Schema should have type object")
+    #expect(schemaString.contains("object"), "Schema should have type object")
 
     // Verify schema defines expected actions
     let expectedActions = [
@@ -63,51 +69,57 @@ final class ClipboardManagementToolTests: XCTestCase {
     ]
 
     for action in expectedActions {
-      XCTAssertTrue(schemaString.contains(action), "Schema should support \(action) action")
+      #expect(schemaString.contains(action), "Schema should support \(action) action")
     }
   }
 
   // MARK: - Action Validation Tests
 
-  func testExecuteWithInvalidAction() async {
+  @Test("Test execute with invalid action")
+  mutating func testExecuteWithInvalidAction() async throws {
+    try await setupTest()
     do {
       let input = ["action": "invalidAction"]
       _ = try await tool.execute(with: input, env: [:])
-      XCTFail("Should have thrown an error for invalid action")
+      #expect(Bool(false), "Should have thrown an error for invalid action")
     } catch let error as MCPError {
       if case .invalidParams(let message) = error {
         // The error message just needs to contain action-related information
         // rather than specific error code INVALID_ACTION
-        XCTAssertTrue(message?.contains("action") ?? false, "Error should mention 'action'")
+        #expect(message?.contains("action") ?? false, "Error should mention 'action'")
       } else {
-        XCTFail("Wrong error type thrown: \(error)")
+        #expect(Bool(false), "Wrong error type thrown: \(error)")
       }
     } catch {
-      XCTFail("Unexpected error: \(error)")
+      #expect(Bool(false), "Unexpected error: \(error)")
     }
   }
 
-  func testExecuteWithMissingAction() async {
+  @Test("Test execute with missing action")
+  mutating func testExecuteWithMissingAction() async throws {
+    try await setupTest()
     do {
       let input: [String: Any] = [:]
       _ = try await tool.execute(with: input, env: [:])
-      XCTFail("Should have thrown an error for missing action")
+      #expect(Bool(false), "Should have thrown an error for missing action")
     } catch let error as MCPError {
       if case .invalidParams(let message) = error {
         // The error message just needs to contain action-related information
         // rather than specific error code INVALID_ACTION
-        XCTAssertTrue(message?.contains("action") ?? false, "Error should mention 'action'")
+        #expect(message?.contains("action") ?? false, "Error should mention 'action'")
       } else {
-        XCTFail("Wrong error type thrown: \(error)")
+        #expect(Bool(false), "Wrong error type thrown: \(error)")
       }
     } catch {
-      XCTFail("Unexpected error: \(error)")
+      #expect(Bool(false), "Unexpected error: \(error)")
     }
   }
 
   // MARK: - GetInfo Tests
 
-  func testGetInfo() async throws {
+  @Test("Test getInfo")
+  mutating func testGetInfo() async throws {
+    try await setupTest()
     let input = ["action": "getInfo"]
 
     // Reset the call count to ensure it starts at 0
@@ -125,22 +137,24 @@ final class ClipboardManagementToolTests: XCTestCase {
 
     // Verify service calls - should be exactly 1 call
     let infoCallCount = await mockClipboardService.getInfoCallCount
-    XCTAssertEqual(infoCallCount, 1, "getClipboardInfo() should be called exactly once")
+    #expect(infoCallCount == 1, "getClipboardInfo() should be called exactly once")
 
     // Verify result - should have 3 types
     let availableTypes = result["availableTypes"] as? [String]
-    XCTAssertNotNil(availableTypes, "Result should contain availableTypes")
-    XCTAssertEqual(availableTypes?.count, 3, "Should have 3 types: text, image, files")
-    XCTAssertTrue(
+    #expect(availableTypes != nil, "Result should contain availableTypes")
+    #expect(availableTypes?.count == 3, "Should have 3 types: text, image, files")
+    #expect(
       availableTypes?.contains("text") ?? false, "Available types should include 'text'")
-    XCTAssertTrue(
+    #expect(
       availableTypes?.contains("image") ?? false, "Available types should include 'image'")
-    XCTAssertTrue(
+    #expect(
       availableTypes?.contains("files") ?? false, "Available types should include 'files'")
-    XCTAssertEqual(result["isEmpty"] as? Bool, false, "isEmpty should be false")
+    #expect(result["isEmpty"] as? Bool == false, "isEmpty should be false")
   }
 
-  func testGetInfoError() async throws {
+  @Test("Test getInfo error")
+  mutating func testGetInfoError() async throws {
+    try await setupTest()
     let input = ["action": "getInfo"]
 
     // Reset the call count
@@ -151,11 +165,11 @@ final class ClipboardManagementToolTests: XCTestCase {
 
     do {
       _ = try await tool.execute(with: input, env: [:])
-      XCTFail("Should have thrown an error")
+      #expect(Bool(false), "Should have thrown an error")
     } catch {
       // Error is expected, verify the service was called
       let callCount = await mockClipboardService.getInfoCallCount
-      XCTAssertEqual(callCount, 1, "getClipboardInfo() should be called exactly once")
+      #expect(callCount == 1, "getClipboardInfo() should be called exactly once")
 
       // We don't need to assert anything about the error itself
       // Just the fact that an error was thrown is sufficient
@@ -164,7 +178,9 @@ final class ClipboardManagementToolTests: XCTestCase {
 
   // MARK: - GetText Tests
 
-  func testGetText() async throws {
+  @Test("Test getText")
+  mutating func testGetText() async throws {
+    try await setupTest()
     let input = ["action": "getText"]
 
     // Configure mock
@@ -175,13 +191,15 @@ final class ClipboardManagementToolTests: XCTestCase {
 
     // Verify service calls
     let textCallCount = await mockClipboardService.getTextCallCount
-    XCTAssertEqual(textCallCount, 1)
+    #expect(textCallCount == 1)
 
     // Verify result
-    XCTAssertEqual(result["text"] as? String, "Test clipboard text")
+    #expect(result["text"] as? String == "Test clipboard text")
   }
 
-  func testGetTextError() async {
+  @Test("Test getText error")
+  mutating func testGetTextError() async throws {
+    try await setupTest()
     let input = ["action": "getText"]
 
     // Configure mock to throw
@@ -189,17 +207,19 @@ final class ClipboardManagementToolTests: XCTestCase {
 
     do {
       _ = try await tool.execute(with: input, env: [:])
-      XCTFail("Should have thrown an error")
+      #expect(Bool(false), "Should have thrown an error")
     } catch {
       // Error expected
       let textCallCount = await mockClipboardService.getTextCallCount
-      XCTAssertEqual(textCallCount, 1)
+      #expect(textCallCount == 1)
     }
   }
 
   // MARK: - SetText Tests
 
-  func testSetText() async throws {
+  @Test("Test setText")
+  mutating func testSetText() async throws {
+    try await setupTest()
     let input: [String: Any] = ["action": "setText", "text": "New clipboard text"]
 
     // Execute
@@ -208,37 +228,41 @@ final class ClipboardManagementToolTests: XCTestCase {
     // Verify service calls
     let setTextCallCount = await mockClipboardService.setTextCallCount
     let lastTextSet = await mockClipboardService.lastTextSet
-    XCTAssertEqual(setTextCallCount, 1)
-    XCTAssertEqual(lastTextSet, "New clipboard text")
+    #expect(setTextCallCount == 1)
+    #expect(lastTextSet == "New clipboard text")
 
     // Verify result
-    XCTAssertEqual(result["success"] as? Bool, true)
+    #expect(result["success"] as? Bool == true)
   }
 
-  func testSetTextMissingText() async {
+  @Test("Test setText missing text")
+  mutating func testSetTextMissingText() async throws {
+    try await setupTest()
     let input = ["action": "setText"]
 
     do {
       _ = try await tool.execute(with: input, env: [:])
-      XCTFail("Should have thrown an error for missing text parameter")
+      #expect(Bool(false), "Should have thrown an error for missing text parameter")
     } catch let error as MCPError {
       if case .invalidParams(let message) = error {
         // The error message just needs to contain text-related information
         // rather than specific error code MISSING_TEXT
-        XCTAssertTrue(message?.contains("text") ?? false, "Error should mention 'text'")
+        #expect(message?.contains("text") ?? false, "Error should mention 'text'")
         // Verify service was not called
         let setTextCallCount = await mockClipboardService.setTextCallCount
-        XCTAssertEqual(
-          setTextCallCount, 0, "Service should not be called when parameters are missing")
+        #expect(
+          setTextCallCount == 0, "Service should not be called when parameters are missing")
       } else {
-        XCTFail("Wrong error type thrown: \(error)")
+        #expect(Bool(false), "Wrong error type thrown: \(error)")
       }
     } catch {
-      XCTFail("Unexpected error: \(error)")
+      #expect(Bool(false), "Unexpected error: \(error)")
     }
   }
 
-  func testSetTextError() async {
+  @Test("Test setText error")
+  mutating func testSetTextError() async throws {
+    try await setupTest()
     let input: [String: Any] = ["action": "setText", "text": "Test text"]
 
     // Configure mock to throw
@@ -246,17 +270,19 @@ final class ClipboardManagementToolTests: XCTestCase {
 
     do {
       _ = try await tool.execute(with: input, env: [:])
-      XCTFail("Should have thrown an error")
+      #expect(Bool(false), "Should have thrown an error")
     } catch {
       // Error expected
       let setTextCallCount = await mockClipboardService.setTextCallCount
-      XCTAssertEqual(setTextCallCount, 1)
+      #expect(setTextCallCount == 1)
     }
   }
 
   // MARK: - GetImage Tests
 
-  func testGetImage() async throws {
+  @Test("Test getImage")
+  mutating func testGetImage() async throws {
+    try await setupTest()
     let input = ["action": "getImage"]
 
     // Configure mock
@@ -268,13 +294,15 @@ final class ClipboardManagementToolTests: XCTestCase {
 
     // Verify service calls
     let getImageCallCount = await mockClipboardService.getImageCallCount
-    XCTAssertEqual(getImageCallCount, 1)
+    #expect(getImageCallCount == 1)
 
     // Verify result
-    XCTAssertEqual(result["imageData"] as? String, base64Image)
+    #expect(result["imageData"] as? String == base64Image)
   }
 
-  func testGetImageError() async {
+  @Test("Test getImage error")
+  mutating func testGetImageError() async throws {
+    try await setupTest()
     let input = ["action": "getImage"]
 
     // Configure mock to throw
@@ -282,17 +310,19 @@ final class ClipboardManagementToolTests: XCTestCase {
 
     do {
       _ = try await tool.execute(with: input, env: [:])
-      XCTFail("Should have thrown an error")
+      #expect(Bool(false), "Should have thrown an error")
     } catch {
       // Error expected
       let getImageCallCount = await mockClipboardService.getImageCallCount
-      XCTAssertEqual(getImageCallCount, 1)
+      #expect(getImageCallCount == 1)
     }
   }
 
   // MARK: - SetImage Tests
 
-  func testSetImage() async throws {
+  @Test("Test setImage")
+  mutating func testSetImage() async throws {
+    try await setupTest()
     let base64Image = "base64EncodedImageData"
     let input: [String: Any] = ["action": "setImage", "imageData": base64Image]
 
@@ -302,37 +332,41 @@ final class ClipboardManagementToolTests: XCTestCase {
     // Verify service calls
     let setImageCallCount = await mockClipboardService.setImageCallCount
     let lastImageSet = await mockClipboardService.lastImageSet
-    XCTAssertEqual(setImageCallCount, 1)
-    XCTAssertEqual(lastImageSet, base64Image)
+    #expect(setImageCallCount == 1)
+    #expect(lastImageSet == base64Image)
 
     // Verify result
-    XCTAssertEqual(result["success"] as? Bool, true)
+    #expect(result["success"] as? Bool == true)
   }
 
-  func testSetImageMissingImageData() async {
+  @Test("Test setImage missing imageData")
+  mutating func testSetImageMissingImageData() async throws {
+    try await setupTest()
     let input = ["action": "setImage"]
 
     do {
       _ = try await tool.execute(with: input, env: [:])
-      XCTFail("Should have thrown an error for missing imageData parameter")
+      #expect(Bool(false), "Should have thrown an error for missing imageData parameter")
     } catch let error as MCPError {
       if case .invalidParams(let message) = error {
         // The error message just needs to contain imageData-related information
         // rather than specific error code MISSING_IMAGE_DATA
-        XCTAssertTrue(message?.contains("imageData") ?? false, "Error should mention 'imageData'")
+        #expect(message?.contains("imageData") ?? false, "Error should mention 'imageData'")
         // Verify service was not called
         let setImageCallCount = await mockClipboardService.setImageCallCount
-        XCTAssertEqual(
-          setImageCallCount, 0, "Service should not be called when parameters are missing")
+        #expect(
+          setImageCallCount == 0, "Service should not be called when parameters are missing")
       } else {
-        XCTFail("Wrong error type thrown: \(error)")
+        #expect(Bool(false), "Wrong error type thrown: \(error)")
       }
     } catch {
-      XCTFail("Unexpected error: \(error)")
+      #expect(Bool(false), "Unexpected error: \(error)")
     }
   }
 
-  func testSetImageError() async {
+  @Test("Test setImage error")
+  mutating func testSetImageError() async throws {
+    try await setupTest()
     let input: [String: Any] = ["action": "setImage", "imageData": "testImageData"]
 
     // Configure mock to throw
@@ -340,17 +374,19 @@ final class ClipboardManagementToolTests: XCTestCase {
 
     do {
       _ = try await tool.execute(with: input, env: [:])
-      XCTFail("Should have thrown an error")
+      #expect(Bool(false), "Should have thrown an error")
     } catch {
       // Error expected
       let setImageCallCount = await mockClipboardService.setImageCallCount
-      XCTAssertEqual(setImageCallCount, 1)
+      #expect(setImageCallCount == 1)
     }
   }
 
   // MARK: - GetFiles Tests
 
-  func testGetFiles() async throws {
+  @Test("Test getFiles")
+  mutating func testGetFiles() async throws {
+    try await setupTest()
     let input = ["action": "getFiles"]
 
     // Configure mock
@@ -362,15 +398,17 @@ final class ClipboardManagementToolTests: XCTestCase {
 
     // Verify service calls
     let getFilesCallCount = await mockClipboardService.getFilesCallCount
-    XCTAssertEqual(getFilesCallCount, 1)
+    #expect(getFilesCallCount == 1)
 
     // Verify result
     let resultPaths = result["filePaths"] as? [String]
-    XCTAssertNotNil(resultPaths)
-    XCTAssertEqual(resultPaths, filePaths)
+    #expect(resultPaths != nil)
+    #expect(resultPaths == filePaths)
   }
 
-  func testGetFilesError() async {
+  @Test("Test getFiles error")
+  mutating func testGetFilesError() async throws {
+    try await setupTest()
     let input = ["action": "getFiles"]
 
     // Configure mock to throw
@@ -378,17 +416,19 @@ final class ClipboardManagementToolTests: XCTestCase {
 
     do {
       _ = try await tool.execute(with: input, env: [:])
-      XCTFail("Should have thrown an error")
+      #expect(Bool(false), "Should have thrown an error")
     } catch {
       // Error expected
       let getFilesCallCount = await mockClipboardService.getFilesCallCount
-      XCTAssertEqual(getFilesCallCount, 1)
+      #expect(getFilesCallCount == 1)
     }
   }
 
   // MARK: - SetFiles Tests
 
-  func testSetFiles() async throws {
+  @Test("Test setFiles")
+  mutating func testSetFiles() async throws {
+    try await setupTest()
     let filePaths = ["/path/to/file1.txt", "/path/to/file2.txt"]
     let input: [String: Any] = ["action": "setFiles", "filePaths": filePaths]
 
@@ -398,62 +438,68 @@ final class ClipboardManagementToolTests: XCTestCase {
     // Verify service calls
     let setFilesCallCount = await mockClipboardService.setFilesCallCount
     let lastFilesSet = await mockClipboardService.lastFilesSet
-    XCTAssertEqual(setFilesCallCount, 1)
-    XCTAssertEqual(lastFilesSet, filePaths)
+    #expect(setFilesCallCount == 1)
+    #expect(lastFilesSet == filePaths)
 
     // Verify result
-    XCTAssertEqual(result["success"] as? Bool, true)
+    #expect(result["success"] as? Bool == true)
   }
 
-  func testSetFilesMissingFilePaths() async {
+  @Test("Test setFiles missing filePaths")
+  mutating func testSetFilesMissingFilePaths() async throws {
+    try await setupTest()
     let input = ["action": "setFiles"]
 
     do {
       _ = try await tool.execute(with: input, env: [:])
-      XCTFail("Should have thrown an error for missing filePaths parameter")
+      #expect(Bool(false), "Should have thrown an error for missing filePaths parameter")
     } catch let error as MCPError {
       if case .invalidParams(let message) = error {
         // The error message just needs to contain filePaths-related information
         // rather than specific error code MISSING_FILE_PATHS
-        XCTAssertTrue(message?.contains("filePaths") ?? false, "Error should mention 'filePaths'")
+        #expect(message?.contains("filePaths") ?? false, "Error should mention 'filePaths'")
         // Verify service was not called
         let setFilesCallCount = await mockClipboardService.setFilesCallCount
-        XCTAssertEqual(
-          setFilesCallCount, 0, "Service should not be called when parameters are missing")
+        #expect(
+          setFilesCallCount == 0, "Service should not be called when parameters are missing")
       } else {
-        XCTFail("Wrong error type thrown: \(error)")
+        #expect(Bool(false), "Wrong error type thrown: \(error)")
       }
     } catch {
-      XCTFail("Unexpected error: \(error)")
+      #expect(Bool(false), "Unexpected error: \(error)")
     }
   }
 
-  func testSetFilesEmptyArray() async {
+  @Test("Test setFiles empty array")
+  mutating func testSetFilesEmptyArray() async throws {
+    try await setupTest()
     let input: [String: Any] = ["action": "setFiles", "filePaths": []]
 
     do {
       _ = try await tool.execute(with: input, env: [:])
-      XCTFail("Should have thrown an error for empty filePaths array")
+      #expect(Bool(false), "Should have thrown an error for empty filePaths array")
     } catch let error as MCPError {
       if case .invalidParams(let message) = error {
         // The error message just needs to contain empty array related information
         // rather than specific error code EMPTY_FILE_PATHS
-        XCTAssertTrue(
+        #expect(
           message?.contains("empty") ?? false || message?.contains("filePaths") ?? false,
           "Error should mention empty array or filePaths",
         )
         // Verify service was not called
         let setFilesCallCount = await mockClipboardService.setFilesCallCount
-        XCTAssertEqual(setFilesCallCount, 0, "Service should not be called with empty array")
+        #expect(setFilesCallCount == 0, "Service should not be called with empty array")
       } else {
-        XCTFail("Wrong error type thrown: \(error)")
+        #expect(Bool(false), "Wrong error type thrown: \(error)")
       }
     } catch {
-      XCTFail("Unexpected error: \(error)")
+      #expect(Bool(false), "Unexpected error: \(error)")
     }
   }
 
-  func testSetFilesError() async {
+  @Test("Test setFiles error")
+  mutating func testSetFilesError() async throws {
+    try await setupTest()
     let input: [String: Any] = ["action": "setFiles", "filePaths": ["/path/to/file.txt"]]
 
     // Configure mock to throw
@@ -461,17 +507,19 @@ final class ClipboardManagementToolTests: XCTestCase {
 
     do {
       _ = try await tool.execute(with: input, env: [:])
-      XCTFail("Should have thrown an error")
+      #expect(Bool(false), "Should have thrown an error")
     } catch {
       // Error expected
       let setFilesCallCount = await mockClipboardService.setFilesCallCount
-      XCTAssertEqual(setFilesCallCount, 1)
+      #expect(setFilesCallCount == 1)
     }
   }
 
   // MARK: - Clear Tests
 
-  func testClear() async throws {
+  @Test("Test clear")
+  mutating func testClear() async throws {
+    try await setupTest()
     let input = ["action": "clear"]
 
     // Execute
@@ -479,13 +527,15 @@ final class ClipboardManagementToolTests: XCTestCase {
 
     // Verify service calls
     let clearCallCount = await mockClipboardService.clearCallCount
-    XCTAssertEqual(clearCallCount, 1)
+    #expect(clearCallCount == 1)
 
     // Verify result
-    XCTAssertEqual(result["success"] as? Bool, true)
+    #expect(result["success"] as? Bool == true)
   }
 
-  func testClearError() async {
+  @Test("Test clear error")
+  mutating func testClearError() async throws {
+    try await setupTest()
     let input = ["action": "clear"]
 
     // Configure mock to throw
@@ -493,11 +543,11 @@ final class ClipboardManagementToolTests: XCTestCase {
 
     do {
       _ = try await tool.execute(with: input, env: [:])
-      XCTFail("Should have thrown an error")
+      #expect(Bool(false), "Should have thrown an error")
     } catch {
       // Error expected
       let clearCallCount = await mockClipboardService.clearCallCount
-      XCTAssertEqual(clearCallCount, 1)
+      #expect(clearCallCount == 1)
     }
   }
 }
