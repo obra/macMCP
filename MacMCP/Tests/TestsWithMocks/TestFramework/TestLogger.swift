@@ -3,7 +3,6 @@
 
 import Foundation
 import Logging
-import XCTest
 
 /// Standardized logging utility for MacMCP tests
 public class TestLogger {

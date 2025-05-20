@@ -1,10 +1,10 @@
 // ABOUTME: ApplicationActivationTest.swift
 // ABOUTME: Part of MacMCP allowing LLMs to interact with macOS applications.
 
+import AppKit
 import Foundation
 import MCP
 import Testing
-import XCTest
 
 @testable import MacMCP
 
@@ -52,8 +52,9 @@ struct ApplicationActivationTest {
     // Wait for app to initialize
     try await Task.sleep(for: .milliseconds(2000))
 
-    // Get frontmost app to verify state
-    let frontmostBeforeSwitch = try await getFrontmostApp()
+    // Get frontmost app to verify state - we don't need to check this value
+    // just making sure grapher launched successfully
+    _ = try await getFrontmostApp()
 
     // Switch to Finder (deactivate grapher)
     let switchToFinderSuccess = try await activateApp(bundleId: "com.apple.finder")
@@ -187,7 +188,6 @@ struct ApplicationActivationTest {
 
     // Extract window count from result
     if let content = result.first, case .text(let text) = content {
-
       // Parse the JSON for window information
       if let data = text.data(using: .utf8),
         let json = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]

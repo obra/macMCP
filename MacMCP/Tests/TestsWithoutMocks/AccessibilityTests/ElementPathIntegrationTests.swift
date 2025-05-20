@@ -306,7 +306,7 @@ struct ElementPathIntegrationTests {
       NSRunningApplication.runningApplications(withBundleIdentifier: calculator.bundleIdentifier)
         .first != nil
     else {
-      XCTFail("Could not find running Calculator app")
+      #expect(Bool(false), "Could not find running Calculator app")
       try await calculator.terminate()
       return
     }

@@ -6,3 +6,6 @@ DerivedData/
 .swiftpm/configuration/registries.json
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
+Tests/TestsWithoutMocks/test-path-debugging.log
+test-screenshots/
+.issues

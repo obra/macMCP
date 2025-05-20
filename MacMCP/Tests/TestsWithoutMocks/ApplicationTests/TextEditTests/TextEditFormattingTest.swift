@@ -5,7 +5,6 @@ import AppKit
 import Foundation
 import MCP
 import Testing
-import XCTest
 
 @testable import MacMCP
 

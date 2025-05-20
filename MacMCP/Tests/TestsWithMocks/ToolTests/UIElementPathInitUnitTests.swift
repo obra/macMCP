@@ -3,7 +3,6 @@
 
 import Foundation
 import Testing
-import XCTest
 
 @testable import MacMCP
 
@@ -42,28 +41,28 @@ struct UIElementPathInitUnitTests {
     // Invalid prefix
     do {
       _ = try ElementPath.parse("invalid://AXApplication")
-      XCTFail("Expected an error but none was thrown")
+      #expect(Bool(false), "Expected an error but none was thrown")
     } catch let error as ElementPathError {
       switch error {
       case .invalidPathPrefix:
         // This is expected
         break
       default:
-        XCTFail("Expected invalidPathPrefix error but got: \(error)")
+        #expect(Bool(false), "Expected invalidPathPrefix error but got: \(error)")
       }
     }
 
     // Empty path
     do {
       _ = try ElementPath.parse("ui://")
-      XCTFail("Expected an error but none was thrown")
+      #expect(Bool(false), "Expected an error but none was thrown")
     } catch let error as ElementPathError {
       switch error {
       case .emptyPath:
         // This is expected
         break
       default:
-        XCTFail("Expected emptyPath error but got: \(error)")
+        #expect(Bool(false), "Expected emptyPath error but got: \(error)")
       }
     }
   }

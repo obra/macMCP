@@ -5,7 +5,7 @@ import AppKit
 import Foundation
 import Logging
 import MCP
-import XCTest
+import Testing
 
 @testable import MacMCP
 
@@ -13,19 +13,28 @@ import XCTest
 // @_implementationOnly import TestsWithoutMocks
 
 /// End-to-end tests for the WindowManagementTool
-final class WindowManagementE2ETests: XCTestCase {
+@Suite(.serialized)
+struct WindowManagementE2ETests {
   // Test components
   private var toolChain: ToolChain!
   private var calculator: CalculatorModel!
+  private var logger: Logger!
+  private var logFileURL: URL?
 
-  override func setUp() async throws {
-    try await super.setUp()
+  private mutating func setUp() async throws {
+    // Set up standardized logging
+    (logger, logFileURL) = TestLogger.create(label: "mcp.test.windowmanagement", testName: "WindowManagementE2ETests")
+    TestLogger.configureEnvironment(logger: logger)
+    let _ = TestLogger.createDiagnosticLog(testName: "WindowManagementE2ETests", logger: logger)
+    
+    logger.debug("Setting up WindowManagementE2ETests")
 
     // Create the test components
     toolChain = ToolChain()
     calculator = CalculatorModel(toolChain: toolChain)
 
     // Force terminate any existing Calculator instances
+    logger.debug("Terminating any existing Calculator instances")
     for app in NSRunningApplication.runningApplications(
       withBundleIdentifier: "com.apple.calculator")
     {
@@ -35,14 +44,17 @@ final class WindowManagementE2ETests: XCTestCase {
     try await Task.sleep(for: .milliseconds(1000))
 
     // Launch calculator for the tests
+    logger.debug("Launching Calculator application")
     let launchSuccess = try await calculator.launch()
-    XCTAssertTrue(launchSuccess, "Calculator should launch successfully")
+    #expect(launchSuccess, "Calculator should launch successfully")
 
     // Wait for the app to fully initialize
     try await Task.sleep(for: .milliseconds(2000))
   }
 
-  override func tearDown() async throws {
+  private mutating func tearDown() async throws {
+    logger.debug("Tearing down WindowManagementE2ETests")
+    
     // Terminate Calculator
     for app in NSRunningApplication.runningApplications(
       withBundleIdentifier: "com.apple.calculator")
@@ -54,12 +66,13 @@ final class WindowManagementE2ETests: XCTestCase {
 
     calculator = nil
     toolChain = nil
-
-    try await super.tearDown()
   }
 
   /// Test getting application windows
-  func testGetApplicationWindows() async throws {
+  @Test("Get application windows")
+  mutating func testGetApplicationWindows() async throws {
+    try await setUp()
+    
     // Create parameters
     let params: [String: Value] = [
       "action": .string("getApplicationWindows"),
@@ -67,10 +80,11 @@ final class WindowManagementE2ETests: XCTestCase {
     ]
 
     // Execute the test
+    logger.debug("Getting application windows")
     let result = try await toolChain.windowManagementTool.handler(params)
 
     // Verify the result
-    XCTAssertEqual(result.count, 1, "Should return one content item")
+    #expect(result.count == 1, "Should return one content item")
 
     // Parse the result JSON to verify content
     if case .text(let jsonString) = result[0] {
@@ -79,27 +93,33 @@ final class WindowManagementE2ETests: XCTestCase {
       let json = try JSONSerialization.jsonObject(with: jsonData) as! [[String: Any]]
 
       // Verify window count
-      XCTAssertGreaterThanOrEqual(json.count, 1, "Should have at least 1 window")
+      #expect(json.count >= 1, "Should have at least 1 window")
 
       // Verify window properties
       let window = json[0]
-      XCTAssertNotNil(window["id"], "Window should have an ID")
-      XCTAssertEqual(window["AXRole"] as? String, "AXWindow", "Role should be AXWindow")
+      #expect(window["id"] != nil, "Window should have an ID")
+      #expect(window["AXRole"] as? String == "AXWindow", "Role should be AXWindow")
   
       // Save window ID for other tests
       if let windowId = window["id"] as? String {
         calculator.windowId = windowId
       }
     } else {
-      XCTFail("Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
+    
+    try await tearDown()
   }
 
   /// Test moving a window
-  func testMoveWindow() async throws {
+  @Test("Move window")
+  mutating func testMoveWindow() async throws {
+    try await setUp()
+    
     // First ensure we have the calculator window ID
     guard let windowId = try await getCalculatorWindowId() else {
-      XCTFail("Failed to get calculator window ID")
+      #expect(Bool(false), "Failed to get calculator window ID")
+      try await tearDown()
       return
     }
 
@@ -112,15 +132,16 @@ final class WindowManagementE2ETests: XCTestCase {
     ]
 
     // Execute the test
+    logger.debug("Moving window to position (200, 200)")
     let result = try await toolChain.windowManagementTool.handler(params)
 
     // Verify the result
-    XCTAssertEqual(result.count, 1, "Should return one content item")
+    #expect(result.count == 1, "Should return one content item")
 
     // Parse the result JSON to verify content
     if case .text(let jsonString) = result[0] {
       // Verify the response format
-      XCTAssertTrue(jsonString.contains("\"success\":true"), "Should indicate success")
+      #expect(jsonString.contains("\"success\":true"), "Should indicate success")
 
       // Wait for UI to update
       try await Task.sleep(for: .milliseconds(1000))
@@ -129,26 +150,34 @@ final class WindowManagementE2ETests: XCTestCase {
       let windowInfo = try await getWindowPosition(windowId: windowId)
 
       // Verify the position (allow some tolerance for window management adjustments)
-      XCTAssertNotNil(windowInfo, "Should get window information")
+      #expect(windowInfo != nil, "Should get window information")
       if let info = windowInfo {
         let frame = info["frame"] as! [String: Any]
         let x = frame["x"] as! CGFloat
         let y = frame["y"] as! CGFloat
 
-        // Use approximate comparison with tolerance
-        XCTAssertEqual(x, 200, accuracy: 20, "X position should be approximately 200")
-        XCTAssertEqual(y, 200, accuracy: 20, "Y position should be approximately 200")
+        // Use approximate equality checks
+        let xDiff = abs(x - 200)
+        let yDiff = abs(y - 200)
+        #expect(xDiff <= 20, "X position should be approximately 200, got \(x)")
+        #expect(yDiff <= 20, "Y position should be approximately 200, got \(y)")
       }
     } else {
-      XCTFail("Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
+    
+    try await tearDown()
   }
 
   /// Test resizing a window
-  func testResizeWindow() async throws {
+  @Test("Resize window")
+  mutating func testResizeWindow() async throws {
+    try await setUp()
+    
     // First ensure we have the calculator window ID
     guard let windowId = try await getCalculatorWindowId() else {
-      XCTFail("Failed to get calculator window ID")
+      #expect(Bool(false), "Failed to get calculator window ID")
+      try await tearDown()
       return
     }
 
@@ -161,15 +190,16 @@ final class WindowManagementE2ETests: XCTestCase {
     ]
 
     // Execute the test
+    logger.debug("Resizing window to 400x500")
     let result = try await toolChain.windowManagementTool.handler(params)
 
     // Verify the result
-    XCTAssertEqual(result.count, 1, "Should return one content item")
+    #expect(result.count == 1, "Should return one content item")
 
     // Parse the result JSON to verify content
     if case .text(let jsonString) = result[0] {
       // Verify the response format
-      XCTAssertTrue(jsonString.contains("\"success\":true"), "Should indicate success")
+      #expect(jsonString.contains("\"success\":true"), "Should indicate success")
 
       // Wait for UI to update
       try await Task.sleep(for: .milliseconds(1000))
@@ -178,26 +208,34 @@ final class WindowManagementE2ETests: XCTestCase {
       let windowInfo = try await getWindowPosition(windowId: windowId)
 
       // Verify the size (allow some tolerance for window management adjustments)
-      XCTAssertNotNil(windowInfo, "Should get window information")
+      #expect(windowInfo != nil, "Should get window information")
       if let info = windowInfo {
         let frame = info["frame"] as! [String: Any]
         let width = frame["width"] as! CGFloat
         let height = frame["height"] as! CGFloat
 
-        // Use approximate comparison with tolerance
-        XCTAssertEqual(width, 400, accuracy: 20, "Width should be approximately 400")
-        XCTAssertEqual(height, 500, accuracy: 20, "Height should be approximately 500")
+        // Use approximate equality checks
+        let widthDiff = abs(width - 400)
+        let heightDiff = abs(height - 500)
+        #expect(widthDiff <= 20, "Width should be approximately 400, got \(width)")
+        #expect(heightDiff <= 20, "Height should be approximately 500, got \(height)")
       }
     } else {
-      XCTFail("Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
+    
+    try await tearDown()
   }
 
   /// Test minimizing and activating a window
-  func testMinimizeAndActivateWindow() async throws {
+  @Test("Minimize and activate window")
+  mutating func testMinimizeAndActivateWindow() async throws {
+    try await setUp()
+    
     // First ensure we have the calculator window ID
     guard let windowId = try await getCalculatorWindowId() else {
-      XCTFail("Failed to get calculator window ID")
+      #expect(Bool(false), "Failed to get calculator window ID")
+      try await tearDown()
       return
     }
 
@@ -208,21 +246,22 @@ final class WindowManagementE2ETests: XCTestCase {
     ]
 
     // Execute the minimize test
+    logger.debug("Minimizing window")
     let minimizeResult = try await toolChain.windowManagementTool.handler(minimizeParams)
 
     // Verify the result
-    XCTAssertEqual(minimizeResult.count, 1, "Should return one content item")
+    #expect(minimizeResult.count == 1, "Should return one content item")
 
     if case .text(let jsonString) = minimizeResult[0] {
       // Verify the response format
-      XCTAssertTrue(jsonString.contains("\"success\":true"), "Should indicate success")
+      #expect(jsonString.contains("\"success\":true"), "Should indicate success")
 
       // Wait for UI to update
       try await Task.sleep(for: .milliseconds(1000))
 
       // Verify the window is minimized
       let isVisible = try await isWindowVisible(windowId: windowId)
-      XCTAssertFalse(isVisible, "Window should be minimized/not visible")
+      #expect(!isVisible, "Window should be minimized/not visible")
 
       // Now activate the window
       let activateParams: [String: Value] = [
@@ -231,27 +270,30 @@ final class WindowManagementE2ETests: XCTestCase {
       ]
 
       // Execute the activate test
+      logger.debug("Activating window")
       let activateResult = try await toolChain.windowManagementTool.handler(activateParams)
 
       // Verify the result
-      XCTAssertEqual(activateResult.count, 1, "Should return one content item")
+      #expect(activateResult.count == 1, "Should return one content item")
 
       if case .text(let activateJsonString) = activateResult[0] {
         // Verify the response format
-        XCTAssertTrue(activateJsonString.contains("\"success\":true"), "Should indicate success")
+        #expect(activateJsonString.contains("\"success\":true"), "Should indicate success")
 
         // Wait for UI to update
         try await Task.sleep(for: .milliseconds(1500))
 
         // Verify the window is visible again
         let isVisibleAfterActivate = try await isWindowVisible(windowId: windowId)
-        XCTAssertTrue(isVisibleAfterActivate, "Window should be visible after activation")
+        #expect(isVisibleAfterActivate, "Window should be visible after activation")
       } else {
-        XCTFail("Activate result should be text content")
+        #expect(Bool(false), "Activate result should be text content")
       }
     } else {
-      XCTFail("Minimize result should be text content")
+      #expect(Bool(false), "Minimize result should be text content")
     }
+    
+    try await tearDown()
   }
 
   // MARK: - Helper Methods

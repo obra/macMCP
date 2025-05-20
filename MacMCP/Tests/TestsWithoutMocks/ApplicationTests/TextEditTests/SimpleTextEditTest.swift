@@ -5,7 +5,6 @@ import AppKit
 import Foundation
 import MCP
 import Testing
-import XCTest
 
 @testable import MacMCP
 
@@ -70,7 +69,7 @@ struct SimpleTextEditTest {
     // Check document text is still there
     try await helper.assertDocumentContainsText(
       testText,
-      message: "Document should still contain the text after formatting",
+      message: "Document should still contain the text after formatting"
     )
     
     // Cleanup
@@ -103,7 +102,7 @@ struct SimpleTextEditTest {
         // Make text larger
         return try await self.helper.makeTextLarger()
       },
-      verificationText: testText,
+      verificationText: testText
     )
 
     #expect(success)

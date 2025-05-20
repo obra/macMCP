@@ -2,6 +2,8 @@
 // ABOUTME: Part of MacMCP allowing LLMs to interact with macOS applications.
 
 import Foundation
+import AppKit
+import ApplicationServices
 import Testing
 
 @testable import MacMCP

@@ -74,7 +74,8 @@ struct ElementPathFilteringTests {
     // Try to activate the app to ensure it's in the foreground
     if let runningApp = app {
       logger.debug("Activating Calculator...")
-      let activated = runningApp.activate(options: [.activateIgnoringOtherApps])
+      // Use activate() without the deprecated option
+      let activated = runningApp.activate()
       logger.debug("Activation result: \(activated)")
     }
     

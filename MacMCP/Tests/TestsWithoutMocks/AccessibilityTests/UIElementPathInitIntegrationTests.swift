@@ -6,7 +6,6 @@
 import Foundation
 import Logging
 import Testing
-import XCTest
 
 @testable @preconcurrency import MacMCP
 
@@ -90,29 +89,27 @@ struct UIElementPathInitIntegrationTests {
     // Check if the AXUIElement is a valid reference
     if let axElement = buttonElement.axElement {
 
-
-
       // Try to get role directly from AXUIElement (double-check)
       var roleRef: CFTypeRef?
-      let roleStatus = AXUIElementCopyAttributeValue(
+      _ = AXUIElementCopyAttributeValue(
         axElement, AXAttribute.role as CFString, &roleRef)
 
       // Try to get description directly from AXUIElement (double-check)
       var descRef: CFTypeRef?
-      let descStatus = AXUIElementCopyAttributeValue(
+      _ = AXUIElementCopyAttributeValue(
         axElement, AXAttribute.description as CFString, &descRef)
 
       // Try to get actions directly from AXUIElement
       var actionsArrayRef: CFTypeRef?
-      let actionsStatus = AXUIElementCopyAttributeValue(
+      _ = AXUIElementCopyAttributeValue(
         axElement,
         AXAttribute.actions as CFString,
-        &actionsArrayRef,
+        &actionsArrayRef
       )
   
     } else {
       print(
-        "2. AXUIElement resolved: NO (nil reference) - This indicates the path did not resolve to a real UI element",
+        "2. AXUIElement resolved: NO (nil reference) - This indicates the path did not resolve to a real UI element"
       )
     }
 
@@ -164,7 +161,7 @@ struct UIElementPathInitIntegrationTests {
     let areSame = try await UIElement.areSameElement(
       path1: path1,
       path2: path2,
-      accessibilityService: accessibilityService,
+      accessibilityService: accessibilityService
     )
 
     // Verify the paths resolve to the same element
@@ -211,7 +208,7 @@ struct UIElementPathInitIntegrationTests {
     let areSame = try await UIElement.areSameElement(
       path1: windowPath,
       path2: buttonPath,
-      accessibilityService: accessibilityService,
+      accessibilityService: accessibilityService
     )
 
     // Verify the paths resolve to different elements
@@ -256,7 +253,7 @@ struct UIElementPathInitIntegrationTests {
     // Attempt to create a UIElement (should throw)
     do {
       _ = try await UIElement(fromPath: invalidPath, accessibilityService: accessibilityService)
-      XCTFail("Expected an error but none was thrown")
+      #expect(Bool(false), "Expected an error but none was thrown")
     } catch let error as ElementPathError {
       // Verify we got an appropriate error
       switch error {
@@ -264,10 +261,10 @@ struct UIElementPathInitIntegrationTests {
         // These are the expected error types
         break
       default:
-        XCTFail("Unexpected error type: \(error)")
+        #expect(Bool(false), "Unexpected error type: \(error)")
       }
     } catch {
-      XCTFail("Unexpected error: \(error)")
+      #expect(Bool(false), "Unexpected error: \(error)")
     }
 
     // Cleanup - close calculator
@@ -309,7 +306,7 @@ private class CalculatorApp {
         throw NSError(
           domain: "com.macos.mcp.test",
           code: 1,
-          userInfo: [NSLocalizedDescriptionKey: "Calculator app not found"],
+          userInfo: [NSLocalizedDescriptionKey: "Calculator app not found"]
         )
       }
 

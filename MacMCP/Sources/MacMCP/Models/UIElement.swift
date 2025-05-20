@@ -692,14 +692,12 @@ public enum FrameSource: String, Codable {
       // Add custom identifier if available (check all common identifier attribute formats)
       // Try multiple attribute variations to catch all possible identifier formats
       let identifierKeys = ["AXIdentifier", "identifier", "Identifier"]
-      var foundIdentifier = false
       
       for key in identifierKeys {
           if let identifier = element.attributes[key] as? String, !identifier.isEmpty {
               // Always consistently use "AXIdentifier" in the final path
               attributes["AXIdentifier"] = identifier
               // Diagnostic logging
-              foundIdentifier = true
               break  // Stop after finding the first valid identifier
           }
       }
