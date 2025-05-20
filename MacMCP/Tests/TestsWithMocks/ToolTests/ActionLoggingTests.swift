@@ -5,7 +5,6 @@ import Foundation
 import Logging
 import MCP
 import Testing
-import XCTest
 
 @testable import MacMCP
 

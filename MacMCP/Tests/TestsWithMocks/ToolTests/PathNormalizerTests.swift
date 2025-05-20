@@ -3,7 +3,6 @@
 
 import Foundation
 import Testing
-import XCTest
 
 @testable import MacMCP
 @testable import MacMCPUtilities

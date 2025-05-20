@@ -3,7 +3,6 @@
 
 import Foundation
 import Testing
-import XCTest
 
 @testable import MacMCP
 
@@ -105,21 +104,21 @@ struct UIElementTests {
       #expect(frame["width"] as? CGFloat == 100)
       #expect(frame["height"] as? CGFloat == 50)
     } else {
-      XCTFail("Frame not found in JSON")
+      #expect(Bool(false), "Frame not found in JSON")
     }
 
     if let attributes = json["attributes"] as? [String: Any] {
       #expect(attributes["enabled"] as? Bool == true)
       #expect(attributes["focused"] as? Bool == false)
     } else {
-      XCTFail("Attributes not found in JSON")
+      #expect(Bool(false), "Attributes not found in JSON")
     }
 
     if let actions = json["actions"] as? [String] {
       #expect(actions.count == 1)
       #expect(actions[0] == "press")
     } else {
-      XCTFail("Actions not found in JSON")
+      #expect(Bool(false), "Actions not found in JSON")
     }
   }
 
@@ -247,7 +246,7 @@ struct UIElementTests {
     #expect(path.contains("AXTextField"))
     #expect(path.contains("[@AXTitle=\"Search\"]"))
     #expect(path.contains("[@AXDescription=\"Search field\"]"))
-    #expect(path.contains("[@identifier=\"searchField\"]"))
+    #expect(path.contains("[@AXIdentifier=\"searchField\"]"))
 
     // Value is not included by default as it can change
     #expect(!path.contains("[@value=\"query text\"]"))
