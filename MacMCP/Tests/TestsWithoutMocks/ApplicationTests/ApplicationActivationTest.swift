@@ -54,7 +54,6 @@ struct ApplicationActivationTest {
 
     // Get frontmost app to verify state
     let frontmostBeforeSwitch = try await getFrontmostApp()
-    print("Frontmost app before switch: \(frontmostBeforeSwitch?.bundleIdentifier ?? "None")")
 
     // Switch to Finder (deactivate grapher)
     let switchToFinderSuccess = try await activateApp(bundleId: "com.apple.finder")
@@ -65,8 +64,6 @@ struct ApplicationActivationTest {
 
     // Get frontmost app to verify switch worked
     let frontmostAfterSwitch = try await getFrontmostApp()
-    print(
-      "Frontmost app after switch to Finder: \(frontmostAfterSwitch?.bundleIdentifier ?? "None")")
     #expect(
       frontmostAfterSwitch?.bundleIdentifier == "com.apple.finder",
       "Finder should be frontmost after activation"
@@ -81,9 +78,7 @@ struct ApplicationActivationTest {
 
     // Get frontmost app to verify switch back worked
     let frontmostAfterSwitchBack = try await getFrontmostApp()
-    print(
-      "Frontmost app after switch back to grapher: \(frontmostAfterSwitchBack?.bundleIdentifier ?? "None")"
-    )
+
     #expect(
       frontmostAfterSwitchBack?.bundleIdentifier == "com.apple.grapher",
       "grapher should be frontmost after activation"
@@ -91,8 +86,7 @@ struct ApplicationActivationTest {
 
     // Test window counting with WindowManagementTool
     let windowCount = try await getWindowCount(bundleId: "com.apple.grapher")
-    print("grapher window count: \(windowCount)")
-
+    #expect(windowCount == 1, "Grapher is showing one window")
     // Terminate grapher
     let terminateSuccess = try await terminateApp(bundleId: "com.apple.grapher")
     #expect(terminateSuccess, "grapher should terminate successfully")
@@ -114,7 +108,6 @@ struct ApplicationActivationTest {
 
     // Check if launch was successful
     if let content = result.first, case .text(let text) = content {
-      print("Launch result: \(text)")
       return text.contains("success") && text.contains("true")
     }
 
@@ -132,7 +125,6 @@ struct ApplicationActivationTest {
 
     // Check if activation was successful
     if let content = result.first, case .text(let text) = content {
-      print("Activation result: \(text)")
       return text.contains("success") && text.contains("true")
     }
 
@@ -150,7 +142,6 @@ struct ApplicationActivationTest {
 
     // Check if termination was successful
     if let content = result.first, case .text(let text) = content {
-      print("Termination result: \(text)")
       return text.contains("success") && text.contains("true")
     }
 
@@ -196,7 +187,6 @@ struct ApplicationActivationTest {
 
     // Extract window count from result
     if let content = result.first, case .text(let text) = content {
-      print("Window management result: \(text)")
 
       // Parse the JSON for window information
       if let data = text.data(using: .utf8),

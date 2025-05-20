@@ -145,7 +145,7 @@ extension ApplicationService {
     bundleIdentifier: String,
     timeout: TimeInterval = 10.0,
   ) async throws -> Bool {
-    logger.info(
+    logger.debug(
       "Terminating application",
       metadata: [
         "bundleIdentifier": "\(bundleIdentifier)",
@@ -157,7 +157,7 @@ extension ApplicationService {
       withBundleIdentifier: bundleIdentifier)
 
     if runningApps.isEmpty {
-      logger.info(
+      logger.debug(
         "Application is not running",
         metadata: [
           "bundleIdentifier": "\(bundleIdentifier)"
@@ -229,7 +229,7 @@ extension ApplicationService {
         appCache[bundleIdentifier] = appInfo
       }
 
-      logger.info(
+      logger.debug(
         "Application terminated successfully",
         metadata: [
           "bundleIdentifier": "\(bundleIdentifier)"
@@ -252,7 +252,7 @@ extension ApplicationService {
   public func forceTerminateApplication(
     bundleIdentifier: String,
   ) async throws -> Bool {
-    logger.info(
+    logger.debug(
       "Force terminating application",
       metadata: [
         "bundleIdentifier": "\(bundleIdentifier)"
@@ -263,7 +263,7 @@ extension ApplicationService {
       withBundleIdentifier: bundleIdentifier)
 
     if runningApps.isEmpty {
-      logger.info(
+      logger.debug(
         "Application is not running",
         metadata: [
           "bundleIdentifier": "\(bundleIdentifier)"
@@ -312,7 +312,7 @@ extension ApplicationService {
         appCache[bundleIdentifier] = appInfo
       }
 
-      logger.info(
+      logger.debug(
         "Application force terminated successfully",
         metadata: [
           "bundleIdentifier": "\(bundleIdentifier)"
@@ -329,7 +329,7 @@ extension ApplicationService {
   public func hideApplication(
     bundleIdentifier: String,
   ) async throws -> Bool {
-    logger.info(
+    logger.debug(
       "Hiding application",
       metadata: [
         "bundleIdentifier": "\(bundleIdentifier)"
@@ -421,13 +421,13 @@ extension ApplicationService {
     
     if overallSuccess {
       if atLeastOneFailure {
-        logger.info(
+        logger.debug(
           "Some application instances were hidden successfully",
           metadata: [
             "bundleIdentifier": "\(bundleIdentifier)"
           ])
       } else {
-        logger.info(
+        logger.debug(
           "All application instances hidden successfully",
           metadata: [
             "bundleIdentifier": "\(bundleIdentifier)"
@@ -451,7 +451,7 @@ extension ApplicationService {
   public func unhideApplication(
     bundleIdentifier: String,
   ) async throws -> Bool {
-    logger.info(
+    logger.debug(
       "Unhiding application",
       metadata: [
         "bundleIdentifier": "\(bundleIdentifier)"
@@ -493,7 +493,7 @@ extension ApplicationService {
     }
 
     if allUnhidden {
-      logger.info(
+      logger.debug(
         "Application unhidden successfully",
         metadata: [
           "bundleIdentifier": "\(bundleIdentifier)"
@@ -516,7 +516,7 @@ extension ApplicationService {
   public func hideOtherApplications(
     exceptBundleIdentifier: String? = nil,
   ) async throws -> Bool {
-    logger.info(
+    logger.debug(
       "Hiding other applications",
       metadata: [
         "exceptBundleIdentifier": "\(exceptBundleIdentifier ?? "nil")"
