@@ -1,6 +1,7 @@
 // ABOUTME: ElementPathTests.swift
 // ABOUTME: Part of MacMCP allowing LLMs to interact with macOS applications.
 
+// TODO - remove mock diagnostic output and the key canonnicaliation for the non-ax versions
 import Foundation
 import MacMCPUtilities
 import Testing
