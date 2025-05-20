@@ -218,7 +218,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
     applicationService: ApplicationServiceProtocol,
     logger: Logger,
   ) async throws -> [Tool.Content] {
-    logger.info(
+    logger.debug(
       "Handling launch action",
       metadata: [
         "params": "\(params.keys.joined(separator: ", "))"
@@ -276,7 +276,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
     applicationService: ApplicationServiceProtocol,
     logger: Logger,
   ) async throws -> [Tool.Content] {
-    logger.info(
+    logger.debug(
       "Handling terminate action",
       metadata: [
         "params": "\(params.keys.joined(separator: ", "))"
@@ -322,7 +322,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
     applicationService: ApplicationServiceProtocol,
     logger: Logger,
   ) async throws -> [Tool.Content] {
-    logger.info(
+    logger.debug(
       "Handling force terminate action",
       metadata: [
         "params": "\(params.keys.joined(separator: ", "))"
@@ -365,7 +365,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
     applicationService: ApplicationServiceProtocol,
     logger: Logger,
   ) async throws -> [Tool.Content] {
-    logger.info(
+    logger.debug(
       "Handling isRunning action",
       metadata: [
         "params": "\(params.keys.joined(separator: ", "))"
@@ -408,7 +408,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
     applicationService: ApplicationServiceProtocol,
     logger: Logger,
   ) async throws -> [Tool.Content] {
-    logger.info("Handling getRunningApplications action")
+    logger.debug("Handling getRunningApplications action")
 
     do {
       let runningApps = try await applicationService.getRunningApplications()
@@ -454,7 +454,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
     applicationService: ApplicationServiceProtocol,
     logger: Logger,
   ) async throws -> [Tool.Content] {
-    logger.info(
+    logger.debug(
       "Handling activateApplication action",
       metadata: [
         "params": "\(params.keys.joined(separator: ", "))"
@@ -496,7 +496,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
     applicationService: ApplicationServiceProtocol,
     logger: Logger,
   ) async throws -> [Tool.Content] {
-    logger.info(
+    logger.debug(
       "Handling hideApplication action",
       metadata: [
         "params": "\(params.keys.joined(separator: ", "))"
@@ -538,7 +538,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
     applicationService: ApplicationServiceProtocol,
     logger: Logger,
   ) async throws -> [Tool.Content] {
-    logger.info(
+    logger.debug(
       "Handling unhideApplication action",
       metadata: [
         "params": "\(params.keys.joined(separator: ", "))"
@@ -580,7 +580,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
     applicationService: ApplicationServiceProtocol,
     logger: Logger,
   ) async throws -> [Tool.Content] {
-    logger.info(
+    logger.debug(
       "Handling hideOtherApplications action",
       metadata: [
         "params": "\(params.keys.joined(separator: ", "))"
@@ -626,7 +626,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
     applicationService: ApplicationServiceProtocol,
     logger: Logger,
   ) async throws -> [Tool.Content] {
-    logger.info("Handling getFrontmostApplication action")
+    logger.debug("Handling getFrontmostApplication action")
 
     do {
       if let frontmost = try await applicationService.getFrontmostApplication() {

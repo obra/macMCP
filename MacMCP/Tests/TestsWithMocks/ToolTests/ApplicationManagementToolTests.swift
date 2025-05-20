@@ -339,9 +339,9 @@ struct ApplicationManagementToolTests {
     // Verify the result content
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
-      #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
-      #expect(jsonString.contains("\"processIdentifier\":12345"), "Response should include process ID")
-      #expect(jsonString.contains("\"bundleIdentifier\":\"com.test.app\""), "Response should include bundle ID")
+      #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
+      #expect(jsonString.contains("\"processIdentifier\": 12345"), "Response should include process ID")
+      #expect(jsonString.contains("\"bundleIdentifier\": \"com.test.app\""), "Response should include bundle ID")
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -378,7 +378,7 @@ struct ApplicationManagementToolTests {
     // Verify the result content
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
-      #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
+      #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -412,8 +412,8 @@ struct ApplicationManagementToolTests {
     // Verify the result content
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
-      #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
-      #expect(jsonString.contains("\"bundleIdentifier\":\"com.test.app\""), "Response should include bundle ID")
+      #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
+      #expect(jsonString.contains("\"bundleIdentifier\": \"com.test.app\""), "Response should include bundle ID")
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -445,8 +445,8 @@ struct ApplicationManagementToolTests {
     // Verify the result content
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
-      #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
-      #expect(jsonString.contains("\"bundleIdentifier\":\"com.test.app\""), "Response should include bundle ID")
+      #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
+      #expect(jsonString.contains("\"bundleIdentifier\": \"com.test.app\""), "Response should include bundle ID")
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -480,9 +480,9 @@ struct ApplicationManagementToolTests {
     // Verify the result content
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
-      #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
-      #expect(jsonString.contains("\"bundleIdentifier\":\"com.test.app\""), "Response should include bundle ID")
-      #expect(jsonString.contains("\"isRunning\":true"), "Response should include running status")
+      #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
+      #expect(jsonString.contains("\"bundleIdentifier\": \"com.test.app\""), "Response should include bundle ID")
+      #expect(jsonString.contains("\"isRunning\": true"), "Response should include running status")
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -513,12 +513,12 @@ struct ApplicationManagementToolTests {
     // Verify the result content
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
-      #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
+      #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
       #expect(jsonString.contains("\"applications\":"), "Response should include applications array")
-      #expect(jsonString.contains("\"bundleIdentifier\":\"com.test.app1\""), "Response should include first app bundle ID")
-      #expect(jsonString.contains("\"applicationName\":\"Test App 1\""), "Response should include first app name")
-      #expect(jsonString.contains("\"bundleIdentifier\":\"com.test.app2\""), "Response should include second app bundle ID")
-      #expect(jsonString.contains("\"applicationName\":\"Test App 2\""), "Response should include second app name")
+      #expect(jsonString.contains("\"bundleIdentifier\": \"com.test.app1\""), "Response should include first app bundle ID")
+      #expect(jsonString.contains("\"applicationName\": \"Test App 1\""), "Response should include first app name")
+      #expect(jsonString.contains("\"bundleIdentifier\": \"com.test.app2\""), "Response should include second app bundle ID")
+      #expect(jsonString.contains("\"applicationName\": \"Test App 2\""), "Response should include second app name")
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -550,8 +550,8 @@ struct ApplicationManagementToolTests {
     // Verify the result content
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
-      #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
-      #expect(jsonString.contains("\"bundleIdentifier\":\"com.test.app\""), "Response should include bundle ID")
+      #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
+      #expect(jsonString.contains("\"bundleIdentifier\": \"com.test.app\""), "Response should include bundle ID")
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -583,8 +583,8 @@ struct ApplicationManagementToolTests {
     // Verify the result content
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
-      #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
-      #expect(jsonString.contains("\"bundleIdentifier\":\"com.test.app\""), "Response should include bundle ID")
+      #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
+      #expect(jsonString.contains("\"bundleIdentifier\": \"com.test.app\""), "Response should include bundle ID")
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -616,8 +616,8 @@ struct ApplicationManagementToolTests {
     // Verify the result content
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
-      #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
-      #expect(jsonString.contains("\"bundleIdentifier\":\"com.test.app\""), "Response should include bundle ID")
+      #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
+      #expect(jsonString.contains("\"bundleIdentifier\": \"com.test.app\""), "Response should include bundle ID")
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -649,8 +649,8 @@ struct ApplicationManagementToolTests {
     // Verify the result content
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
-      #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
-      #expect(jsonString.contains("\"exceptBundleIdentifier\":\"com.test.app\""), "Response should include except bundle ID")
+      #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
+      #expect(jsonString.contains("\"exceptBundleIdentifier\": \"com.test.app\""), "Response should include except bundle ID")
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -681,12 +681,12 @@ struct ApplicationManagementToolTests {
     // Verify the result content
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
-      #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
-      #expect(jsonString.contains("\"bundleIdentifier\":\"com.test.frontmost\""), "Response should include bundle ID")
-      #expect(jsonString.contains("\"applicationName\":\"Frontmost App\""), "Response should include app name")
-      #expect(jsonString.contains("\"processIdentifier\":12345"), "Response should include process ID")
-      #expect(jsonString.contains("\"isActive\":true"), "Response should include active status")
-      #expect(jsonString.contains("\"isFinishedLaunching\":true"), "Response should include finished launching status")
+      #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
+      #expect(jsonString.contains("\"bundleIdentifier\": \"com.test.frontmost\""), "Response should include bundle ID")
+      #expect(jsonString.contains("\"applicationName\": \"Frontmost App\""), "Response should include app name")
+      #expect(jsonString.contains("\"processIdentifier\": 12345"), "Response should include process ID")
+      #expect(jsonString.contains("\"isActive\": true"), "Response should include active status")
+      #expect(jsonString.contains("\"isFinishedLaunching\": true"), "Response should include finished launching status")
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -718,8 +718,8 @@ struct ApplicationManagementToolTests {
     // Verify the result content
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
-      #expect(jsonString.contains("\"success\":true"), "Response should indicate success")
-      #expect(jsonString.contains("\"hasFrontmostApplication\":false"), "Response should indicate no frontmost app")
+      #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
+      #expect(jsonString.contains("\"hasFrontmostApplication\": false"), "Response should indicate no frontmost app")
     } else {
       #expect(Bool(false), "Result should be text content")
     }
