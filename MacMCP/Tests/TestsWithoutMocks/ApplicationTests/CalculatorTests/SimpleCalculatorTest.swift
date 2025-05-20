@@ -28,7 +28,7 @@ struct SimpleCalculatorTest {
     TestLogger.configureEnvironment(logger: logger)
     let _ = TestLogger.createDiagnosticLog(testName: "SimpleCalculatorTest", logger: logger)
     
-    logger.info("Setting up SimpleCalculatorTest")
+    logger.debug("Setting up SimpleCalculatorTest")
     
     // Initialize toolchain and app model
     toolChain = ToolChain()
@@ -37,7 +37,7 @@ struct SimpleCalculatorTest {
     // Terminate any existing calculator instances first to ensure clean state
     let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleId)
     if !runningApps.isEmpty {
-      logger.info("Terminating existing Calculator instances")
+      logger.debug("Terminating existing Calculator instances")
       for runningApp in runningApps {
         _ = runningApp.terminate()
       }
@@ -46,7 +46,7 @@ struct SimpleCalculatorTest {
     }
 
     // Launch calculator fresh without hiding other apps
-    logger.info("Launching Calculator application")
+    logger.debug("Launching Calculator application")
     let launchSuccess = try await app.launch(hideOthers: false)
     #expect(launchSuccess, "Calculator should launch successfully")
 
@@ -55,7 +55,7 @@ struct SimpleCalculatorTest {
 
     // Ensure Calculator is frontmost application
     if let calcApp = NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleId).first {
-      logger.info("Activating Calculator as frontmost application")
+      logger.debug("Activating Calculator as frontmost application")
       let activateSuccess = calcApp.activate(options: [])
       if !activateSuccess {
         logger.warning("Failed to activate Calculator as frontmost app")
@@ -66,22 +66,22 @@ struct SimpleCalculatorTest {
     }
 
     // Clear the calculator state
-    logger.info("Clearing calculator state")
+    logger.debug("Clearing calculator state")
     _ = try await app.clear()
     try await Task.sleep(for: .milliseconds(500))  // Wait for clear to complete
 
     calculatorRunning = true
-    logger.info("Calculator setup complete")
+    logger.debug("Calculator setup complete")
   }
   
   // Shared teardown method
   private mutating func tearDown() async throws {
-    logger.info("Tearing down SimpleCalculatorTest")
+    logger.debug("Tearing down SimpleCalculatorTest")
     if calculatorRunning {
       // Terminate the calculator application
       let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleId)
       if !runningApps.isEmpty {
-        logger.info("Terminating Calculator application")
+        logger.debug("Terminating Calculator application")
         for runningApp in runningApps {
           _ = runningApp.terminate()
         }
@@ -90,7 +90,7 @@ struct SimpleCalculatorTest {
       }
       calculatorRunning = false
     }
-    logger.info("Teardown complete")
+    logger.debug("Teardown complete")
   }
 
   @Test("Test basic button press")
@@ -98,7 +98,7 @@ struct SimpleCalculatorTest {
     try await setUp()
 
     // Press the '5' button
-    logger.info("Pressing '5' button")
+    logger.debug("Pressing '5' button")
     let buttonSuccess = try await app.pressButtonViaAccessibility("5")
     #expect(buttonSuccess, "Should be able to press the '5' button")
 
@@ -106,12 +106,12 @@ struct SimpleCalculatorTest {
     try await Task.sleep(for: .milliseconds(500))
 
     // Read the display value
-    logger.info("Reading display value")
+    logger.debug("Reading display value")
     let displayValue = try await app.getDisplayValue()
     #expect(displayValue != nil, "Should be able to read the display value")
 
     if let displayValue {
-      logger.info("Display value: '\(displayValue)'")
+      logger.debug("Display value: '\(displayValue)'")
       let isExpectedValue =
         displayValue == "5" || displayValue == "5." || displayValue.hasPrefix("5")
       #expect(isExpectedValue, "Display should show '5', got '\(displayValue)'")
@@ -125,11 +125,11 @@ struct SimpleCalculatorTest {
     try await setUp()
     
     // Clear the calculator first to ensure clean state
-    logger.info("Clearing calculator state")
+    logger.debug("Clearing calculator state")
     _ = try await app.clear()
 
     // Press 3 + 4 = buttons
-    logger.info("Executing calculation 3 + 4 = ")
+    logger.debug("Executing calculation 3 + 4 = ")
     _ = try await app.pressButtonViaAccessibility("3")
     _ = try await app.pressButtonViaAccessibility("+")
     _ = try await app.pressButtonViaAccessibility("4")
@@ -139,12 +139,12 @@ struct SimpleCalculatorTest {
     try await Task.sleep(for: .milliseconds(500))
 
     // Read the display value
-    logger.info("Reading display value")
+    logger.debug("Reading display value")
     let displayValue = try await app.getDisplayValue()
     #expect(displayValue != nil, "Should be able to read the display value")
 
     if let displayValue {
-      logger.info("Display value: '\(displayValue)'")
+      logger.debug("Display value: '\(displayValue)'")
       let isExpectedValue =
         displayValue == "7" || displayValue == "7." || displayValue.hasPrefix("7")
       #expect(isExpectedValue, "Display should show '7', got '\(displayValue)'")

@@ -25,7 +25,6 @@ struct UIInteractionToolE2ETests {
 
   // Shared setup method
   private mutating func setUp() async throws {
-    print("Setting up UIInteractionToolE2ETests")
 
     // Initialize test helpers
     calculatorHelper = await CalculatorTestHelper.sharedHelper()
@@ -37,13 +36,11 @@ struct UIInteractionToolE2ETests {
 
     // For Calculator: terminate and relaunch for a clean state
     if calculatorRunning {
-      print("Terminating existing Calculator instance")
       _ = try await calculatorHelper.app.terminate()
       try await Task.sleep(for: .milliseconds(1000))
     }
 
     // Launch Calculator
-    print("Launching Calculator")
     _ = try await calculatorHelper.app.launch()
 
     // Allow time for Calculator to launch and stabilize - increased wait time
@@ -51,15 +48,12 @@ struct UIInteractionToolE2ETests {
 
     // Only set up TextEdit if the test needs it
     if try await testRequiresTextEdit() {
-      print("Test requires TextEdit, setting it up")
       if textEditRunning {
-        print("Terminating existing TextEdit instance")
         _ = try await textEditHelper.app.terminate()
         try await Task.sleep(for: .milliseconds(1000))
       }
 
       // Launch TextEdit
-      print("Launching TextEdit")
       _ = try await textEditHelper.app.launch()
 
       // Allow time for TextEdit to launch and stabilize
@@ -98,7 +92,6 @@ struct UIInteractionToolE2ETests {
   @Test("Basic Click Operations")
   mutating func testBasicClick() async throws {
     try await setUp()
-    print("Starting testBasicClick")
 
     // Ensure Calculator is active before interactions
     NSRunningApplication.runningApplications(withBundleIdentifier: calculatorHelper.app.bundleId)
@@ -110,7 +103,6 @@ struct UIInteractionToolE2ETests {
     _ = try await calculatorHelper.app.clear()
     try await Task.sleep(for: .milliseconds(1000))
 
-    print("Finding calculator buttons...")
     // Find calculator buttons with retries if needed
     var digitOne: UIElement?
     var digitTwo: UIElement?
@@ -143,10 +135,8 @@ struct UIInteractionToolE2ETests {
       return
     }
 
-    print("Performing calculation 1+2=...")
 
     // Click each button in sequence with increased wait times
-    print("Clicking button '1'")
     let onePath = oneButton.path
     if onePath.isEmpty {
       #expect(Bool(false), "Empty path for '1' button")
@@ -159,7 +149,6 @@ struct UIInteractionToolE2ETests {
     #expect(clickOneSuccess, "Should click '1' button successfully")
     try await Task.sleep(for: .milliseconds(1000))
 
-    print("Clicking button '+'")
     let addPath = addButton.path
     if addPath.isEmpty {
       #expect(Bool(false), "Empty path for '+' button")
@@ -172,7 +161,6 @@ struct UIInteractionToolE2ETests {
     #expect(clickPlusSuccess, "Should click '+' button successfully")
     try await Task.sleep(for: .milliseconds(1000))
 
-    print("Clicking button '2'")
     let twoPath = twoButton.path
     if twoPath.isEmpty {
       #expect(Bool(false), "Empty path for '2' button")
@@ -185,7 +173,6 @@ struct UIInteractionToolE2ETests {
     #expect(clickTwoSuccess, "Should click '2' button successfully")
     try await Task.sleep(for: .milliseconds(1000))
 
-    print("Clicking button '='")
     let eqPath = eqButton.path
     if eqPath.isEmpty {
       #expect(Bool(false), "Empty path for '=' button")
@@ -199,7 +186,6 @@ struct UIInteractionToolE2ETests {
     try await Task.sleep(for: .milliseconds(1000))
 
     // Verify the result is 3 (1+2)
-    print("Verifying display value...")
     try await calculatorHelper.assertDisplayValue(
       "3", message: "Display should show '3' after clicking buttons")
 
@@ -226,7 +212,6 @@ struct UIInteractionToolE2ETests {
       #expect(Bool(false), "Handler should return text content")
     }
 
-    print("testBasicClick completed successfully")
     
     try await tearDown()
   }
@@ -265,8 +250,6 @@ struct UIInteractionToolE2ETests {
       return
     }
 
-    // Log the element we found to help with debugging
-    print("Found button '5' at frame: \(digitFive.frame)")
 
     // Verify the button has valid coordinates
     #expect(digitFive.frame.width > 10, "Button should have reasonable width")
@@ -338,7 +321,6 @@ struct UIInteractionToolE2ETests {
   @Test("Different Click Types")
   mutating func testDifferentClickTypes() async throws {
     try await setUp()
-    print("Starting testDifferentClickTypes with mouse-based interactions...")
 
     // First ensure TextEdit is running and active
     if try await !(textEditHelper.app.isRunning()) {
@@ -356,7 +338,6 @@ struct UIInteractionToolE2ETests {
     try await textEditHelper.resetAppState()
     try await Task.sleep(for: .milliseconds(1000))
 
-    print("Typing text in TextEdit...")
 
     // Type some text with a clear word to double-click
     let testText = "Double-click-test word test"
@@ -375,9 +356,6 @@ struct UIInteractionToolE2ETests {
     let centerX = textArea.frame.origin.x + textArea.frame.size.width / 2
     let centerY = textArea.frame.origin.y + textArea.frame.size.height / 2
 
-    print("Text area found at: \(textArea.frame)")
-    print("Will double-click at position: (\(centerX), \(centerY))")
-
     // First test the position-based double-click using doubleClickAtPosition
     try await textEditHelper.toolChain.interactionService.doubleClickAtPosition(
       position: CGPoint(
@@ -387,7 +365,6 @@ struct UIInteractionToolE2ETests {
     try await Task.sleep(for: .milliseconds(1000))
 
     // Now type replacement text that should replace the selected word
-    print("Typing replacement text...")
     let replacementText = "REPLACED"
     _ = try await textEditHelper.typeText(replacementText)
     try await Task.sleep(for: .milliseconds(1000))
@@ -395,8 +372,7 @@ struct UIInteractionToolE2ETests {
     // Get the text and verify the replacement
     let documentText = try await textEditHelper.app.getText()
     #expect(documentText != nil, "Should get text from document")
-    print("Final document text: \(documentText ?? "nil")")
-
+   
     // We can't guarantee exactly which word was selected,
     // but we can verify the replacement text is there
     #expect(
@@ -455,7 +431,6 @@ struct UIInteractionToolE2ETests {
   @Test("Right Click Functionality")
   mutating func testRightClick() async throws {
     try await setUp()
-    print("Starting testRightClick...")
 
     // Ensure TextEdit is running and active
     if try await !(textEditHelper.app.isRunning()) {
@@ -523,7 +498,6 @@ struct UIInteractionToolE2ETests {
     // For now, we'll implement a basic test that verifies the API accepts the parameters
     // and returns a success result, even though we won't verify the actual drag effect
 
-    print("Starting testDragOperation placeholder...")
 
     // Ensure TextEdit is running and active
     if try await !(textEditHelper.app.isRunning()) {
@@ -588,7 +562,6 @@ struct UIInteractionToolE2ETests {
   @Test("Scroll Operation")
   mutating func testScrollOperation() async throws {
     try await setUp()
-    print("Starting testScrollOperation...")
 
     // Ensure TextEdit is running and active
     if try await !(textEditHelper.app.isRunning()) {
@@ -605,7 +578,6 @@ struct UIInteractionToolE2ETests {
     // Use the current working directory to build the path (simpler approach)
     // During testing, the CWD is the MacMCP project directory
     let projectDir = FileManager.default.currentDirectoryPath
-    print("Current working directory: \(projectDir)")
 
     // Build full path to test file
     let testFileURL = URL(fileURLWithPath: projectDir)
@@ -614,19 +586,15 @@ struct UIInteractionToolE2ETests {
       .appendingPathComponent("TestAssets")
       .appendingPathComponent("ScrollTestContent.txt")
 
-    print("Test file path: \(testFileURL.path)")
 
     // Verify file exists before attempting to open
     let fileManager = FileManager.default
-    if fileManager.fileExists(atPath: testFileURL.path) {
-      print("Test file exists at path: \(testFileURL.path)")
-    } else {
+    if !fileManager.fileExists(atPath: testFileURL.path) {
       #expect(Bool(false), "Test file not found at path: \(testFileURL.path)")
       return
     }
 
     // Ensure TextEdit is in the foreground by explicitly activating it
-    print("Ensuring TextEdit is in foreground before opening file...")
     let activateParams: [String: Value] = [
       "action": .string("activateApplication"),
       "bundleIdentifier": .string(textEditHelper.app.bundleId),
@@ -635,7 +603,6 @@ struct UIInteractionToolE2ETests {
     let activateResult = try await textEditHelper.toolChain.applicationManagementTool.handler(
       activateParams)
     if let content = activateResult.first, case .text(let text) = content {
-      print("Activation result: \(text)")
     }
 
     // Verify that TextEdit is now the frontmost application
@@ -646,7 +613,6 @@ struct UIInteractionToolE2ETests {
     let frontmostResult = try await textEditHelper.toolChain.applicationManagementTool.handler(
       frontmostParams)
     if let content = frontmostResult.first, case .text(let text) = content {
-      print("Frontmost app: \(text)")
     }
 
     // Wait a bit to ensure application is fully focused
@@ -655,10 +621,8 @@ struct UIInteractionToolE2ETests {
     // Open the scroll test file - this brings up a file dialog
     let openSuccess = try await textEditHelper.app.openDocument(from: testFileURL.path)
     #expect(openSuccess, "Should start open document operation successfully")
-    print("Started document open operation")
 
     // Wait for the dialog to fully appear and stabilize
-    print("Waiting for file dialog to appear...")
     try await Task.sleep(for: .milliseconds(3000))
 
     // We need to click the "Open" button in the file dialog
@@ -667,7 +631,6 @@ struct UIInteractionToolE2ETests {
     // 2. Look for a button with ID containing "OKButton"
     // 3. Look for a button in a sheet or dialog
 
-    print("Looking for Open button in file dialog...")
 
     // Use multiple approaches to find the Open/OK button
     let searchScopes = ["application", "system"]
@@ -675,7 +638,6 @@ struct UIInteractionToolE2ETests {
 
     // First, try to find by title "Open"
     for scope in searchScopes {
-      print("Searching for button with title 'Open' in scope: \(scope)...")
 
       let openButtonCriteria = UIElementCriteria(
         role: "AXButton",
@@ -690,14 +652,12 @@ struct UIInteractionToolE2ETests {
       )
 
       if openButton != nil {
-        print("Found button with title 'Open': \(openButton!.path)")
         break
       }
     }
 
     // If not found by title, try to find by ID containing "OKButton"
     if openButton == nil {
-      print("Button with title 'Open' not found, searching for ID containing 'OKButton'...")
 
       for scope in searchScopes {
         let buttons = try await textEditHelper.toolChain.findElements(
@@ -711,7 +671,6 @@ struct UIInteractionToolE2ETests {
         for button in buttons {
           if button.path.contains("OKButton") {
             openButton = button
-            print("Found button with path containing 'OKButton': \(button.path)")
             break
           }
         }
@@ -724,8 +683,6 @@ struct UIInteractionToolE2ETests {
 
     // If still not found, try to find by title containing "Open"
     if openButton == nil {
-      print(
-        "Button with ID containing 'OKButton' not found, searching for title containing 'Open'...")
 
       for scope in searchScopes {
         let openButtonCriteria = UIElementCriteria(
@@ -741,14 +698,12 @@ struct UIInteractionToolE2ETests {
         )
 
         if openButton != nil {
-          print("Found button with title containing 'Open': \(openButton!.path)")
           break
         }
       }
     }
 
     if let openButton {
-      print("Found Open button with path: \(openButton.path)")
 
       // Click the Open button
       let openButtonPath = openButton.path
@@ -762,13 +717,11 @@ struct UIInteractionToolE2ETests {
       ]
 
       _ = try await textEditHelper.toolChain.uiInteractionTool.handler(clickParams)
-      print("Clicked Open button")
 
       // Wait for file to open
       try await Task.sleep(for: .milliseconds(3000))
     } else {
       // As a fallback, try using keyboard shortcut to confirm the dialog
-      print("Could not find Open button - trying keyboard shortcut...")
 
       // Press Return key to confirm the dialog
       let returnKeyParams: [String: Value] = [
@@ -781,74 +734,31 @@ struct UIInteractionToolE2ETests {
       ]
 
       _ = try await textEditHelper.toolChain.keyboardInteractionTool.handler(returnKeyParams)
-      print("Pressed Return key to confirm dialog")
 
       try await Task.sleep(for: .milliseconds(3000))
     }
 
     // Get the text area element
-    print("Attempting to get text area...")
     guard let textArea = try await textEditHelper.app.getTextArea() else {
       #expect(Bool(false), "Failed to find TextEdit text area")
       return
     }
-    print("Found text area with path: \(textArea.path)")
 
     // Create a path to the text area for path-based element identification
     let textAreaPath =
       "ui://AXApplication[@bundleIdentifier=\"\(textEditHelper.app.bundleId)\"]/AXWindow/AXTextArea"
-    print("Using text area path: \(textAreaPath)")
 
     // Get initial document content position information
     // We'll check this to verify that scrolling actually worked
     let initialDocText = try await textEditHelper.app.getText()
-    print("Document loaded with \(initialDocText?.count ?? 0) characters")
 
     // Get initial visible range (a real implementation would capture what's visible)
     // For this test, we'll simulate a check using a marker in the text file
     let hasScrolledMarker = "SCROLL_TEST_MARKER_END"
     let initiallyShowsEndMarker = initialDocText?.contains(hasScrolledMarker) ?? false
-    print("Initial document view state - shows end marker: \(initiallyShowsEndMarker)")
-
-    print("===== TextArea Element Details =====")
-    print("Role: \(textArea.role)")
-    print("Path: \(textArea.path)")
-    if let desc = textArea.elementDescription {
-      print("Description: \(desc)")
-    } else {
-      print("Description: <unavailable>")
-    }
-    print("Frame: \(textArea.frame)")
-    print("Children: \(textArea.children.count)")
-    print("Actions: \(textArea.actions.joined(separator: ", "))")
-    print("Capabilities: Clickable: \(textArea.isClickable), Editable: \(textArea.isEditable)")
-
-    // Additional debugging - raw attributes
-    print("All attributes:")
-    for (key, value) in textArea.attributes {
-      print("  \(key): \(value)")
-    }
-
-    // Let's also search for ALL text areas and list them to see if we're getting the wrong one
-    print("\n=== All Text Areas in TextEdit ===")
-    let allTextAreas = try await textEditHelper.toolChain.findElements(
-      matching: UIElementCriteria(role: "AXTextArea"),
-      scope: "application",
-      bundleId: textEditHelper.app.bundleId,
-      maxDepth: 20,
-    )
-
-    print("Found \(allTextAreas.count) text areas")
-    for (i, area) in allTextAreas.enumerated() {
-      print("TextArea \(i):")
-      print("  Path: \(area.path)")
-      print("  Role: \(area.role)")
-      print("  Frame: \(area.frame)")
-      print("  Actions: \(area.actions.joined(separator: ", "))")
-    }
+  
 
     // Also search for groups that might be confusing the system
-    print("\n=== All Groups that might be text areas ===")
     let groups = try await textEditHelper.toolChain.findElements(
       matching: UIElementCriteria(role: "AXGroup"),
       scope: "application",
@@ -860,20 +770,6 @@ struct UIInteractionToolE2ETests {
       $0.isEditable || ($0.frame.size.width > 200 && $0.frame.size.height > 200)
     }
 
-    print("Found \(potentialTextGroups.count) potential text groups")
-    for (i, group) in potentialTextGroups.enumerated() {
-      print("Group \(i):")
-      print("  Path: \(group.path)")
-      print("  Role: \(group.role)")
-      print("  Frame: \(group.frame)")
-      print("  Editable: \(group.isEditable)")
-      print("  Actions: \(group.actions.joined(separator: ", "))")
-    }
-
-    print("===================================")
-
-    // Test scroll down (scrolls toward end of document)
-    print("Testing scroll down operation...")
     let scrollDownParams: [String: Value] = [
       "action": .string("scroll"),
       "elementPath": .string(textAreaPath),
@@ -884,14 +780,12 @@ struct UIInteractionToolE2ETests {
     let scrollDownResult = try await textEditHelper.toolChain.uiInteractionTool.handler(
       scrollDownParams)
     #expect(!scrollDownResult.isEmpty, "Handler should return non-empty result for scroll down")
-    print("Scroll down operation completed")
     try await Task.sleep(for: .milliseconds(1000))
 
     // A real test would check if scrolling changed what's visible
     // Ideally, we'd check the scroll position in the text area
 
     // Test scroll up
-    print("Testing scroll up operation...")
     let scrollUpParams: [String: Value] = [
       "action": .string("scroll"),
       "elementPath": .string(textAreaPath),
@@ -902,13 +796,11 @@ struct UIInteractionToolE2ETests {
     let scrollUpResult = try await textEditHelper.toolChain.uiInteractionTool.handler(
       scrollUpParams)
     #expect(!scrollUpResult.isEmpty, "Handler should return non-empty result for scroll up")
-    print("Scroll up operation completed")
     try await Task.sleep(for: .milliseconds(1000))
 
     // Now verify results of all operations
     // 1. File should be loaded - we already verified text area
     #expect(initialDocText != nil, "Document should contain text content")
-    print("Document content preview: \(String(describing: initialDocText?.prefix(100)))")
 
     // Check for the file content - look for any text that would be in our file
     #expect(
@@ -939,7 +831,6 @@ struct UIInteractionToolE2ETests {
     }
 
     // PARAMETER VALIDATION TESTS - Separated from actual functionality tests
-    print("Running parameter validation tests...")
 
     // Test helper to validate error responses
     func testInvalidParams(
@@ -955,7 +846,6 @@ struct UIInteractionToolE2ETests {
           errorMessage.contains(expectedErrorContains.lowercased()),
           "Error should indicate: \(expectedErrorContains)",
         )
-        print("✓ Validation test passed: \(message)")
       }
     }
 
@@ -1024,7 +914,6 @@ struct UIInteractionToolE2ETests {
     // Note: Type text is typically handled via KeyboardInteractionTool rather than UIInteractionTool
     // But we should make sure that our click operations correctly position the cursor for text input
 
-    print("Starting testTypeText with keyboard navigation...")
 
     // Ensure TextEdit is running and active
     if try await !(textEditHelper.app.isRunning()) {
@@ -1104,7 +993,6 @@ struct UIInteractionToolE2ETests {
     let posX = textAreaFrame.origin.x + (textAreaFrame.size.width * 0.2)
     let posY = textAreaFrame.origin.y + (textAreaFrame.size.height * 0.5)  // Middle of text area
 
-    print("Clicking to position cursor after 'Part1' at coordinates: (\(posX), \(posY))")
 
     // Click at the calculated position to place cursor after "Part1"
     _ = try await textEditHelper.toolChain.clickAtPosition(
@@ -1122,9 +1010,6 @@ struct UIInteractionToolE2ETests {
     let finalText = try await textEditHelper.app.getText()
     let expectedFinalText = "Part1 Part2 Part3"
 
-    print("Expected final text: \"\(expectedFinalText)\"")
-    print("Actual final text: \"\(finalText ?? "nil")\"")
-
     #expect(
       finalText?.contains(expectedFinalText) ?? false,
       "Document should contain all three parts in correct order: 'Part1 Part2 Part3'",
@@ -1137,7 +1022,6 @@ struct UIInteractionToolE2ETests {
   @Test("Click Non-Existent Element")
   mutating func testClickNonExistentElement() async throws {
     try await setUp()
-    print("Starting testClickNonExistentElement")
 
     // Ensure Calculator is active before interactions
     NSRunningApplication.runningApplications(withBundleIdentifier: calculatorHelper.app.bundleId)
@@ -1147,7 +1031,6 @@ struct UIInteractionToolE2ETests {
 
     // Use a clearly non-existent element ID
     let nonExistentId = "ui://AXApplication/AXWindow/AXButton[@AXDescription=\"NonExistentButton\"]"
-    print("Attempting to click on non-existent element: \(nonExistentId)")
 
     do {
       _ = try await calculatorHelper.toolChain.clickElement(
@@ -1158,13 +1041,11 @@ struct UIInteractionToolE2ETests {
     } catch {
       // Success - we expect an error
       let errorMessage = error.localizedDescription.lowercased()
-      print("Received expected error: \(errorMessage)")
       #expect(
         errorMessage.contains("not found") || errorMessage.contains("no element")
           || errorMessage.contains("invalid") || errorMessage.contains("unable to find"),
         "Error should indicate element not found: \(errorMessage)",
       )
-      print("Test passed: Appropriate error thrown for non-existent element")
     }
 
     // Test direct handler call with non-existent element
@@ -1194,7 +1075,6 @@ struct UIInteractionToolE2ETests {
   @Test("Invalid Action Parameter")
   mutating func testInvalidAction() async throws {
     try await setUp()
-    print("Starting testInvalidAction")
 
     // Ensure Calculator is active before interactions
     NSRunningApplication.runningApplications(withBundleIdentifier: calculatorHelper.app.bundleId)
@@ -1274,7 +1154,6 @@ struct UIInteractionToolE2ETests {
           )
 
           try decodedData.write(to: fileURL)
-          print("Saved debug screenshot: \(fileURL.path)")
         } catch {
           print("Error saving debug screenshot: \(error.localizedDescription)")
         }

@@ -27,31 +27,31 @@ struct BasicArithmeticTest {
     TestLogger.configureEnvironment(logger: logger)
     let _ = TestLogger.createDiagnosticLog(testName: "BasicArithmeticTest", logger: logger)
     
-    logger.info("Setting up BasicArithmeticTest")
+    logger.debug("Setting up BasicArithmeticTest")
     
     // Get the shared calculator helper
     calculatorHelper = await CalculatorTestHelper.sharedHelper()
-    logger.info("Obtained shared calculator helper")
+    logger.debug("Obtained shared calculator helper")
 
     // Ensure app is running and reset state
-    logger.info("Ensuring Calculator app is running")
+    logger.debug("Ensuring Calculator app is running")
     let _ = try await calculatorHelper.ensureAppIsRunning()
     
-    logger.info("Resetting application state")
+    logger.debug("Resetting application state")
     await calculatorHelper.resetAppState()
     
-    logger.info("Setup complete")
+    logger.debug("Setup complete")
   }
   
   // Shared teardown method
   private mutating func tearDown() async throws {
-    logger.info("Tearing down BasicArithmeticTest")
+    logger.debug("Tearing down BasicArithmeticTest")
     // Optional cleanup - in most cases the helper's reset handles this
     if calculatorHelper != nil {
       // No explicit termination since the helper may be reused
-      logger.info("Helper may be reused, skipping termination")
+      logger.debug("Helper may be reused, skipping termination")
     }
-    logger.info("Teardown complete")
+    logger.debug("Teardown complete")
   }
 
   /// Test simple direct UI inspection of Calculator
@@ -60,7 +60,7 @@ struct BasicArithmeticTest {
     try await setUp()
     
     // Look for window elements
-    logger.info("Finding window elements")
+    logger.debug("Finding window elements")
     let windows = try await calculatorHelper.toolChain.findElements(
       matching: UIElementCriteria(role: "AXWindow"),
       scope: "application",

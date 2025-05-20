@@ -54,7 +54,6 @@ struct MenuNavigationTest {
     
     // Get initial count of windows
     let initialWindows = try await getTextEditWindowCount()
-    print("Initial window count: \(initialWindows)")
 
     // Use Menu Navigation Tool to open a new document via File > New menu
     let openSuccess = try await openNewDocumentViaMenu()
@@ -69,7 +68,6 @@ struct MenuNavigationTest {
 
       // Count windows after opening a new document
       let afterOpenWindows = try await getTextEditWindowCount()
-      print("Window count after opening: \(afterOpenWindows)")
 
       // Verify a new window was opened
       #expect(
@@ -88,7 +86,6 @@ struct MenuNavigationTest {
 
         // Count windows after closing
         let afterCloseWindows = try await getTextEditWindowCount()
-        print("Window count after closing: \(afterCloseWindows)")
 
         // Verify the window was closed
         #expect(
@@ -110,11 +107,9 @@ struct MenuNavigationTest {
     ]
 
     let result = try await helper.toolChain.applicationManagementTool.handler(params)
-    print("Activation result received with \(result.count) items")
 
     // Check if activation was successful
     if let content = result.first, case .text(let text) = content {
-      print("Activation response: \(text)")
       let success = text.contains("success") && text.contains("true")
       if !success {
         throw MCPError.internalError("Failed to activate TextEdit application")
@@ -132,7 +127,6 @@ struct MenuNavigationTest {
 
     // Parse the response to get application info
     if let content = result.first, case .text(let text) = content {
-      print("Frontmost app response: \(text)")
 
       // Extract application info from the JSON response
       if let data = text.data(using: .utf8),
@@ -163,7 +157,6 @@ struct MenuNavigationTest {
 
     // Extract window count from result
     if let content = result.first, case .text(let text) = content {
-      print("Window management result: \(text)")
 
       // Parse the JSON for window information
       if let data = text.data(using: .utf8),
@@ -193,7 +186,6 @@ struct MenuNavigationTest {
 
     // Check if navigation was successful
     if let content = result.first, case .text(let text) = content {
-      print("Menu navigation result: \(text)")
       return text.contains("success") || text.contains("true")
     }
 
@@ -216,7 +208,6 @@ struct MenuNavigationTest {
 
     // Check if navigation was successful
     if let content = result.first, case .text(let text) = content {
-      print("Menu navigation result: \(text)")
       return text.contains("success") || text.contains("true")
     }
 

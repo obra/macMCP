@@ -210,7 +210,6 @@ struct ScreenshotToolE2ETests {
       .activate(options: [])
     try await Task.sleep(for: .milliseconds(2000))
 
-    print("Testing element screenshot functionality...")
 
     // 1. First verify area screenshots work (as a basic test)
     let screenFrame = NSScreen.main!.frame
@@ -227,14 +226,12 @@ struct ScreenshotToolE2ETests {
     ]
 
     // Take the screenshot of the area
-    print("Testing area capture...")
     let areaResult = try await toolChain.screenshotTool.handler(areaParams)
 
     // Verify the result
     verifyScreenshotResult(areaResult, mimeType: "image/png")
 
     // 2. Try to capture the calculator window using the window region type
-    print("Testing window capture...")
     let windowParams: [String: Value] = [
       "region": .string("window"),
       "bundleId": .string(calculatorBundleId),
@@ -246,7 +243,6 @@ struct ScreenshotToolE2ETests {
     verifyScreenshotResult(windowResult, mimeType: "image/png")
 
     // 3. Now find UI elements in the calculator and try to capture them
-    print("Finding UI elements in Calculator...")
 
     // Define criteria to find calculator UI elements
     let buttonCriteria = UIElementCriteria(
@@ -262,7 +258,6 @@ struct ScreenshotToolE2ETests {
       maxDepth: 10,
     )
 
-    print("Found \(buttonElements.count) button elements in Calculator.")
 
     // Test element screenshot capture if we found any elements
     if !buttonElements.isEmpty {
@@ -276,7 +271,6 @@ struct ScreenshotToolE2ETests {
       for i in 0..<elementsToCaptureCount {
         do {
           let element = buttonElements[i]
-          print("Attempting to capture element \(i + 1): \(element.path)")
 
           // Create parameters for element screenshot
           let elementParams: [String: Value] = [
@@ -304,9 +298,7 @@ struct ScreenshotToolE2ETests {
             // Verify metadata
             #expect(metadata?["region"] == "element", "Region should be 'element'")
 
-            print(
-              "Successfully captured element screenshot with dimensions: \(image.size.width) x \(image.size.height)",
-            )
+       
             capturedElements += 1
           }
         } catch {
@@ -316,14 +308,10 @@ struct ScreenshotToolE2ETests {
       }
 
       // We should have captured at least one element successfully
-      print("Captured \(capturedElements) element(s), with \(captureFailures) failure(s)")
       #expect(capturedElements > 0, "Should capture at least one element screenshot successfully")
-    } else {
-      print("No button elements found in Calculator - skipping element screenshots")
     }
 
     // 4. Also try capturing a window element by ID
-    print("Trying to capture window element by ID...")
     do {
       let windowCriteria = UIElementCriteria(
         role: "AXWindow",
@@ -338,9 +326,7 @@ struct ScreenshotToolE2ETests {
       )
 
       if !windowElements.isEmpty {
-        print(
-          "Found \(windowElements.count) window element(s). Attempting to screenshot by element ID..."
-        )
+     
 
         // Create parameters for element screenshot
         let elementParams: [String: Value] = [
@@ -366,9 +352,7 @@ struct ScreenshotToolE2ETests {
           // Check metadata
           #expect(metadata?["region"] == "element", "Region should be 'element'")
 
-          print(
-            "Successfully captured window by element ID: \(image.size.width) x \(image.size.height)"
-          )
+
         }
       } else {
         print("No window elements found for element ID-based capture")
@@ -391,7 +375,6 @@ struct ScreenshotToolE2ETests {
       .activate(options: [])
     try await Task.sleep(for: .milliseconds(2000))
 
-    print("Testing UI element discovery and selective screenshots...")
 
     // First, check that we can screenshot the entire app window using bundleId (not element ID)
     // This is more reliable and doesn't require element IDs
@@ -401,7 +384,6 @@ struct ScreenshotToolE2ETests {
     ]
 
     // Take a screenshot of the window
-    print("Capturing window screenshot by bundleId...")
     let windowResult = try await toolChain.screenshotTool.handler(windowParams)
 
     // Verify the basic result format
@@ -416,13 +398,10 @@ struct ScreenshotToolE2ETests {
       #expect(image.size.height > 180, "Window should be taller than 180px")
       #expect(metadata?["region"] == "window", "Region should be 'window'")
 
-      print(
-        "Successfully captured app window screenshot with dimensions: \(image.size.width) x \(image.size.height)",
-      )
+
     }
 
     // Now demonstrate element discovery using the UI Explorer
-    print("Discovering UI elements in Calculator...")
 
     // Try to find button elements
     let buttonCriteria = UIElementCriteria(
@@ -437,24 +416,6 @@ struct ScreenshotToolE2ETests {
       maxDepth: 10,
     )
 
-    print("Found \(buttonElements.count) button elements in Calculator")
-
-    // Report some information about elements found
-    if !buttonElements.isEmpty {
-      print("Sample of Calculator UI elements found:")
-      for (index, element) in buttonElements.prefix(5).enumerated() {
-        print(
-          "  Element \(index + 1): \(element.role) - \(element.description) (Path: \(element.path))"
-        )
-      }
-
-      // We've successfully discovered elements - test passed
-      print("UI element discovery successful")
-    } else {
-      print(
-        "No button elements found in Calculator. This may indicate limited accessibility access.")
-      // Still pass the test since we verified window screenshots worked
-    }
 
     // Try to find other element types - just for discovery demonstration
     let staticTextCriteria = UIElementCriteria(
@@ -469,21 +430,6 @@ struct ScreenshotToolE2ETests {
       maxDepth: 10,
     )
 
-    if !textElements.isEmpty {
-      print("Found \(textElements.count) text elements in Calculator")
-      print("Sample text content:")
-      for (index, element) in textElements.prefix(3).enumerated() {
-        print("  Text \(index + 1): \(element.description)")
-      }
-    }
-
-    // This functionality is now covered by the testElementCapture test
-    // We no longer need to capture element screenshots here
-    if !buttonElements.isEmpty {
-      let elementToScreenshot = buttonElements[0]
-      print("First button element path: \(elementToScreenshot.path)")
-    }
-    
     try await tearDown()
   }
 
@@ -637,7 +583,6 @@ struct ScreenshotToolE2ETests {
       )
 
       try imageData.write(to: fileURL)
-      print("Saved element screenshot: \(fileURL.path)")
     } catch {
       print("Error saving screenshot to disk: \(error.localizedDescription)")
     }

@@ -39,11 +39,11 @@ public class TestLogger {
         if let logLevelString = ProcessInfo.processInfo.environment["MCP_TEST_LOG_LEVEL"],
            let logLevel = Logger.Level(rawValue: logLevelString.lowercased()) {
             // We can't modify the logger's log level directly, but this will be read
-            logger.info("Setting log level to \(logLevel) from environment")
+            logger.debug("Setting log level to \(logLevel) from environment")
         }
         
         // Log initial info
-        logger.info("Initialized logging to file: \(logFileURL.path)")
+        logger.debug("Initialized logging to file: \(logFileURL.path)")
         
         return (logger, logFileURL)
     }
@@ -52,19 +52,19 @@ public class TestLogger {
     public static func configureEnvironment(logger: Logger) {
         // Enable trace level logging
         setenv("MCP_LOG_LEVEL", "trace", 1)
-        logger.info("Set MCP_LOG_LEVEL=trace for enhanced logging")
+        logger.debug("Set MCP_LOG_LEVEL=trace for enhanced logging")
         
         // Enable additional debug flags for ElementPath resolution diagnostics
         setenv("MCP_PATH_RESOLUTION_DEBUG", "true", 1)
-        logger.info("Set MCP_PATH_RESOLUTION_DEBUG=true for path resolution diagnostics")
+        logger.debug("Set MCP_PATH_RESOLUTION_DEBUG=true for path resolution diagnostics")
         
         // Enable attribute matching debug information
         setenv("MCP_ATTRIBUTE_MATCHING_DEBUG", "true", 1)
-        logger.info("Set MCP_ATTRIBUTE_MATCHING_DEBUG=true for attribute matching diagnostics")
+        logger.debug("Set MCP_ATTRIBUTE_MATCHING_DEBUG=true for attribute matching diagnostics")
         
         // Enable comprehensive AX hierarchy diagnostics 
         setenv("MCP_FULL_HIERARCHY_DEBUG", "true", 1)
-        logger.info("Set MCP_FULL_HIERARCHY_DEBUG=true for full hierarchy diagnostics")
+        logger.debug("Set MCP_FULL_HIERARCHY_DEBUG=true for full hierarchy diagnostics")
     }
     
     /// Creates a diagnostic log file for detailed accessibility info
@@ -81,7 +81,7 @@ public class TestLogger {
         // Create an empty file
         do {
             try "DIAGNOSTIC LOG STARTED\n".write(toFile: diagnosticPath, atomically: true, encoding: .utf8)
-            logger.info("Created accessibility tree diagnostic log at: \(diagnosticPath)")
+            logger.debug("Created accessibility tree diagnostic log at: \(diagnosticPath)")
             // Set environment variable for UIInteractionService to use
             setenv("MCP_AX_DIAGNOSTIC_LOG", diagnosticPath, 1)
             return diagnosticPath

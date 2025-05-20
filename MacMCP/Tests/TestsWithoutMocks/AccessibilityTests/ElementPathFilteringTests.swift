@@ -31,7 +31,7 @@ struct ElementPathFilteringTests {
     TestLogger.configureEnvironment(logger: logger)
     diagnosticLogPath = TestLogger.createDiagnosticLog(testName: "ElementPathFilteringTests", logger: logger)
     
-    logger.info("====== TEST SETUP STARTED ======")
+    logger.debug("====== TEST SETUP STARTED ======")
 
     // Create the test components - this creates properly configured services
     toolChain = ToolChain(logLabel: "mcp.test.calculator")
@@ -44,15 +44,15 @@ struct ElementPathFilteringTests {
     enhanceLoggingForComponents()
 
     // Force terminate any existing instances of Calculator
-    logger.info("Terminating any existing Calculator instances")
+    logger.debug("Terminating any existing Calculator instances")
     await terminateApplication(bundleId: calculatorBundleId)
     
     // Wait for termination to complete
-    logger.info("Waiting for termination to complete")
+    logger.debug("Waiting for termination to complete")
     try await Task.sleep(for: .milliseconds(1000))
     
     // Launch the Calculator app using the ApplicationManagementTool
-    logger.info("Launching Calculator...")
+    logger.debug("Launching Calculator...")
     let launchParams: [String: Value] = [
       "action": .string("launch"),
       "bundleIdentifier": .string(calculatorBundleId),
@@ -60,55 +60,55 @@ struct ElementPathFilteringTests {
     
     // Launch Calculator
     let launchResult = try await toolChain.applicationManagementTool.handler(launchParams)
-    logger.info("Launch result: \(launchResult)")
+    logger.debug("Launch result: \(launchResult)")
     
     // Wait for the app to launch fully
-    logger.info("Waiting for app to launch...")
+    logger.debug("Waiting for app to launch...")
     try await Task.sleep(for: .milliseconds(3000))
     
     // Check if app is running
     app = NSRunningApplication.runningApplications(withBundleIdentifier: calculatorBundleId).first
-    logger.info("Calculator running status: \(app != nil)")
+    logger.debug("Calculator running status: \(app != nil)")
     #expect(app != nil, "Failed to launch Calculator app")
     
     // Try to activate the app to ensure it's in the foreground
     if let runningApp = app {
-      logger.info("Activating Calculator...")
+      logger.debug("Activating Calculator...")
       let activated = runningApp.activate(options: [.activateIgnoringOtherApps])
-      logger.info("Activation result: \(activated)")
+      logger.debug("Activation result: \(activated)")
     }
     
     // Give additional time for app to fully load
     try await Task.sleep(for: .milliseconds(1000))
-    logger.info("Setup complete - Calculator should be running")
+    logger.debug("Setup complete - Calculator should be running")
   }
 
   private mutating func tearDown() async throws {
-    logger.info("====== TEST TEARDOWN STARTED ======")
+    logger.debug("====== TEST TEARDOWN STARTED ======")
     
     // Terminate test application
-    logger.info("Terminating Calculator")
+    logger.debug("Terminating Calculator")
     await terminateApplication(bundleId: calculatorBundleId)
     app = nil
     
     // Wait for termination to complete
-    logger.info("Waiting for termination to complete")
+    logger.debug("Waiting for termination to complete")
     try await Task.sleep(for: .milliseconds(1000))
     
     toolChain = nil
-    logger.info("Removed toolChain")
+    logger.debug("Removed toolChain")
     
     // Print log file location if available
     if let logURL = logFileURL {
-      logger.info("Test log available at: \(logURL.path)")
+      logger.debug("Test log available at: \(logURL.path)")
       print("For detailed debug info, check the log file at: \(logURL.path)")
     }
     
     if let diagnosticPath = diagnosticLogPath {
-      logger.info("Accessibility diagnostic log available at: \(diagnosticPath)")
+      logger.debug("Accessibility diagnostic log available at: \(diagnosticPath)")
     }
     
-    logger.info("====== TEST TEARDOWN COMPLETE ======")
+    logger.debug("====== TEST TEARDOWN COMPLETE ======")
     // No super.tearDown() call needed for struct
   }
   
@@ -122,36 +122,36 @@ struct ElementPathFilteringTests {
       for child in mirror.children {
         if child.label == "logger", let existingLogger = child.value as? Logger {
           // We can't modify the private logger directly, but we can log this info
-          logger.info("Found UIInteractionService logger: \(existingLogger)")
+          logger.debug("Found UIInteractionService logger: \(existingLogger)")
           
           // The ideal solution would be setting a different logger, but since we can't
           // do that directly, we'll use environment variables as a fallback
           setenv("MCP_LOG_LEVEL", "trace", 1)
-          logger.info("Set MCP_LOG_LEVEL=trace for enhanced logging")
+          logger.debug("Set MCP_LOG_LEVEL=trace for enhanced logging")
         }
       }
     }
     
     // Enable additional debug flags for ElementPath resolution diagnostics
     setenv("MCP_PATH_RESOLUTION_DEBUG", "true", 1)
-    logger.info("Set MCP_PATH_RESOLUTION_DEBUG=true for path resolution diagnostics")
+    logger.debug("Set MCP_PATH_RESOLUTION_DEBUG=true for path resolution diagnostics")
     
     // Enable attribute matching debug information
     setenv("MCP_ATTRIBUTE_MATCHING_DEBUG", "true", 1)
-    logger.info("Set MCP_ATTRIBUTE_MATCHING_DEBUG=true for attribute matching diagnostics")
+    logger.debug("Set MCP_ATTRIBUTE_MATCHING_DEBUG=true for attribute matching diagnostics")
     
     // Enable comprehensive AX hierarchy diagnostics 
     setenv("MCP_FULL_HIERARCHY_DEBUG", "true", 1)
-    logger.info("Set MCP_FULL_HIERARCHY_DEBUG=true for full hierarchy diagnostics")
+    logger.debug("Set MCP_FULL_HIERARCHY_DEBUG=true for full hierarchy diagnostics")
   }
 
   /// Helper method to terminate an application
   private func terminateApplication(bundleId: String) async {
     let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId)
-    logger.info("Found \(runningApps.count) instances of \(bundleId) to terminate")
+    logger.debug("Found \(runningApps.count) instances of \(bundleId) to terminate")
     for app in runningApps {
       let terminated = app.forceTerminate()
-      logger.info("Force termination result for \(bundleId): \(terminated)")
+      logger.debug("Force termination result for \(bundleId): \(terminated)")
     }
   }
   
@@ -179,25 +179,25 @@ struct ElementPathFilteringTests {
     _ request: [String: Value],
     extraAssertions: ((EnhancedElementDescriptor) -> Void)? = nil
   ) async throws {
-    logger.info("Running InterfaceExplorerTool with request: \(request)")
+    logger.debug("Running InterfaceExplorerTool with request: \(request)")
     
     let response = try await interfaceExplorerTool.handler(request)
     
-    logger.info("Got response with \(response.count) items")
+    logger.debug("Got response with \(response.count) items")
     
     guard case .text(let jsonString) = response.first else {
       #expect(Bool(false), "Failed to get valid response from tool")
       return
     }
     
-    logger.info("Response text length: \(jsonString.count) characters")
+    logger.debug("Response text length: \(jsonString.count) characters")
     
     // Print the first part of the response for debugging
     if jsonString.count > 0 {
       let previewLength = min(jsonString.count, 200)
       let startIndex = jsonString.startIndex
       let endIndex = jsonString.index(startIndex, offsetBy: previewLength)
-      logger.info("Response preview: \(jsonString[startIndex..<endIndex])...")
+      logger.debug("Response preview: \(jsonString[startIndex..<endIndex])...")
       
       // Save the full response to the log for detailed analysis
       logger.trace("FULL RESPONSE JSON: \(jsonString)")
@@ -209,7 +209,7 @@ struct ElementPathFilteringTests {
     do {
       let descriptors = try decoder.decode([EnhancedElementDescriptor].self, from: jsonData)
       
-      logger.info("Found \(descriptors.count) descriptors in response")
+      logger.debug("Found \(descriptors.count) descriptors in response")
       
       if descriptors.isEmpty {
         // Check if app is still running
@@ -221,7 +221,7 @@ struct ElementPathFilteringTests {
           logger.warning("Calculator is running but no elements were found for the request")
           
           // Try a more basic request to see if any elements are visible
-          logger.info("Trying a basic request to see if Calculator is accessible")
+          logger.debug("Trying a basic request to see if Calculator is accessible")
           let basicRequest: [String: Value] = [
             "scope": .string("application"),
             "bundleId": .string(calculatorBundleId),
@@ -231,9 +231,9 @@ struct ElementPathFilteringTests {
           do {
             let basicResponse = try await interfaceExplorerTool.handler(basicRequest)
             if let content = basicResponse.first, case .text(let basicJson) = content {
-              logger.info("Basic request response length: \(basicJson.count)")
+              logger.debug("Basic request response length: \(basicJson.count)")
               if basicJson.count > 0 {
-                logger.info("Calculator is accessible, but specific query returned no elements")
+                logger.debug("Calculator is accessible, but specific query returned no elements")
               }
             }
           } catch {
@@ -246,12 +246,12 @@ struct ElementPathFilteringTests {
       }
       
       for (i, descriptor) in descriptors.enumerated() {
-        logger.info("Descriptor \(i): \(descriptor.role) - \(descriptor.name)")
+        logger.debug("Descriptor \(i): \(descriptor.role) - \(descriptor.name)")
         verifyFullyQualifiedPath(descriptor.id)
         extraAssertions?(descriptor)
-        logger.info("Element path: \(descriptor.id)")
+        logger.debug("Element path: \(descriptor.id)")
         if let children = descriptor.children {
-          logger.info("Element has \(children.count) children")
+          logger.debug("Element has \(children.count) children")
           for (j, child) in children.enumerated() {
             logger.debug("  Child \(j): \(child.role) - \(child.name)")
             verifyFullyQualifiedPath(child.id)
@@ -272,7 +272,7 @@ struct ElementPathFilteringTests {
             let appIdEndIndex = pathComponents.firstIndex(of: "/") ?? pathComponents.endIndex
             if startIndex < appIdEndIndex {
               appBundleId = String(pathComponents[startIndex..<appIdEndIndex])
-              logger.info("Extracted app bundle ID: \(appBundleId ?? "nil")")
+              logger.debug("Extracted app bundle ID: \(appBundleId ?? "nil")")
             }
           }
         }
@@ -282,10 +282,10 @@ struct ElementPathFilteringTests {
         // method which we've instrumented to dump the tree before attempting resolution
         
         // Log that we're about to perform the click (which will dump the tree)
-        logger.info("Attempting to click element at path: \(path)")
+        logger.debug("Attempting to click element at path: \(path)")
         do {
           try await uiInteractionService.clickElementByPath(path: path, appBundleId: appBundleId)
-          logger.info("Click appears to have succeeded")
+          logger.debug("Click appears to have succeeded")
         } catch {
           logger.error("Click failed: \(error)")
           
