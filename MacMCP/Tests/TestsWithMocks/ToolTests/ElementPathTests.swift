@@ -15,16 +15,16 @@ struct ElementPathTests {
     let segment = PathSegment(
       role: "AXButton",
       attributes: [
-        "name": "Test Button",
-        "description": "A test button",
+        "AXName": "Test Button",
+        "AXDescription": "A test button",
       ],
       index: 2,
     )
 
     #expect(segment.role == "AXButton")
     #expect(segment.attributes.count == 2)
-    #expect(segment.attributes["name"] == "Test Button")
-    #expect(segment.attributes["description"] == "A test button")
+    #expect(segment.attributes["AXName"] == "Test Button")
+    #expect(segment.attributes["AXDescription"] == "A test button")
     #expect(segment.index == 2)
   }
 
@@ -37,7 +37,7 @@ struct ElementPathTests {
     // Segment with attributes
     let attributeSegment = PathSegment(
       role: "AXButton",
-      attributes: ["name": "Test Button"],
+      attributes: ["AXName": "Test Button"],
     )
     #expect(attributeSegment.toString() == "AXButton[@AXName=\"Test Button\"]")
 
@@ -45,8 +45,8 @@ struct ElementPathTests {
     let multiAttributeSegment = PathSegment(
       role: "AXButton",
       attributes: [
-        "name": "Test Button",
-        "description": "A test button",
+        "AXName": "Test Button",
+        "AXDescription": "A test button",
       ],
     )
     #expect(
@@ -71,7 +71,7 @@ struct ElementPathTests {
     // Test escaping quotes in attribute values
     let escapedSegment = PathSegment(
       role: "AXButton",
-      attributes: ["name": "Button with \"quotes\""],
+      attributes: ["AXName": "Button with \"quotes\""],
     )
     #expect(escapedSegment.toString() == "AXButton[@AXName=\"Button with \\\"quotes\\\"\"]")
   }
@@ -80,8 +80,8 @@ struct ElementPathTests {
   func elementPathInitialization() throws {
     let segments = [
       PathSegment(role: "AXWindow"),
-      PathSegment(role: "AXGroup", attributes: ["name": "Controls"]),
-      PathSegment(role: "AXButton", attributes: ["description": "Submit"]),
+      PathSegment(role: "AXGroup", attributes: ["AXName": "Controls"]),
+      PathSegment(role: "AXButton", attributes: ["AXDescription": "Submit"]),
     ]
 
     let path = try ElementPath(segments: segments)
@@ -89,9 +89,9 @@ struct ElementPathTests {
     #expect(path.segments.count == 3)
     #expect(path.segments[0].role == "AXWindow")
     #expect(path.segments[1].role == "AXGroup")
-    #expect(path.segments[1].attributes["name"] == "Controls")
+    #expect(path.segments[1].attributes["AXName"] == "Controls")
     #expect(path.segments[2].role == "AXButton")
-    #expect(path.segments[2].attributes["description"] == "Submit")
+    #expect(path.segments[2].attributes["AXDescription"] == "Submit")
   }
 
   @Test("ElementPath empty initialization")
@@ -112,8 +112,8 @@ struct ElementPathTests {
   func elementPathToString() throws {
     let segments = [
       PathSegment(role: "AXWindow"),
-      PathSegment(role: "AXGroup", attributes: ["name": "Controls"]),
-      PathSegment(role: "AXButton", attributes: ["description": "Submit"]),
+      PathSegment(role: "AXGroup", attributes: ["AXName": "Controls"]),
+      PathSegment(role: "AXButton", attributes: ["AXDescription": "Submit"]),
     ]
 
     let path = try ElementPath(segments: segments)
@@ -142,9 +142,9 @@ struct ElementPathTests {
     #expect(path.segments.count == 3)
     #expect(path.segments[0].role == "AXWindow")
     #expect(path.segments[1].role == "AXGroup")
-    #expect(path.segments[1].attributes["name"] == "Controls")
+    #expect(path.segments[1].attributes["AXName"] == "Controls")
     #expect(path.segments[2].role == "AXButton")
-    #expect(path.segments[2].attributes["description"] == "Submit")
+    #expect(path.segments[2].attributes["AXDescription"] == "Submit")
   }
 
   @Test("ElementPath parsing with index")
@@ -168,10 +168,10 @@ struct ElementPathTests {
     #expect(path.segments.count == 3)
     #expect(path.segments[0].role == "AXWindow")
     #expect(path.segments[1].role == "AXGroup")
-    #expect(path.segments[1].attributes["name"] == "Controls")
+    #expect(path.segments[1].attributes["AXName"] == "Controls")
     #expect(path.segments[1].index == 2)
     #expect(path.segments[2].role == "AXButton")
-    #expect(path.segments[2].attributes["description"] == "Submit")
+    #expect(path.segments[2].attributes["AXDescription"] == "Submit")
   }
 
   @Test("ElementPath parsing with escaped quotes")
@@ -182,7 +182,7 @@ struct ElementPathTests {
     #expect(path.segments.count == 3)
     #expect(path.segments[0].role == "AXWindow")
     #expect(path.segments[1].role == "AXGroup")
-    #expect(path.segments[1].attributes["name"] == "Group with \"quotes\"")
+    #expect(path.segments[1].attributes["AXName"] == "Group with \"quotes\"")
     #expect(path.segments[2].role == "AXButton")
   }
 
@@ -195,11 +195,11 @@ struct ElementPathTests {
     #expect(path.segments.count == 3)
     #expect(path.segments[0].role == "AXWindow")
     #expect(path.segments[1].role == "AXGroup")
-    #expect(path.segments[1].attributes["name"] == "Controls")
+    #expect(path.segments[1].attributes["AXName"] == "Controls")
     #expect(path.segments[1].attributes["id"] == "group1")
     #expect(path.segments[2].role == "AXButton")
-    #expect(path.segments[2].attributes["description"] == "Submit")
-    #expect(path.segments[2].attributes["enabled"] == "true")
+    #expect(path.segments[2].attributes["AXDescription"] == "Submit")
+    #expect(path.segments[2].attributes["AXEnabled"] == "true")
   }
 
   @Test("ElementPath parsing invalid prefix")
@@ -238,14 +238,14 @@ struct ElementPathTests {
     ]
 
     let path = try ElementPath(segments: initialSegments)
-    let newSegment = PathSegment(role: "AXButton", attributes: ["description": "Submit"])
+    let newSegment = PathSegment(role: "AXButton", attributes: ["AXDescription": "Submit"])
     let newPath = try path.appendingSegment(newSegment)
 
     #expect(newPath.segments.count == 3)
     #expect(newPath.segments[0].role == "AXWindow")
     #expect(newPath.segments[1].role == "AXGroup")
     #expect(newPath.segments[2].role == "AXButton")
-    #expect(newPath.segments[2].attributes["description"] == "Submit")
+    #expect(newPath.segments[2].attributes["AXDescription"] == "Submit")
   }
 
   @Test("ElementPath appending segments")
@@ -256,7 +256,7 @@ struct ElementPathTests {
 
     let additionalSegments = [
       PathSegment(role: "AXGroup"),
-      PathSegment(role: "AXButton", attributes: ["description": "Submit"]),
+      PathSegment(role: "AXButton", attributes: ["AXDescription": "Submit"]),
     ]
 
     let path = try ElementPath(segments: initialSegments)
@@ -266,7 +266,7 @@ struct ElementPathTests {
     #expect(newPath.segments[0].role == "AXWindow")
     #expect(newPath.segments[1].role == "AXGroup")
     #expect(newPath.segments[2].role == "AXButton")
-    #expect(newPath.segments[2].attributes["description"] == "Submit")
+    #expect(newPath.segments[2].attributes["AXDescription"] == "Submit")
   }
 
   @Test("ElementPath isElementPath check")
