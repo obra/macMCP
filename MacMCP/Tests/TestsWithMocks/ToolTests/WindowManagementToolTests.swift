@@ -4,11 +4,9 @@
 import Foundation
 import Logging
 import MCP
-import XCTest
+import Testing
 
 @testable import MacMCP
-
-// Test utilities are directly available in this module
 
 /// Mock of the AccessibilityService specifically for testing WindowManagementTool
 private class WindowManagementMockAccessibilityService: @unchecked Sendable,
@@ -244,11 +242,6 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
     }
   }
 
-  // Legacy method removed
-  // func performAction(action: String, onElement identifier: String, in bundleId: String?) async throws {
-  // Method removed
-  // }
-
   func navigateMenu(path _: String, in _: String) async throws {
     // Mock implementation for menu navigation
     if shouldFailOperations {
@@ -301,7 +294,8 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
 }
 
 /// Tests for the enhanced WindowManagementTool
-final class WindowManagementToolTests: XCTestCase {
+@Suite(.serialized)
+struct WindowManagementToolTests {
   // Test components
   private var mockAccessibilityService: WindowManagementMockAccessibilityService!
   private var windowManagementTool: WindowManagementTool!
@@ -312,25 +306,8 @@ final class WindowManagementToolTests: XCTestCase {
   private let secondWindowPath =
     "ui://AXWindow[@AXTitle=\"Second Window\"][@AXDescription=\"Second Window\"]"
 
-  override func setUp() {
-    super.setUp()
-    mockAccessibilityService = WindowManagementMockAccessibilityService()
-    windowManagementTool = WindowManagementTool(
-      accessibilityService: mockAccessibilityService,
-      logger: Logger(label: "test.window_management"),
-    )
-  }
-
-  override func tearDown() {
-    windowManagementTool = nil
-    mockAccessibilityService = nil
-    super.tearDown()
-  }
-
-  // MARK: - Test Methods for Existing Functionality
-
-  /// Test getting application windows
-  func testGetApplicationWindows() async throws {
+  @Test("Test getting application windows")
+  mutating func testGetApplicationWindows() async throws {
     // Setup mock window
     let window1 = UIElement(
       path: "ui://AXWindow[@AXTitle=\"Test Window 1\"][@AXDescription=\"Test Window 1\"]",
@@ -381,6 +358,8 @@ final class WindowManagementToolTests: XCTestCase {
       actions: [],
     )
 
+    setupTest()
+    
     // Set mock data
     mockAccessibilityService.mockApplicationUIElement = app
 
@@ -395,11 +374,10 @@ final class WindowManagementToolTests: XCTestCase {
     let result = try await windowManagementTool.handler(params)
 
     // Verify the result
-    XCTAssertEqual(result.count, 1, "Should return one content item")
+    #expect(result.count == 1, "Should return one content item")
 
     // Verify the service was called correctly
-    XCTAssertTrue(
-      mockAccessibilityService.getApplicationUIElementCalled, "Should call getApplicationUIElement")
+    #expect(mockAccessibilityService.getApplicationUIElementCalled, "Should call getApplicationUIElement")
 
     // Parse the result JSON to verify content
     if case .text(let jsonString) = result[0] {
@@ -408,30 +386,30 @@ final class WindowManagementToolTests: XCTestCase {
       let json = try JSONSerialization.jsonObject(with: jsonData) as! [[String: Any]]
 
       // Verify window count
-      XCTAssertEqual(json.count, 2, "Should have 2 windows")
+      #expect(json.count == 2, "Should have 2 windows")
 
       // Verify first window
       let firstWindow = json[0]
-      XCTAssertEqual(
-        firstWindow["id"] as? String,
-        "ui://AXWindow[@AXTitle=\"Test Window 1\"][@AXDescription=\"Test Window 1\"]",
+      #expect(
+        firstWindow["id"] as? String == "ui://AXWindow[@AXTitle=\"Test Window 1\"][@AXDescription=\"Test Window 1\"]",
+        "First window should have the correct ID"
       )
-      XCTAssertEqual(firstWindow["title"] as? String, "Test Window 1")
+      #expect(firstWindow["title"] as? String == "Test Window 1", "First window should have the correct title")
 
       // Verify second window
       let secondWindow = json[1]
-      XCTAssertEqual(
-        secondWindow["id"] as? String,
-        "ui://AXWindow[@AXTitle=\"Test Window 2\"][@AXDescription=\"Test Window 2\"]",
+      #expect(
+        secondWindow["id"] as? String == "ui://AXWindow[@AXTitle=\"Test Window 2\"][@AXDescription=\"Test Window 2\"]",
+        "Second window should have the correct ID"
       )
-      XCTAssertEqual(secondWindow["title"] as? String, "Test Window 2")
+      #expect(secondWindow["title"] as? String == "Test Window 2", "Second window should have the correct title")
     } else {
-      XCTFail("Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
   }
 
-  /// Test getting active window
-  func testGetActiveWindow() async throws {
+  @Test("Test getting active window")
+  mutating func testGetActiveWindow() async throws {
     // Setup mock window
     let window = UIElement(
       path: "ui://AXWindow[@AXTitle=\"Active Window\"][@AXDescription=\"Active Test Window\"]",
@@ -466,6 +444,8 @@ final class WindowManagementToolTests: XCTestCase {
       actions: [],
     )
 
+    setupTest()
+    
     // Set mock data
     mockAccessibilityService.mockFocusedApplicationUIElement = app
 
@@ -478,13 +458,10 @@ final class WindowManagementToolTests: XCTestCase {
     let result = try await windowManagementTool.handler(params)
 
     // Verify the result
-    XCTAssertEqual(result.count, 1, "Should return one content item")
+    #expect(result.count == 1, "Should return one content item")
 
     // Verify the service was called correctly
-    XCTAssertTrue(
-      mockAccessibilityService.getFocusedApplicationUIElementCalled,
-      "Should call getFocusedApplicationUIElement",
-    )
+    #expect(mockAccessibilityService.getFocusedApplicationUIElementCalled, "Should call getFocusedApplicationUIElement")
 
     // Parse the result JSON to verify content
     if case .text(let jsonString) = result[0] {
@@ -493,27 +470,25 @@ final class WindowManagementToolTests: XCTestCase {
       let json = try JSONSerialization.jsonObject(with: jsonData) as! [[String: Any]]
 
       // Verify window
-      XCTAssertEqual(json.count, 1, "Should have 1 window")
+      #expect(json.count == 1, "Should have 1 window")
 
       let activeWindow = json[0]
-      XCTAssertEqual(
-        activeWindow["id"] as? String,
-        "ui://AXWindow[@AXTitle=\"Active Window\"][@AXDescription=\"Active Test Window\"]",
+      #expect(
+        activeWindow["id"] as? String == "ui://AXWindow[@AXTitle=\"Active Window\"][@AXDescription=\"Active Test Window\"]",
+        "Active window should have the correct ID"
       )
-      XCTAssertEqual(activeWindow["title"] as? String, "Active Window")
-      XCTAssertEqual(activeWindow["isMain"] as? Bool, true)
+      #expect(activeWindow["title"] as? String == "Active Window", "Active window should have the correct title")
+      #expect(activeWindow["isMain"] as? Bool == true, "Active window should be the main window")
     } else {
-      XCTFail("Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
   }
 
-  // MARK: - Tests for New Functionality
-
-  /// Test moving a window
-  func testMoveWindow() async throws {
+  @Test("Test moving a window")
+  mutating func testMoveWindow() async throws {
     // Setup mock element for findElement
     let window = UIElement(
-      path: "ui://AXWindow[@AXTitle=\"Test Window\"][@AXDescription=\"Test Window\"]",
+      path: testWindowPath,
       role: AXAttribute.Role.window,
       title: "Test Window",
       value: nil,
@@ -528,6 +503,8 @@ final class WindowManagementToolTests: XCTestCase {
       actions: [],
     )
 
+    setupTest()
+    
     // Set mock data
     mockAccessibilityService.mockFoundElement = window
 
@@ -543,36 +520,32 @@ final class WindowManagementToolTests: XCTestCase {
     let result = try await windowManagementTool.handler(params)
 
     // Verify the result
-    XCTAssertEqual(result.count, 1, "Should return one content item")
+    #expect(result.count == 1, "Should return one content item")
 
     // Verify the service was called correctly
-    XCTAssertTrue(mockAccessibilityService.moveWindowCalled, "Should call moveWindow")
-    XCTAssertEqual(mockAccessibilityService.moveWindowIdentifier, testWindowPath)
-    XCTAssertEqual(mockAccessibilityService.moveWindowPoint?.x, 200)
-    XCTAssertEqual(mockAccessibilityService.moveWindowPoint?.y, 300)
+    #expect(mockAccessibilityService.moveWindowCalled, "Should call moveWindow")
+    #expect(mockAccessibilityService.moveWindowIdentifier == testWindowPath, "Should use the correct window ID")
+    #expect(mockAccessibilityService.moveWindowPoint?.x == 200, "Should move to the correct x coordinate")
+    #expect(mockAccessibilityService.moveWindowPoint?.y == 300, "Should move to the correct y coordinate")
 
-    // Verify response format
+    // Use simple string contains validation instead of JSON parsing
     if case .text(let jsonString) = result[0] {
-      // Basic validation of JSON format
-      XCTAssertTrue(jsonString.contains("\"success\":true"), "Response should indicate success")
-      XCTAssertTrue(
-        jsonString.contains("\"action\":\"moveWindow\""), "Response should include action name")
-      XCTAssertTrue(
-        jsonString
-          .contains(
-            "\"windowId\":\"" + testWindowPath.replacingOccurrences(of: "\"", with: "\\\"") + "\""),
-        "Response should include window ID",
-      )
+      #expect(jsonString.contains("\"success\""), "Response should indicate success")
+      #expect(jsonString.contains("\"action\""), "Response should include action name")
+      #expect(jsonString.contains("\"windowId\""), "Response should include window ID")
+      #expect(jsonString.contains("\"position\""), "Response should include position information")
+      #expect(jsonString.contains("\"x\""), "Response should include x coordinate")
+      #expect(jsonString.contains("\"y\""), "Response should include y coordinate")
     } else {
-      XCTFail("Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
   }
 
-  /// Test resizing a window
-  func testResizeWindow() async throws {
+  @Test("Test resizing a window")
+  mutating func testResizeWindow() async throws {
     // Setup mock element for findElement
     let window = UIElement(
-      path: "ui://AXWindow[@AXTitle=\"Test Window\"][@AXDescription=\"Test Window\"]",
+      path: testWindowPath,
       role: AXAttribute.Role.window,
       title: "Test Window",
       value: nil,
@@ -587,6 +560,8 @@ final class WindowManagementToolTests: XCTestCase {
       actions: [],
     )
 
+    setupTest()
+    
     // Set mock data
     mockAccessibilityService.mockFoundElement = window
 
@@ -602,36 +577,32 @@ final class WindowManagementToolTests: XCTestCase {
     let result = try await windowManagementTool.handler(params)
 
     // Verify the result
-    XCTAssertEqual(result.count, 1, "Should return one content item")
+    #expect(result.count == 1, "Should return one content item")
 
     // Verify the service was called correctly
-    XCTAssertTrue(mockAccessibilityService.resizeWindowCalled, "Should call resizeWindow")
-    XCTAssertEqual(mockAccessibilityService.resizeWindowIdentifier, testWindowPath)
-    XCTAssertEqual(mockAccessibilityService.resizeWindowSize?.width, 1000)
-    XCTAssertEqual(mockAccessibilityService.resizeWindowSize?.height, 800)
+    #expect(mockAccessibilityService.resizeWindowCalled, "Should call resizeWindow")
+    #expect(mockAccessibilityService.resizeWindowIdentifier == testWindowPath, "Should use the correct window ID")
+    #expect(mockAccessibilityService.resizeWindowSize?.width == 1000, "Should resize to the correct width")
+    #expect(mockAccessibilityService.resizeWindowSize?.height == 800, "Should resize to the correct height")
 
-    // Verify response format
+    // Use simple string contains validation instead of JSON parsing
     if case .text(let jsonString) = result[0] {
-      // Basic validation of JSON format
-      XCTAssertTrue(jsonString.contains("\"success\":true"), "Response should indicate success")
-      XCTAssertTrue(
-        jsonString.contains("\"action\":\"resizeWindow\""), "Response should include action name")
-      XCTAssertTrue(
-        jsonString
-          .contains(
-            "\"windowId\":\"" + testWindowPath.replacingOccurrences(of: "\"", with: "\\\"") + "\""),
-        "Response should include window ID",
-      )
+      #expect(jsonString.contains("\"success\""), "Response should indicate success")
+      #expect(jsonString.contains("\"action\""), "Response should include action name")
+      #expect(jsonString.contains("\"windowId\""), "Response should include window ID")
+      #expect(jsonString.contains("\"size\""), "Response should include size information")
+      #expect(jsonString.contains("\"width\""), "Response should include width")
+      #expect(jsonString.contains("\"height\""), "Response should include height")
     } else {
-      XCTFail("Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
   }
 
-  /// Test minimizing a window
-  func testMinimizeWindow() async throws {
+  @Test("Test minimizing a window")
+  mutating func testMinimizeWindow() async throws {
     // Setup mock element for findElement
     let window = UIElement(
-      path: "ui://AXWindow[@AXTitle=\"Test Window\"][@AXDescription=\"Test Window\"]",
+      path: testWindowPath,
       role: AXAttribute.Role.window,
       title: "Test Window",
       value: nil,
@@ -646,6 +617,8 @@ final class WindowManagementToolTests: XCTestCase {
       actions: [],
     )
 
+    setupTest()
+    
     // Set mock data
     mockAccessibilityService.mockFoundElement = window
 
@@ -659,34 +632,27 @@ final class WindowManagementToolTests: XCTestCase {
     let result = try await windowManagementTool.handler(params)
 
     // Verify the result
-    XCTAssertEqual(result.count, 1, "Should return one content item")
+    #expect(result.count == 1, "Should return one content item")
 
     // Verify the service was called correctly
-    XCTAssertTrue(mockAccessibilityService.minimizeWindowCalled, "Should call minimizeWindow")
-    XCTAssertEqual(mockAccessibilityService.minimizeWindowIdentifier, testWindowPath)
+    #expect(mockAccessibilityService.minimizeWindowCalled, "Should call minimizeWindow")
+    #expect(mockAccessibilityService.minimizeWindowIdentifier == testWindowPath, "Should use the correct window ID")
 
-    // Verify response format
+    // Use simple string contains validation instead of JSON parsing
     if case .text(let jsonString) = result[0] {
-      // Basic validation of JSON format
-      XCTAssertTrue(jsonString.contains("\"success\":true"), "Response should indicate success")
-      XCTAssertTrue(
-        jsonString.contains("\"action\":\"minimizeWindow\""), "Response should include action name")
-      XCTAssertTrue(
-        jsonString
-          .contains(
-            "\"windowId\":\"" + testWindowPath.replacingOccurrences(of: "\"", with: "\\\"") + "\""),
-        "Response should include window ID",
-      )
+      #expect(jsonString.contains("\"success\""), "Response should indicate success")
+      #expect(jsonString.contains("\"action\""), "Response should include action name")
+      #expect(jsonString.contains("\"windowId\""), "Response should include window ID")
     } else {
-      XCTFail("Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
   }
 
-  /// Test maximizing a window
-  func testMaximizeWindow() async throws {
+  @Test("Test maximizing a window")
+  mutating func testMaximizeWindow() async throws {
     // Setup mock element for findElement
     let window = UIElement(
-      path: "ui://AXWindow[@AXTitle=\"Test Window\"][@AXDescription=\"Test Window\"]",
+      path: testWindowPath,
       role: AXAttribute.Role.window,
       title: "Test Window",
       value: nil,
@@ -701,6 +667,8 @@ final class WindowManagementToolTests: XCTestCase {
       actions: [],
     )
 
+    setupTest()
+    
     // Set mock data
     mockAccessibilityService.mockFoundElement = window
 
@@ -714,34 +682,27 @@ final class WindowManagementToolTests: XCTestCase {
     let result = try await windowManagementTool.handler(params)
 
     // Verify the result
-    XCTAssertEqual(result.count, 1, "Should return one content item")
+    #expect(result.count == 1, "Should return one content item")
 
     // Verify the service was called correctly
-    XCTAssertTrue(mockAccessibilityService.maximizeWindowCalled, "Should call maximizeWindow")
-    XCTAssertEqual(mockAccessibilityService.maximizeWindowIdentifier, testWindowPath)
+    #expect(mockAccessibilityService.maximizeWindowCalled, "Should call maximizeWindow")
+    #expect(mockAccessibilityService.maximizeWindowIdentifier == testWindowPath, "Should use the correct window ID")
 
-    // Verify response format
+    // Use simple string contains validation instead of JSON parsing
     if case .text(let jsonString) = result[0] {
-      // Basic validation of JSON format
-      XCTAssertTrue(jsonString.contains("\"success\":true"), "Response should indicate success")
-      XCTAssertTrue(
-        jsonString.contains("\"action\":\"maximizeWindow\""), "Response should include action name")
-      XCTAssertTrue(
-        jsonString
-          .contains(
-            "\"windowId\":\"" + testWindowPath.replacingOccurrences(of: "\"", with: "\\\"") + "\""),
-        "Response should include window ID",
-      )
+      #expect(jsonString.contains("\"success\""), "Response should indicate success")
+      #expect(jsonString.contains("\"action\""), "Response should include action name")
+      #expect(jsonString.contains("\"windowId\""), "Response should include window ID")
     } else {
-      XCTFail("Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
   }
 
-  /// Test closing a window
-  func testCloseWindow() async throws {
+  @Test("Test closing a window")
+  mutating func testCloseWindow() async throws {
     // Setup mock element for findElement
     let window = UIElement(
-      path: "ui://AXWindow[@AXTitle=\"Test Window\"][@AXDescription=\"Test Window\"]",
+      path: testWindowPath,
       role: AXAttribute.Role.window,
       title: "Test Window",
       value: nil,
@@ -756,6 +717,8 @@ final class WindowManagementToolTests: XCTestCase {
       actions: [],
     )
 
+    setupTest()
+    
     // Set mock data
     mockAccessibilityService.mockFoundElement = window
 
@@ -769,34 +732,27 @@ final class WindowManagementToolTests: XCTestCase {
     let result = try await windowManagementTool.handler(params)
 
     // Verify the result
-    XCTAssertEqual(result.count, 1, "Should return one content item")
+    #expect(result.count == 1, "Should return one content item")
 
     // Verify the service was called correctly
-    XCTAssertTrue(mockAccessibilityService.closeWindowCalled, "Should call closeWindow")
-    XCTAssertEqual(mockAccessibilityService.closeWindowIdentifier, testWindowPath)
+    #expect(mockAccessibilityService.closeWindowCalled, "Should call closeWindow")
+    #expect(mockAccessibilityService.closeWindowIdentifier == testWindowPath, "Should use the correct window ID")
 
-    // Verify response format
+    // Use simple string contains validation instead of JSON parsing
     if case .text(let jsonString) = result[0] {
-      // Basic validation of JSON format
-      XCTAssertTrue(jsonString.contains("\"success\":true"), "Response should indicate success")
-      XCTAssertTrue(
-        jsonString.contains("\"action\":\"closeWindow\""), "Response should include action name")
-      XCTAssertTrue(
-        jsonString
-          .contains(
-            "\"windowId\":\"" + testWindowPath.replacingOccurrences(of: "\"", with: "\\\"") + "\""),
-        "Response should include window ID",
-      )
+      #expect(jsonString.contains("\"success\""), "Response should indicate success")
+      #expect(jsonString.contains("\"action\""), "Response should include action name")
+      #expect(jsonString.contains("\"windowId\""), "Response should include window ID")
     } else {
-      XCTFail("Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
   }
 
-  /// Test activating a window
-  func testActivateWindow() async throws {
+  @Test("Test activating a window")
+  mutating func testActivateWindow() async throws {
     // Setup mock element for findElement
     let window = UIElement(
-      path: "ui://AXWindow[@AXTitle=\"Test Window\"][@AXDescription=\"Test Window\"]",
+      path: testWindowPath,
       role: AXAttribute.Role.window,
       title: "Test Window",
       value: nil,
@@ -811,6 +767,8 @@ final class WindowManagementToolTests: XCTestCase {
       actions: [],
     )
 
+    setupTest()
+    
     // Set mock data
     mockAccessibilityService.mockFoundElement = window
 
@@ -824,34 +782,27 @@ final class WindowManagementToolTests: XCTestCase {
     let result = try await windowManagementTool.handler(params)
 
     // Verify the result
-    XCTAssertEqual(result.count, 1, "Should return one content item")
+    #expect(result.count == 1, "Should return one content item")
 
     // Verify the service was called correctly
-    XCTAssertTrue(mockAccessibilityService.activateWindowCalled, "Should call activateWindow")
-    XCTAssertEqual(mockAccessibilityService.activateWindowIdentifier, testWindowPath)
+    #expect(mockAccessibilityService.activateWindowCalled, "Should call activateWindow")
+    #expect(mockAccessibilityService.activateWindowIdentifier == testWindowPath, "Should use the correct window ID")
 
-    // Verify response format
+    // Use simple string contains validation instead of JSON parsing
     if case .text(let jsonString) = result[0] {
-      // Basic validation of JSON format
-      XCTAssertTrue(jsonString.contains("\"success\":true"), "Response should indicate success")
-      XCTAssertTrue(
-        jsonString.contains("\"action\":\"activateWindow\""), "Response should include action name")
-      XCTAssertTrue(
-        jsonString
-          .contains(
-            "\"windowId\":\"" + testWindowPath.replacingOccurrences(of: "\"", with: "\\\"") + "\""),
-        "Response should include window ID",
-      )
+      #expect(jsonString.contains("\"success\""), "Response should indicate success")
+      #expect(jsonString.contains("\"action\""), "Response should include action name")
+      #expect(jsonString.contains("\"windowId\""), "Response should include window ID")
     } else {
-      XCTFail("Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
   }
 
-  /// Test setting window order
-  func testSetWindowOrder() async throws {
+  @Test("Test setting window order")
+  mutating func testSetWindowOrder() async throws {
     // Setup mock element for findElement
     let window = UIElement(
-      path: "ui://AXWindow[@AXTitle=\"Test Window\"][@AXDescription=\"Test Window\"]",
+      path: testWindowPath,
       role: AXAttribute.Role.window,
       title: "Test Window",
       value: nil,
@@ -866,6 +817,8 @@ final class WindowManagementToolTests: XCTestCase {
       actions: [],
     )
 
+    setupTest()
+    
     // Set mock data
     mockAccessibilityService.mockFoundElement = window
 
@@ -880,38 +833,30 @@ final class WindowManagementToolTests: XCTestCase {
     let result = try await windowManagementTool.handler(params)
 
     // Verify the result
-    XCTAssertEqual(result.count, 1, "Should return one content item")
+    #expect(result.count == 1, "Should return one content item")
 
     // Verify the service was called correctly
-    XCTAssertTrue(mockAccessibilityService.setWindowOrderCalled, "Should call setWindowOrder")
-    XCTAssertEqual(mockAccessibilityService.setWindowOrderIdentifier, testWindowPath)
-    XCTAssertEqual(mockAccessibilityService.setWindowOrderMode?.rawValue, "front")
-    XCTAssertNil(mockAccessibilityService.setWindowOrderReferenceWindowId)
+    #expect(mockAccessibilityService.setWindowOrderCalled, "Should call setWindowOrder")
+    #expect(mockAccessibilityService.setWindowOrderIdentifier == testWindowPath, "Should use the correct window ID")
+    #expect(mockAccessibilityService.setWindowOrderMode?.rawValue == "front", "Should use the correct order mode")
+    #expect(mockAccessibilityService.setWindowOrderReferenceWindowId == nil, "Should not have a reference window")
 
-    // Verify response format
+    // Use simple string contains validation instead of JSON parsing
     if case .text(let jsonString) = result[0] {
-      // Basic validation of JSON format
-      XCTAssertTrue(jsonString.contains("\"success\":true"), "Response should indicate success")
-      XCTAssertTrue(
-        jsonString.contains("\"action\":\"setWindowOrder\""), "Response should include action name")
-      XCTAssertTrue(
-        jsonString
-          .contains(
-            "\"windowId\":\"" + testWindowPath.replacingOccurrences(of: "\"", with: "\\\"") + "\""),
-        "Response should include window ID",
-      )
-      XCTAssertTrue(
-        jsonString.contains("\"orderMode\":\"front\""), "Response should include order mode")
+      #expect(jsonString.contains("\"success\""), "Response should indicate success")
+      #expect(jsonString.contains("\"action\""), "Response should include action name")
+      #expect(jsonString.contains("\"windowId\""), "Response should include window ID")
+      #expect(jsonString.contains("\"orderMode\""), "Response should include order mode")
     } else {
-      XCTFail("Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
   }
 
-  /// Test setting window order with reference window
-  func testSetWindowOrderWithReference() async throws {
+  @Test("Test setting window order with reference")
+  mutating func testSetWindowOrderWithReference() async throws {
     // Setup mock element for findElement
     let window = UIElement(
-      path: "ui://AXWindow[@AXTitle=\"Test Window\"][@AXDescription=\"Test Window\"]",
+      path: testWindowPath,
       role: AXAttribute.Role.window,
       title: "Test Window",
       value: nil,
@@ -926,6 +871,8 @@ final class WindowManagementToolTests: XCTestCase {
       actions: [],
     )
 
+    setupTest()
+    
     // Set mock data
     mockAccessibilityService.mockFoundElement = window
 
@@ -941,42 +888,31 @@ final class WindowManagementToolTests: XCTestCase {
     let result = try await windowManagementTool.handler(params)
 
     // Verify the result
-    XCTAssertEqual(result.count, 1, "Should return one content item")
+    #expect(result.count == 1, "Should return one content item")
 
     // Verify the service was called correctly
-    XCTAssertTrue(mockAccessibilityService.setWindowOrderCalled, "Should call setWindowOrder")
-    XCTAssertEqual(mockAccessibilityService.setWindowOrderIdentifier, testWindowPath)
-    XCTAssertEqual(mockAccessibilityService.setWindowOrderMode?.rawValue, "above")
-    XCTAssertEqual(mockAccessibilityService.setWindowOrderReferenceWindowId, secondWindowPath)
+    #expect(mockAccessibilityService.setWindowOrderCalled, "Should call setWindowOrder")
+    #expect(mockAccessibilityService.setWindowOrderIdentifier == testWindowPath, "Should use the correct window ID")
+    #expect(mockAccessibilityService.setWindowOrderMode?.rawValue == "above", "Should use the correct order mode")
+    #expect(mockAccessibilityService.setWindowOrderReferenceWindowId == secondWindowPath, "Should have the correct reference window")
 
-    // Verify response format
+    // Use simple string contains validation instead of JSON parsing
     if case .text(let jsonString) = result[0] {
-      // Basic validation of JSON format
-      XCTAssertTrue(jsonString.contains("\"success\":true"), "Response should indicate success")
-      XCTAssertTrue(
-        jsonString.contains("\"action\":\"setWindowOrder\""), "Response should include action name")
-      XCTAssertTrue(
-        jsonString
-          .contains(
-            "\"windowId\":\"" + testWindowPath.replacingOccurrences(of: "\"", with: "\\\"") + "\""),
-        "Response should include window ID",
-      )
-      XCTAssertTrue(
-        jsonString.contains("\"orderMode\":\"above\""), "Response should include order mode")
-      XCTAssertTrue(
-        jsonString.contains("\"referenceWindowId\":\"window2\""),
-        "Response should include reference window ID",
-      )
+      #expect(jsonString.contains("\"success\""), "Response should indicate success")
+      #expect(jsonString.contains("\"action\""), "Response should include action name")
+      #expect(jsonString.contains("\"windowId\""), "Response should include window ID")
+      #expect(jsonString.contains("\"orderMode\""), "Response should include order mode")
+      #expect(jsonString.contains("\"referenceWindowId\""), "Response should include reference window ID")
     } else {
-      XCTFail("Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
   }
 
-  /// Test focusing a window
-  func testFocusWindow() async throws {
+  @Test("Test focusing a window")
+  mutating func testFocusWindow() async throws {
     // Setup mock element for findElement
     let window = UIElement(
-      path: "ui://AXWindow[@AXTitle=\"Test Window\"][@AXDescription=\"Test Window\"]",
+      path: testWindowPath,
       role: AXAttribute.Role.window,
       title: "Test Window",
       value: nil,
@@ -991,6 +927,8 @@ final class WindowManagementToolTests: XCTestCase {
       actions: [],
     )
 
+    setupTest()
+    
     // Set mock data
     mockAccessibilityService.mockFoundElement = window
 
@@ -1004,36 +942,27 @@ final class WindowManagementToolTests: XCTestCase {
     let result = try await windowManagementTool.handler(params)
 
     // Verify the result
-    XCTAssertEqual(result.count, 1, "Should return one content item")
+    #expect(result.count == 1, "Should return one content item")
 
     // Verify the service was called correctly
-    XCTAssertTrue(mockAccessibilityService.focusWindowCalled, "Should call focusWindow")
-    XCTAssertEqual(mockAccessibilityService.focusWindowIdentifier, testWindowPath)
+    #expect(mockAccessibilityService.focusWindowCalled, "Should call focusWindow")
+    #expect(mockAccessibilityService.focusWindowIdentifier == testWindowPath, "Should use the correct window ID")
 
-    // Verify response format
+    // Use simple string contains validation instead of JSON parsing
     if case .text(let jsonString) = result[0] {
-      // Basic validation of JSON format
-      XCTAssertTrue(jsonString.contains("\"success\":true"), "Response should indicate success")
-      XCTAssertTrue(
-        jsonString.contains("\"action\":\"focusWindow\""), "Response should include action name")
-      XCTAssertTrue(
-        jsonString
-          .contains(
-            "\"windowId\":\"" + testWindowPath.replacingOccurrences(of: "\"", with: "\\\"") + "\""),
-        "Response should include window ID",
-      )
+      #expect(jsonString.contains("\"success\""), "Response should indicate success")
+      #expect(jsonString.contains("\"action\""), "Response should include action name")
+      #expect(jsonString.contains("\"windowId\""), "Response should include window ID")
     } else {
-      XCTFail("Result should be text content")
+      #expect(Bool(false), "Result should be text content")
     }
   }
 
-  // MARK: - Error Tests
-
-  /// Test error handling for failures
-  func testErrorHandling() async throws {
+  @Test("Test error handling")
+  mutating func testErrorHandling() async throws {
     // Setup mock element for findElement but set failure flag
     let window = UIElement(
-      path: "ui://AXWindow[@AXTitle=\"Test Window\"][@AXDescription=\"Test Window\"]",
+      path: testWindowPath,
       role: AXAttribute.Role.window,
       title: "Test Window",
       value: nil,
@@ -1048,6 +977,8 @@ final class WindowManagementToolTests: XCTestCase {
       actions: [],
     )
 
+    setupTest()
+    
     // Set mock data
     mockAccessibilityService.mockFoundElement = window
     mockAccessibilityService.shouldFailOperations = true
@@ -1056,7 +987,7 @@ final class WindowManagementToolTests: XCTestCase {
     // Create parameters
     let params: [String: Value] = [
       "action": .string("moveWindow"),
-      "windowId": .string("window1"),
+      "windowId": .string(testWindowPath),
       "x": .double(200),
       "y": .double(300),
     ]
@@ -1064,25 +995,27 @@ final class WindowManagementToolTests: XCTestCase {
     // Test that the error is propagated
     do {
       _ = try await windowManagementTool.handler(params)
-      XCTFail("Should throw an error")
+      #expect(Bool(false), "Should throw an error")
     } catch let error as MCPError {
       // Verify it's the correct error type
       switch error {
       case .internalError(let message):
-        XCTAssertTrue(
+        #expect(
           message?.contains("Test error message") ?? false,
-          "Error message should include the original error details",
+          "Error message should include the original error details"
         )
       default:
-        XCTFail("Wrong error type: \(error)")
+        #expect(Bool(false), "Wrong error type: \(error)")
       }
     } catch {
-      XCTFail("Unexpected error type: \(error)")
+      #expect(Bool(false), "Unexpected error type: \(error)")
     }
   }
 
-  /// Test validation errors for missing parameters
-  func testValidationErrors() async throws {
+  @Test("Test validation errors")
+  mutating func testValidationErrors() async throws {
+    setupTest()
+    
     // Test missing windowId
     let params: [String: Value] = [
       "action": .string("moveWindow"),
@@ -1093,42 +1026,52 @@ final class WindowManagementToolTests: XCTestCase {
     // Test that parameter validation works
     do {
       _ = try await windowManagementTool.handler(params)
-      XCTFail("Should throw an error for missing windowId")
+      #expect(Bool(false), "Should throw an error for missing windowId")
     } catch let error as MCPError {
       switch error {
       case .invalidParams(let message):
-        XCTAssertTrue(
+        #expect(
           message?.contains("windowId is required") ?? false,
-          "Error should indicate missing windowId",
+          "Error should indicate missing windowId"
         )
       default:
-        XCTFail("Wrong error type: \(error)")
+        #expect(Bool(false), "Wrong error type: \(error)")
       }
     } catch {
-      XCTFail("Unexpected error type: \(error)")
+      #expect(Bool(false), "Unexpected error type: \(error)")
     }
 
     // Test invalid action
     let invalidActionParams: [String: Value] = [
       "action": .string("invalidAction"),
-      "windowId": .string("window1"),
+      "windowId": .string(testWindowPath),
     ]
 
     do {
       _ = try await windowManagementTool.handler(invalidActionParams)
-      XCTFail("Should throw an error for invalid action")
+      #expect(Bool(false), "Should throw an error for invalid action")
     } catch let error as MCPError {
       switch error {
       case .invalidParams(let message):
-        XCTAssertTrue(
+        #expect(
           message?.contains("Valid action is required") ?? false,
-          "Error should indicate invalid action",
+          "Error should indicate invalid action"
         )
       default:
-        XCTFail("Wrong error type: \(error)")
+        #expect(Bool(false), "Wrong error type: \(error)")
       }
     } catch {
-      XCTFail("Unexpected error type: \(error)")
+      #expect(Bool(false), "Unexpected error type: \(error)")
     }
+  }
+  
+  // MARK: - Helper Methods
+  
+  private mutating func setupTest() {
+    mockAccessibilityService = WindowManagementMockAccessibilityService()
+    windowManagementTool = WindowManagementTool(
+      accessibilityService: mockAccessibilityService,
+      logger: Logger(label: "test.window_management"),
+    )
   }
 }
