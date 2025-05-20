@@ -114,7 +114,7 @@ final class TextEditTestHelper {
     let actualText = try await app.getText()
 
     // Use the custom message if provided, otherwise create a default message
-    let assertionMessage =
+    let _ =
       message.isEmpty
       ? "TextEdit document should contain '\(expectedText)' but found '\(actualText ?? "nil")'"
       : message

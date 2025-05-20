@@ -129,7 +129,7 @@ public final class CalculatorTestHelper {
     let actualValue = try await app.getDisplayValue()
 
     // Use the custom message if provided, otherwise create a default message
-    let assertionMessage =
+    let _ =
       message.isEmpty
       ? "Calculator display should show '\(expectedValue)' but found '\(actualValue ?? "nil")'"
       : message

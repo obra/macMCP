@@ -409,7 +409,7 @@ struct ScreenshotToolE2ETests {
       isVisible: true,
     )
 
-    let buttonElements = try await toolChain.findElements(
+    let _ = try await toolChain.findElements(
       matching: buttonCriteria,
       scope: "application",
       bundleId: calculatorBundleId,
@@ -423,7 +423,7 @@ struct ScreenshotToolE2ETests {
       isVisible: true,
     )
 
-    let textElements = try await toolChain.findElements(
+    let _ = try await toolChain.findElements(
       matching: staticTextCriteria,
       scope: "application",
       bundleId: calculatorBundleId,

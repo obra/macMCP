@@ -48,8 +48,8 @@ public class UIVerifier {
     }
 
     // Element not found within timeout - throw error
-    let message = "Element matching \(criteria.debugDescription) not found within \(timeout) seconds"
-    #expect(false)
+    let _ = "Element matching \(criteria.debugDescription) not found within \(timeout) seconds"
+    #expect(Bool(false))
     throw NSError(
       domain: "UIVerifier",
       code: 1000,
@@ -80,8 +80,8 @@ public class UIVerifier {
         bundleId: bundleId,
       )) != nil {
         // Element found - fail the test
-        let message = "Element matching \(criteria.debugDescription) was found, but should not exist"
-        #expect(false)
+        let _ = "Element matching \(criteria.debugDescription) was found, but should not exist"
+        #expect(Bool(false))
         return
       }
 
@@ -174,12 +174,12 @@ public class UIVerifier {
           nil
         }
 
-      let message = "Element found, but \(property) value mismatch. Expected: \"\(expectedValue)\", Actual: \"\(actualValue ?? "nil")\""
-      #expect(false)
+      let _ = "Element found, but \(property) value mismatch. Expected: \"\(expectedValue)\", Actual: \"\(actualValue ?? "nil")\""
+      #expect(Bool(false))
     } else {
       // Element not found
-      let notFoundMessage = "Element matching \(criteria.debugDescription) not found within \(timeout) seconds"
-      #expect(false)
+      let _ = "Element matching \(criteria.debugDescription) not found within \(timeout) seconds"
+      #expect(Bool(false))
     }
 
     // This will never be reached due to XCTFail, but is needed for compilation
@@ -272,12 +272,12 @@ public class UIVerifier {
           nil
         }
 
-      let containsMessage = "Element found, but \(property) value doesn't contain \"\(substring)\". Actual: \"\(actualValue ?? "nil")\""
-      #expect(false)
+      let _ = "Element found, but \(property) value doesn't contain \"\(substring)\". Actual: \"\(actualValue ?? "nil")\""
+      #expect(Bool(false))
     } else {
       // Element not found
-      let notFoundMessage = "Element matching \(criteria.debugDescription) not found within \(timeout) seconds"
-      #expect(false)
+      let _ = "Element matching \(criteria.debugDescription) not found within \(timeout) seconds"
+      #expect(Bool(false))
     }
 
     // This will never be reached due to XCTFail, but is needed for compilation

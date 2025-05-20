@@ -84,7 +84,7 @@ struct MenuNavigationCalculatorTest {
     try await Task.sleep(for: .milliseconds(2000))
 
     // Get updated calculator mode
-    let scientificMode = try await getCalculatorMode()
+    let _ = try await getCalculatorMode()
 
     // Now try switching to Basic mode
     let basicSuccess = try await switchToCalculatorMode("Basic")

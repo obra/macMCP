@@ -61,7 +61,7 @@ struct ActionLoggingTests {
     // Verify the result is text containing log entries
     #expect(result.count == 1)
     guard case .text(let json) = result[0] else {
-      #expect(false, "Expected text result")
+      #expect(Bool(false), "Expected text result")
       return
     }
     
@@ -111,7 +111,7 @@ struct ActionLoggingTests {
     // Verify the result only contains interaction logs
     #expect(result.count == 1)
     guard case .text(let json) = result[0] else {
-      #expect(false, "Expected text result")
+      #expect(Bool(false), "Expected text result")
       return
     }
     
@@ -159,7 +159,7 @@ struct ActionLoggingTests {
     // Verify the result only contains click logs
     #expect(result.count == 1)
     guard case .text(let json) = result[0] else {
-      #expect(false, "Expected text result")
+      #expect(Bool(false), "Expected text result")
       return
     }
     
@@ -212,7 +212,7 @@ struct ActionLoggingTests {
     // Verify the result only contains recent logs
     #expect(result.count == 1)
     guard case .text(let json) = result[0] else {
-      #expect(false, "Expected text result")
+      #expect(Bool(false), "Expected text result")
       return
     }
     

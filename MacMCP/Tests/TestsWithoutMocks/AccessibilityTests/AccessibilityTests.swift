@@ -12,8 +12,8 @@ struct AccessibilityTests {
   @Test("System-wide element access")
   func testSystemWideElement() {
     let systemElement = AccessibilityElement.systemWideElement()
-    // Just verify we received an element
-    #expect(systemElement != nil)
+    // Just verify we received a valid element
+    #expect(CFGetTypeID(systemElement) == AXUIElementGetTypeID())
   }
 
   @Test("Application element by PID access")
@@ -22,8 +22,8 @@ struct AccessibilityTests {
     let pid = ProcessInfo.processInfo.processIdentifier
 
     let appElement = AccessibilityElement.applicationElement(pid: pid)
-    // Just verify we received an element
-    #expect(appElement != nil)
+    // Just verify we received a valid element
+    #expect(CFGetTypeID(appElement) == AXUIElementGetTypeID())
   }
 
   @Test("Get element attributes")
@@ -70,6 +70,6 @@ struct AccessibilityTests {
     // environments
     print("Skipping test that requires system-level accessibility permissions")
     // Soft-pass the test by ensuring a trivial assertion passes
-    #expect(true)
+    #expect(Bool(true))
   }
 }

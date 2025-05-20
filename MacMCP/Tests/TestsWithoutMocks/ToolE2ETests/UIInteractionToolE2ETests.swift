@@ -602,7 +602,7 @@ struct UIInteractionToolE2ETests {
 
     let activateResult = try await textEditHelper.toolChain.applicationManagementTool.handler(
       activateParams)
-    if let content = activateResult.first, case .text(let text) = content {
+    if let content = activateResult.first, case .text(_) = content {
     }
 
     // Verify that TextEdit is now the frontmost application
@@ -612,7 +612,7 @@ struct UIInteractionToolE2ETests {
 
     let frontmostResult = try await textEditHelper.toolChain.applicationManagementTool.handler(
       frontmostParams)
-    if let content = frontmostResult.first, case .text(let text) = content {
+    if let content = frontmostResult.first, case .text(_) = content {
     }
 
     // Wait a bit to ensure application is fully focused
@@ -755,7 +755,7 @@ struct UIInteractionToolE2ETests {
     // Get initial visible range (a real implementation would capture what's visible)
     // For this test, we'll simulate a check using a marker in the text file
     let hasScrolledMarker = "SCROLL_TEST_MARKER_END"
-    let initiallyShowsEndMarker = initialDocText?.contains(hasScrolledMarker) ?? false
+    let _ = initialDocText?.contains(hasScrolledMarker) ?? false
   
 
     // Also search for groups that might be confusing the system
@@ -766,7 +766,7 @@ struct UIInteractionToolE2ETests {
       maxDepth: 10,
     )
 
-    let potentialTextGroups = groups.filter {
+    let _ = groups.filter {
       $0.isEditable || ($0.frame.size.width > 200 && $0.frame.size.height > 200)
     }
 
