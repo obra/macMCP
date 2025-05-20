@@ -133,7 +133,7 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
       let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier)
         .first
     else {
-      logger.error("Application not running", metadata: ["bundleId": "\(bundleIdentifier)"])
+      logger.debug("Application not running", metadata: ["bundleId": "\(bundleIdentifier)"])
       throw NSError(
         domain: "com.macos.mcp.screenshot",
         code: 1002,
@@ -250,7 +250,7 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
           height: paddedHeight,
         )
       } else {
-        logger.error(
+        logger.debug(
           "Element found but has invalid frame", metadata: ["elementPath": "\(elementPath)"])
         throw NSError(
           domain: "com.macos.mcp.screenshot",
@@ -262,7 +262,7 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
       }
     } catch let pathError as ElementPathError {
       // If there's a path resolution error, we get specific information
-      logger.error(
+      logger.debug(
         "Path resolution error",
         metadata: [
           "elementPath": "\(elementPath)",
@@ -277,7 +277,7 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
       )
     } catch {
       // For other errors
-      logger.error(
+      logger.debug(
         "Error finding element by path",
         metadata: [
           "elementPath": "\(elementPath)",
