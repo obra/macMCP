@@ -3,7 +3,6 @@
 
 import Foundation
 import Testing
-import XCTest // Kept for XCTestError
 
 @testable import MacMCP
 

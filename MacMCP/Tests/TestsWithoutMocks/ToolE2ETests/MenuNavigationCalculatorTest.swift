@@ -5,7 +5,6 @@ import Foundation
 // Test utilities are directly available in this module
 import MCP
 import Testing
-import XCTest
 
 @testable import MacMCP
 

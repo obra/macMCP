@@ -6,7 +6,6 @@
 import Foundation
 import Logging
 import Testing
-import XCTest
 
 @testable @preconcurrency import MacMCP
 
@@ -44,7 +43,7 @@ struct ElementPathIntegrationTests {
     )
     .first
     guard let runningApp else {
-      XCTFail("Could not find running Calculator app")
+      #expect(Bool(false), "Could not find running Calculator app")
       try await calculator.terminate()
       return
     }
@@ -55,7 +54,7 @@ struct ElementPathIntegrationTests {
     let status = AXUIElementCopyAttributeValue(appElement, "AXWindows" as CFString, &windowsRef)
 
     guard status == .success, let windows = windowsRef as? [AXUIElement], !windows.isEmpty else {
-      XCTFail("Could not get Calculator windows")
+      #expect(Bool(false), "Could not get Calculator windows")
       try await calculator.terminate()
       return
     }
@@ -71,7 +70,7 @@ struct ElementPathIntegrationTests {
         == .success,
       let children = childrenRef as? [AXUIElement], !children.isEmpty
     else {
-      XCTFail("Could not get Calculator window children")
+      #expect(Bool(false), "Could not get Calculator window children")
       try await calculator.terminate()
       return
     }
@@ -193,7 +192,7 @@ struct ElementPathIntegrationTests {
     // Find and press 1
     // print("Finding button '1'")
     guard let button1Element = findButtonWithDescription("1", inElement: calculatorWindow) else {
-      XCTFail("Could not find button '1'")
+      #expect(Bool(false), "Could not find button '1'")
       try await calculator.terminate()
       return
     }
@@ -205,7 +204,7 @@ struct ElementPathIntegrationTests {
     // Find and press +
     // print("Finding Add button")
     guard let plusElement = findButtonWithDescription("Add", inElement: calculatorWindow) else {
-      XCTFail("Could not find 'Add' button")
+      #expect(Bool(false), "Could not find 'Add' button")
       try await calculator.terminate()
       return
     }
@@ -217,7 +216,7 @@ struct ElementPathIntegrationTests {
     // Find and press 2
     // print("Finding button '2'")
     guard let button2Element = findButtonWithDescription("2", inElement: calculatorWindow) else {
-      XCTFail("Could not find button '2'")
+      #expect(Bool(false), "Could not find button '2'")
       try await calculator.terminate()
       return
     }
@@ -230,7 +229,7 @@ struct ElementPathIntegrationTests {
     // print("Finding Equals button")
     guard let equalsElement = findButtonWithDescription("Equals", inElement: calculatorWindow)
     else {
-      XCTFail("Could not find 'Equals' button")
+      #expect(Bool(false), "Could not find 'Equals' button")
       try await calculator.terminate()
       return
     }
@@ -246,7 +245,7 @@ struct ElementPathIntegrationTests {
     // print("Finding result display")
     guard let resultElement = findScrollAreaWithDescription("Input", inElement: calculatorWindow)
     else {
-      XCTFail("Could not find result display")
+      #expect(Bool(false), "Could not find result display")
       try await calculator.terminate()
       return
     }
@@ -260,7 +259,7 @@ struct ElementPathIntegrationTests {
       #expect(value == "3" || value.contains("3"))
       // print("Successfully read result via direct element search: \(value)")
     } else {
-      XCTFail("Could not read calculator result")
+      #expect(Bool(false), "Could not read calculator result")
     }
 
     // Cleanup - close calculator
@@ -326,7 +325,7 @@ struct ElementPathIntegrationTests {
     let status = AXUIElementCopyAttributeValue(appElement, "AXWindows" as CFString, &windowsRef)
 
     guard status == .success, let windows = windowsRef as? [AXUIElement], !windows.isEmpty else {
-      XCTFail("Could not get Calculator windows")
+      #expect(Bool(false), "Could not get Calculator windows")
       try await calculator.terminate()
       return
     }
@@ -448,7 +447,7 @@ struct ElementPathIntegrationTests {
     // Find and press 1
     // print("Finding button '1'")
     guard let button1Element = findButtonWithDescription("1", inElement: calculatorWindow) else {
-      XCTFail("Could not find button '1'")
+      #expect(Bool(false), "Could not find button '1'")
       try await calculator.terminate()
       return
     }
@@ -460,7 +459,7 @@ struct ElementPathIntegrationTests {
     // Find and press +
     // print("Finding Add button")
     guard let plusElement = findButtonWithDescription("Add", inElement: calculatorWindow) else {
-      XCTFail("Could not find 'Add' button")
+      #expect(Bool(false), "Could not find 'Add' button")
       try await calculator.terminate()
       return
     }
@@ -472,7 +471,7 @@ struct ElementPathIntegrationTests {
     // Find and press 2
     // print("Finding button '2'")
     guard let button2Element = findButtonWithDescription("2", inElement: calculatorWindow) else {
-      XCTFail("Could not find button '2'")
+      #expect(Bool(false), "Could not find button '2'")
       try await calculator.terminate()
       return
     }
@@ -485,7 +484,7 @@ struct ElementPathIntegrationTests {
     // print("Finding Equals button")
     guard let equalsElement = findButtonWithDescription("Equals", inElement: calculatorWindow)
     else {
-      XCTFail("Could not find 'Equals' button")
+      #expect(Bool(false), "Could not find 'Equals' button")
       try await calculator.terminate()
       return
     }
@@ -501,7 +500,7 @@ struct ElementPathIntegrationTests {
     // print("Finding result display")
     guard let resultElement = findScrollAreaWithDescription("Input", inElement: calculatorWindow)
     else {
-      XCTFail("Could not find result display")
+      #expect(Bool(false), "Could not find result display")
       try await calculator.terminate()
       return
     }
@@ -515,7 +514,7 @@ struct ElementPathIntegrationTests {
       #expect(value == "3" || value.contains("3"))
       // print("Successfully read result via bundleId-based search: \(value)")
     } else {
-      XCTFail("Could not read calculator result")
+      #expect(Bool(false), "Could not read calculator result")
     }
 
     // Cleanup - close calculator
@@ -588,7 +587,7 @@ struct ElementPathIntegrationTests {
     let titleStatus = AXUIElementCopyAttributeValue(appElement, "AXTitle" as CFString, &titleRef)
 
     guard titleStatus == .success, let title = titleRef as? String, title == "Calculator" else {
-      XCTFail("Focused app fallback did not resolve to Calculator")
+      #expect(Bool(false), "Focused app fallback did not resolve to Calculator")
       try await calculator.terminate()
       return
     }
@@ -600,7 +599,7 @@ struct ElementPathIntegrationTests {
     let status = AXUIElementCopyAttributeValue(appElement, "AXWindows" as CFString, &windowsRef)
 
     guard status == .success, let windows = windowsRef as? [AXUIElement], !windows.isEmpty else {
-      XCTFail("Could not get Calculator windows")
+      #expect(Bool(false), "Could not get Calculator windows")
       try await calculator.terminate()
       return
     }
@@ -652,7 +651,7 @@ struct ElementPathIntegrationTests {
     // Find and press button 1 to verify we found the right app
     // print("Finding button '1' to verify app interaction")
     guard let buttonElement = findButtonWithDescription("1", inElement: calculatorWindow) else {
-      XCTFail("Could not find button '1'")
+      #expect(Bool(false), "Could not find button '1'")
       try await calculator.terminate()
       return
     }
@@ -884,7 +883,7 @@ struct ElementPathIntegrationTests {
     do {
       _ = try await ambiguousPath.resolve(using: accessibilityService)
       // If we got here, the path didn't throw an ambiguous match error, which is unexpected
-      XCTFail("Expected ambiguous match error but got a single element")
+      #expect(Bool(false), "Expected ambiguous match error but got a single element")
     } catch let error as ElementPathError {
       // Verify we got the expected error type
       switch error {
@@ -895,10 +894,10 @@ struct ElementPathIntegrationTests {
         // Success - we correctly identified the ambiguity through diagnostic information
         print("Successfully identified ambiguous match with \(candidates.count) candidates")
       default:
-        XCTFail("Expected ambiguous match error but got: \(error)")
+        #expect(Bool(false), "Expected ambiguous match error but got: \(error)")
       }
     } catch {
-      XCTFail("Unexpected error: \(error)")
+      #expect(Bool(false), "Unexpected error: \(error)")
     }
 
     // Now create a more specific path that will disambiguate
@@ -1016,7 +1015,7 @@ struct ElementPathIntegrationTests {
     // This should fail with a descriptive error
     do {
       _ = try await invalidPath.resolve(using: accessibilityService)
-      XCTFail("Expected error resolving invalid path")
+      #expect(Bool(false), "Expected error resolving invalid path")
     } catch let error as ElementPathError {
       // Got expected error
       // print("Received expected error: \(error)")
