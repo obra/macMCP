@@ -157,6 +157,19 @@ public class ResourceRegistry: @unchecked Sendable {
         templates.append(template)
     }
     
+    /// Register a resource template using MCP format
+    /// - Parameter template: The template to register in MCP format
+    public func registerMCPTemplate(_ template: MCP.Resource.Template) {
+        // Convert MCP template to our internal format
+        let ourTemplate = ListResourceTemplates.Template(
+            uriTemplate: template.uriTemplate,
+            name: template.name,
+            description: template.description,
+            mimeType: template.mimeType
+        )
+        templates.append(ourTemplate)
+    }
+    
     /// Find a handler for the given URI
     /// - Parameter uri: The URI to handle
     /// - Returns: The handler if found

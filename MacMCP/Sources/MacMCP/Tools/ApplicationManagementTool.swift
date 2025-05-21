@@ -101,7 +101,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
         ]),
         "hideOthers": .object([
           "type": .string("boolean"),
-          "description": .string("Whether to hide other applications when opening this one"),
+          "description": .string("Whether to hide other applications when opening this one. Only do this if you need to"),
           "default": .bool(false),
         ]),
         "waitForLaunch": .object([
