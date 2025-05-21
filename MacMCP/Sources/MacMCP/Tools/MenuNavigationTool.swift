@@ -85,7 +85,7 @@ public struct MenuNavigationTool: @unchecked Sendable {
         "menuPath": .object([
           "type": .string("string"),
           "description": .string(
-            "Path to the menu item to activate, using '>' as a separator (e.g. 'File > Open'). Required for activateMenuItem."
+            "ElementPath URI to the menu item to activate in the format 'macos://ui/...'. Required for activateMenuItem."
           ),
         ]),
         "includeSubmenus": .object([
@@ -183,16 +183,21 @@ public struct MenuNavigationTool: @unchecked Sendable {
   /// Handle the activateMenuItem action
   /// - Parameters:
   ///   - bundleId: The application bundle identifier
-  ///   - menuPath: Path to the menu item to activate
+  ///   - menuPath: ElementPath URI to the menu item to activate
   /// - Returns: The tool result
   private func handleActivateMenuItem(
     bundleId: String,
     menuPath: String,
   ) async throws -> [Tool.Content] {
+    // Validate the path format
+    guard menuPath.hasPrefix("macos://ui/") else {
+      throw MCPError.invalidParams("menuPath must be a valid ElementPath URI starting with 'macos://ui/'")
+    }
+    
     // Activate the menu item
     let success = try await menuNavigationService.activateMenuItem(
       bundleIdentifier: bundleId,
-      menuPath: menuPath,
+      elementPath: menuPath,
     )
 
     // Create response

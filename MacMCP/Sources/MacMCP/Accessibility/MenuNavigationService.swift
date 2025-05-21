@@ -52,21 +52,24 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
     self.logger = logger ?? Logger(label: "mcp.menu_navigation")
   }
 
-  /// Navigate through menu path and activate a menu item
+  /// Navigate to a menu item using its ElementPath URI 
   /// - Parameters:
-  ///   - path: The simplified menu path (e.g., "File > Open" or "View > Scientific")
-  ///   - bundleId: The bundle identifier of the application
-  ///   - sender: The accessibility service that initiated the request
-  public func navigateMenu(path: String, in bundleId: String, using _: AccessibilityServiceProtocol)
-    async throws
-  {
-    // Basic implementation - just uses path-based approach directly
-    let elementPath =
-      "macos://ui/AXApplication[@bundleIdentifier=\"\(bundleId)\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"\(path)\"]"
+  ///   - elementPath: The ElementPath URI to the menu item
+  ///   - bundleId: The bundle identifier of the application (for validation)
+  public func navigateToMenuElement(elementPath: String, in bundleId: String) async throws {
+    // Validate the element path format
+    guard elementPath.hasPrefix("macos://ui/") else {
+      logger.error("Invalid element path format", metadata: ["path": "\(elementPath)"])
+      throw MenuNavigationError.invalidMenuPath(elementPath)
+    }
+    
+    // Parse and resolve the path
     let parsedPath = try ElementPath.parse(elementPath)
     let axElement = try await accessibilityService.run {
       try await parsedPath.resolve(using: accessibilityService)
     }
+    
+    // Press the menu item
     try AccessibilityElement.performAction(axElement, action: "AXPress")
   }
 
@@ -228,21 +231,18 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
     return menuItemDescriptors
   }
 
-  /// Activate a menu item by path
+  /// Activate a menu item by ElementPath URI
   /// - Parameters:
   ///   - bundleIdentifier: The bundle identifier of the application
-  ///   - menuPath: Path to the menu item to activate (e.g. "File > Open")
+  ///   - elementPath: ElementPath URI to the menu item to activate (e.g. "macos://ui/...")
   /// - Returns: Boolean indicating success
   public func activateMenuItem(
     bundleIdentifier: String,
-    menuPath: String,
+    elementPath: String,
   ) async throws -> Bool {
-    // Use the navigation method from AccessibilityService
-    try await accessibilityService.navigateMenu(
-      path: menuPath,
-      in: bundleIdentifier,
-    )
-
+    // Delegate to our internal method
+    try await navigateToMenuElement(elementPath: elementPath, in: bundleIdentifier)
+    
     // If we get here, the navigation was successful
     return true
   }

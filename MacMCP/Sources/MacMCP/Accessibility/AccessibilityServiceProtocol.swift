@@ -118,11 +118,11 @@ public protocol AccessibilityServiceProtocol: Sendable {
     withPath path: String,
   ) async throws
 
-  /// Navigate through menu path and activate a menu item
+  /// Navigate through menu using ElementPath URI and activate a menu item
   /// - Parameters:
-  ///   - path: The simplified menu path (e.g., "File > Open" or "View > Scientific")
-  ///   - bundleId: The bundle identifier of the application
-  func navigateMenu(path: String, in bundleId: String) async throws
+  ///   - elementPath: The ElementPath URI to the menu item (e.g., "macos://ui/...")
+  ///   - bundleId: The bundle identifier of the application (used for validation)
+  func navigateMenu(elementPath: String, in bundleId: String) async throws
 }
 
 /// Window ordering modes

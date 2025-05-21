@@ -401,14 +401,31 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
     }
   }
 
-  /// Navigate through menu path and activate a menu item
+  /// Navigate through menu using ElementPath URI and activate a menu item
   /// - Parameters:
-  ///   - path: The simplified menu path (e.g., "File > Open" or "View > Scientific")
-  ///   - bundleId: The bundle identifier of the application
-  public func navigateMenu(path: String, in bundleId: String) async throws {
-    // Create a menu navigation service instance for this operation
-    let menuNavigationService = MenuNavigationService(accessibilityService: self)
-    try await menuNavigationService.navigateMenu(path: path, in: bundleId, using: self)
+  ///   - elementPath: The ElementPath URI to the menu item (e.g., "macos://ui/...")
+  ///   - bundleId: The bundle identifier of the application (used for validation)
+  public func navigateMenu(elementPath: String, in bundleId: String) async throws {
+    // Validate that the path is an ElementPath URI
+    guard elementPath.hasPrefix("macos://ui/") else {
+      logger.error("Invalid element path format", metadata: ["path": "\(elementPath)"])
+      throw NSError(
+        domain: "com.macos.mcp.accessibility",
+        code: MacMCPErrorCode.invalidActionParams,
+        userInfo: [NSLocalizedDescriptionKey: "Invalid element path format: must start with macos://ui/"]
+      )
+    }
+    
+    // Parse the ElementPath
+    let parsedPath = try ElementPath.parse(elementPath)
+    
+    // Resolve the path to get the AXUIElement
+    let axElement = try await run {
+      try await parsedPath.resolve(using: self)
+    }
+    
+    // Perform the press action on the element
+    try AccessibilityElement.performAction(axElement, action: "AXPress")
   }
 
   /// Find a UI element by its path using ElementPath

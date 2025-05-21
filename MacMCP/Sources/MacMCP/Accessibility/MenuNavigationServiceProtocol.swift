@@ -22,13 +22,13 @@ public protocol MenuNavigationServiceProtocol: Actor {
     includeSubmenus: Bool,
   ) async throws -> [MenuItemDescriptor]
 
-  /// Activate a menu item by path
+  /// Activate a menu item by ElementPath URI
   /// - Parameters:
   ///   - bundleIdentifier: The bundle identifier of the application
-  ///   - menuPath: Path to the menu item to activate (e.g. "File > Open")
+  ///   - elementPath: ElementPath URI to the menu item to activate (e.g. "macos://ui/...")
   /// - Returns: Boolean indicating success
   func activateMenuItem(
     bundleIdentifier: String,
-    menuPath: String,
+    elementPath: String,
   ) async throws -> Bool
 }
