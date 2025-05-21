@@ -40,24 +40,36 @@ open class UIElementResourceHandler: ResourceHandler, @unchecked Sendable {
     public func handleRead(uri: String, components: ResourceURIComponents) async throws -> (ResourcesRead.ResourceContent, ResourcesRead.ResourceMetadata?) {
         logger.debug("Handling UI element read request", metadata: ["uri": "\(uri)"])
         
-        // Extract the UI path - needs special handling since it can contain multiple segments
-        let uiPath: String
-        
-        // Extract the UI path based on the URI pattern
-        if uri.hasPrefix("macos://ui/") {
-            // Path should be everything after "macos://ui/"
-            uiPath = String(uri.dropFirst(11))
-        } else {
+        // Parse the URI properly using the URI parser
+        let parsedURI: ResourceURIComponents
+        do {
+            parsedURI = try ResourceURIParser.parse(uri)
+        } catch {
             throw ResourceURIError.invalidURIFormat(uri)
         }
         
-        // Build the full element path
-        let fullPath = "macos://ui/\(uiPath)"
+        // The URI path components should start with "ui"
+        let pathComponents = parsedURI.pathComponents
+        if pathComponents.isEmpty || pathComponents[0] != "ui" {
+            throw ResourceURIError.invalidURIFormat("Path must start with 'ui': \(uri)")
+        }
         
-        // Parse query parameters
+        // Extract the UI element path without the 'ui' prefix but maintain the rest of the path structure
+        // (For now, we don't need this since we're using the full URI)
+        
+        // Build the full element path
+        let fullPath = uri
+        
+        // Parse query parameters - use the values properly extracted by the parser
         let queryParams = components.parsedQueryParameters
-        let maxDepth = Int(queryParams.custom["maxDepth"] ?? "5") ?? 5
-        let interactableOnly = queryParams.custom["interactable"]?.lowercased() == "true"
+        let maxDepth = queryParams.maxDepth
+        
+        // Look directly at the parsed query parameters
+        let interactableValue = queryParams.interactable
+        logger.debug("parsed query params: \(queryParams.custom), direct interactable value: \(interactableValue)")
+        
+        let interactableOnly = interactableValue
+        logger.debug("interactableOnly flag: \(interactableOnly)")
         
         do {
             // Look up the element by path
@@ -67,11 +79,22 @@ open class UIElementResourceHandler: ResourceHandler, @unchecked Sendable {
                 throw MCPError.invalidParams("Element not found for path: \(fullPath)")
             }
             
+            // Debug the query parameters and interactableOnly flag - print individual keys
+            logger.debug("Query parameters keys: \(queryParams.custom.keys)")
+            for (key, value) in queryParams.custom {
+                logger.debug("Query parameter: \(key) = \(value)")
+            }
+            logger.debug("interactableOnly flag: \(interactableOnly)")
+            
+            // Print components directly for debugging
+            logger.debug("Raw URI components path: \(components.path)")
+            logger.debug("Raw URI components query params: \(components.queryParameters)")
+            
             // For interactable=true query parameter, we filter the entire tree to interactable elements
             if interactableOnly {
                 // First, collect all interactable elements in the tree up to maxDepth
                 var interactableElements: [UIElement] = []
-                let limit = Int(queryParams.custom["limit"] ?? "100") ?? 100
+                let limit = queryParams.limit
                 
                 // Recursive function to find interactable elements
                 func findInteractableElements(in element: UIElement, depth: Int) {
@@ -101,6 +124,8 @@ open class UIElementResourceHandler: ResourceHandler, @unchecked Sendable {
                 // Start the search with the root element
                 findInteractableElements(in: element, depth: 0)
                 
+                logger.debug("Found \(interactableElements.count) interactable elements")
+                
                 // Convert to descriptors with paths
                 let descriptors = interactableElements.map { element in
                     ElementDescriptor.from(
@@ -109,6 +134,11 @@ open class UIElementResourceHandler: ResourceHandler, @unchecked Sendable {
                         includePath: true
                     )
                 }
+                
+                logger.debug("Created \(descriptors.count) element descriptors")
+                
+                // Verify that we're encoding an array when interactable=true
+                logger.debug("Encoding \(descriptors.count) interactable elements as JSON array")
                 
                 // Encode as JSON
                 let encoder = JSONEncoder()
@@ -119,16 +149,26 @@ open class UIElementResourceHandler: ResourceHandler, @unchecked Sendable {
                     throw MCPError.internalError("Failed to encode interactable elements as JSON")
                 }
                 
-                // Create metadata
+                // Verify array format for debugging
+                logger.debug("JSON response first char: \(jsonString.first ?? Character("?"))")
+                logger.debug("JSON response last char: \(jsonString.last ?? Character("?"))")
+                
+                // Create metadata - ensure interactableCount is included
+                let additionalMetadata: [String: Value] = [
+                    "path": .string(fullPath),
+                    "interactableCount": .double(Double(interactableElements.count)),
+                    "maxDepth": .double(Double(maxDepth)),
+                    "limit": .double(Double(limit))
+                ]
+                
+                // Debug log the metadata
+                logger.debug("Setting interactableCount metadata: \(interactableElements.count)")
+                logger.debug("Full additionalMetadata: \(additionalMetadata)")
+                
                 let metadata = ResourcesRead.ResourceMetadata(
                     mimeType: "application/json",
                     size: jsonString.count,
-                    additionalMetadata: [
-                        "path": .string(fullPath),
-                        "interactableCount": .double(Double(interactableElements.count)),
-                        "maxDepth": .double(Double(maxDepth)),
-                        "limit": .double(Double(limit))
-                    ]
+                    additionalMetadata: additionalMetadata
                 )
                 
                 return (.text(jsonString), metadata)
