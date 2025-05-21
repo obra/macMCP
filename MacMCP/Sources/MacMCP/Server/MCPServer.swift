@@ -167,6 +167,16 @@ public actor MCPServer {
   private func registerTools() async {
     logger.info("Registering macOS accessibility tools")
 
+    // Create resource registry
+    let resourceRegistry = ResourceRegistry()
+    
+    // Register application windows resource handler
+    let windowsResourceHandler = ApplicationWindowsResourceHandler(
+      accessibilityService: accessibilityService,
+      logger: logger
+    )
+    resourceRegistry.register(windowsResourceHandler)
+    
     // Register server info handler
     await server.withMethodHandler(ServerInfo.self) { [weak self] _ in
       guard let self else {
@@ -224,10 +234,16 @@ public actor MCPServer {
       return Shutdown.Result()
     }
 
-    // Register resource listing handler (empty implementation)
-    await server.withMethodHandler(ListResources.self) { _ in
-      // Return empty list of resources
-      ListResources.Result(resources: [], nextCursor: nil)
+    // Register resources/read handler
+    let resourcesReadHandler = ResourcesReadMethodHandler(registry: resourceRegistry, logger: logger)
+    await server.withMethodHandler(ResourcesRead.self) { params in
+      try await resourcesReadHandler.handle(params)
+    }
+
+    // Register resource listing handler
+    let resourcesListHandler = ResourcesListMethodHandler(registry: resourceRegistry, logger: logger)
+    await server.withMethodHandler(ListResources.self) { params in
+      try await resourcesListHandler.handle(params)
     }
 
     // Register prompts listing handler (empty implementation)

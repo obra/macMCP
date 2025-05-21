@@ -637,4 +637,37 @@ struct InterfaceExplorerToolTests {
 
     try await cleanupTest()
   }
+  
+  /// Test that comparing UI element paths works correctly
+  @Test("Test comparing UI element paths")
+  mutating func testComparePaths() async throws {
+    try await setupTest()
+    
+    // Create two ElementPath objects with different attributes
+    let pathString1 = "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow/AXButton[@AXTitle=\"1\"]"
+    let pathString2 = "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow/AXButton[@AXTitle=\"2\"]"
+    
+    // Parse the paths
+    let elementPath1 = try ElementPath.parse(pathString1)
+    let elementPath2 = try ElementPath.parse(pathString2)
+    
+    // Verify paths have the same structure but different button titles
+    #expect(elementPath1.segments.count == elementPath2.segments.count, "Paths should have the same number of segments")
+    #expect(elementPath1.segments[0].role == elementPath2.segments[0].role, "First segments should have the same role")
+    #expect(elementPath1.segments[1].role == elementPath2.segments[1].role, "Second segments should have the same role")
+    #expect(elementPath1.segments[2].role == elementPath2.segments[2].role, "Third segments should have the same role")
+    
+    // Verify that the button titles are different
+    #expect(elementPath1.segments[2].attributes["AXTitle"] != elementPath2.segments[2].attributes["AXTitle"], "Verify that the paths have different button titles")
+    
+    // Test string representations
+    let path1String = elementPath1.toString()
+    let path2String = elementPath2.toString()
+    
+    #expect(path1String == pathString1, "Path1 string representation should match the original string")
+    #expect(path2String == pathString2, "Path2 string representation should match the original string")
+    #expect(path1String != path2String, "Path strings should be different")
+    
+    try await cleanupTest()
+  }
 }
