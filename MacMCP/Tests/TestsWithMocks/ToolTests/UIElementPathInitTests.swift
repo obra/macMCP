@@ -199,25 +199,19 @@ struct UIElementPathInitTests {
       for segment: PathSegment,
       in element: PathInitMockAXUIElement,
     ) -> PathInitMockAXUIElement? {
-      print(
-        "DEBUG: Looking for segment \(segment.toString()) in mock element with role \(element.role)"
-      )
 
       // For tests, we need to be lenient since we're using dummy elements
       // Always match the first segment (AXWindow) to our root element
       if segment.role == "AXWindow" {
-        print("DEBUG: Found match for AXWindow in root element")
         return rootElement
       }
 
       // Check if this element matches the segment
       if element.role == segment.role {
-        print("DEBUG: Role match found")
 
         // For testing, we'll be lenient with attribute matching
         // Just check a few important attributes like title if they exist
         if segment.attributes.isEmpty {
-          print("DEBUG: No attributes to match, considering element a match")
           return element
         }
 
@@ -225,10 +219,8 @@ struct UIElementPathInitTests {
         if let titleValue = segment.attributes["AXTitle"] ?? segment.attributes["title"] {
           if let elementTitle = element.attributes["AXTitle"] as? String {
             if elementTitle == titleValue {
-              print("DEBUG: Title matches: \(titleValue)")
               return element
             }
-            print("DEBUG: Title doesn't match: expected \(titleValue), got \(elementTitle)")
           }
         }
 
@@ -239,7 +231,6 @@ struct UIElementPathInitTests {
           if let controlGroup = rootElement.children.first(where: {
             ($0.role == "AXGroup" && $0.attributes["AXTitle"] as? String == "Controls")
           }) {
-            print("DEBUG: Found 'Controls' group")
             return controlGroup
           }
         }
@@ -254,7 +245,6 @@ struct UIElementPathInitTests {
             if let button = controlGroup.children.first(where: {
               ($0.role == "AXButton" && $0.attributes["AXTitle"] as? String == "OK")
             }) {
-              print("DEBUG: Found 'OK' button")
               return button
             }
           }
@@ -274,7 +264,6 @@ struct UIElementPathInitTests {
         for child in rootElement.children {
           if child.role == "AXGroup", child.attributes["AXTitle"] as? String == "Controls" {
             for button in child.children where button.role == "AXButton" {
-              print("DEBUG: No exact match for button, returning first button found")
               return button
             }
           }
@@ -283,20 +272,17 @@ struct UIElementPathInitTests {
         for child in rootElement.children {
           if child.role == "AXGroup", child.attributes["AXTitle"] as? String == "Controls" {
             for field in child.children where field.role == "AXTextField" {
-              print("DEBUG: No exact match for text field, returning first text field found")
               return field
             }
           }
         }
       } else if segment.role == "AXGroup" {
         for child in rootElement.children where child.role == "AXGroup" {
-          print("DEBUG: No exact match for group, returning first group found")
           return child
         }
       }
 
       // No match found and no suitable fallback
-      print("DEBUG: No match found for segment \(segment.toString())")
       return nil
     }
 
@@ -309,7 +295,6 @@ struct UIElementPathInitTests {
 
     // This is the key method we need to implement to make this test work
     func resolveUIElementPath(_ path: ElementPath) async throws -> (AXUIElement, String) {
-      print("DIAGNOSTIC: Resolving path: \(path.toString())")
       
       // Always give a valid system-wide element for test paths
       let systemWideElement = AXUIElementCreateSystemWide()
@@ -319,7 +304,7 @@ struct UIElementPathInitTests {
       
       // Special case handling for test scenarios
       if path.segments.count > 0 {
-        let firstSegment = path.segments[0]
+        // Unused variable removed
         
         // For tests with ambiguous paths, throw appropriate error
         if path.segments.count > 1 {
@@ -355,25 +340,17 @@ struct UIElementPathInitTests {
         // Always indicate that every element has children
         // This is a special workaround for tests - return 4 dummy elements for any element
         // to ensure that path resolution doesn't fail due to missing children
-        print(
-          "DEBUG: Getting AXChildren for element \(Unmanaged.passUnretained(element).toOpaque())")
 
         // IMPORTANT: For window elements, we must return children
-        var roleValue = "Unknown"
+        // Get the role (removed unused variable)
         var roleRef: CFTypeRef?
-        let roleStatus = AXUIElementCopyAttributeValue(element, "AXRole" as CFString, &roleRef)
-        if roleStatus == .success, let role = roleRef as? String {
-          roleValue = role
-        }
-        print("DEBUG: Element role: \(roleValue)")
+        _ = AXUIElementCopyAttributeValue(element, "AXRole" as CFString, &roleRef)
 
         // Create children array regardless of the element type
         var childElements: [AXUIElement] = []
-        for i in 0..<4 {
+        for _ in 0..<4 {
           childElements.append(AXUIElementCreateSystemWide())
-          print("DEBUG: Created child \(i)")
         }
-        print("DEBUG: Returning \(childElements.count) children")
         return (childElements, true)
       }
 
@@ -956,8 +933,9 @@ struct UIElementPathInitTests {
     let elementPath2 = try ElementPath.parse(path2)
     
     // Verify that the paths have different button titles
-    #expect(elementPath1.segments[2].attributes["AXTitle"] as? String != 
-           elementPath2.segments[2].attributes["AXTitle"] as? String)
+    // Compare attributes directly without unnecessary casting
+    #expect(elementPath1.segments[2].attributes["AXTitle"] != 
+           elementPath2.segments[2].attributes["AXTitle"])
   }
 
   @Test("Compare paths with different hierarchies")
