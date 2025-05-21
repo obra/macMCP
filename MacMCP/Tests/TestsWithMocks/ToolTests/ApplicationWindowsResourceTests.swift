@@ -57,7 +57,14 @@ struct ApplicationWindowsResourceTests {
         func getApplicationUIElement(bundleIdentifier: String, recursive: Bool, maxDepth: Int) async throws -> UIElement {
             // Create a UIElement representing the application with window children
             let children = windowElements.map { mockElement in
-                UIElement(
+                // We need to create UIElement with proper attributes to match what WindowDescriptor.from expects
+                var attributes = mockElement.attributes
+                // Ensure attributes match what the WindowDescriptor.from method expects
+                attributes["main"] = mockElement.isMain
+                attributes["minimized"] = mockElement.isMinimized
+                attributes["visible"] = mockElement.isVisible
+                
+                return UIElement(
                     path: mockElement.path,
                     role: mockElement.role,
                     title: mockElement.title,
@@ -65,7 +72,7 @@ struct ApplicationWindowsResourceTests {
                     elementDescription: nil,
                     frame: mockElement.frame,
                     children: [],
-                    attributes: mockElement.attributes,
+                    attributes: attributes,
                     actions: []
                 )
             }
@@ -272,11 +279,7 @@ struct ApplicationWindowsResourceTests {
                 isVisible: true,
                 frame: CGRect(x: 100, y: 100, width: 800, height: 600),
                 children: [],
-                attributes: [
-                    "main": true,
-                    "minimized": false,
-                    "visible": true
-                ]
+                attributes: [:]  // Empty attributes so they'll be set by our updated mock
             ),
             MockUIElement(
                 role: "AXWindow",
@@ -287,11 +290,7 @@ struct ApplicationWindowsResourceTests {
                 isVisible: true,
                 frame: CGRect(x: 200, y: 200, width: 400, height: 300),
                 children: [],
-                attributes: [
-                    "main": false,
-                    "minimized": false,
-                    "visible": true
-                ]
+                attributes: [:]  // Empty attributes so they'll be set by our updated mock
             ),
             MockUIElement(
                 role: "AXWindow",
@@ -302,11 +301,7 @@ struct ApplicationWindowsResourceTests {
                 isVisible: true,
                 frame: CGRect(x: 0, y: 0, width: 800, height: 600),
                 children: [],
-                attributes: [
-                    "main": false,
-                    "minimized": true,
-                    "visible": true
-                ]
+                attributes: [:]  // Empty attributes so they'll be set by our updated mock
             )
         ]
         
@@ -317,22 +312,35 @@ struct ApplicationWindowsResourceTests {
         // Create the resource handler
         let handler = TestableApplicationWindowsResourceHandler(accessibilityService: mockService, logger: logger)
         
-        // Create resource URI components
-        let resourceURI = "macos://applications/com.test.app/windows"
+        // Create resource URI components - explicitly include minimized windows
+        let resourceURI = "macos://applications/com.test.app/windows?includeMinimized=true"
         let components = ResourceURIComponents(
             scheme: "macos", 
             path: "/applications/com.test.app/windows",
-            queryParameters: [:]
+            queryParameters: ["includeMinimized": "true"]
         )
         
         // Call the handler
         let (content, metadata) = try await handler.handleRead(uri: resourceURI, components: components)
         
-        // Check the result content
+        // Debug: Log the AccessibilityElement children directly
+        print("DEBUG: Testing window elements in the mock:")
+        for (i, element) in mockWindows.enumerated() {
+            print("DEBUG: Window \(i): role=\(element.role), title=\(element.title ?? "nil"), isMinimized=\(element.isMinimized)")
+        }
+        
+        // Debug: Check the XML
         if case let .text(jsonString) = content {
+            print("DEBUG: JSON response: \(jsonString)")
+            
             // Parse the JSON to verify the windows
             let jsonData = jsonString.data(using: .utf8)!
             let windowsArray = try JSONDecoder().decode([WindowDescriptor].self, from: jsonData)
+            
+            print("DEBUG: Parsed window count: \(windowsArray.count)")
+            for (i, window) in windowsArray.enumerated() {
+                print("DEBUG: Parsed window \(i): title=\(window.title ?? "nil"), isMinimized=\(window.isMinimized)")
+            }
             
             #expect(windowsArray.count == 3, "Should return 3 windows")
             
