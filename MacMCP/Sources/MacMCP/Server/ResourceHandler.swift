@@ -195,6 +195,7 @@ public class ResourceRegistry: @unchecked Sendable {
         let resources = handlers.map { handler in
             ListResources.Resource(
                 id: handler.uriPattern,
+                uri: handler.uriPattern,
                 name: handler.name,
                 type: handler.mimeType
             )

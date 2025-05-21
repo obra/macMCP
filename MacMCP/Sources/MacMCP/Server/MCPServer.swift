@@ -177,6 +177,20 @@ public actor MCPServer {
     )
     resourceRegistry.register(windowsResourceHandler)
     
+    // Register application menus resource handler
+    let menusResourceHandler = ApplicationMenusResourceHandler(
+      menuNavigationService: menuNavigationService,
+      logger: logger
+    )
+    resourceRegistry.register(menusResourceHandler)
+    
+    // Register applications resource handler
+    let applicationsResourceHandler = ApplicationsResourceHandler(
+      applicationService: applicationService,
+      logger: logger
+    )
+    resourceRegistry.register(applicationsResourceHandler)
+    
     // Register server info handler
     await server.withMethodHandler(ServerInfo.self) { [weak self] _ in
       guard let self else {

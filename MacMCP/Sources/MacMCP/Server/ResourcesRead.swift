@@ -21,16 +21,27 @@ public enum ResourcesRead: MCP.Method {
 
     /// Result for resource reading
     public struct Result: Codable, Hashable, Sendable {
-        /// Resource content
-        public let content: ResourceContent
-
-        /// Resource metadata
-        public let metadata: ResourceMetadata?
+        /// Array of resource contents
+        public let contents: [MCP.Resource.Content]
 
         /// Create a new resource read result
+        public init(contents: [MCP.Resource.Content]) {
+            self.contents = contents
+        }
+        
+        /// Create a new resource read result from legacy format
         public init(content: ResourceContent, metadata: ResourceMetadata? = nil) {
-            self.content = content
-            self.metadata = metadata
+            // Create MCP resource content from our ResourceContent format
+            let resourceContent: MCP.Resource.Content
+            if let textContent = content.asText {
+                resourceContent = MCP.Resource.Content.text(textContent, uri: "", mimeType: metadata?.mimeType)
+            } else if let binaryContent = content.asBinary {
+                resourceContent = MCP.Resource.Content.binary(binaryContent, uri: "", mimeType: metadata?.mimeType)
+            } else {
+                // Default to empty text if neither text nor binary
+                resourceContent = MCP.Resource.Content.text("", uri: "", mimeType: "text/plain")
+            }
+            self.contents = [resourceContent]
         }
     }
 

@@ -39,8 +39,18 @@ public struct ResourcesReadMethodHandler: Sendable {
             // Handle the read request
             let (content, metadata) = try await handler.handleRead(uri: params.uri, components: components)
             
+            // Convert to MCP Resource.Content
+            let resourceContent: MCP.Resource.Content
+            if let textContent = content.asText {
+                resourceContent = MCP.Resource.Content.text(textContent, uri: params.uri, mimeType: metadata?.mimeType)
+            } else if let binaryContent = content.asBinary {
+                resourceContent = MCP.Resource.Content.binary(binaryContent, uri: params.uri, mimeType: metadata?.mimeType)
+            } else {
+                throw MCPError.internalError("Invalid content type")
+            }
+            
             // Return the result
-            return ResourcesRead.Result(content: content, metadata: metadata)
+            return ResourcesRead.Result(contents: [resourceContent])
         } catch let error as ResourceURIError {
             // Convert resource errors to MCP errors
             logger.error("Resource error: \(error.description)")
