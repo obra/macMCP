@@ -191,6 +191,13 @@ public actor MCPServer {
     )
     resourceRegistry.register(applicationsResourceHandler)
     
+    // Register resource templates
+    let templates = ResourceTemplateFactory.createTemplates()
+    for template in templates {
+      resourceRegistry.registerTemplate(template)
+    }
+    logger.info("Registered \(templates.count) resource templates")
+    
     // Register server info handler
     await server.withMethodHandler(ServerInfo.self) { [weak self] _ in
       guard let self else {
