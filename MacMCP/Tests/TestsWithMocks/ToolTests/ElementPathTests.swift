@@ -536,7 +536,7 @@ struct ElementPathTests {
       // No-op for tests
     }
 
-    func navigateMenu(path _: String, in _: String) async throws {
+    func navigateMenu(elementPath _: String, in _: String) async throws {
       // No-op for tests
     }
   }
