@@ -172,12 +172,11 @@ struct MenuNavigationCalculatorTest {
     try await activateCalculatorWithMCP()
     try await Task.sleep(for: .milliseconds(1000))
 
-    // Now let's try the approach that directly uses menu paths with MenuNavigationTool
-    // but we'll use a properly formatted menu path
+    // Use menu paths with MenuNavigationTool in ElementPath URI format
     let menuParams: [String: Value] = [
       "action": .string("activateMenuItem"),
       "bundleId": .string("com.apple.calculator"),
-      "menuPath": .string("View > " + mode),  // Plain format without the identifiers
+      "menuPath": .string("macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"View\"]/AXMenu/AXMenuItem[@AXTitle=\"" + mode + "\"]"),
     ]
 
     // Use MenuNavigationTool's handler method
