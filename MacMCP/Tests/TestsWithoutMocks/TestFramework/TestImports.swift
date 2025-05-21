@@ -42,3 +42,5 @@ public typealias OpenApplicationTool = MacMCP.OpenApplicationTool
 // MCP Types
 public typealias Value = MCP.Value
 public typealias Tool = MCP.Tool
+
+// Test Framework Types

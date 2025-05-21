@@ -4,6 +4,7 @@
 import Foundation
 import Logging
 import MCP
+import AppKit
 
 /// Handler for the applications resource
 public struct ApplicationsResourceHandler: ResourceHandler {
@@ -43,12 +44,27 @@ public struct ApplicationsResourceHandler: ResourceHandler {
         // Get running applications
         let runningApps = try await applicationService.getRunningApplications()
         
-        // Serialize to JSON
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        // Create an array of structured objects
+        var appList: [[String: Any]] = []
         
+        for (bundleId, name) in runningApps {
+            var appInfo = [String: Any]()
+            appInfo["bundleIdentifier"] = bundleId
+            appInfo["name"] = name
+            
+            // Try to get process ID if available
+            if let app = AppKit.NSRunningApplication.runningApplications(withBundleIdentifier: bundleId).first {
+                appInfo["processIdentifier"] = app.processIdentifier
+            } else {
+                appInfo["processIdentifier"] = 0
+            }
+            
+            appList.append(appInfo)
+        }
+        
+        // Serialize to JSON
         do {
-            let jsonData = try encoder.encode(runningApps)
+            let jsonData = try JSONSerialization.data(withJSONObject: appList, options: [.prettyPrinted, .sortedKeys])
             guard let jsonString = String(data: jsonData, encoding: .utf8) else {
                 throw MCPError.internalError("Failed to encode running applications as JSON")
             }
@@ -56,7 +72,10 @@ public struct ApplicationsResourceHandler: ResourceHandler {
             // Create metadata
             let metadata = ResourcesRead.ResourceMetadata(
                 mimeType: mimeType,
-                size: jsonString.utf8.count
+                size: jsonString.utf8.count,
+                additionalMetadata: [
+                    "applicationCount": .double(Double(appList.count))
+                ]
             )
             
             return (.text(jsonString), metadata)

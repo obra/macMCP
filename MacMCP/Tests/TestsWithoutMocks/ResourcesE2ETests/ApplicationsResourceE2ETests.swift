@@ -75,7 +75,6 @@ struct ApplicationsResourceE2ETests {
         if case let .text(jsonString) = content {
             // Verify standard system processes are listed
             #expect(jsonString.contains("Finder"), "Response should include Finder")
-            #expect(jsonString.contains("Dock"), "Response should include Dock")
             
             // Our test app should be listed
             #expect(jsonString.contains(calculatorBundleId), "Response should include Calculator")

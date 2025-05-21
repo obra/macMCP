@@ -269,6 +269,69 @@ When using the Swift Testing framework's `#expect` macro, follow these guideline
    - Use appropriate comparison methods for different types
    - Consider using custom assertion helpers for complex checks
 
+### 7. Testing JSON Responses
+
+When testing JSON responses from resources or other API calls, prefer parsing the JSON and testing the data structure directly rather than using string contains checks. This approach is more robust and less prone to failures due to whitespace or formatting differences.
+
+#### JSON Parsing and Testing Pattern
+
+```swift
+// Verify JSON response content
+if case let .text(jsonString) = content {
+    // Parse the JSON string to an array or object
+    guard let jsonData = jsonString.data(using: .utf8) else {
+        #expect(Bool(false), "Could not convert JSON string to data")
+        return
+    }
+    
+    do {
+        // For array responses
+        guard let jsonArray = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [[String: Any]] else {
+            #expect(Bool(false), "JSON is not an array of objects")
+            return
+        }
+        
+        // For object responses
+        // guard let jsonObject = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any] else {
+        //     #expect(Bool(false), "JSON is not an object")
+        //     return
+        // }
+        
+        // Check structure and content
+        #expect(jsonArray.count > 0, "Array should not be empty")
+        
+        // Check for properties
+        if let firstItem = jsonArray.first {
+            #expect(firstItem["propertyName"] != nil, "Item should have propertyName")
+            
+            // Check property values if needed
+            if let value = firstItem["propertyName"] as? String {
+                #expect(value == "expectedValue", "Property should have expected value")
+            }
+        }
+        
+        // Check for items with specific property values
+        let hasItemWithProperty = jsonArray.contains { item in
+            item["propertyName"] as? String == "expectedValue"
+        }
+        #expect(hasItemWithProperty, "Array should contain item with expected property value")
+        
+    } catch {
+        #expect(Bool(false), "Failed to parse JSON: \(error.localizedDescription)")
+    }
+} else {
+    #expect(Bool(false), "Content should be text")
+}
+```
+
+#### Benefits of This Approach
+
+1. **Robust to Formatting Changes**: Doesn't depend on exact JSON string format (whitespace, ordering, etc.)
+2. **Type Safety**: Can check not just for property existence but also correct types
+3. **Better Error Messages**: Can provide more specific error messages based on the actual data structure
+4. **Complex Conditions**: Can check for complex conditions like "at least one item has property X"
+5. **Access to Full Data Structure**: Can navigate and test nested properties easily
+
 ## Running Tests
 
 ### Basic Test Execution
