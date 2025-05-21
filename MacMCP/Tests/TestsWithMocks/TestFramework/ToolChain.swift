@@ -445,7 +445,7 @@ public class MockAccessibilityService: @unchecked Sendable, AccessibilityService
     // Do nothing in mock
   }
 
-  public func navigateMenu(path _: String, in _: String) async throws {
+  public func navigateMenu(elementPath _: String, in _: String) async throws {
     // Do nothing in mock
   }
 

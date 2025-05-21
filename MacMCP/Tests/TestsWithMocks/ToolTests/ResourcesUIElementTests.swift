@@ -109,7 +109,7 @@ struct ResourcesUIElementTests {
             // No-op
         }
         
-        func navigateMenu(path: String, in bundleId: String) async throws {
+        func navigateMenu(elementPath: String, in bundleId: String) async throws {
             // No-op
         }
     }
@@ -340,7 +340,7 @@ struct ResourcesUIElementTests {
             // No-op
         }
         
-        func navigateMenu(path: String, in bundleId: String) async throws {
+        func navigateMenu(elementPath: String, in bundleId: String) async throws {
             // No-op
         }
     }
