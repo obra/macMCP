@@ -80,17 +80,7 @@ extension ResourceHandler {
     /// - Returns: Dictionary of parameter names to values
     /// - Throws: ResourceURIError if the URI doesn't match the pattern
     public func extractParameters(from uri: String, pattern: String) throws -> [String: String] {
-        // Enable debug mode for unit tests
-        #if DEBUG
-        let isDebug = true
-        #else
-        let isDebug = false
-        #endif
-        
-        if isDebug {
-            print("[DEBUG extractParameters] uri: \(uri)")
-            print("[DEBUG extractParameters] pattern: \(pattern)")
-        }
+        // Debug mode removed
         
         // Check if the URI is missing a scheme, and if the pattern has one
         var normalizedUri = uri
@@ -100,9 +90,6 @@ extension ResourceHandler {
             if let schemeEnd = pattern.range(of: "://") {
                 let scheme = pattern[..<schemeEnd.upperBound]
                 normalizedUri = String(scheme) + normalizedUri
-                if isDebug {
-                    print("[DEBUG extractParameters] Added scheme: \(normalizedUri)")
-                }
             }
         }
         
@@ -110,30 +97,17 @@ extension ResourceHandler {
         do {
             let components = try ResourceURIParser.parse(normalizedUri)
             
-            if isDebug {
-                print("[DEBUG extractParameters] parsed components: scheme=\(components.scheme), path=\(components.path)")
-                print("[DEBUG extractParameters] pathComponents: \(components.pathComponents)")
-            }
             
             // Get the pattern components
             let patternComponents = ResourceURIParser.pathComponents(from: pattern)
             
-            if isDebug {
-                print("[DEBUG extractParameters] patternComponents: \(patternComponents)")
-            }
             
             // Get the URI path components
             let uriComponents = components.pathComponents
             
-            if isDebug {
-                print("[DEBUG extractParameters] uriComponents: \(uriComponents)")
-            }
             
             // Check if the number of components match
             if patternComponents.count != uriComponents.count {
-                if isDebug {
-                    print("[DEBUG extractParameters] component count mismatch: pattern=\(patternComponents.count), uri=\(uriComponents.count)")
-                }
                 throw ResourceURIError.invalidURIFormat(uri)
             }
             
@@ -141,35 +115,20 @@ extension ResourceHandler {
             
             // Extract parameter values
             for (pattern, component) in zip(patternComponents, uriComponents) {
-                if isDebug {
-                    print("[DEBUG extractParameters] comparing: pattern=\(pattern), component=\(component)")
-                }
                 
                 // If the pattern component is a parameter (enclosed in {}), extract its value
                 if pattern.hasPrefix("{") && pattern.hasSuffix("}") {
                     let paramName = String(pattern.dropFirst().dropLast())
                     parameters[paramName] = component
-                    if isDebug {
-                        print("[DEBUG extractParameters] extracted parameter: \(paramName)=\(component)")
-                    }
                 } else if pattern != component {
                     // If this is not a parameter, the components should match exactly
-                    if isDebug {
-                        print("[DEBUG extractParameters] non-parameter component mismatch: pattern=\(pattern), component=\(component)")
-                    }
                     throw ResourceURIError.invalidURIFormat(uri)
                 }
             }
             
-            if isDebug {
-                print("[DEBUG extractParameters] returning parameters: \(parameters)")
-            }
             return parameters
             
         } catch {
-            if isDebug {
-                print("[DEBUG extractParameters] parse error: \(error)")
-            }
             throw error
         }
     }

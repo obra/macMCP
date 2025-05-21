@@ -75,48 +75,41 @@ struct ResourceURIParserTests {
             description: "Application windows"
         )
         
-        print("Testing extractParameters...")
-        print("Handler URI Pattern: \(handler.uriPattern)")
+        // Test parameter extraction
         
         // Test with a matching URI
         let uri = "macos://applications/com.apple.TextEdit/windows"
-        print("Testing URI with scheme: \(uri)")
+        // Test with URI that has a scheme
         
         do {
-            let components = try ResourceURIParser.parse(uri)
-            print("  Parsed components from URI:")
-            print("    Scheme: \(components.scheme)")
-            print("    Path: \(components.path)")
-            print("    Path Components: \(components.pathComponents)")
+            // Parse the URI into components
+            _ = try ResourceURIParser.parse(uri)
             
             let params = try handler.extractParameters(from: uri, pattern: handler.uriPattern)
-            print("  Extracted parameters: \(params)")
+            // Extract parameters
             
             #expect(params.count == 1, "Should extract 1 parameter")
             #expect(params["bundleId"] == "com.apple.TextEdit", "bundleId should be 'com.apple.TextEdit'")
         } catch {
-            print("  Error: \(error)")
+            // Handle any errors
             throw error
         }
         
         // Test with a URI without scheme
         let uriWithoutScheme = "applications/com.apple.TextEdit/windows"
-        print("Testing URI without scheme: \(uriWithoutScheme)")
+        // Test with URI that doesn't have a scheme
         
         do {
-            let components = try ResourceURIParser.parse(uriWithoutScheme)
-            print("  Parsed components from URI without scheme:")
-            print("    Scheme: \(components.scheme)")
-            print("    Path: \(components.path)")
-            print("    Path Components: \(components.pathComponents)")
+            // Parse the URI without scheme into components
+            _ = try ResourceURIParser.parse(uriWithoutScheme)
             
             let paramsWithoutScheme = try handler.extractParameters(from: uriWithoutScheme, pattern: handler.uriPattern)
-            print("  Extracted parameters: \(paramsWithoutScheme)")
+            // Extract parameters from URI without scheme
             
             #expect(paramsWithoutScheme.count == 1, "Should extract 1 parameter")
             #expect(paramsWithoutScheme["bundleId"] == "com.apple.TextEdit", "bundleId should be 'com.apple.TextEdit'")
         } catch {
-            print("  Error: \(error)")
+            // Handle any errors
             throw error
         }
     }
