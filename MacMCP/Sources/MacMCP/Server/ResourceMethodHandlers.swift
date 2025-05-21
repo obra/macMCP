@@ -94,42 +94,8 @@ public struct ResourcesTemplatesListMethodHandler: Sendable {
         // Get all templates
         let templates = registry.allTemplates()
         
-        // Apply pagination
-        let limit = params.limit ?? 100
-        let allTemplates = templates
-        
-        // If there's a cursor, start from there
-        if let cursor = params.cursor, let index = allTemplates.firstIndex(where: { $0.id == cursor }) {
-            let startIndex = allTemplates.index(after: index)
-            if startIndex < allTemplates.endIndex {
-                let endIndex = min(startIndex + limit, allTemplates.endIndex)
-                let slice = allTemplates[startIndex..<endIndex]
-                
-                // Determine next cursor
-                let nextCursor: String?
-                if endIndex < allTemplates.endIndex {
-                    nextCursor = allTemplates[endIndex].id
-                } else {
-                    nextCursor = nil
-                }
-                
-                return ListResourceTemplates.Result(templates: Array(slice), nextCursor: nextCursor)
-            }
-        }
-        
-        // No cursor or cursor not found - return from beginning
-        let endIndex = min(limit, allTemplates.count)
-        let slice = allTemplates[0..<endIndex]
-        
-        // Determine next cursor
-        let nextCursor: String?
-        if endIndex < allTemplates.count {
-            nextCursor = allTemplates[endIndex].id
-        } else {
-            nextCursor = nil
-        }
-        
-        return ListResourceTemplates.Result(templates: Array(slice), nextCursor: nextCursor)
+        // Return using our result format
+        return ListResourceTemplates.Result(templates: templates, nextCursor: nil)
     }
 }
 

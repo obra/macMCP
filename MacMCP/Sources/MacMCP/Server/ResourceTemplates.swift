@@ -20,9 +20,10 @@ public struct ResourceTemplateFactory {
     /// - Returns: A UI element resource template
     private static func createUIElementTemplate() -> ListResourceTemplates.Template {
         ListResourceTemplates.Template(
-            id: "macos://ui/{path}",
+            uriTemplate: "macos://ui/{path}",
             name: "UI Element",
             description: "Access a UI element by path",
+            mimeType: "application/json",
             parameters: [
                 ListResourceTemplates.Parameter(
                     name: "path",
@@ -58,9 +59,10 @@ public struct ResourceTemplateFactory {
     /// - Returns: An application menus resource template
     private static func createApplicationMenusTemplate() -> ListResourceTemplates.Template {
         ListResourceTemplates.Template(
-            id: "macos://applications/{bundleId}/menus",
+            uriTemplate: "macos://applications/{bundleId}/menus",
             name: "Application Menus",
             description: "Get menu structure for an application",
+            mimeType: "application/json",
             parameters: [
                 ListResourceTemplates.Parameter(
                     name: "bundleId",
@@ -90,9 +92,10 @@ public struct ResourceTemplateFactory {
     /// - Returns: An application windows resource template
     private static func createApplicationWindowsTemplate() -> ListResourceTemplates.Template {
         ListResourceTemplates.Template(
-            id: "macos://applications/{bundleId}/windows",
+            uriTemplate: "macos://applications/{bundleId}/windows",
             name: "Application Windows",
             description: "Get windows for an application",
+            mimeType: "application/json",
             parameters: [
                 ListResourceTemplates.Parameter(
                     name: "bundleId",

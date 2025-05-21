@@ -259,6 +259,13 @@ public actor MCPServer {
     await server.withMethodHandler(ListResources.self) { params in
       try await resourcesListHandler.handle(params)
     }
+    
+    // Register resource templates listing handler
+    await server.withMethodHandler(MCP.ListResourceTemplates.self) { _ in
+      // Convert our templates to MCP format
+      let templates = resourceRegistry.allTemplates().map { $0.toMCPTemplate() }
+      return MCP.ListResourceTemplates.Result(templates: templates)
+    }
 
     // Register prompts listing handler (empty implementation)
     await server.withMethodHandler(ListPrompts.self) { _ in

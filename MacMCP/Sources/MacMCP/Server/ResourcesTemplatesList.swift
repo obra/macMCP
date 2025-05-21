@@ -40,14 +40,17 @@ public enum ListResourceTemplates: MCP.Method {
 
     /// Resource template
     public struct Template: Codable, Hashable, Sendable {
-        /// Template ID (URI template)
-        public let id: String
+        /// Template URI pattern
+        public let uriTemplate: String
 
         /// Human-readable template name
         public let name: String
 
         /// Template description
         public let description: String?
+        
+        /// Template MIME type
+        public let mimeType: String?
 
         /// Template parameters
         public let parameters: [Parameter]?
@@ -57,17 +60,29 @@ public enum ListResourceTemplates: MCP.Method {
 
         /// Create a new resource template
         public init(
-            id: String,
+            uriTemplate: String,
             name: String,
             description: String? = nil,
+            mimeType: String? = nil,
             parameters: [Parameter]? = nil,
             metadata: [String: Value]? = nil
         ) {
-            self.id = id
+            self.uriTemplate = uriTemplate
             self.name = name
             self.description = description
+            self.mimeType = mimeType
             self.parameters = parameters
             self.metadata = metadata
+        }
+        
+        /// Convert to MCP Resource.Template
+        public func toMCPTemplate() -> MCP.Resource.Template {
+            return MCP.Resource.Template(
+                uriTemplate: uriTemplate,
+                name: name,
+                description: description,
+                mimeType: mimeType
+            )
         }
     }
 
