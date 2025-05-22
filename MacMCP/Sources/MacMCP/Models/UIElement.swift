@@ -338,6 +338,8 @@ public enum FrameSource: String, Codable {
     if descriptionStatus == .success, let descriptionValue = descriptionRef as? String {
       elementDescription = descriptionValue
     }
+    // Note: AXError.attributeUnsupported (-25200) is expected for elements without descriptions
+    // The system-level error logging cannot be suppressed but is normal behavior
 
     // Get the frame
     var frameRef: CFTypeRef?

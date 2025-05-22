@@ -10,23 +10,38 @@ import MCP
 
 @Suite(.serialized)
 struct WindowsResourceE2ETests {
-    // Test components
+    // Shared test components (static for shared setup)
+    @MainActor private static var sharedToolChain: ToolChain?
+    @MainActor private static var sharedTextEditApp: TextEditModel?
+    @MainActor private static var environmentSetUp = false
+    
+    // Instance components
     private var toolChain: ToolChain!
     private var textEditApp: TextEditModel!
     
     // The TextEdit bundle ID (using TextEdit because it has standard windows)
     private let textEditBundleId = "com.apple.TextEdit"
     
-    // Setup method
-    private mutating func setUp() async throws {
-        // Create tool chain
-        toolChain = ToolChain()
+    // Static setup method that will be called once before all tests
+    @MainActor static func setUp() async throws {
+        // Skip if already set up
+        if environmentSetUp {
+            return
+        }
         
-        // Create TextEdit app model
-        textEditApp = TextEditModel(toolChain: toolChain)
+        // Create shared tool chain
+        sharedToolChain = ToolChain()
+        
+        // Create shared TextEdit app model
+        guard let toolChain = sharedToolChain else {
+            throw NSError(domain: "WindowsResourceE2ETests", code: 1000, 
+                         userInfo: [NSLocalizedDescriptionKey: "Failed to create tool chain"])
+        }
+        
+        sharedTextEditApp = TextEditModel(toolChain: toolChain)
         
         // Terminate any existing TextEdit instances
-        let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: textEditBundleId)
+        let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.TextEdit")
         for runningApp in runningApps {
             _ = runningApp.terminate()
         }
@@ -34,21 +49,47 @@ struct WindowsResourceE2ETests {
         try await Task.sleep(for: .milliseconds(1000))
         
         // Launch TextEdit with a new document
-        _ = try await textEditApp.launch(hideOthers: false)
+        _ = try await sharedTextEditApp!.launch(hideOthers: false)
         
-        // Wait for TextEdit to be ready
-        try await Task.sleep(for: .milliseconds(3000))
+        // Wait for TextEdit to be ready (reduced from 3s to 1s)
+        try await Task.sleep(for: .milliseconds(1000))
+        
+        // Mark as set up
+        environmentSetUp = true
     }
     
-    // Teardown method
+    // Shared setup method for each test
+    private mutating func setUp() async throws {
+        // Run shared setup if needed
+        let isSetUp = await MainActor.run { Self.environmentSetUp }
+        if !isSetUp {
+            try await Self.setUp()
+        }
+        
+        // Get references to shared components
+        toolChain = await MainActor.run { Self.sharedToolChain! }
+        textEditApp = await MainActor.run { Self.sharedTextEditApp! }
+        
+        // Small delay to ensure TextEdit is ready
+        try await Task.sleep(for: .milliseconds(100))
+    }
+    
+    // Cleanup method (no longer terminates app between tests)
     private mutating func tearDown() async throws {
+        // Just ensure TextEdit is ready for next test
+        try await Task.sleep(for: .milliseconds(100))
+    }
+    
+    // Static teardown method called after all tests
+    @MainActor static func tearDown() async throws {
         // Terminate the TextEdit application
-        let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: textEditBundleId)
+        let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.TextEdit")
         for runningApp in runningApps {
             _ = runningApp.terminate()
         }
         
-        try await Task.sleep(for: .milliseconds(1000))
+        try await Task.sleep(for: .milliseconds(500))
+        environmentSetUp = false
     }
     
     @Test("Test application windows resource lists TextEdit windows")
@@ -94,7 +135,7 @@ struct WindowsResourceE2ETests {
                 }
             }
         } else {
-            #expect(false, "Content should be text")
+            #expect(Bool(false), "Content should be text")
         }
         
         try await tearDown()
@@ -173,7 +214,7 @@ struct WindowsResourceE2ETests {
         
         // Create a second TextEdit window
         _ = try await textEditApp.createNewDocument()
-        try await Task.sleep(for: .milliseconds(2000))
+        try await Task.sleep(for: .milliseconds(500))
         
         // Create an ApplicationWindowsResourceHandler
         let accessibilityService = toolChain.accessibilityService
@@ -206,7 +247,7 @@ struct WindowsResourceE2ETests {
                 ]
                 
                 _ = try? await toolChain.windowManagementTool.handler(minimizeParams)
-                try await Task.sleep(for: .milliseconds(2000))
+                try await Task.sleep(for: .milliseconds(500))
                 
                 // Now test with includeMinimized parameter
                 
@@ -251,9 +292,13 @@ struct WindowsResourceE2ETests {
                 }
             }
         } else {
-            #expect(false, "Content should be text")
+            #expect(Bool(false), "Content should be text")
         }
         
         try await tearDown()
+        
+        // Final cleanup after last test
+        try await Self.tearDown()
     }
+    
 }
