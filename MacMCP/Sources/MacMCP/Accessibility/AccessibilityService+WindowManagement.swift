@@ -34,14 +34,21 @@ extension AccessibilityService {
   ) async throws {
     let windowElement = try await findWindowElement(withPath: path)
 
-    // Create a position value - convert point to CFTypeRef for AXUIElementSetAttributeValue
-    let pointValue = NSValue(point: point)
+    // Create a position value using AXValueCreate (like SwiftShift)
+    var mutablePoint = point
+    guard let pointValue = AXValueCreate(AXValueType.cgPoint, &mutablePoint) else {
+      throw NSError(
+        domain: "com.macos.mcp.accessibility",
+        code: MacMCPErrorCode.accessibilityError,
+        userInfo: [NSLocalizedDescriptionKey: "Failed to create point value for window position"]
+      )
+    }
 
     // Set the position attribute
     let error = AXUIElementSetAttributeValue(
       windowElement,
       kAXPositionAttribute as CFString,
-      pointValue as CFTypeRef,
+      pointValue,
     )
 
     // Check for errors
@@ -71,14 +78,21 @@ extension AccessibilityService {
   ) async throws {
     let windowElement = try await findWindowElement(withPath: path)
 
-    // Create a size value - convert size to CFTypeRef for AXUIElementSetAttributeValue
-    let sizeValue = NSValue(size: size)
+    // Create a size value using AXValueCreate (like SwiftShift)
+    var mutableSize = size
+    guard let sizeValue = AXValueCreate(AXValueType.cgSize, &mutableSize) else {
+      throw NSError(
+        domain: "com.macos.mcp.accessibility",
+        code: MacMCPErrorCode.accessibilityError,
+        userInfo: [NSLocalizedDescriptionKey: "Failed to create size value for window resize"]
+      )
+    }
 
     // Set the size attribute
     let error = AXUIElementSetAttributeValue(
       windowElement,
       kAXSizeAttribute as CFString,
-      sizeValue as CFTypeRef,
+      sizeValue,
     )
 
     // Check for errors

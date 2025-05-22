@@ -98,7 +98,7 @@ public struct ElementPath: Sendable {
     logger.trace("DIAGNOSTIC: First segment role: \(segments[0].role), skipFirstSegment: \(skipFirstSegment), startSegmentIndex: \(startSegmentIndex)")
 
     // For simple cases (only the application), return immediately
-    if segments.count == 1 || (skipFirstSegment && segments.count == 2) {
+    if segments.count == 1 {
       logger.trace("DIAGNOSTIC: Simple case - returning start element directly (segments: \(segments.count), skipFirst: \(skipFirstSegment))")
       
       // Verify the start element
