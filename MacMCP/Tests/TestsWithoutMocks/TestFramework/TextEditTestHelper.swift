@@ -76,14 +76,36 @@ final class TextEditTestHelper {
 
   // MARK: - TextEdit Operations
 
-  /// Ensure the TextEdit app is running
+  /// Ensure the TextEdit app is running and is the frontmost application
   func ensureAppIsRunning() async throws -> Bool {
-    if try await app.isRunning() {
-      return true
+    let wasRunning = try await app.isRunning()
+    
+    if !wasRunning {
+      // Launch the app
+      let launched = try await app.launch()
+      if !launched {
+        return false
+      }
+      // Wait for app to launch fully
+      try await Task.sleep(for: .milliseconds(2000))
     }
 
-    // Launch the app
-    return try await app.launch()
+    // Ensure TextEdit is frontmost application regardless of whether we just launched it
+    if let textEditApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.TextEdit")
+      .first
+    {
+      let activateSuccess = textEditApp.activate(options: [])
+      if !activateSuccess {
+        print("Warning: Failed to activate TextEdit as frontmost app")
+      }
+
+      // Wait for activation
+      try await Task.sleep(for: .milliseconds(500))
+    } else {
+      return false
+    }
+
+    return true
   }
 
   /// Reset the TextEdit app state (create a new document)

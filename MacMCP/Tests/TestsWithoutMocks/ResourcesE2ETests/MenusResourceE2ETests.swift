@@ -10,53 +10,31 @@ import MCP
 
 @Suite(.serialized)
 struct MenusResourceE2ETests {
-    // Test components
-    private var toolChain: ToolChain!
-    private var textEditApp: TextEditModel!
-    
     // The TextEdit bundle ID (using TextEdit because it has standard menus)
     private let textEditBundleId = "com.apple.TextEdit"
     
-    // Setup method
-    private mutating func setUp() async throws {
-        // Create tool chain
-        toolChain = ToolChain()
-        
-        // Create TextEdit app model
-        textEditApp = TextEditModel(toolChain: toolChain)
-        
-        // Terminate any existing TextEdit instances
-        let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: textEditBundleId)
-        for runningApp in runningApps {
-            _ = runningApp.terminate()
-        }
-        
-        try await Task.sleep(for: .milliseconds(1000))
-        
-        // Launch TextEdit
-        _ = try await textEditApp.launch(hideOthers: false)
-        
-        // Wait for TextEdit to be ready
-        try await Task.sleep(for: .milliseconds(2000))
+    /// Ensure TextEdit is running and ready for tests
+    @MainActor
+    private func setUp() async throws {
+        let helper = TextEditTestHelper.shared()
+        let isRunning = try await helper.ensureAppIsRunning()
+        #expect(isRunning, "TextEdit should be running for menu tests")
     }
     
-    // Teardown method
-    private mutating func tearDown() async throws {
-        // Terminate the TextEdit application
-        let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: textEditBundleId)
-        for runningApp in runningApps {
-            _ = runningApp.terminate()
-        }
-        
-        try await Task.sleep(for: .milliseconds(1000))
+    /// Reset TextEdit state after tests
+    @MainActor
+    private func tearDown() async {
+        let helper = TextEditTestHelper.shared()
+        try? await helper.resetAppState()
     }
     
     @Test("Test application menus resource shows TextEdit menus")
-    mutating func testApplicationMenusResource() async throws {
+    func testApplicationMenusResource() async throws {
         try await setUp()
         
-        // Create an ApplicationMenusResourceHandler
-        let menuNavigationService = toolChain.menuNavigationService
+        // Get shared helper and create handler
+        let helper = await TextEditTestHelper.shared()
+        let menuNavigationService = helper.toolChain.menuNavigationService
         let logger = Logger(label: "test.menus")
         let handler = ApplicationMenusResourceHandler(menuNavigationService: menuNavigationService, logger: logger)
         
@@ -89,18 +67,19 @@ struct MenusResourceE2ETests {
                 }
             }
         } else {
-            #expect(false, "Content should be text")
+            #expect(Bool(false), "Content should be text")
         }
         
-        try await tearDown()
+        await tearDown()
     }
     
     @Test("Test specific menu items resource for TextEdit File menu")
-    mutating func testSpecificMenuItemsResource() async throws {
+    func testSpecificMenuItemsResource() async throws {
         try await setUp()
         
-        // Create an ApplicationMenusResourceHandler
-        let menuNavigationService = toolChain.menuNavigationService
+        // Get shared helper and create handler
+        let helper = await TextEditTestHelper.shared()
+        let menuNavigationService = helper.toolChain.menuNavigationService
         let logger = Logger(label: "test.menus")
         let handler = ApplicationMenusResourceHandler(menuNavigationService: menuNavigationService, logger: logger)
         
@@ -142,18 +121,19 @@ struct MenusResourceE2ETests {
                 }
             }
         } else {
-            #expect(false, "Content should be text")
+            #expect(Bool(false), "Content should be text")
         }
         
-        try await tearDown()
+        await tearDown()
     }
     
     @Test("Test menu items with submenus included")
-    mutating func testMenuItemsWithSubmenus() async throws {
+    func testMenuItemsWithSubmenus() async throws {
         try await setUp()
         
-        // Create an ApplicationMenusResourceHandler
-        let menuNavigationService = toolChain.menuNavigationService
+        // Get shared helper and create handler
+        let helper = await TextEditTestHelper.shared()
+        let menuNavigationService = helper.toolChain.menuNavigationService
         let logger = Logger(label: "test.menus")
         let handler = ApplicationMenusResourceHandler(menuNavigationService: menuNavigationService, logger: logger)
         
@@ -193,9 +173,9 @@ struct MenusResourceE2ETests {
                 }
             }
         } else {
-            #expect(false, "Content should be text")
+            #expect(Bool(false), "Content should be text")
         }
         
-        try await tearDown()
+        await tearDown()
     }
 }
