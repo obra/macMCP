@@ -13,7 +13,7 @@ Implement basic tests for menu navigation functionality following the outlined s
 
 
 ## Tasks
-- [ ] Write a basic test for menu navigation that opens TextEdit, counts windows, opens file menu, clicks New, and verifies window count increased
+- [x] Write a basic test for menu navigation that opens TextEdit, counts windows, opens file menu, clicks New, and verifies window count increased
 
 ## Instructions
 

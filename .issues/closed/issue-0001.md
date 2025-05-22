@@ -13,8 +13,8 @@
 
 
 ## Tasks
-- [ ] Audit code for uses of bundleIdentifier
-- [ ] global rename
+- [x] Audit code for uses of bundleIdentifier
+- [x] global rename
 
 ## Instructions
 
