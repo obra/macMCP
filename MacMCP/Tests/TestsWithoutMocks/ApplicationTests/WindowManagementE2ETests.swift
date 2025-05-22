@@ -17,7 +17,7 @@ import Testing
 struct WindowManagementE2ETests {
   // Test components
   private var toolChain: ToolChain!
-  private var calculator: CalculatorModel!
+  private var dictionaryApp: BaseApplicationModel!
   private var logger: Logger!
   private var logFileURL: URL?
 
@@ -31,22 +31,26 @@ struct WindowManagementE2ETests {
 
     // Create the test components
     toolChain = ToolChain()
-    calculator = CalculatorModel(toolChain: toolChain)
+    dictionaryApp = BaseApplicationModel(
+      bundleId: "com.apple.Dictionary",
+      appName: "Dictionary",
+      toolChain: toolChain
+    )
 
-    // Force terminate any existing Calculator instances
-    logger.debug("Terminating any existing Calculator instances")
+    // Force terminate any existing Dictionary instances
+    logger.debug("Terminating any existing Dictionary instances")
     for app in NSRunningApplication.runningApplications(
-      withBundleIdentifier: "com.apple.calculator")
+      withBundleIdentifier: "com.apple.Dictionary")
     {
       _ = app.forceTerminate()
     }
 
     try await Task.sleep(for: .milliseconds(1000))
 
-    // Launch calculator for the tests
-    logger.debug("Launching Calculator application")
-    let launchSuccess = try await calculator.launch()
-    #expect(launchSuccess, "Calculator should launch successfully")
+    // Launch Dictionary for the tests
+    logger.debug("Launching Dictionary application")
+    let launchSuccess = try await dictionaryApp.launch()
+    #expect(launchSuccess, "Dictionary should launch successfully")
 
     // Wait for the app to fully initialize
     try await Task.sleep(for: .milliseconds(2000))
@@ -55,16 +59,16 @@ struct WindowManagementE2ETests {
   private mutating func tearDown() async throws {
     logger.debug("Tearing down WindowManagementE2ETests")
     
-    // Terminate Calculator
+    // Terminate Dictionary
     for app in NSRunningApplication.runningApplications(
-      withBundleIdentifier: "com.apple.calculator")
+      withBundleIdentifier: "com.apple.Dictionary")
     {
       _ = app.forceTerminate()
     }
 
     try await Task.sleep(for: .milliseconds(1000))
 
-    calculator = nil
+    dictionaryApp = nil
     toolChain = nil
   }
 
@@ -76,7 +80,7 @@ struct WindowManagementE2ETests {
     // Create parameters
     let params: [String: Value] = [
       "action": .string("getApplicationWindows"),
-      "bundleId": .string("com.apple.calculator"),
+      "bundleId": .string("com.apple.Dictionary"),
     ]
 
     // Execute the test
@@ -100,10 +104,7 @@ struct WindowManagementE2ETests {
       #expect(window["id"] != nil, "Window should have an ID")
       #expect(window["AXRole"] as? String == "AXWindow", "Role should be AXWindow")
   
-      // Save window ID for other tests
-      if let windowId = window["id"] as? String {
-        calculator.windowId = windowId
-      }
+      // Window ID will be obtained dynamically for each test
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -116,9 +117,9 @@ struct WindowManagementE2ETests {
   mutating func testMoveWindow() async throws {
     try await setUp()
     
-    // First ensure we have the calculator window ID
-    guard let windowId = try await getCalculatorWindowId() else {
-      #expect(Bool(false), "Failed to get calculator window ID")
+    // First ensure we have the dictionary window ID
+    guard let windowId = try await getDictionaryWindowId() else {
+      #expect(Bool(false), "Failed to get dictionary window ID")
       try await tearDown()
       return
     }
@@ -174,9 +175,9 @@ struct WindowManagementE2ETests {
   mutating func testResizeWindow() async throws {
     try await setUp()
     
-    // First ensure we have the calculator window ID
-    guard let windowId = try await getCalculatorWindowId() else {
-      #expect(Bool(false), "Failed to get calculator window ID")
+    // First ensure we have the dictionary window ID
+    guard let windowId = try await getDictionaryWindowId() else {
+      #expect(Bool(false), "Failed to get dictionary window ID")
       try await tearDown()
       return
     }
@@ -232,9 +233,9 @@ struct WindowManagementE2ETests {
   mutating func testMinimizeAndActivateWindow() async throws {
     try await setUp()
     
-    // First ensure we have the calculator window ID
-    guard let windowId = try await getCalculatorWindowId() else {
-      #expect(Bool(false), "Failed to get calculator window ID")
+    // First ensure we have the dictionary window ID
+    guard let windowId = try await getDictionaryWindowId() else {
+      #expect(Bool(false), "Failed to get dictionary window ID")
       try await tearDown()
       return
     }
@@ -298,12 +299,12 @@ struct WindowManagementE2ETests {
 
   // MARK: - Helper Methods
 
-  /// Get the Calculator window ID
-  private func getCalculatorWindowId() async throws -> String? {
+  /// Get the Dictionary window ID
+  private func getDictionaryWindowId() async throws -> String? {
     // Create parameters
     let params: [String: Value] = [
       "action": .string("getApplicationWindows"),
-      "bundleId": .string("com.apple.calculator"),
+      "bundleId": .string("com.apple.Dictionary"),
     ]
 
     // Execute the query
@@ -325,10 +326,10 @@ struct WindowManagementE2ETests {
 
   /// Get window position and size information
   private func getWindowPosition(windowId: String) async throws -> [String: Any]? {
-    // First get all calculator windows
+    // First get all dictionary windows
     let params: [String: Value] = [
       "action": .string("getApplicationWindows"),
-      "bundleId": .string("com.apple.calculator"),
+      "bundleId": .string("com.apple.Dictionary"),
     ]
 
     // Execute the query
