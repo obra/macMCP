@@ -10,7 +10,7 @@ import Testing
 
 /// Simple struct to hold application information
 struct ApplicationInfo {
-  let bundleIdentifier: String
+  let bundleId: String
   let applicationName: String
 }
 
@@ -66,7 +66,7 @@ struct ApplicationActivationTest {
     // Get frontmost app to verify switch worked
     let frontmostAfterSwitch = try await getFrontmostApp()
     #expect(
-      frontmostAfterSwitch?.bundleIdentifier == "com.apple.finder",
+      frontmostAfterSwitch?.bundleId == "com.apple.finder",
       "Finder should be frontmost after activation"
     )
 
@@ -81,7 +81,7 @@ struct ApplicationActivationTest {
     let frontmostAfterSwitchBack = try await getFrontmostApp()
 
     #expect(
-      frontmostAfterSwitchBack?.bundleIdentifier == "com.apple.grapher",
+      frontmostAfterSwitchBack?.bundleId == "com.apple.grapher",
       "grapher should be frontmost after activation"
     )
 
@@ -101,7 +101,7 @@ struct ApplicationActivationTest {
   private func launchApp(bundleId: String) async throws -> Bool {
     let params: [String: Value] = [
       "action": .string("launch"),
-      "bundleIdentifier": .string(bundleId),
+      "bundleId": .string(bundleId),
       "waitForLaunch": .bool(true),
     ]
 
@@ -119,7 +119,7 @@ struct ApplicationActivationTest {
   private func activateApp(bundleId: String) async throws -> Bool {
     let params: [String: Value] = [
       "action": .string("activateApplication"),
-      "bundleIdentifier": .string(bundleId),
+      "bundleId": .string(bundleId),
     ]
 
     let result = try await toolChain.applicationManagementTool.handler(params)
@@ -136,7 +136,7 @@ struct ApplicationActivationTest {
   private func terminateApp(bundleId: String) async throws -> Bool {
     let params: [String: Value] = [
       "action": .string("terminate"),
-      "bundleIdentifier": .string(bundleId),
+      "bundleId": .string(bundleId),
     ]
 
     let result = try await toolChain.applicationManagementTool.handler(params)
@@ -162,11 +162,11 @@ struct ApplicationActivationTest {
       // Extract application info from the JSON response
       if let data = text.data(using: .utf8),
         let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-        let bundleId = json["bundleIdentifier"] as? String,
+        let bundleId = json["bundleId"] as? String,
         let appName = json["applicationName"] as? String
       {
         return ApplicationInfo(
-          bundleIdentifier: bundleId,
+          bundleId: bundleId,
           applicationName: appName
         )
       }

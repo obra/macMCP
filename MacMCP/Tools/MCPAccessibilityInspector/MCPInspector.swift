@@ -87,9 +87,9 @@ class MCPInspector: @unchecked Sendable {
     try await startMCPIfNeeded()
 
     // Find application bundle ID - either directly provided or derived from PID
-    let bundleIdentifier: String
+    let bundleId: String
     if let appId {
-      bundleIdentifier = appId
+      bundleId = appId
     } else if let pid {
       // Convert PID to bundle ID using NSRunningApplication
       guard let app = NSRunningApplication(processIdentifier: pid_t(pid)) else {
@@ -98,7 +98,7 @@ class MCPInspector: @unchecked Sendable {
       guard let appBundle = app.bundleIdentifier else {
         throw InspectionError.applicationNotFound
       }
-      bundleIdentifier = appBundle
+      bundleId = appBundle
     } else {
       throw InspectionError.applicationNotFound
     }
@@ -110,7 +110,7 @@ class MCPInspector: @unchecked Sendable {
         print("Using server-side path resolution for: \(pathFilter)")
         do {
           return try await inspectElementByPath(
-            bundleIdentifier: bundleIdentifier,
+            bundleId: bundleId,
             path: pathFilter,
             maxDepth: maxDepth,
           )
@@ -128,7 +128,7 @@ class MCPInspector: @unchecked Sendable {
         if let (role, attributes) = parseFilterPattern(pathFilter) {
           // Use parsed information to create appropriate filter parameters
           return try await fetchFilteredUIStateData(
-            bundleIdentifier: bundleIdentifier,
+            bundleId: bundleId,
             role: role,
             attributes: attributes,
             maxDepth: maxDepth,
@@ -138,7 +138,7 @@ class MCPInspector: @unchecked Sendable {
     }
 
     // Use MCP's InterfaceExplorerTool to get UI information if no filter or filter parsing failed
-    let uiState = try await fetchUIStateData(bundleIdentifier: bundleIdentifier, maxDepth: maxDepth)
+    let uiState = try await fetchUIStateData(bundleId: bundleId, maxDepth: maxDepth)
 
     // Process the UI state
     do {
@@ -206,7 +206,7 @@ class MCPInspector: @unchecked Sendable {
   }
 
   /// Fetches UI state data from MCP InterfaceExplorerTool, enhanced with menu and window data
-  private func fetchUIStateData(bundleIdentifier: String, maxDepth: Int) async throws
+  private func fetchUIStateData(bundleId: String, maxDepth: Int) async throws
     -> CallTool.Result
   {
     guard let mcpClient else {
@@ -216,14 +216,14 @@ class MCPInspector: @unchecked Sendable {
     // Create the request parameters for the InterfaceExplorerTool (replacing the older UIStateTool)
     let arguments: [String: Value] = [
       "scope": .string("application"),
-      "bundleId": .string(bundleIdentifier),
+      "bundleId": .string(bundleId),
       "maxDepth": .int(maxDepth),
       "includeHidden": .bool(true),  // Include all elements for completeness
     ]
 
     // Send request to the MCP server using the new tool name
     do {
-      print("Sending interface explorer request to MCP for: \(bundleIdentifier)")
+      print("Sending interface explorer request to MCP for: \(bundleId)")
       let (content, isError) = try await mcpClient.callTool(
         name: "macos_interface_explorer",  // Updated tool name
         arguments: arguments,
@@ -247,10 +247,10 @@ class MCPInspector: @unchecked Sendable {
   }
 
   /// Fetches UI state data using a specific element path
-  func inspectElementByPath(bundleIdentifier: String, path: String, maxDepth: Int) async throws
+  func inspectElementByPath(bundleId: String, path: String, maxDepth: Int) async throws
     -> MCPUIElementNode
   {
-    print("Inspecting element by path: \(path) in application: \(bundleIdentifier)")
+    print("Inspecting element by path: \(path) in application: \(bundleId)")
     guard let mcpClient else {
       throw InspectionError.unexpectedError("MCP client not initialized")
     }
@@ -261,7 +261,7 @@ class MCPInspector: @unchecked Sendable {
     // Create the request parameters for the InterfaceExplorerTool with element path parameter
     let arguments: [String: Value] = [
       "scope": .string("path"),
-      "bundleId": .string(bundleIdentifier),
+      "bundleId": .string(bundleId),
       "elementPath": .string(path),  // Use the path parameter for path-based lookup
       "maxDepth": .int(maxDepth),
       "includeHidden": .bool(true),  // Include all elements for completeness
@@ -363,7 +363,7 @@ class MCPInspector: @unchecked Sendable {
 
   /// Fetch UI state with specific filter criteria
   private func fetchFilteredUIStateData(
-    bundleIdentifier: String,
+    bundleId: String,
     role: String,
     attributes: [String: String],
     maxDepth: Int,
@@ -397,13 +397,13 @@ class MCPInspector: @unchecked Sendable {
     // Create the request parameters
     let arguments: [String: Value] = [
       "scope": .string("application"),
-      "bundleId": .string(bundleIdentifier),
+      "bundleId": .string(bundleId),
       "maxDepth": .int(maxDepth),
       "includeHidden": .bool(true),
     ]
 
     // Send request to MCP
-    print("Sending filtered request to MCP for: \(bundleIdentifier) with filter: \(filter)")
+    print("Sending filtered request to MCP for: \(bundleId) with filter: \(filter)")
     // Add the filter to the arguments
     var argumentsWithFilter = arguments
     if let titleContains {

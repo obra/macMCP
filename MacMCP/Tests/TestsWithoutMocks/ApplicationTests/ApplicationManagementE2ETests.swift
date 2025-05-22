@@ -65,7 +65,7 @@ struct ApplicationManagementE2ETests {
     // Create launch parameters
     let launchParams: [String: Value] = [
       "action": .string("launch"),
-      "bundleIdentifier": .string(calculatorBundleId),
+      "bundleId": .string(calculatorBundleId),
     ]
 
     // Launch Calculator
@@ -84,7 +84,7 @@ struct ApplicationManagementE2ETests {
     // Create terminate parameters
     let terminateParams: [String: Value] = [
       "action": .string("terminate"),
-      "bundleIdentifier": .string(calculatorBundleId),
+      "bundleId": .string(calculatorBundleId),
     ]
 
     // Terminate Calculator
@@ -111,7 +111,7 @@ struct ApplicationManagementE2ETests {
     // Launch a test application
     let launchParams: [String: Value] = [
       "action": .string("launch"),
-      "bundleIdentifier": .string(calculatorBundleId),
+      "bundleId": .string(calculatorBundleId),
     ]
 
     _ = try await toolChain.applicationManagementTool.handler(launchParams)
@@ -149,7 +149,7 @@ struct ApplicationManagementE2ETests {
     // Launch Calculator
     let launchParams: [String: Value] = [
       "action": .string("launch"),
-      "bundleIdentifier": .string(calculatorBundleId),
+      "bundleId": .string(calculatorBundleId),
     ]
 
     _ = try await toolChain.applicationManagementTool.handler(launchParams)
@@ -160,7 +160,7 @@ struct ApplicationManagementE2ETests {
     // Check if Calculator is running
     let isRunningParams: [String: Value] = [
       "action": .string("isRunning"),
-      "bundleIdentifier": .string(calculatorBundleId),
+      "bundleId": .string(calculatorBundleId),
     ]
 
     let calcResult = try await toolChain.applicationManagementTool.handler(isRunningParams)
@@ -179,7 +179,7 @@ struct ApplicationManagementE2ETests {
     // Check if a non-running application is reported correctly
     let notRunningParams: [String: Value] = [
       "action": .string("isRunning"),
-      "bundleIdentifier": .string("com.nonexistent.app"),
+      "bundleId": .string("com.nonexistent.app"),
     ]
 
     let nonRunningResult = try await toolChain.applicationManagementTool.handler(notRunningParams)
@@ -208,7 +208,7 @@ struct ApplicationManagementE2ETests {
     // Launch Calculator
     let launchCalcParams: [String: Value] = [
       "action": .string("launch"),
-      "bundleIdentifier": .string(calculatorBundleId),
+      "bundleId": .string(calculatorBundleId),
     ]
 
     _ = try await toolChain.applicationManagementTool.handler(launchCalcParams)
@@ -219,7 +219,7 @@ struct ApplicationManagementE2ETests {
     // Launch TextEdit
     let launchTextEditParams: [String: Value] = [
       "action": .string("launch"),
-      "bundleIdentifier": .string(textEditBundleId),
+      "bundleId": .string(textEditBundleId),
     ]
 
     _ = try await toolChain.applicationManagementTool.handler(launchTextEditParams)
@@ -231,7 +231,7 @@ struct ApplicationManagementE2ETests {
     // especially if the application doesn't have focus
     let hideParams: [String: Value] = [
       "action": .string("hideApplication"),
-      "bundleIdentifier": .string(calculatorBundleId),
+      "bundleId": .string(calculatorBundleId),
     ]
 
     let hideResult = try await toolChain.applicationManagementTool.handler(hideParams)
@@ -254,7 +254,7 @@ struct ApplicationManagementE2ETests {
     // Activate Calculator (should also unhide it)
     let activateParams: [String: Value] = [
       "action": .string("activateApplication"),
-      "bundleIdentifier": .string(calculatorBundleId),
+      "bundleId": .string(calculatorBundleId),
     ]
 
     let activateResult = try await toolChain.applicationManagementTool.handler(activateParams)
@@ -304,7 +304,7 @@ struct ApplicationManagementE2ETests {
     // Launch Calculator
     let launchCalcParams: [String: Value] = [
       "action": .string("launch"),
-      "bundleIdentifier": .string(calculatorBundleId),
+      "bundleId": .string(calculatorBundleId),
     ]
 
     _ = try await toolChain.applicationManagementTool.handler(launchCalcParams)
@@ -315,7 +315,7 @@ struct ApplicationManagementE2ETests {
     // Launch TextEdit
     let launchTextEditParams: [String: Value] = [
       "action": .string("launch"),
-      "bundleIdentifier": .string(textEditBundleId),
+      "bundleId": .string(textEditBundleId),
     ]
 
     _ = try await toolChain.applicationManagementTool.handler(launchTextEditParams)
@@ -326,7 +326,7 @@ struct ApplicationManagementE2ETests {
     // Hide other applications, keeping Calculator visible
     let hideOthersParams: [String: Value] = [
       "action": .string("hideOtherApplications"),
-      "bundleIdentifier": .string(calculatorBundleId),
+      "bundleId": .string(calculatorBundleId),
     ]
 
     let hideOthersResult = try await toolChain.applicationManagementTool.handler(hideOthersParams)
@@ -374,7 +374,7 @@ struct ApplicationManagementE2ETests {
     // Launch Calculator
     let launchParams: [String: Value] = [
       "action": .string("launch"),
-      "bundleIdentifier": .string(calculatorBundleId),
+      "bundleId": .string(calculatorBundleId),
     ]
 
     _ = try await toolChain.applicationManagementTool.handler(launchParams)
@@ -389,7 +389,7 @@ struct ApplicationManagementE2ETests {
     // Force terminate Calculator
     let forceTerminateParams: [String: Value] = [
       "action": .string("forceTerminate"),
-      "bundleIdentifier": .string(calculatorBundleId),
+      "bundleId": .string(calculatorBundleId),
     ]
 
     let forceTerminateResult = try await toolChain.applicationManagementTool.handler(

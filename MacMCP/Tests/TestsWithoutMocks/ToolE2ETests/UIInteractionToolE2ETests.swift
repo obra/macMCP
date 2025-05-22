@@ -597,7 +597,7 @@ struct UIInteractionToolE2ETests {
     // Ensure TextEdit is in the foreground by explicitly activating it
     let activateParams: [String: Value] = [
       "action": .string("activateApplication"),
-      "bundleIdentifier": .string(textEditHelper.app.bundleId),
+      "bundleId": .string(textEditHelper.app.bundleId),
     ]
 
     let activateResult = try await textEditHelper.toolChain.applicationManagementTool.handler(
@@ -746,7 +746,7 @@ struct UIInteractionToolE2ETests {
 
     // Create a path to the text area for path-based element identification
     let textAreaPath =
-      "macos://ui/AXApplication[@bundleIdentifier=\"\(textEditHelper.app.bundleId)\"]/AXWindow/AXTextArea"
+      "macos://ui/AXApplication[@bundleId=\"\(textEditHelper.app.bundleId)\"]/AXWindow/AXTextArea"
 
     // Get initial document content position information
     // We'll check this to verify that scrolling actually worked

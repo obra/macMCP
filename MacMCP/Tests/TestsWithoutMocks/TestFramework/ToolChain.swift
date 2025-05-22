@@ -140,7 +140,7 @@ public final class ToolChain: @unchecked Sendable {
   ) async throws -> Bool {
     // Create parameters for the tool
     var params: [String: Value] = [
-      "bundleIdentifier": .string(bundleId)
+      "bundleId": .string(bundleId)
     ]
 
     if let arguments {

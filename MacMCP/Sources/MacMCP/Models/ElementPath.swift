@@ -475,14 +475,14 @@ public struct ElementPath: Sendable {
       logger.trace("DIAGNOSTIC: Processing AXApplication segment")
       // Try different approaches to find the application element
 
-      // 1. Try by bundleIdentifier if provided
-      if let bundleId = firstSegment.attributes["bundleIdentifier"] {
-        logger.trace("DIAGNOSTIC: Trying to find application by bundleIdentifier: \(bundleId)")
+      // 1. Try by bundleId if provided
+      if let bundleId = firstSegment.attributes["bundleId"] {
+        logger.trace("DIAGNOSTIC: Trying to find application by bundleId: \(bundleId)")
         let apps = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId)
-        logger.trace("DIAGNOSTIC: Found \(apps.count) running applications with bundleIdentifier: \(bundleId)")
+        logger.trace("DIAGNOSTIC: Found \(apps.count) running applications with bundleId: \(bundleId)")
 
         guard let app = apps.first else {
-          logger.trace("DIAGNOSTIC: No running applications found with bundleIdentifier: \(bundleId)")
+          logger.trace("DIAGNOSTIC: No running applications found with bundleId: \(bundleId)")
           // Get a list of running applications for better error messages
           let runningApps = NSWorkspace.shared.runningApplications
           var runningAppDetails: [String] = []
@@ -495,7 +495,7 @@ public struct ElementPath: Sendable {
               appInfo += "Unknown"
             }
             if let bundleId = app.bundleIdentifier {
-              appInfo += " (bundleIdentifier: \(bundleId))"
+              appInfo += " (bundleId: \(bundleId))"
             }
             runningAppDetails.append(appInfo)
           }
@@ -507,12 +507,12 @@ public struct ElementPath: Sendable {
           throw ElementPathError.applicationNotFound(
             bundleId,
             details:
-              "Application with bundleIdentifier '\(bundleId)' is not running. Running applications are:\n"
+              "Application with bundleId '\(bundleId)' is not running. Running applications are:\n"
               + runningAppDetails.joined(separator: "\n"),
           )
         }
 
-        logger.trace("DIAGNOSTIC: Successfully found application with bundleIdentifier: \(bundleId), pid: \(app.processIdentifier)")
+        logger.trace("DIAGNOSTIC: Successfully found application with bundleId: \(bundleId), pid: \(app.processIdentifier)")
         let appElement = AXUIElementCreateApplication(app.processIdentifier)
         
         // DIAGNOSTIC: Verify if the application element is valid by trying to get its role
@@ -561,7 +561,7 @@ public struct ElementPath: Sendable {
               appInfo += "Unknown"
             }
             if let bundleId = app.bundleIdentifier {
-              appInfo += " (bundleIdentifier: \(bundleId))"
+              appInfo += " (bundleId: \(bundleId))"
             }
             runningAppDetails.append(appInfo)
           }
@@ -579,7 +579,7 @@ public struct ElementPath: Sendable {
       }
       // 3. Use focused application as fallback
       else {
-        logger.trace("DIAGNOSTIC: No bundleIdentifier or title provided, using focused application as fallback")
+        logger.trace("DIAGNOSTIC: No bundleId or title provided, using focused application as fallback")
         do {
           logger.trace("DIAGNOSTIC: Attempting to get focused application from accessibility service")
           // Get the focused application from the accessibility service
@@ -1833,19 +1833,19 @@ public struct ElementPath: Sendable {
   ///
   /// This method tries multiple variants of the attribute name to handle inconsistencies in
   /// how attribute names might be specified in paths versus how they are accessed in the
-  /// accessibility API. It has special handling for bundleIdentifier to ensure it works
+  /// accessibility API. It has special handling for bundleId to ensure it works
   /// consistently regardless of attribute order or format.
   ///
   /// The matching strategy tries:
   /// 1. The original attribute name as provided
   /// 2. The normalized attribute name (from PathNormalizer)
-  /// 3. For attributes with AX prefix: tries without the prefix (except bundleIdentifier)
-  /// 4. For attributes without AX prefix: tries with the prefix (except bundleIdentifier)
+  /// 3. For attributes with AX prefix: tries without the prefix (except bundleId)
+  /// 4. For attributes without AX prefix: tries with the prefix (except bundleId)
   ///
   /// This ensures paths like these all work:
-  /// - [@AXTitle="Calculator"][@bundleIdentifier="com.apple.calculator"]
-  /// - [@bundleIdentifier="com.apple.calculator"][@AXTitle="Calculator"]
-  /// - [@AXbundleIdentifier="com.apple.calculator"] (incorrect but handled for compatibility)
+  /// - [@AXTitle="Calculator"][@bundleId="com.apple.calculator"]
+  /// - [@bundleId="com.apple.calculator"][@AXTitle="Calculator"]
+  /// - [@AXbundleId="com.apple.calculator"] (incorrect but handled for compatibility)
   private func attributeMatchesValue(_ element: AXUIElement, name: String, expectedValue: String)
     -> Bool
   {
@@ -1866,15 +1866,15 @@ public struct ElementPath: Sendable {
       return true
     }
 
-    // For special cases like bundleIdentifier that may not have AX prefix
-    if name.hasPrefix("AX"), !normalizedName.contains("bundleIdentifier") {
-      // Try without AX prefix for all except bundleIdentifier
+    // For special cases like bundleId that may not have AX prefix
+    if name.hasPrefix("AX"), !normalizedName.contains("bundleId") {
+      // Try without AX prefix for all except bundleId
       let withoutPrefix = String(name.dropFirst(2))
       if tryAttributeMatch(element, attributeName: withoutPrefix, expectedValue: expectedValue) {
         return true
       }
-    } else if !name.hasPrefix("AX"), name != "bundleIdentifier" {
-      // Try with AX prefix for normal attributes (not bundleIdentifier)
+    } else if !name.hasPrefix("AX"), name != "bundleId" {
+      // Try with AX prefix for normal attributes (not bundleId)
       let withPrefix = "AX\(name)"
       if tryAttributeMatch(element, attributeName: withPrefix, expectedValue: expectedValue) {
         return true
@@ -2001,8 +2001,8 @@ extension ElementPath {
         }
 
         if firstSegment.role == "AXApplication" {
-          // Check if bundleIdentifier or title is provided for the application
-          let hasBundleId = firstSegment.attributes["bundleIdentifier"] != nil
+          // Check if bundleId or title is provided for the application
+          let hasBundleId = firstSegment.attributes["bundleId"] != nil
           let hasTitle =
             firstSegment.attributes["title"] != nil || firstSegment.attributes["AXTitle"] != nil
 
@@ -2010,7 +2010,7 @@ extension ElementPath {
             warnings.append(
               ElementPathError.missingAttribute(
                 String(firstSegmentString),
-                suggestedAttribute: "bundleIdentifier or title",
+                suggestedAttribute: "bundleId or title",
                 atSegment: 0,
               ))
           }

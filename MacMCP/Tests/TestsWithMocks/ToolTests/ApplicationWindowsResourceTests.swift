@@ -54,7 +54,7 @@ struct ApplicationWindowsResourceTests {
             throw NSError(domain: "com.macos.mcp.test", code: 0, userInfo: [NSLocalizedDescriptionKey: "Not implemented"])
         }
         
-        func getApplicationUIElement(bundleIdentifier: String, recursive: Bool, maxDepth: Int) async throws -> UIElement {
+        func getApplicationUIElement(bundleId: String, recursive: Bool, maxDepth: Int) async throws -> UIElement {
             // Create a UIElement representing the application with window children
             let children = windowElements.map { mockElement in
                 // We need to create UIElement with proper attributes to match what WindowDescriptor.from expects
@@ -85,7 +85,7 @@ struct ApplicationWindowsResourceTests {
                 elementDescription: nil,
                 frame: CGRect(x: 0, y: 0, width: 800, height: 600),
                 children: children,
-                attributes: ["bundleIdentifier": bundleIdentifier],
+                attributes: ["bundleId": bundleId],
                 actions: []
             )
         }
@@ -161,7 +161,7 @@ struct ApplicationWindowsResourceTests {
             throw AccessibilityPermissions.Error.permissionDenied
         }
         
-        func getApplicationUIElement(bundleIdentifier: String, recursive: Bool, maxDepth: Int) async throws -> UIElement {
+        func getApplicationUIElement(bundleId: String, recursive: Bool, maxDepth: Int) async throws -> UIElement {
             throw AccessibilityPermissions.Error.permissionDenied
         }
         

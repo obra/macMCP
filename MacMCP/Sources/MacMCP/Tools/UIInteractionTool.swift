@@ -236,7 +236,7 @@ public struct UIInteractionTool {
         let firstSegment = path.segments[0]
         let pathSpecifiesApp =
           firstSegment.role == "AXApplication"
-          && (firstSegment.attributes["bundleIdentifier"] != nil
+          && (firstSegment.attributes["bundleId"] != nil
             || firstSegment.attributes["title"] != nil)
 
         // If path doesn't specify an app but appBundleId is provided, log a message

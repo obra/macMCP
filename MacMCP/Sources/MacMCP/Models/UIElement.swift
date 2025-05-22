@@ -1044,12 +1044,12 @@ public enum FrameSource: String, Codable {
 
       // For applications, ALWAYS prioritize bundle identifier
       if normalizedRole == "AXApplication" {
-        if let bundleId = element.attributes["bundleIdentifier"] as? String, !bundleId.isEmpty {
-          // bundleIdentifier is a special case - don't add AX prefix
-          attributes["bundleIdentifier"] = bundleId
+        if let bundleId = element.attributes["bundleId"] as? String, !bundleId.isEmpty {
+          // bundleId is a special case - don't add AX prefix
+          attributes["bundleId"] = bundleId
 
-          // When we have a bundleIdentifier, remove the title attribute
-          // to ensure consistent path generation that relies only on bundleIdentifier
+          // When we have a bundleId, remove the title attribute
+          // to ensure consistent path generation that relies only on bundleId
           attributes.removeValue(forKey: "AXTitle")
         }
       }

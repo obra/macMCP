@@ -356,12 +356,12 @@ struct ElementPathTests {
     }
 
     func getApplicationUIElement(
-      bundleIdentifier _: String,
+      bundleId _: String,
       recursive _: Bool,
       maxDepth _: Int,
     ) async throws -> UIElement {
       UIElement(
-        path: "macos://ui/AXApplication[@AXTitle=\"Application\"][@bundleIdentifier=\"mock-app\"]",
+        path: "macos://ui/AXApplication[@AXTitle=\"Application\"][@bundleId=\"mock-app\"]",
         role: "AXApplication",
         frame: CGRect.zero,
         axElement: nil,
@@ -373,7 +373,7 @@ struct ElementPathTests {
     {
       UIElement(
         path:
-          "macos://ui/AXApplication[@AXTitle=\"Focused App\"][@bundleIdentifier=\"mock-focused-app\"]",
+          "macos://ui/AXApplication[@AXTitle=\"Focused App\"][@bundleId=\"mock-focused-app\"]",
         role: "AXApplication",
         frame: CGRect.zero,
         axElement: nil,
@@ -980,7 +980,7 @@ struct ElementPathTests {
   func pathValidationWithValidPath() throws {
     // Test a well-formed path
     let pathString =
-      "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow/AXButton[@AXTitle=\"1\"]"
+      "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow/AXButton[@AXTitle=\"1\"]"
 
     let (isValid, warnings) = try ElementPath.validatePath(pathString)
 
@@ -994,7 +994,7 @@ struct ElementPathTests {
   func realWorldPathRoundTrip() throws {
     // Test with realistic paths seen in real applications
     let calculatorPath =
-      "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]"
+      "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]"
     let textEditPath =
       "macos://ui/AXApplication[@AXTitle=\"TextEdit\"]/AXWindow[@AXTitle=\"Untitled\"]/AXTextArea"
 
@@ -1073,7 +1073,7 @@ struct ElementPathTests {
     // We'll simply test that the diagnostic method produces appropriate output
     // for different types of path issues by checking the text format
     let pathString =
-      "macos://ui/AXApplication[@bundleIdentifier=\"com.example.app\"]/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
+      "macos://ui/AXApplication[@bundleId=\"com.example.app\"]/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
 
     // Create a simple mock diagnostic result for testing
     let mockDiagnosticOutput = """

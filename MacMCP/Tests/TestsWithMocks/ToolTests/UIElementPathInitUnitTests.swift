@@ -24,9 +24,9 @@ struct UIElementPathInitUnitTests {
     // Path with attributes
     let attributePath =
       try ElementPath
-      .parse("macos://ui/AXApplication[@bundleIdentifier=\"com.test\"]/AXWindow[@AXTitle=\"Title\"]")
+      .parse("macos://ui/AXApplication[@bundleId=\"com.test\"]/AXWindow[@AXTitle=\"Title\"]")
     #expect(attributePath.segments.count == 2)
-    #expect(attributePath.segments[0].attributes["bundleIdentifier"] == "com.test")
+    #expect(attributePath.segments[0].attributes["bundleId"] == "com.test")
     #expect(attributePath.segments[1].attributes["AXTitle"] == "Title")
 
     // Path with index
@@ -125,11 +125,11 @@ struct UIElementPathInitUnitTests {
     // Complex path
     let complexPath =
       try ElementPath
-      .parse("macos://ui/AXApplication[@bundleIdentifier=\"com.test\"]/AXWindow[@AXTitle=\"Title\"][1]")
+      .parse("macos://ui/AXApplication[@bundleId=\"com.test\"]/AXWindow[@AXTitle=\"Title\"][1]")
     #expect(
       complexPath
         .toString()
-        == "macos://ui/AXApplication[@bundleIdentifier=\"com.test\"]/AXWindow[@AXTitle=\"Title\"][1]",
+        == "macos://ui/AXApplication[@bundleId=\"com.test\"]/AXWindow[@AXTitle=\"Title\"][1]",
     )
   }
 

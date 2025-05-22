@@ -307,7 +307,7 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
     }
     
     // Build the ElementPath URI for the menu item
-    var uri = "macos://ui/AXApplication[@bundleIdentifier=\"\(bundleId)\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"\(parts[0])\"]"
+    var uri = "macos://ui/AXApplication[@bundleId=\"\(bundleId)\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"\(parts[0])\"]"
     
     if parts.count > 1 {
       uri += "/AXMenu"

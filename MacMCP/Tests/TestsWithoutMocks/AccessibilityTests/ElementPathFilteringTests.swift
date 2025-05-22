@@ -55,7 +55,7 @@ struct ElementPathFilteringTests {
     logger.debug("Launching Calculator...")
     let launchParams: [String: Value] = [
       "action": .string("launch"),
-      "bundleIdentifier": .string(calculatorBundleId),
+      "bundleId": .string(calculatorBundleId),
     ]
     
     // Launch Calculator

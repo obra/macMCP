@@ -54,7 +54,7 @@ open class ApplicationWindowsResourceHandler: ResourceHandler, @unchecked Sendab
         do {
             // Get the application element
             let appElement = try await accessibilityService.getApplicationUIElement(
-                bundleIdentifier: bundleId,
+                bundleId: bundleId,
                 recursive: true,
                 maxDepth: 2  // Only need shallow depth for windows
             )

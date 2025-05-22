@@ -471,12 +471,12 @@ struct UIElementPathInitTests {
     }
 
     func getApplicationUIElement(
-      bundleIdentifier _: String,
+      bundleId _: String,
       recursive _: Bool,
       maxDepth _: Int,
     ) async throws -> UIElement {
       UIElement(
-        path: "macos://ui/AXApplication[@AXTitle=\"Application\"][@bundleIdentifier=\"mock-app\"]",
+        path: "macos://ui/AXApplication[@AXTitle=\"Application\"][@bundleId=\"mock-app\"]",
         role: "AXApplication",
         frame: CGRect.zero,
         axElement: nil,
@@ -488,7 +488,7 @@ struct UIElementPathInitTests {
     {
       UIElement(
         path:
-          "macos://ui/AXApplication[@AXTitle=\"Focused Application\"][@bundleIdentifier=\"mock-focused-app\"]",
+          "macos://ui/AXApplication[@AXTitle=\"Focused Application\"][@bundleId=\"mock-focused-app\"]",
         role: "AXApplication",
         frame: CGRect.zero,
         axElement: nil,

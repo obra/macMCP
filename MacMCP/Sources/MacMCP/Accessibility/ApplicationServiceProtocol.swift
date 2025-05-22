@@ -6,7 +6,7 @@ import Foundation
 /// Information about an application's state
 public struct ApplicationStateInfo: Sendable, Equatable {
   /// The bundle identifier of the application
-  public let bundleIdentifier: String
+  public let bundleId: String
 
   /// The application's name
   public let name: String
@@ -28,7 +28,7 @@ public struct ApplicationStateInfo: Sendable, Equatable {
 
   /// Create a new application state info
   public init(
-    bundleIdentifier: String,
+    bundleId: String,
     name: String,
     isRunning: Bool,
     processId: Int32?,
@@ -36,7 +36,7 @@ public struct ApplicationStateInfo: Sendable, Equatable {
     isFinishedLaunching: Bool,
     url: URL?
   ) {
-    self.bundleIdentifier = bundleIdentifier
+    self.bundleId = bundleId
     self.name = name
     self.isRunning = isRunning
     self.processId = processId
@@ -99,7 +99,7 @@ public struct ApplicationLaunchResult: Sendable, Equatable {
   public let processIdentifier: Int32
 
   /// The bundle identifier of the launched application
-  public let bundleIdentifier: String
+  public let bundleId: String
 
   /// The name of the launched application
   public let applicationName: String
@@ -108,12 +108,12 @@ public struct ApplicationLaunchResult: Sendable, Equatable {
   public init(
     success: Bool,
     processIdentifier: Int32,
-    bundleIdentifier: String,
+    bundleId: String,
     applicationName: String
   ) {
     self.success = success
     self.processIdentifier = processIdentifier
-    self.bundleIdentifier = bundleIdentifier
+    self.bundleId = bundleId
     self.applicationName = applicationName
   }
 }
@@ -122,12 +122,12 @@ public struct ApplicationLaunchResult: Sendable, Equatable {
 public protocol ApplicationServiceProtocol: Sendable {
   /// Opens an application by its bundle identifier.
   /// - Parameters:
-  ///   - bundleIdentifier: The bundle identifier of the application to open (e.g., "com.apple.Safari")
+  ///   - bundleId: The bundle identifier of the application to open (e.g., "com.apple.Safari")
   ///   - arguments: Optional array of command-line arguments to pass to the application
   ///   - hideOthers: Whether to hide other applications when opening this one
   /// - Returns: A boolean indicating whether the application was successfully opened
   /// - Throws: MacMCPErrorInfo if the application could not be opened
-  func openApplication(bundleIdentifier: String, arguments: [String]?, hideOthers: Bool?)
+  func openApplication(bundleId: String, arguments: [String]?, hideOthers: Bool?)
     async throws -> Bool
 
   /// Opens an application by its name.
@@ -142,7 +142,7 @@ public protocol ApplicationServiceProtocol: Sendable {
   /// Launch an application with detailed configuration
   /// - Parameters:
   ///   - name: Optional application name (e.g., "Safari")
-  ///   - bundleIdentifier: Optional bundle identifier (e.g., "com.apple.Safari")
+  ///   - bundleId: Optional bundle identifier (e.g., "com.apple.Safari")
   ///   - arguments: Optional array of command-line arguments
   ///   - hideOthers: Whether to hide other applications when opening this one
   ///   - waitForLaunch: Whether to wait for the application to fully launch
@@ -151,7 +151,7 @@ public protocol ApplicationServiceProtocol: Sendable {
   /// - Throws: MacMCPErrorInfo if the application could not be launched
   func launchApplication(
     name: String?,
-    bundleIdentifier: String?,
+    bundleId: String?,
     arguments: [String],
     hideOthers: Bool,
     waitForLaunch: Bool,
@@ -160,43 +160,43 @@ public protocol ApplicationServiceProtocol: Sendable {
 
   /// Terminate an application by its bundle identifier
   /// - Parameters:
-  ///   - bundleIdentifier: The bundle identifier of the application to terminate
+  ///   - bundleId: The bundle identifier of the application to terminate
   ///   - timeout: Timeout in seconds for waiting for termination completion
   /// - Returns: Whether the application was successfully terminated
   /// - Throws: MacMCPErrorInfo if the application could not be terminated
   func terminateApplication(
-    bundleIdentifier: String,
+    bundleId: String,
     timeout: TimeInterval,
   ) async throws -> Bool
 
   /// Force terminate an application by its bundle identifier
-  /// - Parameter bundleIdentifier: The bundle identifier of the application to force terminate
+  /// - Parameter bundleId: The bundle identifier of the application to force terminate
   /// - Returns: Whether the application was successfully terminated
   /// - Throws: MacMCPErrorInfo if the application could not be terminated
   func forceTerminateApplication(
-    bundleIdentifier: String,
+    bundleId: String,
   ) async throws -> Bool
 
   /// Activates an already running application by bringing it to the foreground.
-  /// - Parameter bundleIdentifier: The bundle identifier of the application to activate
+  /// - Parameter bundleId: The bundle identifier of the application to activate
   /// - Returns: A boolean indicating whether the application was successfully activated
   /// - Throws: MacMCPErrorInfo if the application could not be activated
-  func activateApplication(bundleIdentifier: String) async throws -> Bool
+  func activateApplication(bundleId: String) async throws -> Bool
 
   /// Hide an application
-  /// - Parameter bundleIdentifier: The bundle identifier of the application to hide
+  /// - Parameter bundleId: The bundle identifier of the application to hide
   /// - Returns: Whether the application was successfully hidden
   /// - Throws: MacMCPErrorInfo if the application could not be hidden
   func hideApplication(
-    bundleIdentifier: String,
+    bundleId: String,
   ) async throws -> Bool
 
   /// Unhide an application
-  /// - Parameter bundleIdentifier: The bundle identifier of the application to unhide
+  /// - Parameter bundleId: The bundle identifier of the application to unhide
   /// - Returns: Whether the application was successfully unhidden
   /// - Throws: MacMCPErrorInfo if the application could not be unhidden
   func unhideApplication(
-    bundleIdentifier: String,
+    bundleId: String,
   ) async throws -> Bool
 
   /// Hide all applications except the specified one
@@ -232,14 +232,14 @@ public protocol ApplicationServiceProtocol: Sendable {
   func stopObservingApplications(observerId: String) async throws
 
   /// Check if an application is running.
-  /// - Parameter bundleIdentifier: The bundle identifier of the application to check
+  /// - Parameter bundleId: The bundle identifier of the application to check
   /// - Returns: True if the application is running, false otherwise
   /// - Throws: MacMCPErrorInfo if the check fails
-  func isApplicationRunning(bundleIdentifier: String) async throws -> Bool
+  func isApplicationRunning(bundleId: String) async throws -> Bool
 
   /// Get information about a running application.
-  /// - Parameter bundleIdentifier: The bundle identifier of the application
+  /// - Parameter bundleId: The bundle identifier of the application
   /// - Returns: Application information, or nil if the application is not running
   /// - Throws: MacMCPErrorInfo if the information could not be retrieved
-  func getApplicationInfo(bundleIdentifier: String) async throws -> ApplicationStateInfo?
+  func getApplicationInfo(bundleId: String) async throws -> ApplicationStateInfo?
 }

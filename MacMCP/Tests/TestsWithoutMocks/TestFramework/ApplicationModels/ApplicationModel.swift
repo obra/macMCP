@@ -146,7 +146,7 @@ open class BaseApplicationModel: ApplicationModel, @unchecked Sendable {
   open func getAllWindows() async throws -> [UIElement] {
     // Use the tool chain to get application UI elements
     let element = try await toolChain.accessibilityService.getApplicationUIElement(
-      bundleIdentifier: bundleId,
+      bundleId: bundleId,
       recursive: true,
       maxDepth: 5,
     )

@@ -152,7 +152,7 @@ public struct MenuNavigationTool: @unchecked Sendable {
   /// - Returns: The tool result
   private func handleGetApplicationMenus(bundleId: String) async throws -> [Tool.Content] {
     // Get all application menus
-    let menus = try await menuNavigationService.getApplicationMenus(bundleIdentifier: bundleId)
+    let menus = try await menuNavigationService.getApplicationMenus(bundleId: bundleId)
 
     // Return the menus
     return try formatResponse(menus)
@@ -171,7 +171,7 @@ public struct MenuNavigationTool: @unchecked Sendable {
   ) async throws -> [Tool.Content] {
     // Get menu items
     let menuItems = try await menuNavigationService.getMenuItems(
-      bundleIdentifier: bundleId,
+      bundleId: bundleId,
       menuTitle: menuTitle,
       includeSubmenus: includeSubmenus,
     )
@@ -196,7 +196,7 @@ public struct MenuNavigationTool: @unchecked Sendable {
     
     // Activate the menu item
     let success = try await menuNavigationService.activateMenuItem(
-      bundleIdentifier: bundleId,
+      bundleId: bundleId,
       elementPath: menuPath,
     )
 

@@ -98,7 +98,7 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
   }
 
   func getApplicationUIElement(
-    bundleIdentifier: String,
+    bundleId: String,
     recursive _: Bool,
     maxDepth _: Int,
   ) async throws -> UIElement {
@@ -109,7 +109,7 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
     }
 
     return mockApplicationUIElement
-      ?? createMockUIElement(role: "AXApplication", title: bundleIdentifier)
+      ?? createMockUIElement(role: "AXApplication", title: bundleId)
   }
 
   func getFocusedApplicationUIElement(recursive _: Bool, maxDepth _: Int) async throws -> UIElement
@@ -343,7 +343,7 @@ struct WindowManagementToolTests {
 
     // Create mock application with windows
     let app = UIElement(
-      path: "macos://ui/AXApplication[@AXTitle=\"Test App\"][@bundleIdentifier=\"com.test.app\"]",
+      path: "macos://ui/AXApplication[@AXTitle=\"Test App\"][@bundleId=\"com.test.app\"]",
       role: "AXApplication",
       title: "Test App",
       value: nil,
@@ -354,7 +354,7 @@ struct WindowManagementToolTests {
       frameSource: .direct,
       parent: nil,
       children: [window1, window2],
-      attributes: ["bundleIdentifier": "com.test.app"],
+      attributes: ["bundleId": "com.test.app"],
       actions: [],
     )
 
@@ -429,7 +429,7 @@ struct WindowManagementToolTests {
 
     // Create mock focused application with window
     let app = UIElement(
-      path: "macos://ui/AXApplication[@AXTitle=\"Test App\"][@bundleIdentifier=\"com.test.app\"]",
+      path: "macos://ui/AXApplication[@AXTitle=\"Test App\"][@bundleId=\"com.test.app\"]",
       role: "AXApplication",
       title: "Test App",
       value: nil,
@@ -440,7 +440,7 @@ struct WindowManagementToolTests {
       frameSource: .direct,
       parent: nil,
       children: [window],
-      attributes: ["bundleIdentifier": "com.test.app"],
+      attributes: ["bundleId": "com.test.app"],
       actions: [],
     )
 

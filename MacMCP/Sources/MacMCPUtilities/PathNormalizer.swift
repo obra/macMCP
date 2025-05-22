@@ -32,26 +32,26 @@ public class PathNormalizer {
     "position": "AXPosition",
     "size": "AXSize",
     "frame": "AXFrame",
-    "bundleId": "bundleIdentifier",
-    "bundleID": "bundleIdentifier",
+    "bundleId": "bundleId",
+    "bundleID": "bundleId",
   ]
 
   /// Normalize an accessibility attribute name to ensure consistent naming
   /// - Parameter name: The attribute name to normalize
   /// - Returns: Normalized attribute name
   ///
-  /// This method handles the special case of bundleIdentifier attributes differently from other
-  /// attributes. While most attributes are normalized to have the AX prefix, bundleIdentifier
+  /// This method handles the special case of bundleId attributes differently from other
+  /// attributes. While most attributes are normalized to have the AX prefix, bundleId
   /// is a special attribute that should NOT have the AX prefix, even when provided with one.
   /// This is critical for path resolution to work correctly, as it affects how elements with
-  /// multiple attributes (particularly bundleIdentifier and title) are matched.
+  /// multiple attributes (particularly bundleId and title) are matched.
   public static func normalizeAttributeName(_ name: String) -> String {
-    // Special case for bundleIdentifier - should NOT have AX prefix
+    // Special case for bundleId - should NOT have AX prefix
     // This handles all variants including those with incorrect AX prefix
-    if name == "bundleIdentifier" || name == "bundleId" || name == "bundleID"
-      || name == "AXbundleIdentifier" || name == "AXbundleId" || name == "AXbundleID"
+    if name == "bundleId" || name == "bundleId" || name == "bundleID"
+      || name == "AXbundleId" || name == "AXbundleId" || name == "AXbundleID"
     {
-      return "bundleIdentifier"
+      return "bundleId"
     }
 
     // If the name is already a standard AX attribute (starts with "AX"), return as is

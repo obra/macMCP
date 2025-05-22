@@ -10,5 +10,5 @@ public enum UIElementScope: Sendable {
   /// The currently focused application
   case focusedApplication
   /// A specific application by bundle identifier
-  case application(bundleIdentifier: String)
+  case application(bundleId: String)
 }

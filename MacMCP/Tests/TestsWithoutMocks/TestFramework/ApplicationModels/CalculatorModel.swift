@@ -120,7 +120,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
 
     // Approach 2: Get the application element and assume it's the main container
     let appElement = try await toolChain.accessibilityService.getApplicationUIElement(
-      bundleIdentifier: bundleId,
+      bundleId: bundleId,
       recursive: false,  // Don't get children
     )
 

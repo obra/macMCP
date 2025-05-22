@@ -25,7 +25,7 @@ public class MockAccessibilityService: @unchecked Sendable, AccessibilityService
 
   public func findElementByPath(path: String) async throws -> UIElement? {
     // Special case for the path used in the testElementScope test
-    if path == "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow" {
+    if path == "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow" {
       // Create a window element with child elements specifically for this test
       let windowElement = createMockUIElement(
         role: "AXWindow", 
@@ -158,11 +158,11 @@ public class MockAccessibilityService: @unchecked Sendable, AccessibilityService
   }
 
   public func getApplicationUIElement(
-    bundleIdentifier: String,
+    bundleId: String,
     recursive _: Bool,
     maxDepth _: Int,
   ) async throws -> UIElement {
-    if bundleIdentifier == "com.apple.calculator" {
+    if bundleId == "com.apple.calculator" {
       // Create a proper Calculator app hierarchy
       let calculatorApp = createMockUIElement(
         role: "AXApplication", 
@@ -239,7 +239,7 @@ public class MockAccessibilityService: @unchecked Sendable, AccessibilityService
       )
     } else {
       // Default for non-Calculator apps
-      return createMockUIElement(role: "AXApplication", title: bundleIdentifier)
+      return createMockUIElement(role: "AXApplication", title: bundleId)
     }
   }
 
@@ -452,7 +452,7 @@ public class MockAccessibilityService: @unchecked Sendable, AccessibilityService
   // MARK: - Additional Methods
 
   public func getApplicationUIElement(
-    bundleIdentifier _: String,
+    bundleId _: String,
     launch _: Bool,
     recursive _: Bool,
   ) async throws -> UIElement? {

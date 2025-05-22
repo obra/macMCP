@@ -48,9 +48,9 @@ public protocol ScreenshotServiceProtocol {
   func captureArea(x: Int, y: Int, width: Int, height: Int) async throws -> ScreenshotResult
 
   /// Capture a screenshot of an application window
-  /// - Parameter bundleIdentifier: The bundle ID of the application
+  /// - Parameter bundleId: The bundle ID of the application
   /// - Returns: Screenshot result
-  func captureWindow(bundleIdentifier: String) async throws -> ScreenshotResult
+  func captureWindow(bundleId: String) async throws -> ScreenshotResult
 
   /// Capture a screenshot of a specific UI element using path-based identification
   /// - Parameter elementPath: The path of the UI element using macos://ui/ notation

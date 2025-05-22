@@ -119,26 +119,26 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
   }
 
   /// Capture a screenshot of an application window
-  /// - Parameter bundleIdentifier: The bundle ID of the application
+  /// - Parameter bundleId: The bundle ID of the application
   /// - Returns: Screenshot result
-  public func captureWindow(bundleIdentifier: String) async throws -> ScreenshotResult {
+  public func captureWindow(bundleId: String) async throws -> ScreenshotResult {
     logger.debug(
       "Capturing window screenshot for app",
       metadata: [
-        "bundleId": "\(bundleIdentifier)"
+        "bundleId": "\(bundleId)"
       ])
 
     // Find the application by bundle ID
     guard
-      let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier)
+      let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId)
         .first
     else {
-      logger.debug("Application not running", metadata: ["bundleId": "\(bundleIdentifier)"])
+      logger.debug("Application not running", metadata: ["bundleId": "\(bundleId)"])
       throw NSError(
         domain: "com.macos.mcp.screenshot",
         code: 1002,
         userInfo: [
-          NSLocalizedDescriptionKey: "Application not running: \(bundleIdentifier)"
+          NSLocalizedDescriptionKey: "Application not running: \(bundleId)"
         ],
       )
     }
@@ -156,12 +156,12 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
     // If there are multiple windows, use the frontmost one
     guard let windowInfo = appWindows.first else {
       logger.error(
-        "No windows found for application", metadata: ["bundleId": "\(bundleIdentifier)"])
+        "No windows found for application", metadata: ["bundleId": "\(bundleId)"])
       throw NSError(
         domain: "com.macos.mcp.screenshot",
         code: 1003,
         userInfo: [
-          NSLocalizedDescriptionKey: "No windows found for application: \(bundleIdentifier)"
+          NSLocalizedDescriptionKey: "No windows found for application: \(bundleId)"
         ],
       )
     }

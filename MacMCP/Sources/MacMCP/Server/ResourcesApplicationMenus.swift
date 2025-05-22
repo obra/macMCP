@@ -57,7 +57,7 @@ open class ApplicationMenusResourceHandler: ResourceHandler, @unchecked Sendable
             if let menuTitle = menuTitle {
                 // Get specific menu items
                 let menuItems = try await menuNavigationService.getMenuItems(
-                    bundleIdentifier: bundleId,
+                    bundleId: bundleId,
                     menuTitle: menuTitle,
                     includeSubmenus: includeSubmenus
                 )
@@ -86,7 +86,7 @@ open class ApplicationMenusResourceHandler: ResourceHandler, @unchecked Sendable
             } else {
                 // Get all top-level menus
                 let menus = try await menuNavigationService.getApplicationMenus(
-                    bundleIdentifier: bundleId
+                    bundleId: bundleId
                 )
                 
                 // Encode the menus as JSON

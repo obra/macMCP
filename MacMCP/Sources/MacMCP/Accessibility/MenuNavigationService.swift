@@ -74,12 +74,12 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
   }
 
   /// Get all top-level menus for an application
-  /// - Parameter bundleIdentifier: The bundle identifier of the application
+  /// - Parameter bundleId: The bundle identifier of the application
   /// - Returns: An array of menu descriptors
-  public func getApplicationMenus(bundleIdentifier: String) async throws -> [MenuItemDescriptor] {
+  public func getApplicationMenus(bundleId: String) async throws -> [MenuItemDescriptor] {
     // Get the application element
     let appElement = try await accessibilityService.getApplicationUIElement(
-      bundleIdentifier: bundleIdentifier,
+      bundleId: bundleId,
       recursive: true,
       maxDepth: 3,  // We only need shallow depth for menu bar
     )
@@ -89,7 +89,7 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
       logger.error(
         "Menu bar not found in application",
         metadata: [
-          "bundleId": .string(bundleIdentifier)
+          "bundleId": .string(bundleId)
         ])
       throw MenuNavigationError.menuBarNotFound
     }
@@ -108,18 +108,18 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
 
   /// Get menu items for a specific menu
   /// - Parameters:
-  ///   - bundleIdentifier: The bundle identifier of the application
+  ///   - bundleId: The bundle identifier of the application
   ///   - menuTitle: The title of the menu to get items from
   ///   - includeSubmenus: Whether to include submenus in the results
   /// - Returns: An array of menu item descriptors
   public func getMenuItems(
-    bundleIdentifier: String,
+    bundleId: String,
     menuTitle: String,
     includeSubmenus: Bool,
   ) async throws -> [MenuItemDescriptor] {
     // Get the application element
     let appElement = try await accessibilityService.getApplicationUIElement(
-      bundleIdentifier: bundleIdentifier,
+      bundleId: bundleId,
       recursive: true,
       maxDepth: 10,  // Need deeper traversal for menu items
     )
@@ -129,7 +129,7 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
       logger.error(
         "Menu bar not found in application",
         metadata: [
-          "bundleId": .string(bundleIdentifier)
+          "bundleId": .string(bundleId)
         ])
       throw MenuNavigationError.menuBarNotFound
     }
@@ -182,7 +182,7 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
 
       // Get a fresh view of the application after opening the menu
       let updatedAppElement = try await accessibilityService.getApplicationUIElement(
-        bundleIdentifier: bundleIdentifier,
+        bundleId: bundleId,
         recursive: true,
         maxDepth: 10,
       )
@@ -233,15 +233,15 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
 
   /// Activate a menu item by ElementPath URI
   /// - Parameters:
-  ///   - bundleIdentifier: The bundle identifier of the application
+  ///   - bundleId: The bundle identifier of the application
   ///   - elementPath: ElementPath URI to the menu item to activate (e.g. "macos://ui/...")
   /// - Returns: Boolean indicating success
   public func activateMenuItem(
-    bundleIdentifier: String,
+    bundleId: String,
     elementPath: String,
   ) async throws -> Bool {
     // Delegate to our internal method
-    try await navigateToMenuElement(elementPath: elementPath, in: bundleIdentifier)
+    try await navigateToMenuElement(elementPath: elementPath, in: bundleId)
     
     // If we get here, the navigation was successful
     return true

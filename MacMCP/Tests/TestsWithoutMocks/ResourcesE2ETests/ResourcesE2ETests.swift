@@ -137,10 +137,10 @@ struct ResourcesE2ETests {
         let handler = UIElementResourceHandler(accessibilityService: accessibilityService, logger: logger)
         
         // Create a resource URI for UI element
-        let resourceURI = "macos://ui/AXApplication[@bundleIdentifier=\"\(calculatorBundleId)\"]"
+        let resourceURI = "macos://ui/AXApplication[@bundleId=\"\(calculatorBundleId)\"]"
         let components = ResourceURIComponents(
             scheme: "macos",
-            path: "/ui/AXApplication[@bundleIdentifier=\"\(calculatorBundleId)\"]",
+            path: "/ui/AXApplication[@bundleId=\"\(calculatorBundleId)\"]",
             queryParameters: ["maxDepth": "2"]
         )
         
@@ -175,14 +175,14 @@ struct ResourcesE2ETests {
         let handler = UIElementResourceHandler(accessibilityService: accessibilityService, logger: logger)
         
         // Create a resource URI with interactable filter
-        let resourceURI = "macos://ui/AXApplication[@bundleIdentifier=\"\(calculatorBundleId)\"]?interactable=true&maxDepth=5"
+        let resourceURI = "macos://ui/AXApplication[@bundleId=\"\(calculatorBundleId)\"]?interactable=true&maxDepth=5"
         
         // Debug the URI to ensure it has query parameters
         print("DEBUG: Testing URI: \(resourceURI)")
         
         let components = ResourceURIComponents(
             scheme: "macos",
-            path: "/ui/AXApplication[@bundleIdentifier=\"\(calculatorBundleId)\"]",
+            path: "/ui/AXApplication[@bundleId=\"\(calculatorBundleId)\"]",
             queryParameters: ["interactable": "true", "maxDepth": "5"]
         )
         

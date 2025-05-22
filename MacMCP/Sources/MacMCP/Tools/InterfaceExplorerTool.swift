@@ -471,7 +471,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
         valueContains: valueContains,
         description: description,
         descriptionContains: descriptionContains,
-        scope: .application(bundleIdentifier: bundleId),
+        scope: .application(bundleId: bundleId),
         recursive: true,
         maxDepth: maxDepth,
       )
@@ -493,7 +493,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
     } else {
       // Get the full application element
       let appElement = try await accessibilityService.getApplicationUIElement(
-        bundleIdentifier: bundleId,
+        bundleId: bundleId,
         recursive: true,
         maxDepth: maxDepth,
       )

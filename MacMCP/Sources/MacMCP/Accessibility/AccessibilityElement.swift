@@ -121,15 +121,15 @@ public class AccessibilityElement {
     }
 
     // For application elements, add bundle identifier if possible
-    // Keep bundleIdentifier without AX prefix as it's a special case
+    // Keep bundleId without AX prefix as it's a special case
     if role == AXAttribute.Role.application {
       var pid: pid_t = 0
       let pidResult = AXUIElementGetPid(axElement, &pid)
       if pidResult == .success, pid != 0 {
         if let app = NSRunningApplication(processIdentifier: pid),
-          let bundleID = app.bundleIdentifier
+          let bundleId = app.bundleIdentifier
         {
-          attributePairs["bundleIdentifier"] = bundleID
+          attributePairs["bundleId"] = bundleId
         }
       }
     }

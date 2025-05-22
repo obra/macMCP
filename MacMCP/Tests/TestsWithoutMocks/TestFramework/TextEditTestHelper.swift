@@ -207,7 +207,7 @@ final class TextEditTestHelper {
 
     // Find the close button on the window using ElementPath
     let closeButtonPath = try ElementPath.parse(
-      "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.TextEdit\"]/AXWindow[0]/AXButton[@AXSubrole=\"AXCloseButton\"]",
+      "macos://ui/AXApplication[@bundleId=\"com.apple.TextEdit\"]/AXWindow[0]/AXButton[@AXSubrole=\"AXCloseButton\"]",
     )
 
     // Try to resolve and press the close button

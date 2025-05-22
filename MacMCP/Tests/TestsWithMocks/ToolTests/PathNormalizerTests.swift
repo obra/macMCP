@@ -17,7 +17,7 @@ struct PathNormalizerTests {
     #expect(PathNormalizer.normalizeAttributeName("value") == "AXValue")
     #expect(PathNormalizer.normalizeAttributeName("id") == "AXIdentifier")
     #expect(PathNormalizer.normalizeAttributeName("identifier") == "AXIdentifier")
-    #expect(PathNormalizer.normalizeAttributeName("bundleId") == "bundleIdentifier")
+    #expect(PathNormalizer.normalizeAttributeName("bundleId") == "bundleId")
 
     // Test already normalized names
     #expect(PathNormalizer.normalizeAttributeName("AXTitle") == "AXTitle")

@@ -30,8 +30,8 @@ public struct ResourceTemplateFactory {
                     description: "The path to the UI element following ElementPath syntax",
                     type: "string",
                     required: true,
-                    enumValues: ["AXApplication[@bundleIdentifier=\"com.apple.finder\"]", 
-                                "AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow/AXButton[@AXTitle=\"1\"]"]
+                    enumValues: ["AXApplication[@bundleId=\"com.apple.finder\"]", 
+                                "AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow/AXButton[@AXTitle=\"1\"]"]
                 ),
                 ListResourceTemplates.Parameter(
                     name: "maxDepth",

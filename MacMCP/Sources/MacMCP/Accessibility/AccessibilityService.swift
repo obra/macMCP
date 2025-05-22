@@ -52,12 +52,12 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
 
   /// Get the UI element for a specific application
   /// - Parameters:
-  ///   - bundleIdentifier: The application's bundle identifier
+  ///   - bundleId: The application's bundle identifier
   ///   - recursive: Whether to recursively get children
   ///   - maxDepth: Maximum depth for recursion
   /// - Returns: A UIElement representing the application's accessibility hierarchy
   public func getApplicationUIElement(
-    bundleIdentifier: String,
+    bundleId: String,
     recursive: Bool = true,
     maxDepth: Int = AccessibilityService.defaultMaxDepth,
   ) async throws -> UIElement {
@@ -69,15 +69,15 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
 
     // Find the running application
     guard
-      let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier)
+      let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId)
         .first
     else {
-      logger.error("Application not found", metadata: ["bundleId": .string(bundleIdentifier)])
+      logger.error("Application not found", metadata: ["bundleId": .string(bundleId)])
       throw NSError(
         domain: "com.macos.mcp.accessibility",
         code: MacMCPErrorCode.applicationNotFound,
         userInfo: [
-          NSLocalizedDescriptionKey: "Application with bundle ID '\(bundleIdentifier)' not found"
+          NSLocalizedDescriptionKey: "Application with bundle ID '\(bundleId)' not found"
         ],
       )
     }
@@ -235,18 +235,18 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
       }
 
       rootElement = focusedAppElement as! AXUIElement
-    case .application(let bundleIdentifier):
+    case .application(let bundleId):
       // Find the running application
       guard
-        let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier)
+        let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId)
           .first
       else {
-        logger.error("Application not found", metadata: ["bundleId": .string(bundleIdentifier)])
+        logger.error("Application not found", metadata: ["bundleId": .string(bundleId)])
         throw NSError(
           domain: "com.macos.mcp.accessibility",
           code: MacMCPErrorCode.applicationNotFound,
           userInfo: [
-            NSLocalizedDescriptionKey: "Application with bundle ID '\(bundleIdentifier)' not found"
+            NSLocalizedDescriptionKey: "Application with bundle ID '\(bundleId)' not found"
           ],
         )
       }

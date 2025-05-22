@@ -284,7 +284,7 @@ struct UIElementPathInitIntegrationTests {
 
 // Helper class for managing the Calculator app during tests
 private class CalculatorApp {
-  let bundleIdentifier = "com.apple.calculator"
+  let bundleId = "com.apple.calculator"
   let accessibilityService: AccessibilityService
 
   init(accessibilityService: AccessibilityService) {
@@ -294,14 +294,14 @@ private class CalculatorApp {
   func launch() async throws {
     // Check if the app is already running
     let runningApps = NSRunningApplication.runningApplications(
-      withBundleIdentifier: bundleIdentifier)
+      withBundleIdentifier: bundleId)
 
     if let app = runningApps.first, app.isTerminated == false {
       // App is already running, just activate it
       app.activate()
     } else {
       // Launch the app
-      let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier)
+      let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleId)
       guard let appURL = url else {
         throw NSError(
           domain: "com.macos.mcp.test",
@@ -321,7 +321,7 @@ private class CalculatorApp {
   func terminate() async throws {
     // Find the running app
     let runningApps = NSRunningApplication.runningApplications(
-      withBundleIdentifier: bundleIdentifier)
+      withBundleIdentifier: bundleId)
 
     if let app = runningApps.first, app.isTerminated == false {
       // Terminate the app

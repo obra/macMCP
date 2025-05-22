@@ -1102,7 +1102,7 @@ extension UIInteractionService {
     
     // DIAGNOSTIC: Dump the entire accessibility tree for the application
     // to compare with what InterfaceExplorerTool finds
-    if let bundleId = appBundleId ?? path.components(separatedBy: "bundleIdentifier=\"").last?.components(separatedBy: "\"").first {
+    if let bundleId = appBundleId ?? path.components(separatedBy: "bundleId=\"").last?.components(separatedBy: "\"").first {
       logger.trace("DIAGNOSTIC: Dumping accessibility tree for application with bundleId: \(bundleId)")
       
       // Extract the path segments for diagnostic purposes

@@ -86,7 +86,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
           "type": .string("string"),
           "description": .string("The name of the application (e.g., 'Safari')"),
         ]),
-        "bundleIdentifier": .object([
+        "bundleId": .object([
           "type": .string("string"),
           "description": .string(
             "The bundle identifier of the application (e.g., 'com.apple.Safari')"),
@@ -226,10 +226,10 @@ public struct ApplicationManagementTool: @unchecked Sendable {
 
     // Extract application identifier (name or bundle ID)
     let applicationName = params["applicationName"]?.stringValue
-    let bundleIdentifier = params["bundleIdentifier"]?.stringValue
+    let bundleId = params["bundleId"]?.stringValue
 
-    if applicationName == nil, bundleIdentifier == nil {
-      throw MCPError.invalidParams("Either applicationName or bundleIdentifier is required")
+    if applicationName == nil, bundleId == nil {
+      throw MCPError.invalidParams("Either applicationName or bundleId is required")
     }
 
     // Extract optional parameters
@@ -241,7 +241,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
     do {
       let result = try await applicationService.launchApplication(
         name: applicationName,
-        bundleIdentifier: bundleIdentifier,
+        bundleId: bundleId,
         arguments: arguments,
         hideOthers: hideOthers,
         waitForLaunch: waitForLaunch,
@@ -255,7 +255,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
           {
               "success": true,
               "processIdentifier": \(result.processIdentifier),
-              "bundleIdentifier": "\(result.bundleIdentifier)",
+              "bundleId": "\(result.bundleId)",
               "applicationName": "\(result.applicationName)"
           }
           """)
@@ -283,8 +283,8 @@ public struct ApplicationManagementTool: @unchecked Sendable {
       ])
 
     // Validate bundle ID
-    guard let bundleIdentifier = params["bundleIdentifier"]?.stringValue else {
-      throw MCPError.invalidParams("bundleIdentifier is required for terminate action")
+    guard let bundleId = params["bundleId"]?.stringValue else {
+      throw MCPError.invalidParams("bundleId is required for terminate action")
     }
 
     // Extract optional parameters
@@ -292,7 +292,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
 
     do {
       let terminated = try await applicationService.terminateApplication(
-        bundleIdentifier: bundleIdentifier,
+        bundleId: bundleId,
         timeout: terminateTimeout,
       )
 
@@ -302,7 +302,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
           """
           {
               "success": \(terminated),
-              "bundleIdentifier": "\(bundleIdentifier)"
+              "bundleId": "\(bundleId)"
           }
           """)
       ]
@@ -329,13 +329,13 @@ public struct ApplicationManagementTool: @unchecked Sendable {
       ])
 
     // Validate bundle ID
-    guard let bundleIdentifier = params["bundleIdentifier"]?.stringValue else {
-      throw MCPError.invalidParams("bundleIdentifier is required for forceTerminate action")
+    guard let bundleId = params["bundleId"]?.stringValue else {
+      throw MCPError.invalidParams("bundleId is required for forceTerminate action")
     }
 
     do {
       let terminated = try await applicationService.forceTerminateApplication(
-        bundleIdentifier: bundleIdentifier,
+        bundleId: bundleId,
       )
 
       // Format the result as JSON
@@ -344,7 +344,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
           """
           {
               "success": \(terminated),
-              "bundleIdentifier": "\(bundleIdentifier)"
+              "bundleId": "\(bundleId)"
           }
           """)
       ]
@@ -372,13 +372,13 @@ public struct ApplicationManagementTool: @unchecked Sendable {
       ])
 
     // Validate bundle ID
-    guard let bundleIdentifier = params["bundleIdentifier"]?.stringValue else {
-      throw MCPError.invalidParams("bundleIdentifier is required for isRunning action")
+    guard let bundleId = params["bundleId"]?.stringValue else {
+      throw MCPError.invalidParams("bundleId is required for isRunning action")
     }
 
     do {
       let isRunning = try await applicationService.isApplicationRunning(
-        bundleIdentifier: bundleIdentifier,
+        bundleId: bundleId,
       )
 
       // Format the result as JSON
@@ -387,7 +387,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
           """
           {
               "success": true,
-              "bundleIdentifier": "\(bundleIdentifier)",
+              "bundleId": "\(bundleId)",
               "isRunning": \(isRunning)
           }
           """)
@@ -419,7 +419,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
         appArray.append(
           """
           {
-              "bundleIdentifier": "\(bundleId)",
+              "bundleId": "\(bundleId)",
               "applicationName": "\(name)"
           }
           """)
@@ -461,13 +461,13 @@ public struct ApplicationManagementTool: @unchecked Sendable {
       ])
 
     // Validate bundle ID
-    guard let bundleIdentifier = params["bundleIdentifier"]?.stringValue else {
-      throw MCPError.invalidParams("bundleIdentifier is required for activateApplication action")
+    guard let bundleId = params["bundleId"]?.stringValue else {
+      throw MCPError.invalidParams("bundleId is required for activateApplication action")
     }
 
     do {
       let activated = try await applicationService.activateApplication(
-        bundleIdentifier: bundleIdentifier,
+        bundleId: bundleId,
       )
 
       // Format the result as JSON
@@ -476,7 +476,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
           """
           {
               "success": \(activated),
-              "bundleIdentifier": "\(bundleIdentifier)"
+              "bundleId": "\(bundleId)"
           }
           """)
       ]
@@ -503,13 +503,13 @@ public struct ApplicationManagementTool: @unchecked Sendable {
       ])
 
     // Validate bundle ID
-    guard let bundleIdentifier = params["bundleIdentifier"]?.stringValue else {
-      throw MCPError.invalidParams("bundleIdentifier is required for hideApplication action")
+    guard let bundleId = params["bundleId"]?.stringValue else {
+      throw MCPError.invalidParams("bundleId is required for hideApplication action")
     }
 
     do {
       let hidden = try await applicationService.hideApplication(
-        bundleIdentifier: bundleIdentifier,
+        bundleId: bundleId,
       )
 
       // Format the result as JSON
@@ -518,7 +518,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
           """
           {
               "success": \(hidden),
-              "bundleIdentifier": "\(bundleIdentifier)"
+              "bundleId": "\(bundleId)"
           }
           """)
       ]
@@ -545,13 +545,13 @@ public struct ApplicationManagementTool: @unchecked Sendable {
       ])
 
     // Validate bundle ID
-    guard let bundleIdentifier = params["bundleIdentifier"]?.stringValue else {
-      throw MCPError.invalidParams("bundleIdentifier is required for unhideApplication action")
+    guard let bundleId = params["bundleId"]?.stringValue else {
+      throw MCPError.invalidParams("bundleId is required for unhideApplication action")
     }
 
     do {
       let unhidden = try await applicationService.unhideApplication(
-        bundleIdentifier: bundleIdentifier,
+        bundleId: bundleId,
       )
 
       // Format the result as JSON
@@ -560,7 +560,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
           """
           {
               "success": \(unhidden),
-              "bundleIdentifier": "\(bundleIdentifier)"
+              "bundleId": "\(bundleId)"
           }
           """)
       ]
@@ -587,19 +587,19 @@ public struct ApplicationManagementTool: @unchecked Sendable {
       ])
 
     // Extract optional bundle ID
-    let bundleIdentifier = params["bundleIdentifier"]?.stringValue
+    let bundleId = params["bundleId"]?.stringValue
 
     do {
       let _ = try await applicationService.hideOtherApplications(
-        exceptBundleIdentifier: bundleIdentifier,
+        exceptBundleIdentifier: bundleId,
       )
 
       // Format the result as JSON
       let exceptInfo =
-        bundleIdentifier != nil
+        bundleId != nil
         ? """
         ,
-            "exceptBundleIdentifier": "\(bundleIdentifier!)"
+            "exceptBundleIdentifier": "\(bundleId!)"
         """ : ""
 
       return [
@@ -636,7 +636,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
             """
             {
                 "success": true,
-                "bundleIdentifier": "\(frontmost.bundleIdentifier)",
+                "bundleId": "\(frontmost.bundleId)",
                 "applicationName": "\(frontmost.name)",
                 "processIdentifier": \(frontmost.processId ?? 0),
                 "isActive": \(frontmost.isActive),

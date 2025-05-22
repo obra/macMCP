@@ -39,7 +39,7 @@ struct ElementPathIntegrationTests {
 
     // Get the application element directly - first get the running app's PID
     let runningApp = NSRunningApplication.runningApplications(
-      withBundleIdentifier: calculator.bundleIdentifier
+      withBundleIdentifier: calculator.bundleId
     )
     .first
     guard let runningApp else {
@@ -284,7 +284,7 @@ struct ElementPathIntegrationTests {
     // print("=== Starting bundleId-based path resolution test ===")
 
     // This test uses the macOS Calculator app and path-based element access to perform a calculation
-    // using bundleIdentifier-based application resolution
+    // using bundleId-based application resolution
 
     // First, create an AccessibilityService
     let accessibilityService = AccessibilityService()
@@ -303,7 +303,7 @@ struct ElementPathIntegrationTests {
 
     // Get the application element directly - first get the running app's PID
     guard
-      NSRunningApplication.runningApplications(withBundleIdentifier: calculator.bundleIdentifier)
+      NSRunningApplication.runningApplications(withBundleIdentifier: calculator.bundleId)
         .first != nil
     else {
       #expect(Bool(false), "Could not find running Calculator app")
@@ -314,7 +314,7 @@ struct ElementPathIntegrationTests {
     // Create a path to the Calculator application using bundleId
     // print("Creating ElementPath with bundleId")
     let appPath = try ElementPath.parse(
-      "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]")
+      "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]")
 
     // Resolve the application element
     let appElement = try await appPath.resolve(using: accessibilityService)
@@ -560,13 +560,13 @@ struct ElementPathIntegrationTests {
     #if os(macOS) && swift(>=5.7)
       // Handle macOS 14.0+ deprecation by using alternate API if available
       if let app = NSRunningApplication.runningApplications(
-        withBundleIdentifier: calculator.bundleIdentifier
+        withBundleIdentifier: calculator.bundleId
       ).first {
         app.activate()
         // print("Activated Calculator app using new API")
       }
     #else
-      NSRunningApplication.runningApplications(withBundleIdentifier: calculator.bundleIdentifier)
+      NSRunningApplication.runningApplications(withBundleIdentifier: calculator.bundleId)
         .first?.activate()
     // print("Activated Calculator app using legacy API")
     #endif
@@ -741,17 +741,17 @@ struct ElementPathIntegrationTests {
     // Use index to get the first window, and also use title for the specific window
     let baseWindowPath =
       try ElementPath
-      .parse("macos://ui/AXApplication[@bundleIdentifier=\"com.apple.TextEdit\"]/AXWindow[0]")
+      .parse("macos://ui/AXApplication[@bundleId=\"com.apple.TextEdit\"]/AXWindow[0]")
     let untitledWindowPath =
       try ElementPath
       .parse(
-        "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.TextEdit\"]/AXWindow[@AXTitle=\"\(windowTitle)\"]"
+        "macos://ui/AXApplication[@bundleId=\"com.apple.TextEdit\"]/AXWindow[@AXTitle=\"\(windowTitle)\"]"
       )
     // Since there's only one text area in the ScrollArea, we can just target it directly
     let textAreaPath =
       try ElementPath
       .parse(
-        "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.TextEdit\"]/AXWindow[0]/AXScrollArea/AXTextArea"
+        "macos://ui/AXApplication[@bundleId=\"com.apple.TextEdit\"]/AXWindow[0]/AXScrollArea/AXTextArea"
       )
 
     // print("TextEdit resolving window elements")
@@ -807,7 +807,7 @@ struct ElementPathIntegrationTests {
     let menuPath =
       try ElementPath
       .parse(
-        "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.TextEdit\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"Format\"]",
+        "macos://ui/AXApplication[@bundleId=\"com.apple.TextEdit\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"Format\"]",
       )
     let menuElement = try? await menuPath.resolve(using: accessibilityService)
     // print("TextEdit Format menu resolved")
@@ -875,7 +875,7 @@ struct ElementPathIntegrationTests {
     let ambiguousPath =
       try ElementPath
       .parse(
-        "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton",
+        "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton",
       )
 
     // Attempt to resolve the ambiguous path - this should fail or return multiple elements
@@ -905,7 +905,7 @@ struct ElementPathIntegrationTests {
     let indexPath =
       try ElementPath
       .parse(
-        "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[0][@AXDescription=\"1\"]",
+        "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[0][@AXDescription=\"1\"]",
       )
 
     // This should succeed
@@ -925,7 +925,7 @@ struct ElementPathIntegrationTests {
     let attributePath =
       try ElementPath
       .parse(
-        "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]",
+        "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]",
       )
 
     // This should succeed and find button 1
@@ -983,7 +983,7 @@ struct ElementPathIntegrationTests {
     let validPath =
       try ElementPath
       .parse(
-        "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]",
+        "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]",
       )
 
     // Use the regular resolution API
@@ -1009,7 +1009,7 @@ struct ElementPathIntegrationTests {
     let invalidPath =
       try ElementPath
       .parse(
-        "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXNonExistentElement",
+        "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXNonExistentElement",
       )
 
     // This should fail with a descriptive error
@@ -1082,17 +1082,17 @@ struct ElementPathIntegrationTests {
     let simplePath =
       try ElementPath
       .parse(
-        "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]"
+        "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]"
       )
     let moderatePath =
       try ElementPath
       .parse(
-        "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup",
+        "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup",
       )
     let complexPath =
       try ElementPath
       .parse(
-        "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]",
+        "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]",
       )
 
     // Measure simple path resolution time
@@ -1174,7 +1174,7 @@ struct ElementPathIntegrationTests {
 
 // Helper class for managing the Calculator app during tests
 private class CalculatorApp {
-  let bundleIdentifier = "com.apple.calculator"
+  let bundleId = "com.apple.calculator"
   let accessibilityService: AccessibilityService
 
   init(accessibilityService: AccessibilityService) {
@@ -1184,14 +1184,14 @@ private class CalculatorApp {
   func launch() async throws {
     // Check if the app is already running
     let runningApps = NSRunningApplication.runningApplications(
-      withBundleIdentifier: bundleIdentifier)
+      withBundleIdentifier: bundleId)
 
     if let app = runningApps.first, app.isTerminated == false {
       // App is already running, just activate it
       app.activate()
     } else {
       // Launch the app
-      let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier)
+      let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleId)
       guard let appURL = url else {
         throw NSError(
           domain: "com.macos.mcp.test",
@@ -1211,7 +1211,7 @@ private class CalculatorApp {
   func terminate() async throws {
     // Find the running app
     let runningApps = NSRunningApplication.runningApplications(
-      withBundleIdentifier: bundleIdentifier)
+      withBundleIdentifier: bundleId)
 
     if let app = runningApps.first, app.isTerminated == false {
       // Terminate the app

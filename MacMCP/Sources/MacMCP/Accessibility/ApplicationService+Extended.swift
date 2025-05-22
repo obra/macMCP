@@ -10,7 +10,7 @@ extension ApplicationService {
   /// Launch an application with detailed configuration
   /// - Parameters:
   ///   - name: Optional application name (e.g., "Safari")
-  ///   - bundleIdentifier: Optional bundle identifier (e.g., "com.apple.Safari")
+  ///   - bundleId: Optional bundle identifier (e.g., "com.apple.Safari")
   ///   - arguments: Optional array of command-line arguments
   ///   - hideOthers: Whether to hide other applications when opening this one
   ///   - waitForLaunch: Whether to wait for the application to fully launch
@@ -19,14 +19,14 @@ extension ApplicationService {
   /// - Throws: MacMCPErrorInfo if the application could not be launched
   public func launchApplication(
     name: String?,
-    bundleIdentifier: String?,
+    bundleId: String?,
     arguments: [String] = [],
     hideOthers: Bool = false,
     waitForLaunch: Bool = true,
     timeout: TimeInterval = 30.0,
   ) async throws -> ApplicationLaunchResult {
     // We need at least a bundle ID or name
-    guard name != nil || bundleIdentifier != nil else {
+    guard name != nil || bundleId != nil else {
       throw createApplicationLaunchError(
         message: "Either application name or bundle identifier must be provided",
         context: [:],
@@ -35,9 +35,9 @@ extension ApplicationService {
 
     // Validate and find the application
     let appInfo: ApplicationInfo
-    if let bundleId = bundleIdentifier {
+    if let bundleId = bundleId {
       // Try to validate by bundle ID first
-      appInfo = try await validateApplication(bundleIdentifier: bundleId)
+      appInfo = try await validateApplication(bundleId: bundleId)
     } else if let appName = name {
       // Try to validate by name
       appInfo = try await validateApplicationByName(appName)
@@ -65,7 +65,7 @@ extension ApplicationService {
         return ApplicationLaunchResult(
           success: true,
           processIdentifier: pid,
-          bundleIdentifier: appInfo.bundleIdentifier,
+          bundleId: appInfo.bundleId,
           applicationName: appInfo.name,
         )
       }
@@ -113,14 +113,14 @@ extension ApplicationService {
       return ApplicationLaunchResult(
         success: true,
         processIdentifier: runningApplication.processIdentifier,
-        bundleIdentifier: runningApplication.bundleIdentifier ?? appInfo.bundleIdentifier,
+        bundleId: runningApplication.bundleIdentifier ?? appInfo.bundleId,
         applicationName: runningApplication.localizedName ?? appInfo.name,
       )
     } catch {
       logger.error(
         "Failed to launch application",
         metadata: [
-          "bundleIdentifier": "\(appInfo.bundleIdentifier)",
+          "bundleId": "\(appInfo.bundleId)",
           "name": "\(appInfo.name)",
           "error": "\(error.localizedDescription)",
         ])
@@ -128,7 +128,7 @@ extension ApplicationService {
       throw createApplicationLaunchError(
         message: "Failed to launch application: \(error.localizedDescription)",
         context: [
-          "bundleIdentifier": appInfo.bundleIdentifier,
+          "bundleId": appInfo.bundleId,
           "applicationName": appInfo.name,
         ],
       )
@@ -137,30 +137,30 @@ extension ApplicationService {
 
   /// Terminate an application by its bundle identifier
   /// - Parameters:
-  ///   - bundleIdentifier: The bundle identifier of the application to terminate
+  ///   - bundleId: The bundle identifier of the application to terminate
   ///   - timeout: Timeout in seconds for waiting for termination completion
   /// - Returns: Whether the application was successfully terminated
   /// - Throws: MacMCPErrorInfo if the application could not be terminated
   public func terminateApplication(
-    bundleIdentifier: String,
+    bundleId: String,
     timeout: TimeInterval = 10.0,
   ) async throws -> Bool {
     logger.debug(
       "Terminating application",
       metadata: [
-        "bundleIdentifier": "\(bundleIdentifier)",
+        "bundleId": "\(bundleId)",
         "timeout": "\(timeout)",
       ])
 
     // First check if the application is running
     let runningApps = NSRunningApplication.runningApplications(
-      withBundleIdentifier: bundleIdentifier)
+      withBundleIdentifier: bundleId)
 
     if runningApps.isEmpty {
       logger.debug(
         "Application is not running",
         metadata: [
-          "bundleIdentifier": "\(bundleIdentifier)"
+          "bundleId": "\(bundleId)"
         ])
       return true  // Already terminated
     }
@@ -176,7 +176,7 @@ extension ApplicationService {
         logger.warning(
           "Failed to request termination for application instance",
           metadata: [
-            "bundleIdentifier": "\(bundleIdentifier)",
+            "bundleId": "\(bundleId)",
             "processId": "\(app.processIdentifier)",
           ])
         allTerminated = false
@@ -188,7 +188,7 @@ extension ApplicationService {
       logger.debug(
         "Waiting for application instances to terminate",
         metadata: [
-          "bundleIdentifier": "\(bundleIdentifier)",
+          "bundleId": "\(bundleId)",
           "instances": "\(runningApps.count)",
           "timeout": "\(timeout)",
         ])
@@ -196,7 +196,7 @@ extension ApplicationService {
       // Wait for the application to terminate
       let startTime = Date()
       var isTerminated = NSRunningApplication.runningApplications(
-        withBundleIdentifier: bundleIdentifier
+        withBundleIdentifier: bundleId
       ).isEmpty
 
       while !isTerminated, Date().timeIntervalSince(startTime) < timeout {
@@ -205,7 +205,7 @@ extension ApplicationService {
 
         // Check if the application has terminated
         isTerminated =
-          NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier).isEmpty
+          NSRunningApplication.runningApplications(withBundleIdentifier: bundleId).isEmpty
       }
 
       // If not terminated within timeout, update result
@@ -213,7 +213,7 @@ extension ApplicationService {
         logger.warning(
           "Application did not terminate within timeout",
           metadata: [
-            "bundleIdentifier": "\(bundleIdentifier)",
+            "bundleId": "\(bundleId)",
             "timeout": "\(timeout)",
           ])
         allTerminated = false
@@ -223,22 +223,22 @@ extension ApplicationService {
     // If all applications terminated successfully, update our cache
     if allTerminated {
       // If we have this app in our cache, update it
-      if var appInfo = await findApplicationByBundleID(bundleIdentifier) {
+      if var appInfo = await findApplicationByBundleID(bundleId) {
         // Update to mark as not running
         appInfo.processId = nil
-        appCache[bundleIdentifier] = appInfo
+        appCache[bundleId] = appInfo
       }
 
       logger.debug(
         "Application terminated successfully",
         metadata: [
-          "bundleIdentifier": "\(bundleIdentifier)"
+          "bundleId": "\(bundleId)"
         ])
     } else {
       logger.error(
         "Failed to terminate all application instances",
         metadata: [
-          "bundleIdentifier": "\(bundleIdentifier)"
+          "bundleId": "\(bundleId)"
         ])
     }
 
@@ -246,27 +246,27 @@ extension ApplicationService {
   }
 
   /// Force terminate an application by its bundle identifier
-  /// - Parameter bundleIdentifier: The bundle identifier of the application to force terminate
+  /// - Parameter bundleId: The bundle identifier of the application to force terminate
   /// - Returns: Whether the application was successfully terminated
   /// - Throws: MacMCPErrorInfo if the application could not be terminated
   public func forceTerminateApplication(
-    bundleIdentifier: String,
+    bundleId: String,
   ) async throws -> Bool {
     logger.debug(
       "Force terminating application",
       metadata: [
-        "bundleIdentifier": "\(bundleIdentifier)"
+        "bundleId": "\(bundleId)"
       ])
 
     // First check if the application is running
     let runningApps = NSRunningApplication.runningApplications(
-      withBundleIdentifier: bundleIdentifier)
+      withBundleIdentifier: bundleId)
 
     if runningApps.isEmpty {
       logger.debug(
         "Application is not running",
         metadata: [
-          "bundleIdentifier": "\(bundleIdentifier)"
+          "bundleId": "\(bundleId)"
         ])
       return true  // Already terminated
     }
@@ -282,7 +282,7 @@ extension ApplicationService {
         logger.warning(
           "Failed to force terminate application instance",
           metadata: [
-            "bundleIdentifier": "\(bundleIdentifier)",
+            "bundleId": "\(bundleId)",
             "processId": "\(app.processIdentifier)",
           ])
         allTerminated = false
@@ -294,28 +294,28 @@ extension ApplicationService {
 
     // Verify that all instances have terminated
     let stillRunning = !NSRunningApplication.runningApplications(
-      withBundleIdentifier: bundleIdentifier
+      withBundleIdentifier: bundleId
     ).isEmpty
 
     if stillRunning {
       logger.error(
         "Some application instances are still running after force termination",
         metadata: [
-          "bundleIdentifier": "\(bundleIdentifier)"
+          "bundleId": "\(bundleId)"
         ])
       allTerminated = false
     } else {
       // If we have this app in our cache, update it
-      if var appInfo = await findApplicationByBundleID(bundleIdentifier) {
+      if var appInfo = await findApplicationByBundleID(bundleId) {
         // Update to mark as not running
         appInfo.processId = nil
-        appCache[bundleIdentifier] = appInfo
+        appCache[bundleId] = appInfo
       }
 
       logger.debug(
         "Application force terminated successfully",
         metadata: [
-          "bundleIdentifier": "\(bundleIdentifier)"
+          "bundleId": "\(bundleId)"
         ])
     }
 
@@ -323,32 +323,32 @@ extension ApplicationService {
   }
 
   /// Hide an application
-  /// - Parameter bundleIdentifier: The bundle identifier of the application to hide
+  /// - Parameter bundleId: The bundle identifier of the application to hide
   /// - Returns: Whether the application was successfully hidden
   /// - Throws: MacMCPErrorInfo if the application could not be hidden
   public func hideApplication(
-    bundleIdentifier: String,
+    bundleId: String,
   ) async throws -> Bool {
     logger.debug(
       "Hiding application",
       metadata: [
-        "bundleIdentifier": "\(bundleIdentifier)"
+        "bundleId": "\(bundleId)"
       ])
 
     // First check if the application is running
     let runningApps = NSRunningApplication.runningApplications(
-      withBundleIdentifier: bundleIdentifier)
+      withBundleIdentifier: bundleId)
 
     if runningApps.isEmpty {
       logger.warning(
         "Application is not running",
         metadata: [
-          "bundleIdentifier": "\(bundleIdentifier)"
+          "bundleId": "\(bundleId)"
         ])
 
       throw createApplicationNotRunningError(
         message: "Application is not running",
-        context: ["bundleIdentifier": bundleIdentifier],
+        context: ["bundleId": bundleId],
       )
     }
     
@@ -363,7 +363,7 @@ extension ApplicationService {
         // If active, try to activate another app first
         if let anotherApp = NSWorkspace.shared.runningApplications.first(where: { 
           $0.activationPolicy == .regular && 
-          $0.bundleIdentifier != bundleIdentifier && 
+          $0.bundleIdentifier != bundleId && 
           !$0.isHidden
         }) {
           _ = anotherApp.activate(options: [])
@@ -389,7 +389,7 @@ extension ApplicationService {
           logger.debug(
             "Application is now hidden, hide() returned \(hideResult)",
             metadata: [
-              "bundleIdentifier": "\(bundleIdentifier)",
+              "bundleId": "\(bundleId)",
               "processId": "\(app.processIdentifier)",
               "wasAlreadyHidden": "\(wasHidden)",
             ])
@@ -397,7 +397,7 @@ extension ApplicationService {
           logger.warning(
             "Failed to hide application instance",
             metadata: [
-              "bundleIdentifier": "\(bundleIdentifier)",
+              "bundleId": "\(bundleId)",
               "processId": "\(app.processIdentifier)",
               "isActive": "\(app.isActive)",
               "hideResult": "\(hideResult)",
@@ -409,7 +409,7 @@ extension ApplicationService {
         logger.warning(
           "Application is no longer running after hide attempt",
           metadata: [
-            "bundleIdentifier": "\(bundleIdentifier)",
+            "bundleId": "\(bundleId)",
             "processId": "\(app.processIdentifier)",
           ])
         atLeastOneFailure = true
@@ -424,20 +424,20 @@ extension ApplicationService {
         logger.debug(
           "Some application instances were hidden successfully",
           metadata: [
-            "bundleIdentifier": "\(bundleIdentifier)"
+            "bundleId": "\(bundleId)"
           ])
       } else {
         logger.debug(
           "All application instances hidden successfully",
           metadata: [
-            "bundleIdentifier": "\(bundleIdentifier)"
+            "bundleId": "\(bundleId)"
           ])
       }
     } else {
       logger.error(
         "Failed to hide any application instances",
         metadata: [
-          "bundleIdentifier": "\(bundleIdentifier)"
+          "bundleId": "\(bundleId)"
         ])
     }
 
@@ -445,32 +445,32 @@ extension ApplicationService {
   }
 
   /// Unhide an application
-  /// - Parameter bundleIdentifier: The bundle identifier of the application to unhide
+  /// - Parameter bundleId: The bundle identifier of the application to unhide
   /// - Returns: Whether the application was successfully unhidden
   /// - Throws: MacMCPErrorInfo if the application could not be unhidden
   public func unhideApplication(
-    bundleIdentifier: String,
+    bundleId: String,
   ) async throws -> Bool {
     logger.debug(
       "Unhiding application",
       metadata: [
-        "bundleIdentifier": "\(bundleIdentifier)"
+        "bundleId": "\(bundleId)"
       ])
 
     // First check if the application is running
     let runningApps = NSRunningApplication.runningApplications(
-      withBundleIdentifier: bundleIdentifier)
+      withBundleIdentifier: bundleId)
 
     if runningApps.isEmpty {
       logger.warning(
         "Application is not running",
         metadata: [
-          "bundleIdentifier": "\(bundleIdentifier)"
+          "bundleId": "\(bundleId)"
         ])
 
       throw createApplicationNotRunningError(
         message: "Application is not running",
-        context: ["bundleIdentifier": bundleIdentifier],
+        context: ["bundleId": bundleId],
       )
     }
 
@@ -485,7 +485,7 @@ extension ApplicationService {
         logger.warning(
           "Failed to unhide application instance",
           metadata: [
-            "bundleIdentifier": "\(bundleIdentifier)",
+            "bundleId": "\(bundleId)",
             "processId": "\(app.processIdentifier)",
           ])
         allUnhidden = false
@@ -496,13 +496,13 @@ extension ApplicationService {
       logger.debug(
         "Application unhidden successfully",
         metadata: [
-          "bundleIdentifier": "\(bundleIdentifier)"
+          "bundleId": "\(bundleId)"
         ])
     } else {
       logger.error(
         "Failed to unhide all application instances",
         metadata: [
-          "bundleIdentifier": "\(bundleIdentifier)"
+          "bundleId": "\(bundleId)"
         ])
     }
 
@@ -526,7 +526,7 @@ extension ApplicationService {
     if let bundleId = exceptBundleIdentifier {
       do {
         // Try to activate the application first to ensure it's the frontmost
-        _ = try await activateApplication(bundleIdentifier: bundleId)
+        _ = try await activateApplication(bundleId: bundleId)
       } catch {
         // Just continue with hiding others even if activation fails
       }
@@ -551,7 +551,7 @@ extension ApplicationService {
     if let frontmostApp = runningApps.first(where: { $0.isActive }) {
       // Create and return application state information
       return ApplicationStateInfo(
-        bundleIdentifier: frontmostApp.bundleIdentifier ?? "",
+        bundleId: frontmostApp.bundleIdentifier ?? "",
         name: frontmostApp.localizedName ?? "",
         isRunning: true,
         processId: frontmostApp.processIdentifier,

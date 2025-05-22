@@ -170,7 +170,7 @@ final class AsyncInspectionTask: @unchecked Sendable {
         print("Performing server-side path-based inspection for: \(path)")
         // Use the inspectElementByPath method for direct server-side path resolution
         rootElement = try await inspector.inspectElementByPath(
-          bundleIdentifier: appId,
+          bundleId: appId,
           path: path,
           maxDepth: 15,  // Use smaller depth for path inspection
         )

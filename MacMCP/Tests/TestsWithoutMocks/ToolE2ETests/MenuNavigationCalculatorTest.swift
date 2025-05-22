@@ -10,7 +10,7 @@ import Testing
 
 /// A simple struct to hold application information
 private struct CalculatorAppInfo {
-  let bundleIdentifier: String
+  let bundleId: String
   let applicationName: String
 }
 
@@ -37,7 +37,7 @@ struct MenuNavigationCalculatorTest {
     // Verify Calculator is frontmost
     let frontmost = try await getFrontmostApp()
     #expect(
-      frontmost?.bundleIdentifier == "com.apple.calculator",
+      frontmost?.bundleId == "com.apple.calculator",
       "Calculator should be frontmost after activation"
     )
   }
@@ -102,7 +102,7 @@ struct MenuNavigationCalculatorTest {
     // Use the applicationManagementTool to activate Calculator
     let params: [String: Value] = [
       "action": .string("activateApplication"),
-      "bundleIdentifier": .string("com.apple.calculator"),
+      "bundleId": .string("com.apple.calculator"),
     ]
 
     let result = try await helper.toolChain.applicationManagementTool.handler(params)
@@ -130,11 +130,11 @@ struct MenuNavigationCalculatorTest {
       // Extract application info from the JSON response
       if let data = text.data(using: .utf8),
         let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-        let bundleId = json["bundleIdentifier"] as? String,
+        let bundleId = json["bundleId"] as? String,
         let appName = json["applicationName"] as? String
       {
         return CalculatorAppInfo(
-          bundleIdentifier: bundleId,
+          bundleId: bundleId,
           applicationName: appName
         )
       }
@@ -176,7 +176,7 @@ struct MenuNavigationCalculatorTest {
     let menuParams: [String: Value] = [
       "action": .string("activateMenuItem"),
       "bundleId": .string("com.apple.calculator"),
-      "menuPath": .string("macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"View\"]/AXMenu/AXMenuItem[@AXTitle=\"" + mode + "\"]"),
+      "menuPath": .string("macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"View\"]/AXMenu/AXMenuItem[@AXTitle=\"" + mode + "\"]"),
     ]
 
     // Use MenuNavigationTool's handler method

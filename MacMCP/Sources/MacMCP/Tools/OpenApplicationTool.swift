@@ -35,7 +35,7 @@ public struct OpenApplicationTool: Sendable {
     let schema: [String: Value] = [
       "type": .string("object"),
       "properties": .object([
-        "bundleIdentifier": .object([
+        "bundleId": .object([
           "type": .string("string"),
           "description": .string(
             "The bundle identifier of the application to open (e.g., 'com.apple.Safari')"),
@@ -87,8 +87,8 @@ public struct OpenApplicationTool: Sendable {
       }
 
       // Extract parameters
-      let bundleIdentifier: String? =
-        if case .string(let value) = params["bundleIdentifier"] {
+      let bundleId: String? =
+        if case .string(let value) = params["bundleId"] {
           value
         } else {
           nil
@@ -121,7 +121,7 @@ public struct OpenApplicationTool: Sendable {
         }
 
       // Validate that at least one identifier is provided
-      guard bundleIdentifier != nil || applicationName != nil else {
+      guard bundleId != nil || applicationName != nil else {
         return [.text("Please provide either a bundle identifier or application name")]
       }
 
@@ -130,13 +130,13 @@ public struct OpenApplicationTool: Sendable {
         var resultInfo: [String: Value] = [:]
 
         // Try to open by bundle identifier if provided
-        if let bundleIdentifier {
+        if let bundleId {
           success = try await applicationService.openApplication(
-            bundleIdentifier: bundleIdentifier,
+            bundleId: bundleId,
             arguments: arguments,
             hideOthers: hideOthers,
           )
-          resultInfo["bundleIdentifier"] = .string(bundleIdentifier)
+          resultInfo["bundleId"] = .string(bundleId)
         }
         // Otherwise, try to open by application name
         else if let applicationName {
@@ -171,7 +171,7 @@ public struct OpenApplicationTool: Sendable {
         logger.error(
           "Error opening application",
           metadata: [
-            "bundleIdentifier": "\(bundleIdentifier ?? "nil")",
+            "bundleId": "\(bundleId ?? "nil")",
             "applicationName": "\(applicationName ?? "nil")",
             "category": "\(error.category.rawValue)",
             "message": "\(error.message)",
@@ -199,7 +199,7 @@ public struct OpenApplicationTool: Sendable {
         logger.error(
           "Unexpected error opening application",
           metadata: [
-            "bundleIdentifier": "\(bundleIdentifier ?? "nil")",
+            "bundleId": "\(bundleId ?? "nil")",
             "applicationName": "\(applicationName ?? "nil")",
             "error": "\(error.localizedDescription)",
           ])

@@ -81,7 +81,7 @@ struct ApplicationsResourceE2ETests {
             #expect(jsonString.contains("Calculator"), "Response should include Calculator name")
             
             // Each application entry should have basic information
-            #expect(jsonString.contains("\"bundleIdentifier\""), "Response should include bundle identifiers")
+            #expect(jsonString.contains("\"bundleId\""), "Response should include bundle identifiers")
             #expect(jsonString.contains("\"name\""), "Response should include application names")
             #expect(jsonString.contains("\"processIdentifier\""), "Response should include process IDs")
             

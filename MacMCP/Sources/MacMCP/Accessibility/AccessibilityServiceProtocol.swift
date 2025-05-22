@@ -16,7 +16,7 @@ public protocol AccessibilityServiceProtocol: Sendable {
 
   /// Get the UI element for a specific application
   func getApplicationUIElement(
-    bundleIdentifier: String,
+    bundleId: String,
     recursive: Bool,
     maxDepth: Int,
   ) async throws -> UIElement

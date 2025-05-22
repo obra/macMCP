@@ -81,7 +81,7 @@ struct ErrorHandlingTests {
         [
           "action": .string("scroll"),
           "elementPath": .string(
-            "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow"),
+            "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow"),
         ]
       ),
       ("Drag missing source path", ["action": .string("drag")]),
@@ -90,7 +90,7 @@ struct ErrorHandlingTests {
         [
           "action": .string("drag"),
           "elementPath": .string(
-            "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow"),
+            "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow"),
         ]
       ),
     ]

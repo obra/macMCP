@@ -9,7 +9,7 @@ import Testing
 
 /// A simple struct to hold application information
 private struct TextEditAppInfo {
-  let bundleIdentifier: String
+  let bundleId: String
   let applicationName: String
 }
 
@@ -36,7 +36,7 @@ struct MenuNavigationTest {
 
     // Verify TextEdit is frontmost
     let frontmost = try await getFrontmostApp()
-    #expect(frontmost?.bundleIdentifier == "com.apple.TextEdit")
+    #expect(frontmost?.bundleId == "com.apple.TextEdit")
   }
   
   // Shared teardown method
@@ -102,7 +102,7 @@ struct MenuNavigationTest {
     // Use the applicationManagementTool to activate TextEdit
     let params: [String: Value] = [
       "action": .string("activateApplication"),
-      "bundleIdentifier": .string("com.apple.TextEdit"),
+      "bundleId": .string("com.apple.TextEdit"),
     ]
 
     let result = try await helper.toolChain.applicationManagementTool.handler(params)
@@ -130,11 +130,11 @@ struct MenuNavigationTest {
       // Extract application info from the JSON response
       if let data = text.data(using: .utf8),
         let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-        let bundleId = json["bundleIdentifier"] as? String,
+        let bundleId = json["bundleId"] as? String,
         let appName = json["applicationName"] as? String
       {
         return TextEditAppInfo(
-          bundleIdentifier: bundleId,
+          bundleId: bundleId,
           applicationName: appName
         )
       }
@@ -178,7 +178,7 @@ struct MenuNavigationTest {
     let menuParams: [String: Value] = [
       "action": .string("activateMenuItem"),
       "bundleId": .string("com.apple.TextEdit"),
-      "menuPath": .string("macos://ui/AXApplication[@bundleIdentifier=\"com.apple.TextEdit\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"File\"]/AXMenu/AXMenuItem[@AXTitle=\"New\"]"),
+      "menuPath": .string("macos://ui/AXApplication[@bundleId=\"com.apple.TextEdit\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"File\"]/AXMenu/AXMenuItem[@AXTitle=\"New\"]"),
     ]
 
     let result = try await helper.toolChain.menuNavigationTool.handler(menuParams)
@@ -200,7 +200,7 @@ struct MenuNavigationTest {
     let menuParams: [String: Value] = [
       "action": .string("activateMenuItem"),
       "bundleId": .string("com.apple.TextEdit"),
-      "menuPath": .string("macos://ui/AXApplication[@bundleIdentifier=\"com.apple.TextEdit\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"File\"]/AXMenu/AXMenuItem[@AXTitle=\"Close\"]"),
+      "menuPath": .string("macos://ui/AXApplication[@bundleId=\"com.apple.TextEdit\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"File\"]/AXMenu/AXMenuItem[@AXTitle=\"Close\"]"),
     ]
 
     let result = try await helper.toolChain.menuNavigationTool.handler(menuParams)

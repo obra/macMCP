@@ -217,7 +217,7 @@ public struct ScreenshotTool {
       }
 
       result = try await screenshotService.captureWindow(
-        bundleIdentifier: bundleId,
+        bundleId: bundleId,
       )
 
     case "element":
@@ -275,7 +275,7 @@ private class MockScreenshotService: ScreenshotServiceProtocol {
     fatalError("This is a stub that should never be called")
   }
 
-  func captureWindow(bundleIdentifier _: String) async throws -> ScreenshotResult {
+  func captureWindow(bundleId _: String) async throws -> ScreenshotResult {
     fatalError("This is a stub that should never be called")
   }
 

@@ -583,7 +583,7 @@ struct InterfaceExplorerToolTests {
       valueContains: nil,
       description: nil,
       descriptionContains: nil,
-      scope: .application(bundleIdentifier: "com.apple.calculator"),
+      scope: .application(bundleId: "com.apple.calculator"),
       recursive: true,
       maxDepth: 3,
     )
@@ -644,8 +644,8 @@ struct InterfaceExplorerToolTests {
     try await setupTest()
     
     // Create two ElementPath objects with different attributes
-    let pathString1 = "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow/AXButton[@AXTitle=\"1\"]"
-    let pathString2 = "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow/AXButton[@AXTitle=\"2\"]"
+    let pathString1 = "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow/AXButton[@AXTitle=\"1\"]"
+    let pathString2 = "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow/AXButton[@AXTitle=\"2\"]"
     
     // Parse the paths
     let elementPath1 = try ElementPath.parse(pathString1)

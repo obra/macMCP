@@ -224,7 +224,7 @@ struct ScreenshotToolE2ETests {
     // Now attempt an element screenshot using a simple path
     // Use a simple elementPath targeting just the Calculator window
     // This avoids depending on specific buttons which may vary
-    let elementPath = "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]"
+    let elementPath = "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]"
     
     let elementParams: [String: Value] = [
       "region": .string("element"),

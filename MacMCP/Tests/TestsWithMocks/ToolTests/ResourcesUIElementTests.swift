@@ -27,14 +27,14 @@ struct ResourcesUIElementTests {
         let rootElement: UIElement
         
         init(rootElement: UIElement = UIElement(
-            path: "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.mock\"]",
+            path: "macos://ui/AXApplication[@bundleId=\"com.apple.mock\"]",
             role: "AXApplication",
             title: "Mock Application",
             value: nil,
             elementDescription: nil,
             frame: CGRect(x: 0, y: 0, width: 800, height: 600),
             children: [],
-            attributes: ["bundleIdentifier": "com.apple.mock"],
+            attributes: ["bundleId": "com.apple.mock"],
             actions: []
         )) {
             self.rootElement = rootElement
@@ -49,7 +49,7 @@ struct ResourcesUIElementTests {
             rootElement
         }
         
-        func getApplicationUIElement(bundleIdentifier: String, recursive: Bool, maxDepth: Int) async throws -> UIElement {
+        func getApplicationUIElement(bundleId: String, recursive: Bool, maxDepth: Int) async throws -> UIElement {
             rootElement
         }
         
@@ -118,7 +118,7 @@ struct ResourcesUIElementTests {
     static func createTestUIElementHierarchy() -> UIElement {
         // Create a button that is interactable
         let button1 = UIElement(
-            path: "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.mock\"]/AXWindow/AXButton[@AXTitle=\"OK\"]",
+            path: "macos://ui/AXApplication[@bundleId=\"com.apple.mock\"]/AXWindow/AXButton[@AXTitle=\"OK\"]",
             role: "AXButton",
             title: "OK",
             value: nil,
@@ -131,7 +131,7 @@ struct ResourcesUIElementTests {
         
         // Create a text field that is interactable
         let textField = UIElement(
-            path: "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.mock\"]/AXWindow/AXTextField[@AXTitle=\"Search\"]",
+            path: "macos://ui/AXApplication[@bundleId=\"com.apple.mock\"]/AXWindow/AXTextField[@AXTitle=\"Search\"]",
             role: "AXTextField",
             title: "Search",
             value: "",
@@ -144,7 +144,7 @@ struct ResourcesUIElementTests {
         
         // Create a static text that is not interactable
         let staticText = UIElement(
-            path: "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.mock\"]/AXWindow/AXStaticText[@AXTitle=\"Label\"]",
+            path: "macos://ui/AXApplication[@bundleId=\"com.apple.mock\"]/AXWindow/AXStaticText[@AXTitle=\"Label\"]",
             role: "AXStaticText",
             title: "Label",
             value: nil,
@@ -157,7 +157,7 @@ struct ResourcesUIElementTests {
         
         // Create a button that is disabled
         let disabledButton = UIElement(
-            path: "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.mock\"]/AXWindow/AXButton[@AXTitle=\"Disabled\"]",
+            path: "macos://ui/AXApplication[@bundleId=\"com.apple.mock\"]/AXWindow/AXButton[@AXTitle=\"Disabled\"]",
             role: "AXButton",
             title: "Disabled",
             value: nil,
@@ -170,7 +170,7 @@ struct ResourcesUIElementTests {
         
         // Create a window containing all these elements
         let window = UIElement(
-            path: "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.mock\"]/AXWindow",
+            path: "macos://ui/AXApplication[@bundleId=\"com.apple.mock\"]/AXWindow",
             role: "AXWindow",
             title: "Mock Window",
             value: nil,
@@ -183,14 +183,14 @@ struct ResourcesUIElementTests {
         
         // Create the application containing the window
         let application = UIElement(
-            path: "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.mock\"]",
+            path: "macos://ui/AXApplication[@bundleId=\"com.apple.mock\"]",
             role: "AXApplication",
             title: "Mock Application",
             value: nil,
             elementDescription: nil,
             frame: CGRect(x: 0, y: 0, width: 800, height: 600),
             children: [window],
-            attributes: ["bundleIdentifier": "com.apple.mock"],
+            attributes: ["bundleId": "com.apple.mock"],
             actions: []
         )
         
@@ -210,10 +210,10 @@ struct ResourcesUIElementTests {
         let handler = UIElementResourceHandler(accessibilityService: mockService, logger: logger)
         
         // Create resource URI components
-        let resourceURI = "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.mock\"]"
+        let resourceURI = "macos://ui/AXApplication[@bundleId=\"com.apple.mock\"]"
         let components = ResourceURIComponents(
             scheme: "macos", 
-            path: "/ui/AXApplication[@bundleIdentifier=\"com.apple.mock\"]",
+            path: "/ui/AXApplication[@bundleId=\"com.apple.mock\"]",
             queryParameters: [:]
         )
         
@@ -279,7 +279,7 @@ struct ResourcesUIElementTests {
             throw NSError(domain: "com.macos.mcp.test", code: 0, userInfo: [NSLocalizedDescriptionKey: "Not implemented"])
         }
         
-        func getApplicationUIElement(bundleIdentifier: String, recursive: Bool, maxDepth: Int) async throws -> UIElement {
+        func getApplicationUIElement(bundleId: String, recursive: Bool, maxDepth: Int) async throws -> UIElement {
             throw NSError(domain: "com.macos.mcp.test", code: 0, userInfo: [NSLocalizedDescriptionKey: "Not implemented"])
         }
         

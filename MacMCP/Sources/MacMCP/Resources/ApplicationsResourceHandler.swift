@@ -49,7 +49,7 @@ public struct ApplicationsResourceHandler: ResourceHandler {
         
         for (bundleId, name) in runningApps {
             var appInfo = [String: Any]()
-            appInfo["bundleIdentifier"] = bundleId
+            appInfo["bundleId"] = bundleId
             appInfo["name"] = name
             
             // Try to get process ID if available
