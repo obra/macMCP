@@ -243,7 +243,6 @@ struct ApplicationManagementE2ETests {
     if case .text(let jsonString) = hideResult[0] {
       // We don't assert on success since hiding can sometimes fail
       // when an app doesn't have focus in automated tests
-      print("Hide operation result: \(jsonString)")
     } else {
       #expect(Bool(false), "Result should be text content")
     }
