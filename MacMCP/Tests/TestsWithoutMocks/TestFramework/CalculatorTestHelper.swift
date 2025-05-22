@@ -93,11 +93,48 @@ public final class CalculatorTestHelper {
       return false
     }
 
+    // Wait for Calculator UI to be ready before proceeding
+    try await waitForCalculatorUIReady()
+
     // Clear the calculator
     _ = try await app.clear()
     try await Task.sleep(for: .milliseconds(500))  // Wait for clear to complete
 
     return true
+  }
+
+  /// Wait for Calculator UI to be ready and accessible
+  /// - Throws: Error if UI doesn't become ready within timeout
+  private func waitForCalculatorUIReady() async throws {
+    let maxAttempts = 10
+    let delayMs = 500
+    
+    for attempt in 1...maxAttempts {
+      // Try to verify that basic UI elements are accessible
+      do {
+        // Check if we can find the main window
+        if let _ = try await app.getMainWindow() {
+          // Try to find a basic button to ensure the UI is loaded
+          if let _ = try await app.findButton("1") {
+            // UI is ready
+            return
+          }
+        }
+      } catch {
+        // UI not ready yet, continue waiting
+      }
+      
+      if attempt < maxAttempts {
+        try await Task.sleep(for: .milliseconds(delayMs))
+      }
+    }
+    
+    // If we get here, UI didn't become ready in time
+    throw NSError(
+      domain: "CalculatorTestHelper",
+      code: 2000,
+      userInfo: [NSLocalizedDescriptionKey: "Calculator UI did not become ready within timeout"]
+    )
   }
 
   /// Reset the Calculator app state (clear the display)

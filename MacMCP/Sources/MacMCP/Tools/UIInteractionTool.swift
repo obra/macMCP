@@ -247,16 +247,18 @@ public struct UIInteractionTool {
           )
         }
 
-        // Attempt to resolve the path to verify it exists
+        // Attempt to resolve the path to verify it exists (only if path is not empty)
         // This is just for validation - actual resolution happens in interactionService
-        do {
-          _ = try await path.resolve(using: accessibilityService)
-          logger.debug("Element path verified and resolved successfully")
-        } catch {
-          logger.warning(
-            "Element path did not resolve, but will still attempt click operation",
-            metadata: ["error": "\(error.localizedDescription)"],
-          )
+        if !elementPath.isEmpty {
+          do {
+            _ = try await path.resolve(using: accessibilityService)
+            logger.debug("Element path verified and resolved successfully")
+          } catch {
+            logger.warning(
+              "Element path did not resolve, but will still attempt click operation",
+              metadata: ["error": "\(error.localizedDescription)"],
+            )
+          }
         }
       } catch {
         logger.warning(
