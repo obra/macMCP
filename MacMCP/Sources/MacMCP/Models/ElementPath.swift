@@ -527,11 +527,11 @@ public struct ElementPath: Sendable {
         return appElement
       }
       // 2. Try by title/name if provided
-      else if let title = firstSegment.attributes["title"] {
+      else if let title = firstSegment.attributes["AXTitle"] {
         logger.trace("DIAGNOSTIC: Trying to find application by title: \(title)")
-        // Get all running applications
-        let runningApps = NSWorkspace.shared.runningApplications
-        logger.trace("DIAGNOSTIC: Searching among \(runningApps.count) running applications")
+        // Get GUI applications only (excludes background processes and daemons)
+        let runningApps = NSWorkspace.shared.runningApplications.filter { $0.activationPolicy == .regular }
+        logger.trace("DIAGNOSTIC: Searching among \(runningApps.count) GUI applications")
 
         // Find application with exactly matching title - only exact matches
         if let app = runningApps.first(where: { $0.localizedName == title }) {
@@ -2004,7 +2004,7 @@ extension ElementPath {
           // Check if bundleId or title is provided for the application
           let hasBundleId = firstSegment.attributes["bundleId"] != nil
           let hasTitle =
-            firstSegment.attributes["title"] != nil || firstSegment.attributes["AXTitle"] != nil
+            firstSegment.attributes["AXTitle"] != nil
 
           if !hasBundleId, !hasTitle {
             warnings.append(
