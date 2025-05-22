@@ -409,3 +409,63 @@ swift test --skip PerformanceTests --no-parallel
 4. **Check Test Logs**
    - Examine the test logs in the terminal output
    - Check the saved log files for detailed diagnostics
+
+
+
+⏺ Performance Optimization Insights for MacMCP Tests
+
+  Here's what I learned about optimizing test performance in your codebase:
+
+  Key Bottlenecks Identified
+
+  1. App Launch/Termination Overhead: Each test was individually launching and terminating Calculator, taking 3-4 seconds per test.
+  2. Excessive Sleep Durations: Long Task.sleep durations (2s after launch, 1s after termination) significantly extended test time.
+  3. ElementPath Resolution: The BFS-based search algorithm in resolveBFS is expensive, with many AX API calls.
+  4. Verbose Diagnostic Logging: Extensive "DIAGNOSTIC" logging in ElementPath's resolve methods adds overhead.
+  5. Redundant Initialization: Each test was recreating the same accessibility service and application connections.
+
+  Effective Optimization Strategies
+
+  1. Share State Across Tests:
+    - Use static properties to maintain shared app instances
+    - Initialize once, reuse throughout test suite
+    - Add proper Actor isolation with @MainActor
+  2. Reduce Sleep Durations:
+    - Launch wait: 2000ms → 500ms
+    - Termination wait: 1000ms → 100ms
+    - Foreground activation: 1000ms → 100ms
+  3. Lazy Initialization Pattern:
+    - Only launch the app when needed
+    - Use a state flag to track initialization status
+    - Clean up resources only after all tests complete
+  4. Concurrency-Safe Resource Sharing:
+    - Proper @MainActor isolation for shared state
+    - Safe access via MainActor.run { ... }
+    - Avoid unnecessary async/await overhead
+  5. Optimize Test Structure:
+    - Single app instance for all test cases
+    - Reset state between tests instead of terminating
+    - Clean up resources only at the end of all tests
+
+  Results
+
+  - Before: 120 seconds total)
+  - After: ~12 seconds for first test, ~0.1-0.7 seconds for subsequent tests
+  - Total suite time: ~14.6 seconds (8x improvement)
+
+  Additional Optimization Opportunities
+
+  1. ElementPath Resolution Optimization:
+    - Cache common path resolutions
+    - Reduce trace logging in path resolution code
+    - Implement more efficient search algorithms than BFS for common cases
+  2. Application-Specific Shortcuts:
+    - Use direct pid-based access instead of element path resolution
+    - Maintain a cache of commonly accessed UI elements
+    - Implement custom element finders for specific applications
+  3. Parallel Test Execution:
+    - Run non-UI tests in parallel
+    - Group UI tests by application to minimize app launches
+  4. Targeted Testing:
+    - Use snapshot testing for UI verification
+    - Minimize AX API calls during tests

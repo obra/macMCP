@@ -10,47 +10,87 @@ import Testing
 
 @Suite(.serialized)
 struct ApplicationLookupTests {
+  // Tracks whether the environment is already set up
+  @MainActor private static var environmentSetUp = false
+  
+  // Static shared calculator instance for all tests
+  @MainActor private static var sharedApp: NSRunningApplication?
+  @MainActor private static var sharedAccessibilityService: AccessibilityService?
+  
+  // Per-test instance variables
   private var accessibilityService: AccessibilityService!
   private var calculatorBundleId = "com.apple.calculator"
   private var calculatorTitle = "Calculator"
   private var app: NSRunningApplication?
 
-  // Shared setup method
-  private mutating func setUp() async throws {
-    // Create accessibility service
-    accessibilityService = AccessibilityService()
-
-    // Launch Calculator app using the synchronous approach
-    app = await launchCalculatorSync()
-    #expect(app != nil, "Failed to launch Calculator app")
-
-    // Give time for app to fully load
-    try await Task.sleep(for: .seconds(2))
-  }
-  
-  // Shared teardown method
-  private mutating func tearDown() async throws {
-    // Terminate Calculator
-    app?.terminate()
-    app = nil
-
-    // Wait for termination
-    try await Task.sleep(for: .seconds(1))
-  }
-
-  // Helper method that wraps the MainActor-isolated method in a synchronous call
-  private func launchCalculatorSync() async -> NSRunningApplication? {
-    // Capture the bundleId to avoid self reference in the closure
-    let bundleId = calculatorBundleId
+  // Static setup method that will be called once before all tests
+  @MainActor static func setUp() async throws {
+    // Skip if already set up
+    if environmentSetUp {
+      return
+    }
     
-    // Launch using the calculator helper on the main actor
-    let calcHelper = await CalculatorTestHelper.sharedHelper()
+    // Create accessibility service
+    sharedAccessibilityService = AccessibilityService()
+    
+    // Launch Calculator app only once for all tests
+    let bundleId = "com.apple.calculator"
+    let calcHelper = CalculatorTestHelper.sharedHelper()
     do {
       _ = try await calcHelper.ensureAppIsRunning(forceRelaunch: true)
-      return NSRunningApplication.runningApplications(withBundleIdentifier: bundleId).first
+      sharedApp = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId).first
+      
+      // Give time for app to fully load, but use a shorter timer
+      try await Task.sleep(for: .milliseconds(500))
+      
+      // Mark as set up
+      environmentSetUp = true
     } catch {
-      return nil
+      print("Error setting up calculator: \(error)")
+      throw error
     }
+  }
+  
+  // Shared setup method for each test
+  private mutating func setUp() async throws {
+    // Initialize static resources if not already done
+    let isSetUp = await MainActor.run { Self.environmentSetUp }
+    if !isSetUp {
+      try await Self.setUp()
+    }
+    
+    // Get references to the shared resources
+    accessibilityService = await MainActor.run { Self.sharedAccessibilityService }
+    app = await MainActor.run { Self.sharedApp }
+    
+    #expect(app != nil, "Failed to access shared Calculator app")
+    #expect(accessibilityService != nil, "Failed to access shared AccessibilityService")
+  }
+  
+  // Shared teardown method - now just resets state without terminating
+  private mutating func tearDown() async throws {
+    // Reset instance variables but don't terminate between tests
+    app = nil
+    
+    // Small delay to ensure UI state is settled
+    try await Task.sleep(for: .milliseconds(100))
+  }
+  
+  // Static teardown method to be called at the end of all tests
+  @MainActor static func tearDown() async throws {
+    // Skip if environment wasn't set up
+    if !environmentSetUp {
+      return
+    }
+    
+    // Terminate Calculator when all tests are complete
+    sharedApp?.terminate()
+    sharedApp = nil
+    sharedAccessibilityService = nil
+    environmentSetUp = false
+    
+    // Wait for termination
+    try await Task.sleep(for: .milliseconds(100))
   }
 
   // Helper to ensure the app is in foreground
@@ -66,7 +106,7 @@ struct ApplicationLookupTests {
 
     let activated = app.activate(options: [])
     #expect(activated, "Failed to bring Calculator to foreground")
-    try await Task.sleep(for: .seconds(1))
+    try await Task.sleep(for: .milliseconds(100))
   }
 
   // Helper to test application lookup using ElementPath
@@ -95,7 +135,6 @@ struct ApplicationLookupTests {
       #expect(status == .success, "Failed to get role from application element")
       #expect(roleRef as? String == "AXApplication", "Element is not an application")
 
-      
 
 
 
@@ -227,5 +266,8 @@ struct ApplicationLookupTests {
     #expect(permissionsGranted, "Accessibility permissions are not granted")
     
     try await tearDown()
+    
+    // As the last test, clean up shared resources
+    try await Self.tearDown()
   }
 }
