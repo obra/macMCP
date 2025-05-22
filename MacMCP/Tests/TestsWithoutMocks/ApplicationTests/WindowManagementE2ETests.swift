@@ -32,7 +32,7 @@ struct WindowManagementE2ETests {
     // Create the test components
     toolChain = ToolChain()
     dictionaryApp = BaseApplicationModel(
-      bundleId: "com.apple.Dictionary",
+      bundleId: "com.apple.TextEdit",
       appName: "Dictionary",
       toolChain: toolChain
     )
@@ -40,7 +40,7 @@ struct WindowManagementE2ETests {
     // Force terminate any existing Dictionary instances
     logger.debug("Terminating any existing Dictionary instances")
     for app in NSRunningApplication.runningApplications(
-      withBundleIdentifier: "com.apple.Dictionary")
+      withBundleIdentifier: "com.apple.TextEdit")
     {
       _ = app.forceTerminate()
     }
@@ -61,7 +61,7 @@ struct WindowManagementE2ETests {
     
     // Terminate Dictionary
     for app in NSRunningApplication.runningApplications(
-      withBundleIdentifier: "com.apple.Dictionary")
+      withBundleIdentifier: "com.apple.TextEdit")
     {
       _ = app.forceTerminate()
     }
@@ -80,7 +80,7 @@ struct WindowManagementE2ETests {
     // Create parameters
     let params: [String: Value] = [
       "action": .string("getApplicationWindows"),
-      "bundleId": .string("com.apple.Dictionary"),
+      "bundleId": .string("com.apple.TextEdit"),
     ]
 
     // Execute the test
@@ -304,7 +304,7 @@ struct WindowManagementE2ETests {
     // Create parameters
     let params: [String: Value] = [
       "action": .string("getApplicationWindows"),
-      "bundleId": .string("com.apple.Dictionary"),
+      "bundleId": .string("com.apple.TextEdit"),
     ]
 
     // Execute the query
@@ -329,7 +329,7 @@ struct WindowManagementE2ETests {
     // First get all dictionary windows
     let params: [String: Value] = [
       "action": .string("getApplicationWindows"),
-      "bundleId": .string("com.apple.Dictionary"),
+      "bundleId": .string("com.apple.TextEdit"),
     ]
 
     // Execute the query
@@ -363,5 +363,84 @@ struct WindowManagementE2ETests {
 
     // If we can't find the window, assume it's not visible
     return false
+  }
+  
+  /// Test specifically for the ElementPath segment counting bug that was fixed
+  @Test("ElementPath resolution regression test")
+  mutating func testElementPathResolutionBug() async throws {
+    try await setUp()
+    
+    // This test specifically validates the ElementPath segment counting fix
+    // The bug: 2-segment paths (app + window) were incorrectly returning the app element
+    // instead of doing BFS to find the window element
+    
+    // Get a window ID (this creates a 2-segment ElementPath)
+    guard let windowId = try await getDictionaryWindowId() else {
+      #expect(Bool(false), "Failed to get window ID for ElementPath test")
+      try await tearDown()
+      return
+    }
+    
+    logger.debug("Testing ElementPath resolution with 2-segment path: \(windowId)")
+    
+    // The windowId is a 2-segment ElementPath like:
+    // "macos://ui/AXApplication[@AXTitle="TextEdit"][@bundleId="com.apple.TextEdit"]/AXWindow[@AXTitle="Untitled X"]"
+    
+    // Verify this is indeed a 2-segment path
+    #expect(windowId.contains("/AXWindow"), "Window ID should contain AXWindow segment")
+    #expect(windowId.contains("AXApplication"), "Window ID should contain AXApplication segment")
+    
+    // Parse the path to verify segment count
+    let elementPath = try ElementPath.parse(windowId)
+    #expect(elementPath.segments.count == 2, "Should be exactly 2 segments (app + window)")
+    #expect(elementPath.segments[0].role == "AXApplication", "First segment should be AXApplication")
+    #expect(elementPath.segments[1].role == "AXWindow", "Second segment should be AXWindow")
+    
+    // The critical test: Try to move the window using this ElementPath
+    // With the old bug, this would fail because ElementPath.resolve() would return
+    // the application element instead of the window element
+    let testParams: [String: Value] = [
+      "action": .string("moveWindow"),
+      "windowId": .string(windowId),
+      "x": .double(300),
+      "y": .double(300)
+    ]
+    
+    // This should succeed if ElementPath.resolve() correctly finds the window
+    logger.debug("Attempting window move with 2-segment ElementPath")
+    let result = try await toolChain.windowManagementTool.handler(testParams)
+    
+    // Verify the operation succeeded
+    #expect(result.count == 1, "Should return one content item")
+    
+    if case .text(let jsonString) = result[0] {
+      // The operation should succeed and indicate success
+      #expect(jsonString.contains("\"success\": true"), "Should indicate success in response")
+      logger.debug("ElementPath resolution test passed - window move succeeded")
+      
+      // Verify the window actually moved by checking its position
+      try await Task.sleep(for: .milliseconds(500)) // Allow time for UI update
+      
+      let windowInfo = try await getWindowPosition(windowId: windowId)
+      #expect(windowInfo != nil, "Should be able to get window position after move")
+      
+      if let info = windowInfo {
+        let frame = info["frame"] as! [String: Any]
+        let x = frame["x"] as! CGFloat
+        let y = frame["y"] as! CGFloat
+        
+        // Verify the window moved to approximately the right position
+        let xDiff = abs(x - 300)
+        let yDiff = abs(y - 300)
+        #expect(xDiff <= 20, "X position should be approximately 300, got \(x)")
+        #expect(yDiff <= 20, "Y position should be approximately 300, got \(y)")
+        
+        logger.debug("Window successfully moved to (\(x), \(y)) - ElementPath resolution working correctly")
+      }
+    } else {
+      #expect(Bool(false), "Result should be text content")
+    }
+    
+    try await tearDown()
   }
 }
