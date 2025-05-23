@@ -11,8 +11,25 @@ public struct ScreenshotTool {
   public let name = ToolNames.screenshot
 
   /// Description of the tool
-  public let description =
-    "Capture screenshot of macOS screen, window, or UI element for visual inspection and analysis"
+  public let description = """
+Capture screenshots of macOS screen, windows, or UI elements for visual inspection and analysis.
+
+IMPORTANT: For element screenshots, use InterfaceExplorerTool first to discover element paths.
+
+Region types and requirements:
+- full: Capture entire screen (no additional parameters)
+- area: Capture specific coordinates (requires x, y, width, height)
+- window: Capture application window (requires bundleId)
+- element: Capture UI element (requires elementPath from InterfaceExplorerTool)
+
+Common use cases:
+- Debugging UI layout issues
+- Documenting current application state
+- Capturing specific UI elements for analysis
+- Visual verification during testing
+
+Coordinate system: Screen coordinates start at (0,0) in top-left corner.
+"""
 
   /// Input schema for the tool
   public var inputSchema: Value
@@ -54,11 +71,11 @@ public struct ScreenshotTool {
     // - Full screen screenshots are useful for overall context, but may be large
 
     annotations = .init(
-      title: "Screenshot",
+      title: "macOS Screenshot Capture",
       readOnlyHint: true,
       destructiveHint: false,
       idempotentHint: true,
-      openWorldHint: true,
+      openWorldHint: true
     )
 
     // Set schema to empty initially, then assign the real value
@@ -74,9 +91,7 @@ public struct ScreenshotTool {
       "properties": .object([
         "region": .object([
           "type": .string("string"),
-          "description": .string(
-            "The region to capture: full (entire screen), area (specific coordinates), window (app window by bundleId), element (UI element by elementPath from InterfaceExplorerTool)"
-          ),
+          "description": .string("Screenshot region type: 'full' for entire screen, 'area' for coordinates, 'window' for app window, 'element' for UI element"),
           "enum": .array([
             .string("full"),
             .string("area"),
@@ -86,37 +101,51 @@ public struct ScreenshotTool {
         ]),
         "x": .object([
           "type": .string("number"),
-          "description": .string(
-            "X coordinate for area screenshots (required when region is 'area')"),
+          "description": .string("X coordinate in screen pixels (required for 'area' region, top-left origin)"),
         ]),
         "y": .object([
           "type": .string("number"),
-          "description": .string(
-            "Y coordinate for area screenshots (required when region is 'area')"),
+          "description": .string("Y coordinate in screen pixels (required for 'area' region, top-left origin)"),
         ]),
         "width": .object([
           "type": .string("number"),
-          "description": .string("Width for area screenshots (required when region is 'area')"),
+          "description": .string("Width in pixels (required for 'area' region)"),
         ]),
         "height": .object([
           "type": .string("number"),
-          "description": .string("Height for area screenshots (required when region is 'area')"),
+          "description": .string("Height in pixels (required for 'area' region)"),
         ]),
         "bundleId": .object([
           "type": .string("string"),
-          "description": .string(
-            "The bundle identifier of the application window to capture (required when region is 'window') - e.g., 'com.apple.calculator' for Calculator"
-          ),
+          "description": .string("Application bundle identifier (required for 'window' region) - e.g., 'com.apple.calculator'"),
         ]),
         "elementPath": .object([
           "type": .string("string"),
-          "description": .string(
-            "The path of the UI element to capture (required when region is 'element') - e.g., macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow/AXButton[@AXTitle=\"1\"]"
-          ),
+          "description": .string("UI element path from InterfaceExplorerTool (required for 'element' region) - e.g., 'macos://ui/AXApplication/AXWindow/AXButton'"),
         ]),
       ]),
       "required": .array([.string("region")]),
       "additionalProperties": .bool(false),
+      "examples": .array([
+        .object([
+          "region": .string("full"),
+        ]),
+        .object([
+          "region": .string("area"),
+          "x": .int(100),
+          "y": .int(200),
+          "width": .int(400),
+          "height": .int(300),
+        ]),
+        .object([
+          "region": .string("window"),
+          "bundleId": .string("com.apple.calculator"),
+        ]),
+        .object([
+          "region": .string("element"),
+          "elementPath": .string("macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow/AXButton[@AXTitle=\"1\"]"),
+        ]),
+      ]),
     ])
   }
 

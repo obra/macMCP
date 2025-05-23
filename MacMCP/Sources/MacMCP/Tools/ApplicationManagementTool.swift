@@ -11,7 +11,29 @@ public struct ApplicationManagementTool: @unchecked Sendable {
   public let name = ToolNames.applicationManagement
 
   /// Description of what the tool does
-  public let description = "Manage macOS applications - launch, terminate, and monitor"
+  public let description = """
+Manage macOS applications with comprehensive launch, termination, and monitoring capabilities.
+
+IMPORTANT: Use bundleId for precise application identification when possible.
+
+Available actions:
+- launch: Start an application by name or bundle ID
+- terminate: Gracefully quit an application 
+- forceTerminate: Force quit an unresponsive application
+- isRunning: Check if an application is currently running
+- getRunningApplications: List all currently running applications
+- activateApplication: Bring an application to the foreground
+- hideApplication: Hide an application
+- unhideApplication: Unhide a previously hidden application
+- hideOtherApplications: Hide all applications except the current one
+- getFrontmostApplication: Get the currently active application
+
+App identification methods:
+- applicationName: Human-readable name (e.g., "Calculator", "Safari")
+- bundleId: Unique identifier (e.g., "com.apple.calculator", "com.apple.Safari")
+
+Security note: Some actions may require user permission or accessibility access.
+"""
 
   /// Input schema for the tool
   public private(set) var inputSchema: Value
@@ -49,9 +71,11 @@ public struct ApplicationManagementTool: @unchecked Sendable {
 
     // Set tool annotations
     annotations = .init(
-      title: "Application Management",
+      title: "macOS Application Management",
       readOnlyHint: false,
-      openWorldHint: true,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: true
     )
 
     // Initialize inputSchema with an empty object first
@@ -68,7 +92,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
       "properties": .object([
         "action": .object([
           "type": .string("string"),
-          "description": .string("The application management action to perform"),
+          "description": .string("Application management action: launch/terminate apps, check status, control visibility"),
           "enum": .array([
             .string("launch"),
             .string("terminate"),
@@ -84,44 +108,67 @@ public struct ApplicationManagementTool: @unchecked Sendable {
         ]),
         "applicationName": .object([
           "type": .string("string"),
-          "description": .string("The name of the application (e.g., 'Safari')"),
+          "description": .string("Human-readable application name (e.g., 'Calculator', 'Safari', 'TextEdit')"),
         ]),
         "bundleId": .object([
           "type": .string("string"),
-          "description": .string(
-            "The bundle identifier of the application (e.g., 'com.apple.Safari')"),
+          "description": .string("Application bundle identifier for precise targeting (e.g., 'com.apple.calculator', 'com.apple.Safari')"),
         ]),
         "arguments": .object([
           "type": .string("array"),
-          "description": .string(
-            "Optional array of command-line arguments to pass to the application"),
+          "description": .string("Command-line arguments to pass when launching application (optional)"),
           "items": .object([
             "type": .string("string")
           ]),
         ]),
         "hideOthers": .object([
           "type": .string("boolean"),
-          "description": .string("Whether to hide other applications when opening this one. Only do this if you need to"),
+          "description": .string("Hide other applications when launching (use sparingly, default: false)"),
           "default": .bool(false),
         ]),
         "waitForLaunch": .object([
           "type": .string("boolean"),
-          "description": .string("Whether to wait for the application to fully launch"),
+          "description": .string("Wait for application to fully launch before returning (default: true)"),
           "default": .bool(true),
         ]),
         "launchTimeout": .object([
           "type": .string("number"),
-          "description": .string("Timeout in seconds for waiting for application launch"),
+          "description": .string("Maximum seconds to wait for application launch (default: 30)"),
           "default": .double(30.0),
         ]),
         "terminateTimeout": .object([
           "type": .string("number"),
-          "description": .string("Timeout in seconds for waiting for application termination"),
+          "description": .string("Maximum seconds to wait for graceful termination (default: 10)"),
           "default": .double(10.0),
         ]),
       ]),
       "required": .array([.string("action")]),
       "additionalProperties": .bool(false),
+      "examples": .array([
+        .object([
+          "action": .string("launch"),
+          "applicationName": .string("Calculator"),
+        ]),
+        .object([
+          "action": .string("launch"),
+          "bundleId": .string("com.apple.calculator"),
+        ]),
+        .object([
+          "action": .string("terminate"),
+          "bundleId": .string("com.apple.calculator"),
+        ]),
+        .object([
+          "action": .string("isRunning"),
+          "applicationName": .string("Safari"),
+        ]),
+        .object([
+          "action": .string("getRunningApplications"),
+        ]),
+        .object([
+          "action": .string("activateApplication"),
+          "bundleId": .string("com.apple.TextEdit"),
+        ]),
+      ]),
     ])
   }
 
