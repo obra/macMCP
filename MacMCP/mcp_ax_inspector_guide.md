@@ -180,7 +180,7 @@ You can use it with the UI interaction tool:
 // In MCP automation code
 macos_ui_interact({
   action: "click",
-  elementPath: "macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow/AXGroup/AXButton[@AXDescription=\"7\"]"
+  id: "macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow/AXGroup/AXButton[@AXDescription=\"7\"]"
 });
 ```
 

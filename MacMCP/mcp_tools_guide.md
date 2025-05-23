@@ -68,7 +68,7 @@ The Screenshot Tool allows you to capture images of the screen, windows, or spec
 - `region`: The region to capture (`full`, `area`, `window`, `element`)
 - `x`, `y`, `width`, `height`: Coordinates and dimensions for area screenshots (required for `area` region)
 - `bundleId`: The bundle identifier of the application window to capture (required for `window` region)
-- `elementPath`: The path of the UI element to capture (required for `element` region)
+- `id`: The path of the UI element to capture (required for `element` region)
 
 ### Example Usage
 ```json
@@ -98,7 +98,7 @@ The UI Interaction Tool allows direct interaction with UI elements. It's the pri
 
 ### Parameters
 - `action`: The interaction action to perform (`click`, `double_click`, `right_click`, `type`, `press_key`, `drag`, `scroll`)
-- `elementPath`: The path of the UI element to interact with (required for most actions)
+- `id`: The path of the UI element to interact with (required for most actions)
 - `appBundleId`: Optional bundle ID of the application containing the element
 - `x` and `y`: Coordinates for position-based clicking
 - `text`: Text to type (required for `type` action)
@@ -111,7 +111,7 @@ The UI Interaction Tool allows direct interaction with UI elements. It's the pri
 ```json
 {
   "action": "click",
-  "elementPath": "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXButton[@AXTitle=\"Back\"]",
+  "id": "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXButton[@AXTitle=\"Back\"]",
   "appBundleId": "com.apple.safari"
 }
 ```
@@ -119,7 +119,7 @@ The UI Interaction Tool allows direct interaction with UI elements. It's the pri
 ```json
 {
   "action": "type",
-  "elementPath": "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXTextField[@AXSubrole=\"AXURLField\"]",
+  "id": "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXTextField[@AXSubrole=\"AXURLField\"]",
   "text": "Hello, world!"
 }
 ```
@@ -224,7 +224,7 @@ The Menu Navigation Tool allows exploration and interaction with application men
 - `action`: The action to perform (`getApplicationMenus`, `getMenuItems`, `activateMenuItem`)
 - `bundleId`: The bundle identifier of the application (required for all actions)
 - `menuTitle`: Title of the menu to get items from or navigate (required for `getMenuItems` and `activateMenuItem`)
-- `menuPath`: Path to the menu item to activate, using '>' as a separator (e.g., 'File > Open') (required for `activateMenuItem`)
+- `id`: Path to the menu item to activate, using '>' as a separator (e.g., 'File > Open') (required for `activateMenuItem`)
 - `includeSubmenus`: Whether to include submenus in the results when getting menu items (default: false)
 
 ### Example Usage
@@ -239,7 +239,7 @@ The Menu Navigation Tool allows exploration and interaction with application men
 {
   "action": "activateMenuItem",
   "bundleId": "com.apple.safari",
-  "menuPath": "File > New Window"
+  "id": "File > New Window"
 }
 ```
 
@@ -267,7 +267,7 @@ The Interactive Elements Discovery Tool helps find interactive UI elements like 
 - `scope`: The scope of elements to search (`application`, `window`, `element`)
 - `bundleId`: The bundle identifier of the application (required for `application` and `window` scopes)
 - `windowId`: The ID of the window to search (required for `window` scope)
-- `elementPath`: The path of the element to search within (required for `element` scope)
+- `id`: The path of the element to search within (required for `element` scope)
 - `types`: Types of interactive elements to find (e.g., `button`, `checkbox`, `textfield`, etc., or `any` for all types)
 - `maxDepth`: Maximum depth to search (default: 10)
 - `includeHidden`: Whether to include hidden elements (default: false)
@@ -306,7 +306,7 @@ The Element Capabilities Tool provides detailed information about what actions c
 - To get detailed properties of an element
 
 ### Parameters
-- `elementPath`: The path of the element to get capabilities for
+- `id`: The path of the element to get capabilities for
 - `bundleId`: The bundle identifier of the application containing the element
 - `includeChildren`: Whether to include children in the result (default: false)
 - `childrenDepth`: Depth of children to include if includeChildren is true (default: 1)
@@ -314,7 +314,7 @@ The Element Capabilities Tool provides detailed information about what actions c
 ### Example Usage
 ```json
 {
-  "elementPath": "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXButton[@AXTitle=\"Back\"]",
+  "id": "macos://ui/AXApplication[@bundleIdentifier=\"com.apple.safari\"]/AXWindow/AXButton[@AXTitle=\"Back\"]",
   "bundleId": "com.apple.safari",
   "includeChildren": true
 }

@@ -262,7 +262,7 @@ class MCPInspector: @unchecked Sendable {
     let arguments: [String: Value] = [
       "scope": .string("path"),
       "bundleId": .string(bundleId),
-      "elementPath": .string(path),  // Use the path parameter for path-based lookup
+      "id": .string(path),  // Use the path parameter for path-based lookup
       "maxDepth": .int(maxDepth),
       "includeHidden": .bool(true),  // Include all elements for completeness
     ]

@@ -64,7 +64,7 @@ final class JsonFetcher: @unchecked Sendable {
       arguments = [
         "scope": .string("path"),
         "bundleId": .string(bundleId),
-        "elementPath": .string(path),
+        "id": .string(path),
         "maxDepth": .int(maxDepth),
         "includeHidden": .bool(true),
         // Add original path to ensure we keep it intact in the output

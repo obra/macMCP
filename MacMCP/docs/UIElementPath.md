@@ -723,7 +723,7 @@ If you're updating code that used element IDs, here's how to convert to path-bas
    ```swift
    let params: [String: Value] = [
        "action": .string("click"),
-       "elementPath": .string(path),
+       "id": .string(path),
        "appBundleId": .string(bundleId)
    ]
    ```
