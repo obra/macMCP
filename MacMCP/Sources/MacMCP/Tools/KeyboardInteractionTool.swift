@@ -12,8 +12,25 @@ public struct KeyboardInteractionTool: @unchecked Sendable {
   public let name = ToolNames.keyboardInteraction
 
   /// Description of the tool
-  public let description =
-    "Execute keyboard shortcuts, type text, and press keys with human-readable commands"
+  public let description = """
+Execute keyboard shortcuts and type text on macOS.
+
+IMPORTANT: The 'sequence' parameter requires an array of action objects.
+Each object must contain exactly ONE of: press, tap, release, or delay.
+
+Common patterns:
+- Press Enter: [{"press": "return"}]
+- Keyboard shortcut: [{"tap": "c", "modifiers": ["command"]}]
+- Type then Enter: Use type_text action, then key_sequence for Enter
+
+Valid action types in sequence:
+- tap: Press and release a key (most common)
+- press: Press and hold a key down
+- release: Release a previously pressed key
+- delay: Pause execution (in seconds)
+
+Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, option, control, up, down, left, right, f1-f12
+"""
 
   /// Input schema for the tool
   public private(set) var inputSchema: Value
@@ -40,11 +57,11 @@ public struct KeyboardInteractionTool: @unchecked Sendable {
 
     // Set tool annotations
     annotations = .init(
-      title: "Keyboard Interaction",
+      title: "macOS Keyboard Control",
       readOnlyHint: false,
       destructiveHint: true,
       idempotentHint: false,
-      openWorldHint: true,
+      openWorldHint: true
     )
 
     // Initialize inputSchema with an empty object first
@@ -61,7 +78,7 @@ public struct KeyboardInteractionTool: @unchecked Sendable {
       "properties": .object([
         "action": .object([
           "type": .string("string"),
-          "description": .string("The keyboard action to perform"),
+          "description": .string("Use 'type_text' for typing text, 'key_sequence' for shortcuts and special keys"),
           "enum": .array([
             .string("type_text"),
             .string("key_sequence"),
@@ -73,12 +90,56 @@ public struct KeyboardInteractionTool: @unchecked Sendable {
         ]),
         "sequence": .object([
           "type": .string("array"),
-          "description": .string(
-            "Array of key events to execute (required for key_sequence action)"),
+          "description": .string("Array of action objects. Each must have exactly one action type: tap, press, release, or delay"),
+          "items": .object([
+            "type": .string("object"),
+            "description": .string("Action object with one of: {\"tap\": \"key\"}, {\"press\": \"key\"}, {\"release\": \"key\"}, or {\"delay\": seconds}"),
+            "examples": .array([
+              .object([
+                "tap": .string("return"),
+              ]),
+              .object([
+                "tap": .string("c"),
+                "modifiers": .array([.string("command")]),
+              ]),
+              .object([
+                "delay": .double(0.5),
+              ]),
+              .object([
+                "press": .string("shift"),
+              ]),
+              .object([
+                "release": .string("shift"),
+              ]),
+            ]),
+          ]),
         ]),
       ]),
       "required": .array([.string("action")]),
       "additionalProperties": .bool(false),
+      "examples": .array([
+        .object([
+          "action": .string("key_sequence"),
+          "sequence": .array([
+            .object([
+              "press": .string("return"),
+            ]),
+          ]),
+        ]),
+        .object([
+          "action": .string("key_sequence"),
+          "sequence": .array([
+            .object([
+              "tap": .string("c"),
+              "modifiers": .array([.string("command")]),
+            ]),
+          ]),
+        ]),
+        .object([
+          "action": .string("type_text"),
+          "text": .string("Hello world"),
+        ]),
+      ]),
     ])
   }
 

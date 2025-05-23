@@ -233,7 +233,7 @@ public actor MCPServer {
           platform: platform,
           os: os,
         ),
-        supportedVersions: ["2024-11-05"],
+        supportedVersions: ["2025-03-26", "2024-11-05"],
       )
     }
 
