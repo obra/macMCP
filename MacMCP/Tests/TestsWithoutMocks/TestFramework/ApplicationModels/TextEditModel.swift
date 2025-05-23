@@ -327,7 +327,7 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
     let menuParams: [String: Value] = [
       "action": .string("activateMenuItem"),
       "bundleId": .string(bundleId),
-      "menuPath": .string(uri),
+      "id": .string(uri),
     ]
 
     let result = try await toolChain.menuNavigationTool.handler(menuParams)

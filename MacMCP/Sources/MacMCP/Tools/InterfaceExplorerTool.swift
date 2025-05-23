@@ -18,7 +18,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
   public let description = """
 Explore and examine UI elements and their capabilities in macOS applications - essential for discovering elements to interact with.
 
-IMPORTANT: This tool is critical for finding element paths needed by UIInteractionTool and other tools. Always explore before interacting.
+IMPORTANT: This tool is critical for finding element IDs needed by UIInteractionTool and other tools. Always explore before interacting.
 
 Available scope types:
 - focused: Currently active application (RECOMMENDED - fastest and most relevant)
@@ -26,13 +26,13 @@ Available scope types:
 - system: All applications (very broad, use sparingly)
 - position: Element at screen coordinates (x, y required)
 - element: Specific element by ID (advanced usage)
-- path: Element by macos://ui/ path (for detailed exploration)
+- element: Element by macos://ui/ ID (for detailed exploration)
 
 Common workflows:
 1. Initial exploration: Use 'focused' scope with maxDepth 15-20
 2. Find interactive elements: Use filter by role (AXButton, AXTextField, etc.)
 3. Search by content: Use titleContains or descriptionContains filters
-4. Navigate hierarchy: Use 'path' scope to explore specific elements deeper
+4. Navigate hierarchy: Use 'element' scope to explore specific elements deeper
 5. Performance optimization: Reduce maxDepth for faster responses
 
 Filtering capabilities:
@@ -97,23 +97,23 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
       "properties": .object([
         "scope": .object([
           "type": .string("string"),
-          "description": .string("Exploration scope: 'focused' (recommended), 'application' (specific app), 'position' (coordinates), 'path' (specific element)"),
+          "description": .string("Exploration scope: 'focused' (recommended), 'application' (specific app), 'position' (coordinates), 'element' (specific element)"),
           "enum": .array([
             .string("system"),
             .string("application"),
             .string("focused"),
             .string("position"),
             .string("element"),
-            .string("path"),
+            .string("element"),
           ]),
         ]),
         "bundleId": .object([
           "type": .string("string"),
           "description": .string("Application bundle identifier (required for 'application' scope, e.g., 'com.apple.calculator')"),
         ]),
-        "elementPath": .object([
+        "id": .object([
           "type": .string("string"),
-          "description": .string("Element path in macos://ui/ format (required for 'path' scope) for detailed element exploration"),
+          "description": .string("Element ID in macos://ui/ format (required for 'path' scope) for detailed element exploration"),
         ]),
         "x": .object([
           "type": .array([.string("number"), .string("integer")]),
@@ -222,8 +222,8 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
           "y": .int(300),
         ]),
         .object([
-          "scope": .string("path"),
-          "elementPath": .string("macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow"),
+          "scope": .string("element"),
+          "id": .string("macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow"),
           "maxDepth": .int(10),
         ]),
       ]),
@@ -372,8 +372,8 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
 
     case "element":
       // Validate element ID
-      guard let elementPath = params["elementPath"]?.stringValue else {
-        throw MCPError.invalidParams("elementPath is required when scope is 'element'")
+      guard let elementPath = params["id"]?.stringValue else {
+        throw MCPError.invalidParams("id is required when scope is 'element'")
       }
 
       // Bundle ID is optional for element scope
@@ -395,26 +395,6 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
         elementTypes: elementTypes,
       )
 
-    case "path":
-      // Validate element path
-      guard let elementPath = params["elementPath"]?.stringValue else {
-        throw MCPError.invalidParams("elementPath is required when scope is 'path'")
-      }
-
-      return try await handlePathScope(
-        elementPath: elementPath,
-        maxDepth: maxDepth,
-        includeHidden: includeHidden,
-        limit: limit,
-        role: role,
-        title: title,
-        titleContains: titleContains,
-        value: value,
-        valueContains: valueContains,
-        description: description,
-        descriptionContains: descriptionContains,
-        elementTypes: elementTypes,
-      )
 
     default:
       throw MCPError.invalidParams("Invalid scope: \(scopeValue)")
@@ -781,8 +761,8 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
     }
   }
 
-  /// Handle path scope
-  private func handlePathScope(
+  /// Handle element-by-id scope
+  private func handleElementByIdScope(
     elementPath: String,
     maxDepth: Int,
     includeHidden: Bool,

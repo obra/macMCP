@@ -261,7 +261,7 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
        ```json
        {
          "action": "click",
-         "elementPath": "macos://ui/AXApplication[@bundleId=\"com.apple.TextEdit\"]/AXWindow/AXTextArea"
+         "id": "macos://ui/AXApplication[@bundleId=\"com.apple.TextEdit\"]/AXWindow/AXTextArea"
        }
        ```
 
@@ -282,7 +282,7 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
        {
          "action": "activateMenuItem",
          "bundleId": "com.apple.iWork.Pages",
-         "menuPath": "Insert > Choose..."
+         "id": "Insert > Choose..."
        }
        ```
 
@@ -368,7 +368,7 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
        ```json
        {
          "action": "click",
-         "elementPath": "macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"Documents\"]"
+         "id": "macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"Documents\"]"
        }
        ```
 
@@ -376,7 +376,7 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
        ```json
        {
          "action": "double_click",
-         "elementPath": "macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"Projects\"]"
+         "id": "macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"Projects\"]"
        }
        ```
 
@@ -399,7 +399,7 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
        ```json
        {
          "action": "click",
-         "elementPath": "macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"Document.pdf\"]"
+         "id": "macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"Document.pdf\"]"
        }
        ```
 
@@ -407,7 +407,7 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
        ```json
        {
          "action": "drag",
-         "elementPath": "macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"Document.pdf\"]",
+         "id": "macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"Document.pdf\"]",
          "targetElementPath": "macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"Projects\"]"
        }
        ```
@@ -417,7 +417,7 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
        {
          "action": "activateMenuItem",
          "bundleId": "com.apple.finder",
-         "menuPath": "Edit > Copy"
+         "id": "Edit > Copy"
        }
        ```
        Then navigate to destination and:
@@ -425,7 +425,7 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
        {
          "action": "activateMenuItem",
          "bundleId": "com.apple.finder",
-         "menuPath": "Edit > Paste"
+         "id": "Edit > Paste"
        }
        ```
 
@@ -448,7 +448,7 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
        {
          "action": "activateMenuItem",
          "bundleId": "com.apple.finder",
-         "menuPath": "File > New Folder"
+         "id": "File > New Folder"
        }
        ```
        Then type the folder name.
@@ -524,7 +524,7 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
        ```json
        {
          "action": "click",
-         "elementPath": "macos://ui/AXApplication[@bundleId=\"com.apple.safari\"]/AXWindow/AXToolbar/AXTextField[@AXSubrole=\"AXURLField\"]"
+         "id": "macos://ui/AXApplication[@bundleId=\"com.apple.safari\"]/AXWindow/AXToolbar/AXTextField[@AXSubrole=\"AXURLField\"]"
        }
        ```
        Then type the URL:
@@ -549,7 +549,7 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
        ```json
        {
          "action": "click",
-         "elementPath": "macos://ui/AXApplication[@bundleId=\"com.apple.safari\"]/AXWindow/AXToolbar/AXButton[@AXDescription=\"back\"]"
+         "id": "macos://ui/AXApplication[@bundleId=\"com.apple.safari\"]/AXWindow/AXToolbar/AXButton[@AXDescription=\"back\"]"
        }
        ```
 
@@ -585,7 +585,7 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
        ```json
        {
          "action": "click",
-         "elementPath": "macos://ui/AXApplication[@bundleId=\"com.apple.safari\"]/AXWindow/AXTabGroup/AXRadioButton[2]"
+         "id": "macos://ui/AXApplication[@bundleId=\"com.apple.safari\"]/AXWindow/AXTabGroup/AXRadioButton[2]"
        }
        ```
 
@@ -608,7 +608,7 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
        ```json
        {
          "action": "click",
-         "elementPath": "macos://ui/AXApplication[@bundleId=\"com.apple.safari\"]/AXWindow/AXWebArea/AXLink[@AXTitle=\"Example link\"]"
+         "id": "macos://ui/AXApplication[@bundleId=\"com.apple.safari\"]/AXWindow/AXWebArea/AXLink[@AXTitle=\"Example link\"]"
        }
        ```
 
@@ -616,7 +616,7 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
        ```json
        {
          "action": "click",
-         "elementPath": "macos://ui/AXApplication[@bundleId=\"com.apple.safari\"]/AXWindow/AXWebArea/AXTextField[@AXPlaceholderValue=\"Username\"]"
+         "id": "macos://ui/AXApplication[@bundleId=\"com.apple.safari\"]/AXWindow/AXWebArea/AXTextField[@AXPlaceholderValue=\"Username\"]"
        }
        ```
        Then type:
@@ -631,7 +631,7 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
        ```json
        {
          "action": "scroll",
-         "elementPath": "macos://ui/AXApplication[@bundleId=\"com.apple.safari\"]/AXWindow/AXWebArea",
+         "id": "macos://ui/AXApplication[@bundleId=\"com.apple.safari\"]/AXWindow/AXWebArea",
          "direction": "down",
          "amount": 0.5
        }
@@ -713,7 +713,7 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
        ```json
        {
          "scope": "element",
-         "elementPath": "macos://ui/AXApplication[@bundleId=\"com.example.app\"]/AXWindow/AXGroup[@AXIdentifier=\"tools_panel\"]",
+         "id": "macos://ui/AXApplication[@bundleId=\"com.example.app\"]/AXWindow/AXGroup[@AXIdentifier=\"tools_panel\"]",
          "maxDepth": 10
        }
        ```

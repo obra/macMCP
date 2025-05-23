@@ -19,12 +19,12 @@ IMPORTANT: Use InterfaceExplorerTool first to discover available menus and menu 
 Available actions:
 - getApplicationMenus: List all top-level menus for an application
 - getMenuItems: Get items within a specific menu (File, Edit, View, etc.)
-- activateMenuItem: Click/activate a specific menu item using element path
+- activateMenuItem: Click/activate a specific menu item using element ID
 
 Common workflows:
 1. Discover menus: getApplicationMenus with bundleId
 2. Explore menu content: getMenuItems with menuTitle
-3. Activate commands: activateMenuItem with menuPath from previous exploration
+3. Activate commands: activateMenuItem with id from previous exploration
 4. Handle submenus: Use includeSubmenus for complete menu tree exploration
 
 Menu structure hierarchy:
@@ -32,7 +32,7 @@ Menu structure hierarchy:
 - Menu → Menu items (New, Open, Save, etc.)
 - Menu items → Submenus or commands
 
-Element path format: Menu items use macos://ui/ paths from InterfaceExplorerTool or getMenuItems.
+Element ID format: Menu items use macos://ui/ IDs from InterfaceExplorerTool or getMenuItems.
 
 Use cases:
 - Access app commands not available in UI
@@ -111,9 +111,9 @@ Bundle ID required for all operations to target specific application.
           "type": .string("string"),
           "description": .string("Top-level menu name to explore (required for getMenuItems, e.g., 'File', 'Edit', 'View')"),
         ]),
-        "menuPath": .object([
+        "id": .object([
           "type": .string("string"),
-          "description": .string("Element path to menu item for activation (required for activateMenuItem, from getMenuItems results)"),
+          "description": .string("Element ID to menu item for activation (required for activateMenuItem, from getMenuItems results)"),
         ]),
         "includeSubmenus": .object([
           "type": .string("boolean"),
@@ -142,7 +142,7 @@ Bundle ID required for all operations to target specific application.
         .object([
           "action": .string("activateMenuItem"),
           "bundleId": .string("com.apple.TextEdit"),
-          "menuPath": .string("macos://ui/AXApplication[@bundleId=\"com.apple.TextEdit\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"File\"]/AXMenu/AXMenuItem[@AXTitle=\"Save\"]"),
+          "id": .string("macos://ui/AXApplication[@bundleId=\"com.apple.TextEdit\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"File\"]/AXMenu/AXMenuItem[@AXTitle=\"Save\"]"),
         ]),
       ]),
     ])
@@ -185,8 +185,8 @@ Bundle ID required for all operations to target specific application.
       )
 
     case "activateMenuItem":
-      guard let menuPath = params["menuPath"]?.stringValue else {
-        throw MCPError.invalidParams("menuPath is required for activateMenuItem")
+      guard let menuPath = params["id"]?.stringValue else {
+        throw MCPError.invalidParams("id is required for activateMenuItem")
       }
       return try await handleActivateMenuItem(bundleId: bundleId, menuPath: menuPath)
 
@@ -231,7 +231,7 @@ Bundle ID required for all operations to target specific application.
   /// Handle the activateMenuItem action
   /// - Parameters:
   ///   - bundleId: The application bundle identifier
-  ///   - menuPath: ElementPath URI to the menu item to activate
+  ///   - menuPath: Element ID URI to the menu item to activate
   /// - Returns: The tool result
   private func handleActivateMenuItem(
     bundleId: String,
@@ -239,7 +239,7 @@ Bundle ID required for all operations to target specific application.
   ) async throws -> [Tool.Content] {
     // Validate the path format
     guard menuPath.hasPrefix("macos://ui/") else {
-      throw MCPError.invalidParams("menuPath must be a valid ElementPath URI starting with 'macos://ui/'")
+      throw MCPError.invalidParams("id must be a valid Element ID URI starting with 'macos://ui/'")
     }
     
     // Activate the menu item

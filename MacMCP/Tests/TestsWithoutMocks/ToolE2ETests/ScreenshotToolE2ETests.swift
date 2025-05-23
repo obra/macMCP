@@ -228,7 +228,7 @@ struct ScreenshotToolE2ETests {
     
     let elementParams: [String: Value] = [
       "region": .string("element"),
-      "elementPath": .string(elementPath),
+      "id": .string(elementPath),
     ]
     
     // Try to capture the element, but don't fail the test if it doesn't work

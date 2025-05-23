@@ -176,7 +176,7 @@ struct MenuNavigationCalculatorTest {
     let menuParams: [String: Value] = [
       "action": .string("activateMenuItem"),
       "bundleId": .string("com.apple.calculator"),
-      "menuPath": .string("macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"View\"]/AXMenu/AXMenuItem[@AXTitle=\"" + mode + "\"]"),
+      "id": .string("macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"View\"]/AXMenu/AXMenuItem[@AXTitle=\"" + mode + "\"]"),
     ]
 
     // Use MenuNavigationTool's handler method

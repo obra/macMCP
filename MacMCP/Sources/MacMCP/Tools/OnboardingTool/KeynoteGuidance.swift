@@ -67,7 +67,7 @@ public struct KeynoteGuidance {
     ```json
     {
       "action": "click",
-      "elementPath": "macos://ui/AXApplication[@bundleId=\"com.apple.keynote\"]/AXWindow/AXImage[@AXDescription=\"Slide 2\"]"
+      "id": "macos://ui/AXApplication[@bundleId=\"com.apple.keynote\"]/AXWindow/AXImage[@AXDescription=\"Slide 2\"]"
     }
     ```
 
@@ -80,7 +80,7 @@ public struct KeynoteGuidance {
     ```json
     {
       "action": "drag",
-      "elementPath": "macos://ui/AXApplication[@bundleId=\"com.apple.keynote\"]/AXWindow/AXImage[@AXDescription=\"Slide 2\"]",
+      "id": "macos://ui/AXApplication[@bundleId=\"com.apple.keynote\"]/AXWindow/AXImage[@AXDescription=\"Slide 2\"]",
       "targetElementPath": "macos://ui/AXApplication[@bundleId=\"com.apple.keynote\"]/AXWindow/AXImage[@AXDescription=\"Slide 5\"]"
     }
     ```
@@ -186,7 +186,7 @@ public struct KeynoteGuidance {
        ```json
        {
          "action": "click",
-         "elementPath": "macos://ui/AXApplication[@bundleId=\"com.apple.keynote\"]/AXWindow/AXTextField[@AXIdentifier=\"text_box_1\"]"
+         "id": "macos://ui/AXApplication[@bundleId=\"com.apple.keynote\"]/AXWindow/AXTextField[@AXIdentifier=\"text_box_1\"]"
        }
        ```
 
@@ -194,7 +194,7 @@ public struct KeynoteGuidance {
        ```json
        {
          "action": "click",
-         "elementPath": "macos://ui/AXApplication[@bundleId=\"com.apple.keynote\"]/AXWindow/AXTextField[@AXIdentifier=\"text_box_1\"]"
+         "id": "macos://ui/AXApplication[@bundleId=\"com.apple.keynote\"]/AXWindow/AXTextField[@AXIdentifier=\"text_box_1\"]"
        }
        ```
 
@@ -345,7 +345,7 @@ public struct KeynoteGuidance {
     ```json
     {
       "action": "click",
-      "elementPath": "macos://ui/AXApplication[@bundleId=\"com.apple.keynote\"]/AXWindow/AXImage[@AXIdentifier=\"image_1\"]"
+      "id": "macos://ui/AXApplication[@bundleId=\"com.apple.keynote\"]/AXWindow/AXImage[@AXIdentifier=\"image_1\"]"
     }
     ```
 
@@ -354,7 +354,7 @@ public struct KeynoteGuidance {
     ```json
     {
       "action": "drag",
-      "elementPath": "macos://ui/AXApplication[@bundleId=\"com.apple.keynote\"]/AXWindow/AXImage[@AXIdentifier=\"image_1\"]",
+      "id": "macos://ui/AXApplication[@bundleId=\"com.apple.keynote\"]/AXWindow/AXImage[@AXIdentifier=\"image_1\"]",
       "targetElementPath": "macos://ui/AXApplication[@bundleId=\"com.apple.keynote\"]/AXWindow/AXCanvas"
     }
     ```
@@ -368,7 +368,7 @@ public struct KeynoteGuidance {
     ```json
     {
       "action": "drag",
-      "elementPath": "macos://ui/AXApplication[@bundleId=\"com.apple.keynote\"]/AXWindow/AXButton[@AXRole=\"resize_handle\"]",
+      "id": "macos://ui/AXApplication[@bundleId=\"com.apple.keynote\"]/AXWindow/AXButton[@AXRole=\"resize_handle\"]",
       "targetElementPath": "macos://ui/AXApplication[@bundleId=\"com.apple.keynote\"]/AXWindow/AXCanvas"
     }
     ```

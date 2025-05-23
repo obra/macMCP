@@ -318,7 +318,7 @@ public final class ToolChain: @unchecked Sendable {
     // Create parameters for the tool
     var params: [String: Value] = [
       "action": .string("click"),
-      "elementPath": .string(elementPath),
+      "id": .string(elementPath),
     ]
 
     if let bundleId {
@@ -374,7 +374,7 @@ public final class ToolChain: @unchecked Sendable {
     // Create parameters for the tool
     var params: [String: Value] = [
       "action": .string("type"),
-      "elementPath": .string(elementPath),
+      "id": .string(elementPath),
       "text": .string(text),
     ]
 
@@ -533,7 +533,7 @@ public final class ToolChain: @unchecked Sendable {
     }
 
     if let elementPath {
-      params["elementPath"] = .string(elementPath)
+      params["id"] = .string(elementPath)
     }
 
     if let position {

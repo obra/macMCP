@@ -14,7 +14,7 @@ public struct UIInteractionTool {
   public let description = """
 Interact with UI elements on macOS through clicking, dragging, scrolling, and coordinate-based actions.
 
-IMPORTANT: Use InterfaceExplorerTool first to discover element paths. Element paths use macos://ui/ format.
+IMPORTANT: Use InterfaceExplorerTool first to discover element IDs. Element IDs use macos://ui/ format.
 
 Available actions:
 - click: Single click on element or coordinates
@@ -24,17 +24,17 @@ Available actions:
 - scroll: Scroll within scrollable elements or views
 
 Interaction methods:
-1. Element-based: Use elementPath from InterfaceExplorerTool (preferred for reliability)
+1. Element-based: Use id from InterfaceExplorerTool (preferred for reliability)
 2. Coordinate-based: Use x, y coordinates for direct positioning (when elements unavailable)
 
 Common workflows:
-1. Explore UI: InterfaceExplorerTool → find elementPath
-2. Click element: UIInteractionTool with elementPath
-3. Drag operations: Source elementPath + target elementPath  
-4. Scroll content: Container elementPath + direction + amount
+1. Explore UI: InterfaceExplorerTool → find id
+2. Click element: UIInteractionTool with id
+3. Drag operations: Source id + target targetId  
+4. Scroll content: Container id + direction + amount
 5. Position clicks: Use x, y coordinates when element detection fails
 
-Element path format: macos://ui/AXApplication[@bundleId="..."]/AXWindow/AXButton[@AXTitle="..."]
+Element ID format: macos://ui/AXApplication[@bundleId="..."]/AXWindow/AXButton[@AXTitle="..."]
 Coordinate system: Screen pixels, (0,0) = top-left corner.
 """
 
@@ -99,9 +99,9 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
             .string("scroll"),
           ]),
         ]),
-        "elementPath": .object([
+        "id": .object([
           "type": .string("string"),
-          "description": .string("Element path from InterfaceExplorerTool (macos://ui/...) - preferred method for reliability"),
+          "description": .string("Element ID from InterfaceExplorerTool (macos://ui/...) - preferred method for reliability"),
         ]),
         "appBundleId": .object([
           "type": .string("string"),
@@ -115,9 +115,9 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
           "type": .string("number"),
           "description": .string("Y coordinate in screen pixels for position-based actions (0 = top edge)"),
         ]),
-        "targetElementPath": .object([
+        "targetId": .object([
           "type": .string("string"),
-          "description": .string("Destination element path for drag operations (macos://ui/...) - required for 'drag' action"),
+          "description": .string("Destination element ID for drag operations (macos://ui/...) - required for 'drag' action"),
         ]),
         "direction": .object([
           "type": .string("string"),
@@ -141,7 +141,7 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
       "examples": .array([
         .object([
           "action": .string("click"),
-          "elementPath": .string("macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow/AXButton[@AXTitle=\"1\"]"),
+          "id": .string("macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow/AXButton[@AXTitle=\"1\"]"),
         ]),
         .object([
           "action": .string("click"),
@@ -150,20 +150,20 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
         ]),
         .object([
           "action": .string("double_click"),
-          "elementPath": .string("macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"Documents\"]"),
+          "id": .string("macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"Documents\"]"),
         ]),
         .object([
           "action": .string("right_click"),
-          "elementPath": .string("macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"file.txt\"]"),
+          "id": .string("macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"file.txt\"]"),
         ]),
         .object([
           "action": .string("drag"),
-          "elementPath": .string("macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"file.txt\"]"),
-          "targetElementPath": .string("macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"Folder\"]"),
+          "id": .string("macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"file.txt\"]"),
+          "targetId": .string("macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"Folder\"]"),
         ]),
         .object([
           "action": .string("scroll"),
-          "elementPath": .string("macos://ui/AXApplication[@bundleId=\"com.apple.safari\"]/AXWindow/AXWebArea"),
+          "id": .string("macos://ui/AXApplication[@bundleId=\"com.apple.safari\"]/AXWindow/AXWebArea"),
           "direction": .string("down"),
           "amount": .double(0.5),
         ]),
@@ -192,7 +192,7 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
     // Extract and log the key parameters for debugging
     if let params {
       let action = params["action"]?.stringValue ?? "unknown"
-      let elementPath = params["elementPath"]?.stringValue ?? "none"
+      let elementPath = params["id"]?.stringValue ?? "none"
       let appBundleId = params["appBundleId"]?.stringValue ?? "none"
 
       if action == "click" {
@@ -267,7 +267,7 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
   /// Handle click action
   private func handleClick(_ params: [String: Value]) async throws -> [Tool.Content] {
     // Element path click
-    if let elementPath = params["elementPath"]?.stringValue {
+    if let elementPath = params["id"]?.stringValue {
       // Check if app bundle ID is provided
       let appBundleId = params["appBundleId"]?.stringValue
 
@@ -365,10 +365,10 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
 
     logger.error(
       "Missing required parameters",
-      metadata: ["details": "Click action requires either elementPath or x,y coordinates"],
+      metadata: ["details": "Click action requires either id or x,y coordinates"],
     )
     throw createInteractionError(
-      message: "Click action requires either elementPath or x,y coordinates",
+      message: "Click action requires either id or x,y coordinates",
       context: [
         "toolName": name,
         "action": "click",
@@ -379,9 +379,9 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
 
   /// Handle double click action
   private func handleDoubleClick(_ params: [String: Value]) async throws -> [Tool.Content] {
-    guard let elementPath = params["elementPath"]?.stringValue else {
+    guard let elementPath = params["id"]?.stringValue else {
       throw createInteractionError(
-        message: "Double click action requires elementPath",
+        message: "Double click action requires id",
         context: [
           "toolName": name,
           "action": "double_click",
@@ -400,9 +400,9 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
 
   /// Handle right click action
   private func handleRightClick(_ params: [String: Value]) async throws -> [Tool.Content] {
-    guard let elementPath = params["elementPath"]?.stringValue else {
+    guard let elementPath = params["id"]?.stringValue else {
       throw createInteractionError(
-        message: "Right click action requires elementPath",
+        message: "Right click action requires id",
         context: [
           "toolName": name,
           "action": "right_click",
@@ -421,9 +421,9 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
 
   /// Handle drag action
   private func handleDrag(_ params: [String: Value]) async throws -> [Tool.Content] {
-    guard let sourceElementPath = params["elementPath"]?.stringValue else {
+    guard let sourceElementPath = params["id"]?.stringValue else {
       throw createInteractionError(
-        message: "Drag action requires elementPath (source)",
+        message: "Drag action requires id (source)",
         context: [
           "toolName": name,
           "action": "drag",
@@ -432,13 +432,13 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
       ).asMCPError
     }
 
-    guard let targetElementPath = params["targetElementPath"]?.stringValue else {
+    guard let targetElementPath = params["targetId"]?.stringValue else {
       throw createInteractionError(
-        message: "Drag action requires targetElementPath",
+        message: "Drag action requires targetId",
         context: [
           "toolName": name,
           "action": "drag",
-          "sourceElementPath": sourceElementPath,
+          "sourceId": sourceElementPath,
           "providedParams": "\(params.keys.joined(separator: ", "))",
         ],
       ).asMCPError
@@ -460,9 +460,9 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
 
   /// Handle scroll action
   private func handleScroll(_ params: [String: Value]) async throws -> [Tool.Content] {
-    guard let elementPath = params["elementPath"]?.stringValue else {
+    guard let elementPath = params["id"]?.stringValue else {
       throw createInteractionError(
-        message: "Scroll action requires elementPath",
+        message: "Scroll action requires id",
         context: [
           "toolName": name,
           "action": "scroll",
@@ -479,7 +479,7 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
         context: [
           "toolName": name,
           "action": "scroll",
-          "elementPath": elementPath,
+          "id": elementPath,
           "providedDirection": params["direction"]?.stringValue ?? "nil",
           "validDirections": "up, down, left, right",
         ],
@@ -492,7 +492,7 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
         context: [
           "toolName": name,
           "action": "scroll",
-          "elementPath": elementPath,
+          "id": elementPath,
           "direction": directionString,
           "providedAmount": params["amount"]?
             .doubleValue != nil ? "\(params["amount"]!.doubleValue!)" : "nil",

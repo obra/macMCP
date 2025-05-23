@@ -178,7 +178,7 @@ struct MenuNavigationTest {
     let menuParams: [String: Value] = [
       "action": .string("activateMenuItem"),
       "bundleId": .string("com.apple.TextEdit"),
-      "menuPath": .string("macos://ui/AXApplication[@bundleId=\"com.apple.TextEdit\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"File\"]/AXMenu/AXMenuItem[@AXTitle=\"New\"]"),
+      "id": .string("macos://ui/AXApplication[@bundleId=\"com.apple.TextEdit\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"File\"]/AXMenu/AXMenuItem[@AXTitle=\"New\"]"),
     ]
 
     let result = try await helper.toolChain.menuNavigationTool.handler(menuParams)
@@ -200,7 +200,7 @@ struct MenuNavigationTest {
     let menuParams: [String: Value] = [
       "action": .string("activateMenuItem"),
       "bundleId": .string("com.apple.TextEdit"),
-      "menuPath": .string("macos://ui/AXApplication[@bundleId=\"com.apple.TextEdit\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"File\"]/AXMenu/AXMenuItem[@AXTitle=\"Close\"]"),
+      "id": .string("macos://ui/AXApplication[@bundleId=\"com.apple.TextEdit\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"File\"]/AXMenu/AXMenuItem[@AXTitle=\"Close\"]"),
     ]
 
     let result = try await helper.toolChain.menuNavigationTool.handler(menuParams)

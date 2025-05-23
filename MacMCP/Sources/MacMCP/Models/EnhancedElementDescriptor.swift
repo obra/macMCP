@@ -44,8 +44,6 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
   /// Additional element attributes
   public let attributes: [String: String]
   
-  /// Fully qualified path-based identifier for the element (always starts with macos://ui/)
-  public let path: String?
   
   /// Children elements, if within maxDepth
   public let children: [EnhancedElementDescriptor]?
@@ -63,7 +61,6 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
   ///   - capabilities: Interaction capabilities
   ///   - actions: Available actions
   ///   - attributes: Additional attributes
-  ///   - path: Path-based identifier (optional)
   ///   - children: Child elements (optional)
   public init(
     id: String,
@@ -77,7 +74,6 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     capabilities: [String],
     actions: [String],
     attributes: [String: String] = [:],
-    path: String? = nil,
     children: [EnhancedElementDescriptor]? = nil
   ) {
     self.id = id
@@ -91,7 +87,6 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     self.capabilities = capabilities
     self.actions = actions
     self.attributes = attributes
-    self.path = path
     self.children = children
   }
 
@@ -192,7 +187,6 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
       capabilities: capabilities,
       actions: element.actions,
       attributes: filteredAttributes,
-      path: finalPath,  // Always use fully qualified path
       children: children
     )
   }

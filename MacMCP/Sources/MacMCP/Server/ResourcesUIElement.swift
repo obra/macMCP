@@ -130,8 +130,7 @@ open class UIElementResourceHandler: ResourceHandler, @unchecked Sendable {
                 let descriptors = interactableElements.map { element in
                     ElementDescriptor.from(
                         element: element,
-                        includeChildren: false,
-                        includePath: true
+                        includeChildren: false
                     )
                 }
                 
@@ -178,8 +177,7 @@ open class UIElementResourceHandler: ResourceHandler, @unchecked Sendable {
             let includeChildren = maxDepth > 0
             let descriptor = ElementDescriptor.from(
                 element: element,
-                includeChildren: includeChildren,
-                includePath: true
+                includeChildren: includeChildren
             )
             
             // Encode the descriptor as JSON

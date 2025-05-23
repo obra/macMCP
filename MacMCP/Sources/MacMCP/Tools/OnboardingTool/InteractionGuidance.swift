@@ -38,7 +38,7 @@ public struct InteractionGuidance {
     ```json
     {
       "action": "click",
-      "elementPath": "macos://ui/AXApplication[@bundleId=\"com.example.app\"]/AXWindow/AXButton[@AXTitle=\"Save\"]",
+      "id": "macos://ui/AXApplication[@bundleId=\"com.example.app\"]/AXWindow/AXButton[@AXTitle=\"Save\"]",
       "appBundleId": "com.example.app"
     }
     ```
@@ -62,14 +62,14 @@ public struct InteractionGuidance {
     ```json
     {
       "action": "double_click",
-      "elementPath": "macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXStaticText[@AXValue=\"filename\"]"
+      "id": "macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXStaticText[@AXValue=\"filename\"]"
     }
     ```
 
     ```json
     {
       "action": "right_click",
-      "elementPath": "macos://ui/AXApplication[@bundleId=\"com.example.app\"]/AXWindow/AXButton[@AXTitle=\"Options\"]"
+      "id": "macos://ui/AXApplication[@bundleId=\"com.example.app\"]/AXWindow/AXButton[@AXTitle=\"Options\"]"
     }
     ```
 
@@ -112,7 +112,7 @@ public struct InteractionGuidance {
        ```json
        {
          "action": "click",
-         "elementPath": "macos://ui/AXApplication[@bundleId=\"com.apple.TextEdit\"]/AXWindow/AXTextField[@AXIdentifier=\"document_title\"]"
+         "id": "macos://ui/AXApplication[@bundleId=\"com.apple.TextEdit\"]/AXWindow/AXTextField[@AXIdentifier=\"document_title\"]"
        }
        ```
 
@@ -199,7 +199,7 @@ public struct InteractionGuidance {
     ```json
     {
       "action": "drag",
-      "elementPath": "macos://ui/AXApplication[@bundleId=\"com.example.app\"]/AXWindow/AXElement[@AXIdentifier=\"source_item\"]",
+      "id": "macos://ui/AXApplication[@bundleId=\"com.example.app\"]/AXWindow/AXElement[@AXIdentifier=\"source_item\"]",
       "targetElementPath": "macos://ui/AXApplication[@bundleId=\"com.example.app\"]/AXWindow/AXElement[@AXIdentifier=\"target_container\"]",
       "appBundleId": "com.example.app"
     }
@@ -275,7 +275,7 @@ public struct InteractionGuidance {
     ```json
     {
       "action": "scroll",
-      "elementPath": "macos://ui/AXApplication[@bundleId=\"com.example.app\"]/AXWindow/AXScrollArea[@AXIdentifier=\"content_view\"]",
+      "id": "macos://ui/AXApplication[@bundleId=\"com.example.app\"]/AXWindow/AXScrollArea[@AXIdentifier=\"content_view\"]",
       "direction": "down",
       "amount": 0.5,
       "appBundleId": "com.example.app"
@@ -360,7 +360,7 @@ public struct InteractionGuidance {
     ```json
     {
       "action": "click",
-      "elementPath": "macos://ui/AXApplication[@bundleId=\"com.example.app\"]/AXWindow/AXButton[@AXTitle=\"Save\"]",
+      "id": "macos://ui/AXApplication[@bundleId=\"com.example.app\"]/AXWindow/AXButton[@AXTitle=\"Save\"]",
       "appBundleId": "com.example.app"
     }
     ```
@@ -385,7 +385,7 @@ public struct InteractionGuidance {
     ```json
     {
       "action": "drag",
-      "elementPath": "macos://ui/AXApplication[@bundleId=\"com.example.app\"]/AXWindow/AXElement[@AXIdentifier=\"source_item\"]",
+      "id": "macos://ui/AXApplication[@bundleId=\"com.example.app\"]/AXWindow/AXElement[@AXIdentifier=\"source_item\"]",
       "targetElementPath": "macos://ui/AXApplication[@bundleId=\"com.example.app\"]/AXWindow/AXElement[@AXIdentifier=\"target_container\"]"
     }
     ```
@@ -395,7 +395,7 @@ public struct InteractionGuidance {
     ```json
     {
       "action": "scroll",
-      "elementPath": "macos://ui/AXApplication[@bundleId=\"com.example.app\"]/AXWindow/AXScrollArea[@AXIdentifier=\"content_view\"]",
+      "id": "macos://ui/AXApplication[@bundleId=\"com.example.app\"]/AXWindow/AXScrollArea[@AXIdentifier=\"content_view\"]",
       "direction": "down",
       "amount": 0.5
     }

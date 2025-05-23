@@ -126,7 +126,7 @@ struct UIInteractionToolE2ETests {
     
     let result = try await calculatorHelper.toolChain.uiInteractionTool.handler([
       "action": .string("click"),
-      "elementPath": .string(buttonPath),
+      "id": .string(buttonPath),
       "appBundleId": .string(calculatorHelper.app.bundleId),
     ])
 
@@ -335,7 +335,7 @@ struct UIInteractionToolE2ETests {
     }
     let doubleClickParams: [String: Value] = [
       "action": .string("double_click"),
-      "elementPath": .string(newTextAreaPath),
+      "id": .string(newTextAreaPath),
     ]
 
     let doubleClickResult = try await textEditHelper.toolChain.uiInteractionTool.handler(
@@ -404,7 +404,7 @@ struct UIInteractionToolE2ETests {
     #expect(textArea.actions.contains("AXShowMenu"), "TextArea should support AXShowMenu action")
     let rightClickParams: [String: Value] = [
       "action": .string("right_click"),
-      "elementPath": .string(textAreaPath),
+      "id": .string(textAreaPath),
     ]
 
     let rightClickResult = try await textEditHelper.toolChain.uiInteractionTool.handler(
@@ -470,7 +470,7 @@ struct UIInteractionToolE2ETests {
     // without a proper source and target that make sense to drag between
 
     // TEST PARAMETER VALIDATION
-    // Test missing targetElementPath
+    // Test missing targetId
     do {
       let textAreaPath = textArea.path
       if textAreaPath.isEmpty {
@@ -479,18 +479,18 @@ struct UIInteractionToolE2ETests {
       }
       let invalidParams: [String: Value] = [
         "action": .string("drag"),
-        "elementPath": .string(textAreaPath),
-        // Missing targetElementPath
+        "id": .string(textAreaPath),
+        // Missing targetId
       ]
 
       _ = try await textEditHelper.toolChain.uiInteractionTool.handler(invalidParams)
-      #expect(Bool(false), "Should throw an error when targetElementPath is missing")
+      #expect(Bool(false), "Should throw an error when targetId is missing")
     } catch {
       // Expected error - success
       let errorMessage = error.localizedDescription.lowercased()
       #expect(
         errorMessage.contains("target") || errorMessage.contains("missing"),
-        "Error should indicate missing targetElementPath parameter",
+        "Error should indicate missing targetId parameter",
       )
     }
     
@@ -652,7 +652,7 @@ struct UIInteractionToolE2ETests {
       }
       let clickParams: [String: Value] = [
         "action": .string("click"),
-        "elementPath": .string(openButtonPath),
+        "id": .string(openButtonPath),
       ]
 
       _ = try await textEditHelper.toolChain.uiInteractionTool.handler(clickParams)
@@ -711,7 +711,7 @@ struct UIInteractionToolE2ETests {
 
     let scrollDownParams: [String: Value] = [
       "action": .string("scroll"),
-      "elementPath": .string(scrollAreaPath),
+      "id": .string(scrollAreaPath),
       "direction": .string("down"),
       "amount": .double(0.9),  // Scroll almost to the bottom
     ]
@@ -727,7 +727,7 @@ struct UIInteractionToolE2ETests {
     // Test scroll up
     let scrollUpParams: [String: Value] = [
       "action": .string("scroll"),
-      "elementPath": .string(scrollAreaPath),
+      "id": .string(scrollAreaPath),
       "direction": .string("up"),
       "amount": .double(0.9),  // Scroll almost to the top
     ]
@@ -799,7 +799,7 @@ struct UIInteractionToolE2ETests {
     try await testInvalidParams(
       [
         "action": .string("scroll"),
-        "elementPath": .string(scrollAreaPath),
+        "id": .string(scrollAreaPath),
         "amount": .double(0.5),
         // Missing direction
       ],
@@ -811,7 +811,7 @@ struct UIInteractionToolE2ETests {
     try await testInvalidParams(
       [
         "action": .string("scroll"),
-        "elementPath": .string(scrollAreaPath),
+        "id": .string(scrollAreaPath),
         "direction": .string("invalid"),
         "amount": .double(0.5),
       ],
@@ -823,7 +823,7 @@ struct UIInteractionToolE2ETests {
     try await testInvalidParams(
       [
         "action": .string("scroll"),
-        "elementPath": .string(scrollAreaPath),
+        "id": .string(scrollAreaPath),
         "direction": .string("down"),
         // Missing amount
       ],
@@ -835,7 +835,7 @@ struct UIInteractionToolE2ETests {
     try await testInvalidParams(
       [
         "action": .string("scroll"),
-        "elementPath": .string(scrollAreaPath),
+        "id": .string(scrollAreaPath),
         "direction": .string("down"),
         "amount": .double(1.5),  // Out of range
       ],
@@ -991,7 +991,7 @@ struct UIInteractionToolE2ETests {
     do {
       let nonExistentParams: [String: Value] = [
         "action": .string("click"),
-        "elementPath": .string(nonExistentId),
+        "id": .string(nonExistentId),
         "appBundleId": .string(calculatorHelper.app.bundleId),
       ]
 
@@ -1025,7 +1025,7 @@ struct UIInteractionToolE2ETests {
     do {
       let invalidParams: [String: Value] = [
         "action": .string("invalid_action"),
-        "elementPath": .string("macos://ui/AXApplication/AXButton"),
+        "id": .string("macos://ui/AXApplication/AXButton"),
       ]
 
       _ = try await calculatorHelper.toolChain.uiInteractionTool.handler(invalidParams)
@@ -1042,7 +1042,7 @@ struct UIInteractionToolE2ETests {
     // Test with missing action
     do {
       let invalidParams: [String: Value] = [
-        "elementPath": .string("macos://ui/AXApplication/AXButton")
+        "id": .string("macos://ui/AXApplication/AXButton")
         // Missing action
       ]
 

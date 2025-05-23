@@ -14,13 +14,13 @@ public struct ScreenshotTool {
   public let description = """
 Capture screenshots of macOS screen, windows, or UI elements for visual inspection and analysis.
 
-IMPORTANT: For element screenshots, use InterfaceExplorerTool first to discover element paths.
+IMPORTANT: For element screenshots, use InterfaceExplorerTool first to discover element IDs.
 
 Region types and requirements:
 - full: Capture entire screen (no additional parameters)
 - area: Capture specific coordinates (requires x, y, width, height)
 - window: Capture application window (requires bundleId)
-- element: Capture UI element (requires elementPath from InterfaceExplorerTool)
+- element: Capture UI element (requires id from InterfaceExplorerTool)
 
 Common use cases:
 - Debugging UI layout issues
@@ -63,11 +63,11 @@ Coordinate system: Screen coordinates start at (0,0) in top-left corner.
     // 3. Documenting current UI state
     // 4. Visual debugging of layout issues
     //
-    // IMPORTANT: For element screenshots, first use InterfaceExplorerTool to discover element paths.
+    // IMPORTANT: For element screenshots, first use InterfaceExplorerTool to discover element IDs.
     //
     // Best practices:
     // - For window screenshots, use the window region with app's bundle ID (e.g., com.apple.calculator)
-    // - For UI elements, first use InterfaceExplorerTool to get the element path, then capture with element region
+    // - For UI elements, first use InterfaceExplorerTool to get the element ID, then capture with element region
     // - Full screen screenshots are useful for overall context, but may be large
 
     annotations = .init(
@@ -119,9 +119,9 @@ Coordinate system: Screen coordinates start at (0,0) in top-left corner.
           "type": .string("string"),
           "description": .string("Application bundle identifier (required for 'window' region) - e.g., 'com.apple.calculator'"),
         ]),
-        "elementPath": .object([
+        "id": .object([
           "type": .string("string"),
-          "description": .string("UI element path from InterfaceExplorerTool (required for 'element' region) - e.g., 'macos://ui/AXApplication/AXWindow/AXButton'"),
+          "description": .string("UI element ID from InterfaceExplorerTool (required for 'element' region) - e.g., 'macos://ui/AXApplication/AXWindow/AXButton'"),
         ]),
       ]),
       "required": .array([.string("region")]),
@@ -143,7 +143,7 @@ Coordinate system: Screen coordinates start at (0,0) in top-left corner.
         ]),
         .object([
           "region": .string("element"),
-          "elementPath": .string("macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow/AXButton[@AXTitle=\"1\"]"),
+          "id": .string("macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow/AXButton[@AXTitle=\"1\"]"),
         ]),
       ]),
     ])
@@ -171,8 +171,8 @@ Coordinate system: Screen coordinates start at (0,0) in top-left corner.
   ///
   /// Screenshot workflow for element screenshots:
   /// 1. User discovers UI elements with InterfaceExplorerTool
-  /// 2. User gets element paths from the explorer results
-  /// 3. User uses ScreenshotTool with region=element and elementPath=<element path>
+  /// 2. User gets element IDs from the explorer results
+  /// 3. User uses ScreenshotTool with region=element and id=<element ID>
   /// 4. Service finds the element (with several fallback approaches for reliability)
   /// 5. Service captures the element with padding to ensure the full element is visible
   /// 6. Result is returned as base64-encoded PNG with metadata
@@ -251,9 +251,9 @@ Coordinate system: Screen coordinates start at (0,0) in top-left corner.
 
     case "element":
       // Extract required element path
-      guard let elementPath = params["elementPath"]?.stringValue else {
+      guard let elementPath = params["id"]?.stringValue else {
         throw createScreenshotError(
-          message: "Element screenshots require an elementPath parameter",
+          message: "Element screenshots require an id parameter",
           context: [
             "toolName": name,
             "region": regionValue,

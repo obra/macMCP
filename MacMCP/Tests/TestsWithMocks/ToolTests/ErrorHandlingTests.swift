@@ -80,7 +80,7 @@ struct ErrorHandlingTests {
         "Scroll missing direction",
         [
           "action": .string("scroll"),
-          "elementPath": .string(
+          "id": .string(
             "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow"),
         ]
       ),
@@ -89,7 +89,7 @@ struct ErrorHandlingTests {
         "Drag missing target path",
         [
           "action": .string("drag"),
-          "elementPath": .string(
+          "id": .string(
             "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow"),
         ]
       ),

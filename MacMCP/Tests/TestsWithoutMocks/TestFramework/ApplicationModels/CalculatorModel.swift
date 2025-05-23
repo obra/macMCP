@@ -526,7 +526,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
       // Create the parameters with explicit values for safety
       let params: [String: Value] = [
         "action": .string("click"),
-        "elementPath": .string(path),
+        "id": .string(path),
         "appBundleId": .string(bundleId),
       ]
 
