@@ -11,8 +11,30 @@ public struct OnboardingTool: @unchecked Sendable {
   public let name = ToolNames.onboarding
 
   /// Description of the tool
-  public let description =
-    "Provides guidance and best practices for working with macOS applications"
+  public let description = """
+Provides comprehensive guidance and best practices for AI assistants working with macOS applications through MCP.
+
+IMPORTANT: This tool provides expert guidance for effective macOS automation workflows.
+
+Available topics:
+- general: Core principles and recommended workflows for all macOS apps
+- exploration: Best practices for discovering and understanding UI elements
+- interaction: Techniques for reliable clicking, typing, and UI manipulation
+- keynote: Specific guidance for Apple Keynote presentation software
+- pages: Specific guidance for Apple Pages word processing
+- finder: Specific guidance for macOS Finder file management
+- safari: Specific guidance for Safari web browser automation
+- complex_apps: Strategies for working with professional/complex applications
+
+When to use this tool:
+- Starting work with a new application type
+- Encountering automation challenges or failures
+- Need app-specific workflow recommendations
+- Want to understand best practices for UI exploration
+- Planning complex multi-step automation tasks
+
+Each topic provides detailed workflows, code examples, and troubleshooting guidance tailored for AI assistants using MacMCP tools.
+"""
 
   /// Input schema for the tool
   public private(set) var inputSchema: Value
@@ -37,9 +59,11 @@ public struct OnboardingTool: @unchecked Sendable {
 
     // Set tool annotations
     annotations = .init(
-      title: "AI Assistant Guidance",
+      title: "MacMCP Assistant Guidance",
       readOnlyHint: true,
-      openWorldHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false
     )
 
     // Initialize inputSchema with an empty object first
@@ -56,9 +80,7 @@ public struct OnboardingTool: @unchecked Sendable {
       "properties": .object([
         "topic": .object([
           "type": .string("string"),
-          "description": .string(
-            "The topic to get guidance for: general, exploration, interaction, keynote, pages, finder, safari, or complex_apps"
-          ),
+          "description": .string("Guidance topic: 'general' for core principles, app names for specific guidance, 'exploration'/'interaction' for techniques"),
           "enum": .array([
             .string("general"),
             .string("exploration"),
@@ -72,11 +94,36 @@ public struct OnboardingTool: @unchecked Sendable {
         ]),
         "specific": .object([
           "type": .string("string"),
-          "description": .string("Optional specific subtopic to get more detailed guidance"),
+          "description": .string("Optional subtopic for more targeted guidance within the main topic"),
         ]),
       ]),
       "required": .array([.string("topic")]),
       "additionalProperties": .bool(false),
+      "examples": .array([
+        .object([
+          "topic": .string("general"),
+        ]),
+        .object([
+          "topic": .string("exploration"),
+        ]),
+        .object([
+          "topic": .string("interaction"),
+        ]),
+        .object([
+          "topic": .string("keynote"),
+          "specific": .string("presentations"),
+        ]),
+        .object([
+          "topic": .string("pages"),
+        ]),
+        .object([
+          "topic": .string("safari"),
+          "specific": .string("forms"),
+        ]),
+        .object([
+          "topic": .string("complex_apps"),
+        ]),
+      ]),
     ])
   }
 

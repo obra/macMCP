@@ -11,7 +11,32 @@ public struct UIInteractionTool {
   public let name = ToolNames.uiInteraction
 
   /// Description of the tool
-  public let description = "Interact with UI elements on macOS - click, type, scroll and more"
+  public let description = """
+Interact with UI elements on macOS through clicking, dragging, scrolling, and coordinate-based actions.
+
+IMPORTANT: Use InterfaceExplorerTool first to discover element paths. Element paths use macos://ui/ format.
+
+Available actions:
+- click: Single click on element or coordinates
+- double_click: Double click on element or coordinates  
+- right_click: Right click to open context menus
+- drag: Drag from one element to another (file operations, selections)
+- scroll: Scroll within scrollable elements or views
+
+Interaction methods:
+1. Element-based: Use elementPath from InterfaceExplorerTool (preferred for reliability)
+2. Coordinate-based: Use x, y coordinates for direct positioning (when elements unavailable)
+
+Common workflows:
+1. Explore UI: InterfaceExplorerTool → find elementPath
+2. Click element: UIInteractionTool with elementPath
+3. Drag operations: Source elementPath + target elementPath  
+4. Scroll content: Container elementPath + direction + amount
+5. Position clicks: Use x, y coordinates when element detection fails
+
+Element path format: macos://ui/AXApplication[@bundleId="..."]/AXWindow/AXButton[@AXTitle="..."]
+Coordinate system: Screen pixels, (0,0) = top-left corner.
+"""
 
   /// Input schema for the tool
   public private(set) var inputSchema: Value
@@ -44,11 +69,11 @@ public struct UIInteractionTool {
 
     // Set tool annotations first
     annotations = .init(
-      title: "UI Interaction",
+      title: "macOS UI Interaction",
       readOnlyHint: false,
       destructiveHint: true,
       idempotentHint: false,
-      openWorldHint: true,
+      openWorldHint: true
     )
 
     // Initialize inputSchema with an empty object first
@@ -65,7 +90,7 @@ public struct UIInteractionTool {
       "properties": .object([
         "action": .object([
           "type": .string("string"),
-          "description": .string("The interaction action to perform"),
+          "description": .string("UI interaction type: click/double_click/right_click for buttons/links, drag for file ops, scroll for navigation"),
           "enum": .array([
             .string("click"),
             .string("double_click"),
@@ -76,33 +101,27 @@ public struct UIInteractionTool {
         ]),
         "elementPath": .object([
           "type": .string("string"),
-          "description": .string(
-            "The path of the UI element to interact with (in macos://ui/ path format)"),
+          "description": .string("Element path from InterfaceExplorerTool (macos://ui/...) - preferred method for reliability"),
         ]),
         "appBundleId": .object([
           "type": .string("string"),
-          "description": .string(
-            "Optional bundle ID of the application containing the element (helps with finding elements in specific apps)"
-          ),
+          "description": .string("Application bundle ID to help locate elements (e.g., 'com.apple.calculator')"),
         ]),
         "x": .object([
           "type": .string("number"),
-          "description": .string(
-            "X coordinate for positional actions (required for position-based clicking)"),
+          "description": .string("X coordinate in screen pixels for position-based actions (0 = left edge)"),
         ]),
         "y": .object([
           "type": .string("number"),
-          "description": .string(
-            "Y coordinate for positional actions (required for position-based clicking)"),
+          "description": .string("Y coordinate in screen pixels for position-based actions (0 = top edge)"),
         ]),
         "targetElementPath": .object([
           "type": .string("string"),
-          "description": .string(
-            "Target element path for drag action (required for drag action, in macos://ui/ path format)"),
+          "description": .string("Destination element path for drag operations (macos://ui/...) - required for 'drag' action"),
         ]),
         "direction": .object([
           "type": .string("string"),
-          "description": .string("Scroll direction (required for scroll action)"),
+          "description": .string("Scroll direction within scrollable element (required for 'scroll' action)"),
           "enum": .array([
             .string("up"),
             .string("down"),
@@ -112,13 +131,43 @@ public struct UIInteractionTool {
         ]),
         "amount": .object([
           "type": .string("number"),
-          "description": .string("Scroll amount from 0.0 to 1.0 (required for scroll action)"),
+          "description": .string("Scroll distance from 0.0 (minimal) to 1.0 (full) - required for 'scroll' action"),
           "minimum": .double(0.0),
           "maximum": .double(1.0),
         ]),
       ]),
       "required": .array([.string("action")]),
       "additionalProperties": .bool(false),
+      "examples": .array([
+        .object([
+          "action": .string("click"),
+          "elementPath": .string("macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow/AXButton[@AXTitle=\"1\"]"),
+        ]),
+        .object([
+          "action": .string("click"),
+          "x": .int(400),
+          "y": .int(300),
+        ]),
+        .object([
+          "action": .string("double_click"),
+          "elementPath": .string("macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"Documents\"]"),
+        ]),
+        .object([
+          "action": .string("right_click"),
+          "elementPath": .string("macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"file.txt\"]"),
+        ]),
+        .object([
+          "action": .string("drag"),
+          "elementPath": .string("macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"file.txt\"]"),
+          "targetElementPath": .string("macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"Folder\"]"),
+        ]),
+        .object([
+          "action": .string("scroll"),
+          "elementPath": .string("macos://ui/AXApplication[@bundleId=\"com.apple.safari\"]/AXWindow/AXWebArea"),
+          "direction": .string("down"),
+          "amount": .double(0.5),
+        ]),
+      ]),
     ])
   }
 
