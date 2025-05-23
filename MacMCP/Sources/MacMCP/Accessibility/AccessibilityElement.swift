@@ -188,9 +188,21 @@ public class AccessibilityElement {
 
     if shouldTraverse {
       do {
-        if let axChildren = try getAttribute(axElement, attribute: AXAttribute.children)
-          as? [AXUIElement]
-        {
+        // First check if this element supports the AXChildren attribute
+        var attrNamesRef: CFArray?
+        var hasChildrenAttribute = false
+        
+        if AXUIElementCopyAttributeNames(axElement, &attrNamesRef) == .success,
+           let attrNames = attrNamesRef as? [String] {
+          hasChildrenAttribute = attrNames.contains(AXAttribute.children)
+        }
+        
+        // Only try to get children if the element supports the AXChildren attribute
+        if hasChildrenAttribute {
+          // Try to get children - this may return nil if element becomes invalid
+          if let axChildren = try? getAttribute(axElement, attribute: AXAttribute.children)
+               as? [AXUIElement]
+          {
           // All elements get full depth - don't limit menu traversal
           let adjustedMaxDepth = maxDepth
 
@@ -314,7 +326,8 @@ public class AccessibilityElement {
               continue
             }
           }
-        }
+          } // End of axChildren processing
+        } // End of hasChildrenAttribute check
       } catch {
         // Log but continue
         NSLog("WARNING: Failed to get children: \(error.localizedDescription)")
@@ -921,9 +934,10 @@ public class AccessibilityElement {
     if error == .success {
       return value
     } else if error == .attributeUnsupported || error == .noValue
-      || error == .parameterizedAttributeUnsupported
+      || error == .parameterizedAttributeUnsupported || error == .failure
     {
       // Extended list of "not an error" cases - just means attribute doesn't exist
+      // failure (-25200) often occurs when trying to access AXChildren on leaf elements
       return nil
     } else if error == .notImplemented {
       // This specific element doesn't implement this attribute
