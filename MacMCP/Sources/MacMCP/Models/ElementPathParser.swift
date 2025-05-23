@@ -51,7 +51,8 @@ public struct ElementPathParser {
   {
     // Regular expressions for parsing
     let rolePattern = "^([A-Za-z0-9]+)"  // Captures the role name
-    let attributePattern = "\\[@([^=]+)=\"((?:[^\"]|\\\\\")*)\"\\]"  // Captures attribute name and value
+    // Combined pattern to handle both escaped and unescaped quotes
+    let attributePattern = "\\[@([^=]+)=\\\\?\"((?:[^\"]|\\\\\")*?)\\\\?\"\\]"  // Captures attribute name and value
     let indexPattern = "\\[(\\d+)\\]"  // Captures the index (could be anywhere in the segment)
 
     // Extract the role
@@ -61,26 +62,31 @@ public struct ElementPathParser {
 
     let role = String(segmentString[roleRange])
 
-    // Extract attributes
+    // Extract attributes using regex groups
     var attributes: [String: String] = [:]
-    let attributeRanges = segmentString.ranges(of: attributePattern)
-
-    for range in attributeRanges {
-      let attributeString = segmentString[range]
-      let nameEndIndex = attributeString.firstIndex(of: "=")!
-      let nameStartIndex = attributeString.index(attributeString.startIndex, offsetBy: 2)  // Skip [@
-      let name = String(attributeString[nameStartIndex..<nameEndIndex])
-
-      let valueStartIndex = attributeString.index(nameEndIndex, offsetBy: 2)  // Skip ="
-      let valueEndIndex = attributeString.index(attributeString.endIndex, offsetBy: -2)  // Skip "]
-      var value = String(attributeString[valueStartIndex..<valueEndIndex])
-
-      // Unescape quotes in the value
-      value = value.replacingOccurrences(of: "\\\"", with: "\"")
-
-      // Normalize the attribute name during parsing
-      let normalizedName = PathNormalizer.normalizeAttributeName(name)
-      attributes[normalizedName] = value
+    
+    // Use NSRegularExpression to extract attributes with proper group capture
+    if let regex = try? NSRegularExpression(pattern: attributePattern) {
+      let nsString = segmentString as NSString
+      let range = NSRange(location: 0, length: nsString.length)
+      let matches = regex.matches(in: segmentString, options: [], range: range)
+      
+      for match in matches {
+        if match.numberOfRanges >= 3 {
+          let nameRange = Range(match.range(at: 1), in: segmentString)!
+          let valueRange = Range(match.range(at: 2), in: segmentString)!
+          
+          let name = String(segmentString[nameRange])
+          var value = String(segmentString[valueRange])
+          
+          // Unescape quotes in the value
+          value = value.replacingOccurrences(of: "\\\"", with: "\"")
+          
+          // Normalize the attribute name during parsing
+          let normalizedName = PathNormalizer.normalizeAttributeName(name)
+          attributes[normalizedName] = value
+        }
+      }
     }
 
     // Extract index if present

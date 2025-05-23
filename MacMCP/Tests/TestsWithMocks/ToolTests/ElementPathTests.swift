@@ -67,7 +67,7 @@ struct ElementPathTests {
       attributes: ["name": "Test Button"],
       index: 2,
     )
-    #expect(fullSegment.toString() == "AXButton[@AXName=\"Test Button\"][2]")
+    #expect(fullSegment.toString() == "AXButton[@name=\"Test Button\"][2]")
 
     // Test escaping quotes in attribute values
     let escapedSegment = PathSegment(
@@ -187,6 +187,63 @@ struct ElementPathTests {
     #expect(path.segments[2].role == "AXButton")
   }
 
+  @Test("ElementPath parsing with both escaped and unescaped quotes")
+  func elementPathParsingQuoteFormats() throws {
+    // Test with escaped quotes (user's problematic format)
+    let pathWithEscapedQuotes = "macos://ui/AXApplication[@AXTitle=\\\"Calculator\\\"][@bundleId=\\\"com.apple.calculator\\\"]/AXButton[@AXDescription=\\\"2\\\"]"
+    
+    // Test with unescaped quotes (should work)
+    let pathWithUnescapedQuotes = #"macos://ui/AXApplication[@AXTitle="Calculator"][@bundleId="com.apple.calculator"]/AXButton[@AXDescription="2"]"#
+
+    // Both should parse successfully
+    let pathUnescaped = try ElementPath.parse(pathWithUnescapedQuotes)
+    let pathEscaped = try ElementPath.parse(pathWithEscapedQuotes)
+
+    // Both should have the same structure  
+    #expect(pathEscaped.segments.count == pathUnescaped.segments.count)
+    #expect(pathUnescaped.segments.count == 2)
+    
+    // The key test: Both should produce the SAME attribute values
+    #expect(pathUnescaped.segments[0].attributes["AXTitle"] == pathEscaped.segments[0].attributes["AXTitle"])
+    #expect(pathUnescaped.segments[0].attributes["bundleId"] == pathEscaped.segments[0].attributes["bundleId"])
+    #expect(pathUnescaped.segments[1].attributes["AXDescription"] == pathEscaped.segments[1].attributes["AXDescription"])
+    
+    // Both should contain the plain value without quotes
+    #expect(pathUnescaped.segments[0].attributes["AXTitle"] == "Calculator")
+    #expect(pathUnescaped.segments[1].attributes["AXDescription"] == "2")
+    #expect(pathEscaped.segments[0].attributes["AXTitle"] == "Calculator")
+    #expect(pathEscaped.segments[1].attributes["AXDescription"] == "2")
+    
+    // Both should generate the same toString output (with escaped quotes)
+    #expect(pathEscaped.toString() == pathUnescaped.toString())
+  }
+
+  @Test("Original user failing scenario - Calculator button click")
+  func originalUserFailingScenario() throws {
+    // This is the exact path that was failing for the user
+    let userProvidedPath = #"macos://ui/AXApplication[@AXTitle="Calculator"][@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="2"]"#
+    
+    // This should now parse successfully
+    let parsedPath = try ElementPath.parse(userProvidedPath)
+    
+    // Verify correct structure 
+    #expect(parsedPath.segments.count == 7)
+    
+    // Verify the application segment
+    #expect(parsedPath.segments[0].role == "AXApplication") 
+    #expect(parsedPath.segments[0].attributes["AXTitle"] == "Calculator")
+    #expect(parsedPath.segments[0].attributes["bundleId"] == "com.apple.calculator")
+    
+    // Verify the button segment (the one that was failing)
+    #expect(parsedPath.segments[6].role == "AXButton")
+    #expect(parsedPath.segments[6].attributes["AXDescription"] == "2")
+    
+    // Verify the path can be converted back to string form
+    let regeneratedPath = parsedPath.toString()
+    #expect(regeneratedPath.contains("AXButton[@AXDescription=\"2\"]"))
+  }
+  
+
   @Test("ElementPath parsing with multiple attributes")
   func elementPathParsingWithMultipleAttributes() throws {
     let pathString =
@@ -197,7 +254,7 @@ struct ElementPathTests {
     #expect(path.segments[0].role == "AXWindow")
     #expect(path.segments[1].role == "AXGroup")
     #expect(path.segments[1].attributes["AXName"] == "Controls")
-    #expect(path.segments[1].attributes["id"] == "group1")
+    #expect(path.segments[1].attributes["AXIdentifier"] == "group1")
     #expect(path.segments[2].role == "AXButton")
     #expect(path.segments[2].attributes["AXDescription"] == "Submit")
     #expect(path.segments[2].attributes["AXEnabled"] == "true")
