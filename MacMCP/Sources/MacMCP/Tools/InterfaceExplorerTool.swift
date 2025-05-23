@@ -15,8 +15,34 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
   public let name = ToolNames.interfaceExplorer
 
   /// Description of the tool
-  public let description =
-    "Explore and examine UI elements and their capabilities in macOS applications - essential for discovering elements to interact with"
+  public let description = """
+Explore and examine UI elements and their capabilities in macOS applications - essential for discovering elements to interact with.
+
+IMPORTANT: This tool is critical for finding element paths needed by UIInteractionTool and other tools. Always explore before interacting.
+
+Available scope types:
+- focused: Currently active application (RECOMMENDED - fastest and most relevant)
+- application: Specific app by bundleId (when you know the target app)
+- system: All applications (very broad, use sparingly)
+- position: Element at screen coordinates (x, y required)
+- element: Specific element by ID (advanced usage)
+- path: Element by macos://ui/ path (for detailed exploration)
+
+Common workflows:
+1. Initial exploration: Use 'focused' scope with maxDepth 15-20
+2. Find interactive elements: Use filter by role (AXButton, AXTextField, etc.)
+3. Search by content: Use titleContains or descriptionContains filters
+4. Navigate hierarchy: Use 'path' scope to explore specific elements deeper
+5. Performance optimization: Reduce maxDepth for faster responses
+
+Filtering capabilities:
+- role: Element type (AXButton, AXTextField, AXWindow, etc.)
+- title/titleContains: Element titles or partial matches
+- value/valueContains: Element values or partial matches  
+- description/descriptionContains: Element descriptions or partial matches
+
+Performance tips: Start with 'focused' scope, use filters to narrow results, adjust maxDepth based on needs.
+"""
 
   /// Input schema for the tool
   public private(set) var inputSchema: Value
@@ -50,9 +76,11 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
 
     // Set tool annotations
     annotations = .init(
-      title: "Interface Explorer",
+      title: "macOS UI Explorer",
       readOnlyHint: true,
-      openWorldHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true
     )
 
     // Initialize inputSchema with an empty object first
@@ -69,9 +97,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
       "properties": .object([
         "scope": .object([
           "type": .string("string"),
-          "description": .string(
-            "The scope of UI elements to retrieve: system (all apps, very broad), application (specific app by bundleId), focused (currently active app, RECOMMENDED), position (element at screen coordinates), element (specific element by ID), path (element by path)"
-          ),
+          "description": .string("Exploration scope: 'focused' (recommended), 'application' (specific app), 'position' (coordinates), 'path' (specific element)"),
           "enum": .array([
             .string("system"),
             .string("application"),
@@ -83,50 +109,44 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
         ]),
         "bundleId": .object([
           "type": .string("string"),
-          "description": .string(
-            "The bundle identifier of the application to retrieve (required for 'application' scope)"
-          ),
+          "description": .string("Application bundle identifier (required for 'application' scope, e.g., 'com.apple.calculator')"),
         ]),
         "elementPath": .object([
           "type": .string("string"),
-          "description": .string(
-            "The path of a specific element to retrieve using macos://ui/ notation (required for 'path' scope)"
-          ),
+          "description": .string("Element path in macos://ui/ format (required for 'path' scope) for detailed element exploration"),
         ]),
         "x": .object([
           "type": .array([.string("number"), .string("integer")]),
-          "description": .string("X coordinate for position scope"),
+          "description": .string("X screen coordinate for 'position' scope (0 = left edge)"),
         ]),
         "y": .object([
           "type": .array([.string("number"), .string("integer")]),
-          "description": .string("Y coordinate for position scope"),
+          "description": .string("Y screen coordinate for 'position' scope (0 = top edge)"),
         ]),
         "maxDepth": .object([
           "type": .string("number"),
-          "description": .string(
-            "Maximum depth of the element hierarchy to retrieve (higher values provide more detail but slower response)"
-          ),
+          "description": .string("UI hierarchy depth: 10-15 for performance, 20+ for comprehensive exploration (default: 15)"),
           "default": .double(15),
         ]),
         "filter": .object([
           "type": .string("object"),
-          "description": .string("Filter criteria for elements"),
+          "description": .string("Filter elements by properties (role, title, value, description) with exact or partial matching"),
           "properties": .object([
             "role": .object([
               "type": .string("string"),
-              "description": .string("Filter by accessibility role"),
+              "description": .string("Filter by accessibility role (e.g., 'AXButton', 'AXTextField', 'AXWindow')"),
             ]),
             "title": .object([
               "type": .string("string"),
-              "description": .string("Filter by title (exact match)"),
+              "description": .string("Filter by exact title match"),
             ]),
             "titleContains": .object([
               "type": .string("string"),
-              "description": .string("Filter by title containing this text"),
+              "description": .string("Filter by title containing this text (case-sensitive)"),
             ]),
             "value": .object([
               "type": .string("string"),
-              "description": .string("Filter by value (exact match)"),
+              "description": .string("Filter by exact value match"),
             ]),
             "valueContains": .object([
               "type": .string("string"),
@@ -134,7 +154,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
             ]),
             "description": .object([
               "type": .string("string"),
-              "description": .string("Filter by description (exact match)"),
+              "description": .string("Filter by exact description match"),
             ]),
             "descriptionContains": .object([
               "type": .string("string"),
@@ -144,8 +164,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
         ]),
         "elementTypes": .object([
           "type": .string("array"),
-          "description": .string(
-            "Types of interactive elements to find (when discovering interactive elements)"),
+          "description": .string("Interactive element types to discover: button, textfield, dropdown, etc. (default: any)"),
           "items": .object([
             "type": .string("string"),
             "enum": .array([
@@ -164,17 +183,50 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
         ]),
         "includeHidden": .object([
           "type": .string("boolean"),
-          "description": .string("Whether to include hidden elements"),
+          "description": .string("Include hidden/invisible elements in results (default: false for cleaner output)"),
           "default": .bool(false),
         ]),
         "limit": .object([
           "type": .string("integer"),
-          "description": .string("Maximum number of elements to return"),
+          "description": .string("Maximum elements to return (default: 100, increase for comprehensive exploration)"),
           "default": .int(100),
         ]),
       ]),
       "required": .array([.string("scope")]),
       "additionalProperties": .bool(false),
+      "examples": .array([
+        .object([
+          "scope": .string("focused"),
+        ]),
+        .object([
+          "scope": .string("focused"),
+          "maxDepth": .int(20),
+          "filter": .object([
+            "role": .string("AXButton")
+          ]),
+        ]),
+        .object([
+          "scope": .string("application"),
+          "bundleId": .string("com.apple.calculator"),
+          "maxDepth": .int(15),
+        ]),
+        .object([
+          "scope": .string("focused"),
+          "filter": .object([
+            "titleContains": .string("Save")
+          ]),
+        ]),
+        .object([
+          "scope": .string("position"),
+          "x": .int(400),
+          "y": .int(300),
+        ]),
+        .object([
+          "scope": .string("path"),
+          "elementPath": .string("macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow"),
+          "maxDepth": .int(10),
+        ]),
+      ]),
     ])
   }
 

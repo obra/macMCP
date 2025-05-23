@@ -11,7 +11,37 @@ public struct MenuNavigationTool: @unchecked Sendable {
   public let name = ToolNames.menuNavigation
 
   /// Description of the tool
-  public let description = "Get and interact with menus of macOS applications"
+  public let description = """
+Navigate and interact with macOS application menus for accessing commands and functionality.
+
+IMPORTANT: Use InterfaceExplorerTool first to discover available menus and menu structures for applications.
+
+Available actions:
+- getApplicationMenus: List all top-level menus for an application
+- getMenuItems: Get items within a specific menu (File, Edit, View, etc.)
+- activateMenuItem: Click/activate a specific menu item using element path
+
+Common workflows:
+1. Discover menus: getApplicationMenus with bundleId
+2. Explore menu content: getMenuItems with menuTitle
+3. Activate commands: activateMenuItem with menuPath from previous exploration
+4. Handle submenus: Use includeSubmenus for complete menu tree exploration
+
+Menu structure hierarchy:
+- Application → Top-level menus (File, Edit, View, etc.)
+- Menu → Menu items (New, Open, Save, etc.)
+- Menu items → Submenus or commands
+
+Element path format: Menu items use macos://ui/ paths from InterfaceExplorerTool or getMenuItems.
+
+Use cases:
+- Access app commands not available in UI
+- Automate menu-driven workflows
+- Discover available application functionality
+- Execute keyboard shortcut equivalents programmatically
+
+Bundle ID required for all operations to target specific application.
+"""
 
   /// Input schema for the tool
   public private(set) var inputSchema: Value
@@ -45,9 +75,11 @@ public struct MenuNavigationTool: @unchecked Sendable {
 
     // Set tool annotations
     annotations = .init(
-      title: "Menu Navigation",
+      title: "macOS Menu Navigation",
       readOnlyHint: false,
-      openWorldHint: true,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: true
     )
 
     // Initialize inputSchema with an empty object first
@@ -64,8 +96,7 @@ public struct MenuNavigationTool: @unchecked Sendable {
       "properties": .object([
         "action": .object([
           "type": .string("string"),
-          "description": .string(
-            "The action to perform: getApplicationMenus, getMenuItems, activateMenuItem"),
+          "description": .string("Menu operation: list app menus, explore menu items, or activate specific menu commands"),
           "enum": .array([
             .string("getApplicationMenus"),
             .string("getMenuItems"),
@@ -74,29 +105,46 @@ public struct MenuNavigationTool: @unchecked Sendable {
         ]),
         "bundleId": .object([
           "type": .string("string"),
-          "description": .string(
-            "The bundle identifier of the application. Required for all actions."),
+          "description": .string("Application bundle identifier (required for all actions, e.g., 'com.apple.TextEdit')"),
         ]),
         "menuTitle": .object([
           "type": .string("string"),
-          "description": .string(
-            "Title of the menu to get items from or navigate. Required for getMenuItems."),
+          "description": .string("Top-level menu name to explore (required for getMenuItems, e.g., 'File', 'Edit', 'View')"),
         ]),
         "menuPath": .object([
           "type": .string("string"),
-          "description": .string(
-            "ElementPath URI to the menu item to activate in the format 'macos://ui/...'. Required for activateMenuItem."
-          ),
+          "description": .string("Element path to menu item for activation (required for activateMenuItem, from getMenuItems results)"),
         ]),
         "includeSubmenus": .object([
           "type": .string("boolean"),
-          "description": .string(
-            "Whether to include submenus in the results when getting menu items"),
+          "description": .string("Include nested submenus in getMenuItems results (default: false for simpler output)"),
           "default": .bool(false),
         ]),
       ]),
       "required": .array([.string("action"), .string("bundleId")]),
       "additionalProperties": .bool(false),
+      "examples": .array([
+        .object([
+          "action": .string("getApplicationMenus"),
+          "bundleId": .string("com.apple.TextEdit"),
+        ]),
+        .object([
+          "action": .string("getMenuItems"),
+          "bundleId": .string("com.apple.TextEdit"),
+          "menuTitle": .string("File"),
+        ]),
+        .object([
+          "action": .string("getMenuItems"),
+          "bundleId": .string("com.apple.TextEdit"),
+          "menuTitle": .string("Format"),
+          "includeSubmenus": .bool(true),
+        ]),
+        .object([
+          "action": .string("activateMenuItem"),
+          "bundleId": .string("com.apple.TextEdit"),
+          "menuPath": .string("macos://ui/AXApplication[@bundleId=\"com.apple.TextEdit\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"File\"]/AXMenu/AXMenuItem[@AXTitle=\"Save\"]"),
+        ]),
+      ]),
     ])
   }
 

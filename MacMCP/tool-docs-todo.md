@@ -11,17 +11,17 @@ Based on feedback that Claude has trouble with our tools due to lacking document
 
 ## Progress Status
 
-✅ **COMPLETED (3/8 tools):**
+✅ **COMPLETED (4/8 tools):**
 1. **KeyboardInteractionTool** - Enhanced with comprehensive usage patterns and examples
 2. **ScreenshotTool** - Added detailed region explanations and coordinate examples  
 3. **ApplicationManagementTool** - Comprehensive action descriptions with app identification guidance
+4. **WindowManagementTool** - Added coordinate system explanation and workflow patterns
+5. **ClipboardManagementTool** - Enhanced with data format details and comprehensive examples
 
 🔄 **IN PROGRESS:**
-- WindowManagementTool (next up)
+- OnboardingTool (next up)
 
-📋 **REMAINING (5/8 tools):**
-- ClipboardManagementTool
-- OnboardingTool  
+📋 **REMAINING (4/8 tools):**
 - UIInteractionTool
 - InterfaceExplorerTool
 - MenuNavigationTool
