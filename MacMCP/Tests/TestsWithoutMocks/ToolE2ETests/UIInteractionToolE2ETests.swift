@@ -398,6 +398,10 @@ struct UIInteractionToolE2ETests {
       #expect(Bool(false), "Empty path for text area")
       return
     }
+    
+    // Verify this is actually a text area with the right actions
+    #expect(textArea.role == "AXTextArea", "Element should be AXTextArea, got: \(textArea.role)")
+    #expect(textArea.actions.contains("AXShowMenu"), "TextArea should support AXShowMenu action")
     let rightClickParams: [String: Value] = [
       "action": .string("right_click"),
       "elementPath": .string(textAreaPath),
@@ -410,11 +414,14 @@ struct UIInteractionToolE2ETests {
     // Since it's difficult to programmatically verify a context menu appeared,
     // we'll just validate that no error was thrown and a result was returned
 
-    // Dismiss any context menu by clicking elsewhere
-    // Calculate a point outside the text area
-    let outsidePoint = CGPoint(x: 50, y: 50)
-    _ = try await textEditHelper.toolChain.clickAtPosition(position: outsidePoint)
-    try await Task.sleep(for: .milliseconds(1000))
+    // Dismiss any context menu with escape key
+    _ = try await textEditHelper.toolChain.keyboardInteractionTool.handler([
+      "action": .string("key_sequence"),
+      "sequence": .array([
+        .object(["tap": .string("Escape")])
+      ])
+    ])
+    try await Task.sleep(for: .milliseconds(500))
     
     try await tearDown()
   }
