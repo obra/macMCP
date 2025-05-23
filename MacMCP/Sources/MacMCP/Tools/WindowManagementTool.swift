@@ -11,7 +11,36 @@ public struct WindowManagementTool: @unchecked Sendable {
   public let name = ToolNames.windowManagement
 
   /// Description of the tool
-  public let description = "Comprehensive window management for macOS applications"
+  public let description = """
+Comprehensive window management for macOS applications with positioning, sizing, and state control.
+
+IMPORTANT: Window coordinates use screen coordinates with (0,0) at top-left corner.
+
+Available actions:
+- getApplicationWindows: List all windows for an application
+- getActiveWindow: Get the currently active window
+- getFocusedElement: Get the currently focused UI element
+- moveWindow: Move a window to new coordinates
+- resizeWindow: Change window dimensions
+- minimizeWindow: Minimize a window to dock
+- maximizeWindow: Maximize/zoom a window
+- closeWindow: Close a window
+- activateWindow: Bring window to front and focus
+- setWindowOrder: Change window layering order
+- focusWindow: Give keyboard focus to window
+
+Window identification:
+- bundleId: Application bundle identifier (e.g., "com.apple.calculator")
+- windowId: Specific window identifier from getApplicationWindows
+
+Common workflows:
+1. List windows: getApplicationWindows → get windowId
+2. Position window: moveWindow with x, y coordinates
+3. Size window: resizeWindow with width, height
+4. Focus management: activateWindow → focusWindow
+
+Coordinate system: Screen pixels, (0,0) = top-left, positive values go right/down.
+"""
 
   /// Input schema for the tool
   public private(set) var inputSchema: Value
@@ -81,9 +110,11 @@ public struct WindowManagementTool: @unchecked Sendable {
 
     // Set tool annotations
     annotations = .init(
-      title: "Window Management",
+      title: "macOS Window Management",
       readOnlyHint: false,
-      openWorldHint: true,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: true
     )
 
     // Initialize inputSchema with an empty object first
@@ -100,7 +131,7 @@ public struct WindowManagementTool: @unchecked Sendable {
       "properties": .object([
         "action": .object([
           "type": .string("string"),
-          "description": .string("The window management action to perform"),
+          "description": .string("Window management operation: get info, move/resize, minimize/maximize, focus control"),
           "enum": .array([
             .string("getApplicationWindows"),
             .string("getActiveWindow"),
@@ -117,36 +148,36 @@ public struct WindowManagementTool: @unchecked Sendable {
         ]),
         "bundleId": .object([
           "type": .string("string"),
-          "description": .string("The bundle identifier of the application"),
+          "description": .string("Application bundle identifier (required for getApplicationWindows, e.g., 'com.apple.calculator')"),
         ]),
         "windowId": .object([
           "type": .string("string"),
-          "description": .string("Identifier of a specific window to target"),
+          "description": .string("Specific window identifier from getApplicationWindows (required for window-specific actions)"),
         ]),
         "includeMinimized": .object([
           "type": .string("boolean"),
-          "description": .string("Whether to include minimized windows in the results"),
+          "description": .string("Include minimized windows in getApplicationWindows results (default: true)"),
           "default": .bool(true),
         ]),
         "x": .object([
           "type": .string("number"),
-          "description": .string("X coordinate for window positioning"),
+          "description": .string("X coordinate in screen pixels for moveWindow (0 = left edge)"),
         ]),
         "y": .object([
           "type": .string("number"),
-          "description": .string("Y coordinate for window positioning"),
+          "description": .string("Y coordinate in screen pixels for moveWindow (0 = top edge)"),
         ]),
         "width": .object([
           "type": .string("number"),
-          "description": .string("Width for window resizing"),
+          "description": .string("Window width in pixels for resizeWindow"),
         ]),
         "height": .object([
           "type": .string("number"),
-          "description": .string("Height for window resizing"),
+          "description": .string("Window height in pixels for resizeWindow"),
         ]),
         "orderMode": .object([
           "type": .string("string"),
-          "description": .string("Window ordering mode: front, back, above, below"),
+          "description": .string("Window layering: 'front'=topmost, 'back'=bottom, 'above'/'below'=relative to reference"),
           "enum": .array([
             .string("front"),
             .string("back"),
@@ -156,11 +187,41 @@ public struct WindowManagementTool: @unchecked Sendable {
         ]),
         "referenceWindowId": .object([
           "type": .string("string"),
-          "description": .string("Reference window ID for relative ordering operations"),
+          "description": .string("Reference window ID for 'above'/'below' orderMode operations"),
         ]),
       ]),
       "required": .array([.string("action")]),
       "additionalProperties": .bool(false),
+      "examples": .array([
+        .object([
+          "action": .string("getApplicationWindows"),
+          "bundleId": .string("com.apple.calculator"),
+        ]),
+        .object([
+          "action": .string("moveWindow"),
+          "windowId": .string("window_123"),
+          "x": .int(100),
+          "y": .int(200),
+        ]),
+        .object([
+          "action": .string("resizeWindow"),
+          "windowId": .string("window_123"),
+          "width": .int(800),
+          "height": .int(600),
+        ]),
+        .object([
+          "action": .string("activateWindow"),
+          "windowId": .string("window_123"),
+        ]),
+        .object([
+          "action": .string("getActiveWindow"),
+        ]),
+        .object([
+          "action": .string("setWindowOrder"),
+          "windowId": .string("window_123"),
+          "orderMode": .string("front"),
+        ]),
+      ]),
     ])
   }
 

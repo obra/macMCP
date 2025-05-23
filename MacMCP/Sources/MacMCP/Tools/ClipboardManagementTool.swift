@@ -20,9 +20,11 @@ public struct ClipboardManagementTool: @unchecked Sendable {
 
     // Set tool annotations
     annotations = .init(
-      title: "Clipboard Management",
+      title: "macOS Clipboard Management",
       readOnlyHint: false,
-      openWorldHint: true,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true
     )
   }
 
@@ -30,7 +32,37 @@ public struct ClipboardManagementTool: @unchecked Sendable {
   public var name: String { ToolNames.clipboardManagement }
 
   /// Description of what the tool does
-  public var description: String { "Manage clipboard content including text, images, and files" }
+  public var description: String {
+    """
+Manage macOS clipboard content including text, images, and files with comprehensive operations.
+
+IMPORTANT: Images must be base64-encoded data. Files use absolute file paths.
+
+Available actions:
+- getInfo: Get information about clipboard content types and status
+- getText: Retrieve text content from clipboard
+- setText: Set text content in clipboard
+- getImage: Get image from clipboard as base64-encoded data
+- setImage: Set image in clipboard from base64-encoded data
+- getFiles: Get file paths from clipboard
+- setFiles: Set file paths in clipboard
+- clear: Clear all clipboard content
+
+Content types supported:
+- Text: Plain text strings
+- Images: Base64-encoded PNG/JPEG data
+- Files: Array of absolute file paths
+
+Common workflows:
+1. Check content: getInfo → determine available types
+2. Copy text: setText with text content
+3. Copy image: setImage with base64 imageData
+4. Copy files: setFiles with filePaths array
+5. Paste content: getText/getImage/getFiles to retrieve
+
+Data formats: Images as base64 strings, files as absolute paths.
+"""
+  }
 
   /// The supported actions as an enum
   public enum Action: String, CaseIterable {
@@ -68,26 +100,48 @@ public struct ClipboardManagementTool: @unchecked Sendable {
         "action": .object([
           "type": .string("string"),
           "enum": .array(Action.allCases.map { .string($0.rawValue) }),
-          "description": .string("The clipboard action to perform"),
+          "description": .string("Clipboard operation: get/set text, images, files, or get info/clear"),
         ]),
         "text": .object([
           "type": .string("string"),
-          "description": .string("Text content to set in clipboard (for setText action)"),
+          "description": .string("Text content to set in clipboard (required for setText action)"),
         ]),
         "imageData": .object([
           "type": .string("string"),
-          "description": .string(
-            "Base64 encoded image data to set in clipboard (for setImage action)"),
+          "description": .string("Base64-encoded image data (PNG/JPEG) to set in clipboard (required for setImage action)"),
         ]),
         "filePaths": .object([
           "type": .string("array"),
           "items": .object([
             "type": .string("string")
           ]),
-          "description": .string("Array of file paths to set in clipboard (for setFiles action)"),
+          "description": .string("Array of absolute file paths to set in clipboard (required for setFiles action)"),
         ]),
       ]),
       "additionalProperties": .bool(false),
+      "examples": .array([
+        .object([
+          "action": .string("getInfo"),
+        ]),
+        .object([
+          "action": .string("setText"),
+          "text": .string("Hello, world!"),
+        ]),
+        .object([
+          "action": .string("getText"),
+        ]),
+        .object([
+          "action": .string("setImage"),
+          "imageData": .string("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="),
+        ]),
+        .object([
+          "action": .string("setFiles"),
+          "filePaths": .array([.string("/Users/username/Documents/file.txt"), .string("/Users/username/Pictures/image.png")]),
+        ]),
+        .object([
+          "action": .string("clear"),
+        ]),
+      ]),
     ])
   }
 

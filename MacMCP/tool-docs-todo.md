@@ -9,6 +9,23 @@ Based on feedback that Claude has trouble with our tools due to lacking document
 2. Detailed input schemas with embedded examples
 3. Proper tool annotations with behavioral hints
 
+## Progress Status
+
+✅ **COMPLETED (3/8 tools):**
+1. **KeyboardInteractionTool** - Enhanced with comprehensive usage patterns and examples
+2. **ScreenshotTool** - Added detailed region explanations and coordinate examples  
+3. **ApplicationManagementTool** - Comprehensive action descriptions with app identification guidance
+
+🔄 **IN PROGRESS:**
+- WindowManagementTool (next up)
+
+📋 **REMAINING (5/8 tools):**
+- ClipboardManagementTool
+- OnboardingTool  
+- UIInteractionTool
+- InterfaceExplorerTool
+- MenuNavigationTool
+
 ## Tools to Improve
 
 ### 1. UIInteractionTool (`Sources/MacMCP/Tools/UIInteractionTool.swift`)
