@@ -188,6 +188,40 @@ struct ElementPathTests {
     }
   }
 
+  @Test("Real JSON quote escaping scenario")
+  func realJSONQuoteEscapingScenario() throws {
+    // This is what the interface explorer returns in JSON
+    let jsonFromExplorer = #"macos://ui/AXApplication[@AXTitle=\"Calculator\"][@bundleId=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"All Clear\"]"#
+    
+    // This is what Claude tries to use (without escaped quotes)
+    let claudeInput = #"macos://ui/AXApplication[@AXTitle="Calculator"][@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="All Clear"]"#
+    
+    print("JSON from explorer: \(jsonFromExplorer)")
+    print("Claude input: \(claudeInput)")
+    
+    // Both should parse successfully after our fixes
+    do {
+      let explorerParsed = try ElementPath.parse(jsonFromExplorer)
+      print("Explorer JSON parsing: SUCCESS - \(explorerParsed.segments.count) segments")
+    } catch {
+      print("Explorer JSON parsing: FAILED - \(error)")
+    }
+    
+    do {
+      let claudeParsed = try ElementPath.parse(claudeInput)
+      print("Claude input parsing: SUCCESS - \(claudeParsed.segments.count) segments")
+    } catch {
+      print("Claude input parsing: FAILED - \(error)")
+    }
+    
+    // Both should parse to identical results
+    let explorerParsed = try ElementPath.parse(jsonFromExplorer)
+    let claudeParsed = try ElementPath.parse(claudeInput)
+    
+    #expect(explorerParsed.segments.count == claudeParsed.segments.count)
+    #expect(explorerParsed.segments[0].role == claudeParsed.segments[0].role)
+  }
+
   @Test("ElementPath parsing with index")
   func elementPathParsingWithIndex() throws {
     let pathString = "macos://ui/AXWindow/AXGroup[2]/AXButton"

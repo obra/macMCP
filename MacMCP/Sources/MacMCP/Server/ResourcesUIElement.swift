@@ -128,9 +128,9 @@ open class UIElementResourceHandler: ResourceHandler, @unchecked Sendable {
                 
                 // Convert to descriptors with paths
                 let descriptors = interactableElements.map { element in
-                    ElementDescriptor.from(
+                    EnhancedElementDescriptor.from(
                         element: element,
-                        includeChildren: false
+                        maxDepth: 0  // Don't include children for interactable list
                     )
                 }
                 
@@ -172,11 +172,10 @@ open class UIElementResourceHandler: ResourceHandler, @unchecked Sendable {
                 return (.text(jsonString), metadata)
             }
             
-            // Convert to ElementDescriptor with children based on maxDepth
-            let includeChildren = maxDepth > 0
-            let descriptor = ElementDescriptor.from(
+            // Convert to EnhancedElementDescriptor with children based on maxDepth
+            let descriptor = EnhancedElementDescriptor.from(
                 element: element,
-                includeChildren: includeChildren
+                maxDepth: maxDepth
             )
             
             // Encode the descriptor as JSON

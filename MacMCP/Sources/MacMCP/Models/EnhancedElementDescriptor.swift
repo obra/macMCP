@@ -190,4 +190,32 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
       children: children
     )
   }
+  
+  /// Custom encoding to output opaque IDs instead of raw element paths
+  public func encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.self)
+    
+    // Encode id as opaque ID to eliminate escaping issues
+    let opaqueID = try OpaqueIDEncoder.encode(id)
+    try container.encode(opaqueID, forKey: .id)
+    
+    // Encode all other fields normally
+    try container.encode(role, forKey: .role)
+    try container.encode(name, forKey: .name)
+    try container.encodeIfPresent(title, forKey: .title)
+    try container.encodeIfPresent(value, forKey: .value)
+    try container.encodeIfPresent(description, forKey: .description)
+    try container.encode(frame, forKey: .frame)
+    try container.encode(state, forKey: .state)
+    try container.encode(capabilities, forKey: .capabilities)
+    try container.encode(actions, forKey: .actions)
+    try container.encode(attributes, forKey: .attributes)
+    try container.encodeIfPresent(children, forKey: .children)
+  }
+  
+  /// Coding keys for custom Codable implementation
+  private enum CodingKeys: String, CodingKey {
+    case id, role, name, title, value, description, frame
+    case state, capabilities, actions, attributes, children
+  }
 }

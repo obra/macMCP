@@ -377,7 +377,7 @@ Coordinate system: Screen pixels, (0,0) = top-left, positive values go right/dow
     ).filter { ($0.attributes["focused"] as? Bool) == true }
 
     // Convert the focused element(s) to descriptors
-    let descriptors = elements.map { ElementDescriptor.from(element: $0) }
+    let descriptors = elements.map { EnhancedElementDescriptor.from(element: $0, maxDepth: 1) }
 
     // Return the element descriptors
     return try formatResponse(descriptors)

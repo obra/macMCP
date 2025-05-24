@@ -206,6 +206,39 @@ public struct ElementDescriptor: Codable, Sendable, Identifiable {
     let decoder = JSONConfiguration.decoder
     return try decoder.decode(Value.self, from: data)
   }
+  
+  /// Custom encoding to output opaque IDs instead of raw element paths
+  public func encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.self)
+    
+    // Encode id as opaque ID to eliminate escaping issues
+    let opaqueID = try OpaqueIDEncoder.encode(id)
+    try container.encode(opaqueID, forKey: .id)
+    
+    // Encode all other fields normally
+    try container.encode(name, forKey: .name)
+    try container.encode(role, forKey: .role)
+    try container.encodeIfPresent(title, forKey: .title)
+    try container.encodeIfPresent(value, forKey: .value)
+    try container.encodeIfPresent(description, forKey: .description)
+    try container.encode(frame, forKey: .frame)
+    try container.encode(isVisible, forKey: .isVisible)
+    try container.encode(isEnabled, forKey: .isEnabled)
+    try container.encode(isFocused, forKey: .isFocused)
+    try container.encode(isSelected, forKey: .isSelected)
+    try container.encode(actions, forKey: .actions)
+    try container.encode(attributes, forKey: .attributes)
+    try container.encode(hasChildren, forKey: .hasChildren)
+    try container.encodeIfPresent(childCount, forKey: .childCount)
+    try container.encodeIfPresent(children, forKey: .children)
+  }
+  
+  /// Coding keys for custom Codable implementation
+  private enum CodingKeys: String, CodingKey {
+    case id, name, role, title, value, description, frame
+    case isVisible, isEnabled, isFocused, isSelected
+    case actions, attributes, hasChildren, childCount, children
+  }
 }
 
 /// A descriptor for element position and size

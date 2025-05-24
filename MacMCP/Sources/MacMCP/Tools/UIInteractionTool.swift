@@ -264,10 +264,23 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
     }
   }
 
+  /// Decode element ID - handles both opaque IDs and raw paths
+  private func decodeElementID(_ elementID: String) -> String {
+    // Try to decode as opaque ID first, fall back to treating as raw path
+    do {
+      return try OpaqueIDEncoder.decode(elementID)
+    } catch {
+      // Not an opaque ID or decoding failed, treat as raw path
+      return elementID
+    }
+  }
+  
   /// Handle click action
   private func handleClick(_ params: [String: Value]) async throws -> [Tool.Content] {
     // Element path click
-    if let elementPath = params["id"]?.stringValue {
+    if let elementID = params["id"]?.stringValue {
+      // Decode the element ID (handles both opaque IDs and raw paths)
+      let elementPath = decodeElementID(elementID)
       // Check if app bundle ID is provided
       let appBundleId = params["appBundleId"]?.stringValue
 
@@ -379,7 +392,7 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
 
   /// Handle double click action
   private func handleDoubleClick(_ params: [String: Value]) async throws -> [Tool.Content] {
-    guard let elementPath = params["id"]?.stringValue else {
+    guard let elementID = params["id"]?.stringValue else {
       throw createInteractionError(
         message: "Double click action requires id",
         context: [
@@ -389,6 +402,9 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
         ],
       ).asMCPError
     }
+    
+    // Decode the element ID (handles both opaque IDs and raw paths)
+    let elementPath = decodeElementID(elementID)
 
     // Check if app bundle ID is provided
     let appBundleId = params["appBundleId"]?.stringValue
@@ -400,7 +416,7 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
 
   /// Handle right click action
   private func handleRightClick(_ params: [String: Value]) async throws -> [Tool.Content] {
-    guard let elementPath = params["id"]?.stringValue else {
+    guard let elementID = params["id"]?.stringValue else {
       throw createInteractionError(
         message: "Right click action requires id",
         context: [
@@ -410,6 +426,9 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
         ],
       ).asMCPError
     }
+    
+    // Decode the element ID (handles both opaque IDs and raw paths)
+    let elementPath = decodeElementID(elementID)
 
     // Check if app bundle ID is provided
     let appBundleId = params["appBundleId"]?.stringValue
@@ -421,7 +440,7 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
 
   /// Handle drag action
   private func handleDrag(_ params: [String: Value]) async throws -> [Tool.Content] {
-    guard let sourceElementPath = params["id"]?.stringValue else {
+    guard let sourceElementID = params["id"]?.stringValue else {
       throw createInteractionError(
         message: "Drag action requires id (source)",
         context: [
@@ -432,17 +451,21 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
       ).asMCPError
     }
 
-    guard let targetElementPath = params["targetId"]?.stringValue else {
+    guard let targetElementID = params["targetId"]?.stringValue else {
       throw createInteractionError(
         message: "Drag action requires targetId",
         context: [
           "toolName": name,
           "action": "drag",
-          "sourceId": sourceElementPath,
+          "sourceId": sourceElementID,
           "providedParams": "\(params.keys.joined(separator: ", "))",
         ],
       ).asMCPError
     }
+    
+    // Decode both element IDs (handles both opaque IDs and raw paths)
+    let sourceElementPath = decodeElementID(sourceElementID)
+    let targetElementPath = decodeElementID(targetElementID)
 
     // Check if app bundle ID is provided
     let appBundleId = params["appBundleId"]?.stringValue
@@ -460,7 +483,7 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
 
   /// Handle scroll action
   private func handleScroll(_ params: [String: Value]) async throws -> [Tool.Content] {
-    guard let elementPath = params["id"]?.stringValue else {
+    guard let elementID = params["id"]?.stringValue else {
       throw createInteractionError(
         message: "Scroll action requires id",
         context: [
@@ -470,6 +493,9 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
         ],
       ).asMCPError
     }
+    
+    // Decode the element ID (handles both opaque IDs and raw paths)
+    let elementPath = decodeElementID(elementID)
 
     guard let directionString = params["direction"]?.stringValue,
       let direction = ScrollDirection(rawValue: directionString)
