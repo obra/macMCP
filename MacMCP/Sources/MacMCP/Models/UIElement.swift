@@ -998,8 +998,11 @@ public enum FrameSource: String, Codable {
         (normalizedRole == "AXGroup" || normalizedRole == "AXBox" || normalizedRole == "AXGeneric")
 
       // Add useful identifying attributes - title, description, and identifier are most stable
+      // For AXApplication elements, skip title to keep paths clean (bundleId will be added during resolution)
       if let title = element.title, !title.isEmpty {
-        attributes["AXTitle"] = PathNormalizer.escapeAttributeValue(title)
+        if normalizedRole != "AXApplication" {
+          attributes["AXTitle"] = PathNormalizer.escapeAttributeValue(title)
+        }
       }
 
       if let desc = element.elementDescription, !desc.isEmpty {
@@ -1041,18 +1044,6 @@ public enum FrameSource: String, Codable {
               continue  // Skip the rest of this iteration to avoid adding duplicate segment
             }
           }
-        }
-      }
-
-      // For applications, ALWAYS prioritize bundle identifier
-      if normalizedRole == "AXApplication" {
-        if let bundleId = element.attributes["bundleId"] as? String, !bundleId.isEmpty {
-          // bundleId is a special case - don't add AX prefix
-          attributes["bundleId"] = bundleId
-
-          // When we have a bundleId, remove the title attribute
-          // to ensure consistent path generation that relies only on bundleId
-          attributes.removeValue(forKey: "AXTitle")
         }
       }
 

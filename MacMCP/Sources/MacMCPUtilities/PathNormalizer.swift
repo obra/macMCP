@@ -74,13 +74,8 @@ public class PathNormalizer {
   public static func escapeAttributeValue(_ value: String) -> String {
     var result = value
 
-    // Escape backslashes first (so we don't double-escape)
-    result = result.replacingOccurrences(of: "\\", with: "\\\\")
-
-    // Escape quotes
-    result = result.replacingOccurrences(of: "\"", with: "\\\"")
-
-    // Escape control characters
+    // For internal element paths, we don't escape quotes since they're handled by the path system
+    // Only escape control characters that could break parsing
     result = result.replacingOccurrences(of: "\n", with: "\\n")
     result = result.replacingOccurrences(of: "\r", with: "\\r")
     result = result.replacingOccurrences(of: "\t", with: "\\t")
