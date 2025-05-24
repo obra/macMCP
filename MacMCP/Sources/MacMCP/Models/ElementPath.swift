@@ -113,11 +113,77 @@ public struct ElementPath: Sendable {
       return startElement
     }
 
-    // Use BFS for path resolution
-    logger.trace("DIAGNOSTIC: Starting BFS resolution with startIndex=\(startSegmentIndex), total segments=\(segments.count)")
-    let result = try await resolveBFS(startElement: startElement, startIndex: startSegmentIndex)
-    logger.trace("DIAGNOSTIC: BFS resolution succeeded")
+    // Use simplified sequential resolution (like diagnostic method)
+    logger.trace("DIAGNOSTIC: Starting sequential resolution with startIndex=\(startSegmentIndex), total segments=\(segments.count)")
+    let result = try await resolveSequential(startElement: startElement, startIndex: startSegmentIndex)
+    logger.trace("DIAGNOSTIC: Sequential resolution succeeded")
     return result
+  }
+
+  /// Resolve the path using simple sequential traversal (similar to diagnostic method)
+  /// - Parameters:
+  ///   - startElement: The element to start the search from  
+  ///   - startIndex: The segment index to start from
+  /// - Returns: The matched element at the end of the path
+  /// - Throws: ElementPathError if no matching element is found
+  private func resolveSequential(
+    startElement: AXUIElement,
+    startIndex: Int
+  ) async throws -> AXUIElement {
+    var currentElement = startElement
+    
+    // Process each segment sequentially
+    for i in startIndex..<segments.count {
+      let segment = segments[i]
+      
+      logger.trace("DIAGNOSTIC: Processing segment \(i): \(segment.toString())")
+      
+      // Get children of current element
+      guard let children = await getChildElements(of: currentElement) else {
+        throw ElementPathError.segmentResolutionFailed(
+          "Could not get children for segment: \(segment.toString())",
+          atSegment: i
+        )
+      }
+      
+      // Find matching children
+      var matchingChildren: [AXUIElement] = []
+      for child in children {
+        if try await elementMatchesSegment(child, segment: segment, segmentIndex: i) {
+          matchingChildren.append(child)
+        }
+      }
+      
+      // Handle the results
+      if matchingChildren.isEmpty {
+        throw ElementPathError.noMatchingElements(
+          "No children match segment: \(segment.toString())",
+          atSegment: i
+        )
+      } else if matchingChildren.count == 1 {
+        currentElement = matchingChildren[0]
+        logger.trace("DIAGNOSTIC: Found single match for segment \(i)")
+      } else {
+        // Multiple matches - if segment has an index, use it
+        if let index = segment.index {
+          if index >= 0 && index < matchingChildren.count {
+            currentElement = matchingChildren[index]
+            logger.trace("DIAGNOSTIC: Selected match \(index) of \(matchingChildren.count) for segment \(i)")
+          } else {
+            throw ElementPathError.invalidIndexSyntax(
+              "Index \(index) is out of range (0..\(matchingChildren.count - 1))",
+              atSegment: i
+            )
+          }
+        } else {
+          // No index specified but multiple matches found
+          currentElement = matchingChildren[0]
+          logger.trace("DIAGNOSTIC: Multiple matches (\(matchingChildren.count)) found for segment \(i), using first match")
+        }
+      }
+    }
+    
+    return currentElement
   }
 
   /// Get the application element that serves as the starting point for path resolution
@@ -360,12 +426,13 @@ public struct ElementPath: Sendable {
   }
 
   /// Resolves a path using breadth-first search to handle ambiguities
+  /// This function is currently UNUSED AND SHOULD PROBABLY BE REMOVED
   /// - Parameters:
   ///   - startElement: The element to start the search from
   ///   - startIndex: The segment index to start from
   /// - Returns: The matched element at the end of the path
   /// - Throws: ElementPathError if no matching element is found
-  private func resolveBFS(
+  private func unusedProbablyBrokenresolveBFS(
     startElement: AXUIElement,
     startIndex: Int,
     maxDepth: Int = 50,
@@ -408,6 +475,12 @@ public struct ElementPath: Sendable {
       
       if depth % 10 == 0 {
         logger.trace("DIAGNOSTIC: BFS processing depth \(depth) with queue size \(queue.count)")
+      }
+      
+      // DIAGNOSTIC: Log queue state at each iteration
+      logger.trace("DIAGNOSTIC: BFS depth \(depth), queue size: \(queue.count)")
+      for (i, queueNode) in queue.enumerated().prefix(3) {
+        logger.trace("DIAGNOSTIC: Queue[\(i)]: segmentIndex=\(queueNode.segmentIndex), path=\(queueNode.pathSoFar)")
       }
 
       // Dequeue the next node to process
@@ -1694,7 +1767,7 @@ extension ElementPath {
       // Find matching children
       var matchingChildren: [AXUIElement] = []
       for child in children {
-        if try await path.elementMatchesSegment(child, segment: segment) {
+        if try await path.elementMatchesSegment(child, segment: segment, segmentIndex: i) {
           matchingChildren.append(child)
         }
       }

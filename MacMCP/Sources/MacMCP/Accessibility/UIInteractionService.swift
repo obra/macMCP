@@ -1491,20 +1491,48 @@ extension UIInteractionService {
         }
         
         // Try to get detailed diagnostic information if possible
+        var diagnosticInfo: String = ""
         do {
           logger.info("Attempting detailed path resolution diagnosis...")
-          let diagnosticInfo = try await ElementPath.diagnosePathResolutionIssue(path, using: accessibilityService)
+          diagnosticInfo = try await ElementPath.diagnosePathResolutionIssue(path, using: accessibilityService)
           logger.debug("Diagnostic info available (truncated): \(String(diagnosticInfo.prefix(200)))...")
         } catch {
           logger.trace("Failed to get diagnostic information: \(error)")
+          diagnosticInfo = "Failed to get diagnostic information: \(error.localizedDescription)"
         }
+        
+        // Include diagnostic information in the error context
+        var errorContext = ["path": path]
+        if !diagnosticInfo.isEmpty {
+          errorContext["diagnostics"] = diagnosticInfo
+        }
+        
+        throw createPathResolutionError(
+          message: "Failed to find element with path: \(path)",
+          context: errorContext,
+          underlyingError: error,
+        )
+      } else {
+        // For non-ElementPathError cases, also try to get diagnostics
+        var diagnosticInfo: String = ""
+        do {
+          logger.info("Attempting detailed path resolution diagnosis for non-ElementPathError...")
+          diagnosticInfo = try await ElementPath.diagnosePathResolutionIssue(path, using: accessibilityService)
+        } catch {
+          diagnosticInfo = "Failed to get diagnostic information: \(error.localizedDescription)"
+        }
+        
+        var errorContext = ["path": path]
+        if !diagnosticInfo.isEmpty {
+          errorContext["diagnostics"] = diagnosticInfo
+        }
+        
+        throw createPathResolutionError(
+          message: "Failed to find element with path: \(path)",
+          context: errorContext,
+          underlyingError: error,
+        )
       }
-      
-      throw createPathResolutionError(
-        message: "Failed to find element with path: \(path)",
-        context: ["path": path],
-        underlyingError: error,
-      )
     }
 
     // Perform the click using the AXUIElement directly
