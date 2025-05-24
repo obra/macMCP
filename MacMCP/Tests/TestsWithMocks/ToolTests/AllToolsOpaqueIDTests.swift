@@ -21,8 +21,7 @@ struct AllToolsOpaqueIDTests {
       value: nil,
       description: "All Clear",
       frame: ElementFrame(x: 0, y: 0, width: 50, height: 30),
-      state: ["Enabled", "Visible"],
-      capabilities: ["clickable"],
+      props: ["Enabled", "Visible", "clickable"],
       actions: ["AXPress"],
       attributes: [:],
       children: nil
@@ -60,8 +59,7 @@ struct AllToolsOpaqueIDTests {
       value: nil,
       description: nil,
       frame: ElementFrame(x: 100, y: 100, width: 400, height: 300),
-      state: ["Enabled", "Visible"],
-      capabilities: ["movable", "resizable"],
+      props: ["Enabled", "Visible", "movable", "resizable"],
       actions: ["AXMove", "AXResize"],
       attributes: ["bundleId": "com.apple.calculator"],
       children: nil

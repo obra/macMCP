@@ -21,8 +21,7 @@ struct InterfaceExplorerOpaqueIDTests {
       value: nil,
       description: "All Clear",
       frame: ElementFrame(x: 0, y: 0, width: 50, height: 30),
-      state: ["Enabled", "Visible"],
-      capabilities: ["clickable"],
+      props: ["Enabled", "Visible", "clickable"],
       actions: ["AXPress"],
       attributes: [:],
       children: nil

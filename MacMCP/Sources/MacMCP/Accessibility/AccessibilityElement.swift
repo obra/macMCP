@@ -64,6 +64,13 @@ public class AccessibilityElement {
       description = nil
     }
 
+    let identifier: String?
+    do {
+      identifier = try getAttribute(axElement, attribute: AXAttribute.identifier) as? String
+    } catch {
+      identifier = nil
+    }
+
     // Get the frame information with robust error handling
     let frame: CGRect
     let frameSource: FrameSource
@@ -78,30 +85,13 @@ public class AccessibilityElement {
     )
 
     // Get additional attributes - continue even if we encounter errors
-    var attributes: [String: Any] = [:]
+    let attributes: [String: Any] = [:]
 
-    // Common boolean attributes
-    if let focused = try? getAttribute(axElement, attribute: AXAttribute.focused) as? Bool {
-      attributes["focused"] = focused
-    }
+    // Note: State attributes (enabled, focused, selected) are handled by getStateArray() method
+    // and should not be duplicated in attributes dictionary
 
-    if let enabled = try? getAttribute(axElement, attribute: AXAttribute.enabled) as? Bool {
-      attributes["enabled"] = enabled
-    }
-
-    if let selected = try? getAttribute(axElement, attribute: AXAttribute.selected) as? Bool {
-      attributes["selected"] = selected
-    }
-
-    // Try to get application title for context
-    if role == AXAttribute.Role.application {
-      if let appElement = try? getAttribute(axElement, attribute: "AXTitle") as? String {
-        attributes["application"] = appElement
-      }
-    } else if let parentApp = parent?.attributes["application"] as? String {
-      // Inherit application context from parent
-      attributes["application"] = parentApp
-    }
+    // Note: Application context is available through the element hierarchy
+    // and should not be stored as an attribute
 
     // Generate an ElementPath-based identifier for this element
     // Build the current path segment
@@ -140,10 +130,10 @@ public class AccessibilityElement {
     // Build the complete hierarchical path for this element
     let hierarchicalPath = path.isEmpty ? elementPathSegment : "\(path)/\(elementPathSegment)"
 
-    // Use the hierarchical path as the identifier, prefixed with macos://ui/
+    // Use the hierarchical path as the element path identifier, prefixed with macos://ui/
     let fullHierarchicalPath =
       "macos://ui/\(hierarchicalPath.hasPrefix("AX") ? hierarchicalPath : "AX\(hierarchicalPath)")"
-    let identifier = fullHierarchicalPath
+    let elementPath = fullHierarchicalPath
 
     // Now that we have an identifier, we'll use the frame-related variables that are already defined
 
@@ -161,11 +151,12 @@ public class AccessibilityElement {
 
     // Create the element first (without children)
     let element = UIElement(
-      path: identifier,
+      path: elementPath,
       role: role,
       title: title,
       value: value,
       elementDescription: description,
+      identifier: identifier,
       frame: frame,
       normalizedFrame: normalizedFrame,
       viewportFrame: viewportFrame,
@@ -176,7 +167,7 @@ public class AccessibilityElement {
     )
 
     // Set the path property to ensure it's available
-    element.path = identifier
+    element.path = elementPath
 
     // Recursively get children if requested and we haven't reached max depth
     var children: [UIElement] = []
@@ -336,11 +327,12 @@ public class AccessibilityElement {
 
     // Create a new element with the same properties but with children
     let uiElement = UIElement(
-      path: identifier,
+      path: elementPath,
       role: role,
       title: title,
       value: value,
       elementDescription: description,
+      identifier: identifier,
       frame: frame,
       normalizedFrame: normalizedFrame,
       viewportFrame: viewportFrame,
@@ -355,7 +347,7 @@ public class AccessibilityElement {
     uiElement.axElement = axElement
 
     // Set the path property to ensure it's available
-    uiElement.path = identifier
+    uiElement.path = elementPath
 
     return uiElement
   }
@@ -634,6 +626,7 @@ public class AccessibilityElement {
       title: title,
       value: nil,
       elementDescription: nil,
+      identifier: nil,
       frame: frame,
       normalizedFrame: nil,
       viewportFrame: nil,

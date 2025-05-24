@@ -118,6 +118,9 @@ public enum FrameSource: String, Codable {
   /// A description of the element (human-readable, not same as NSObject description)
   public let elementDescription: String?
 
+  /// The accessibility identifier of the element (AXIdentifier)
+  public let identifier: String?
+
   /// The frame of the element in screen coordinates
   public let frame: CGRect
 
@@ -341,6 +344,15 @@ public enum FrameSource: String, Codable {
     // Note: AXError.attributeUnsupported (-25200) is expected for elements without descriptions
     // The system-level error logging cannot be suppressed but is normal behavior
 
+    // Get the identifier if available
+    var identifierRef: CFTypeRef?
+    let identifierStatus = AXUIElementCopyAttributeValue(
+      axElement,
+      AXAttribute.identifier as CFString,
+      &identifierRef,
+    )
+    let identifier: String? = identifierStatus == .success ? identifierRef as? String : nil
+
     // Get the frame
     var frameRef: CFTypeRef?
     let frameStatus = AXUIElementCopyAttributeValue(
@@ -374,29 +386,8 @@ public enum FrameSource: String, Codable {
       actions = actionsArray
     }
 
-    // Check for enabled state
-    var enabledRef: CFTypeRef?
-    let enabledStatus = AXUIElementCopyAttributeValue(
-      axElement, AXAttribute.enabled as CFString, &enabledRef)
-    if enabledStatus == .success, let enabledValue = enabledRef as? Bool {
-      attributes["enabled"] = enabledValue
-    }
-
-    // Check for focused state
-    var focusedRef: CFTypeRef?
-    let focusedStatus = AXUIElementCopyAttributeValue(
-      axElement, AXAttribute.focused as CFString, &focusedRef)
-    if focusedStatus == .success, let focusedValue = focusedRef as? Bool {
-      attributes["focused"] = focusedValue
-    }
-
-    // Check for selected state
-    var selectedRef: CFTypeRef?
-    let selectedStatus = AXUIElementCopyAttributeValue(
-      axElement, AXAttribute.selected as CFString, &selectedRef)
-    if selectedStatus == .success, let selectedValue = selectedRef as? Bool {
-      attributes["selected"] = selectedValue
-    }
+    // Note: enabled, focused, and selected states are handled by getStateArray() method
+    // and should not be duplicated in attributes dictionary
 
     // Generate the path string
     pathString = elementPath.toString()
@@ -408,6 +399,7 @@ public enum FrameSource: String, Codable {
       title: title,
       value: value,
       elementDescription: elementDescription,
+      identifier: identifier,
       frame: frame,
       frameSource: .direct,
       attributes: attributes,
@@ -425,6 +417,7 @@ public enum FrameSource: String, Codable {
   ///   - title: The title or label (optional)
   ///   - value: The current value (optional)
   ///   - description: A description (optional)
+  ///   - identifier: The accessibility identifier (optional)
   ///   - frame: The element's frame in screen coordinates
   ///   - normalizedFrame: The frame coordinates normalized relative to parent (optional)
   ///   - viewportFrame: The frame coordinates relative to a scrollable viewport (optional)
@@ -439,6 +432,7 @@ public enum FrameSource: String, Codable {
     title: String? = nil,
     value: String? = nil,
     elementDescription: String? = nil,
+    identifier: String? = nil,
     frame: CGRect,
     normalizedFrame: CGRect? = nil,
     viewportFrame: CGRect? = nil,
@@ -454,6 +448,7 @@ public enum FrameSource: String, Codable {
     self.title = title
     self.value = value
     self.elementDescription = elementDescription
+    self.identifier = identifier
     self.frame = frame
     self.normalizedFrame = normalizedFrame
     self.viewportFrame = viewportFrame
@@ -592,6 +587,7 @@ public enum FrameSource: String, Codable {
       title: title,
       value: value,
       elementDescription: elementDescription,
+      identifier: identifier,
       frame: frame,
       normalizedFrame: normalizedFrame,
       viewportFrame: viewportFrame,

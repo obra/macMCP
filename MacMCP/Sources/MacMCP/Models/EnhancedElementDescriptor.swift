@@ -29,14 +29,17 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
   /// Human-readable description of the element
   public let description: String?
   
+  /// Help text for the element (if available)
+  public let help: String?
+  
+  /// Unique identifier for the element (if available)  
+  public let identifier: String?
+  
   /// Element position and size
   public let frame: ElementFrame
   
-  /// Current state values as string array
-  public let state: [String]
-  
-  /// Higher-level interaction capabilities
-  public let capabilities: [String]
+  /// Combined element properties including state and capabilities
+  public let props: [String]
   
   /// Available accessibility actions
   public let actions: [String]
@@ -56,9 +59,10 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
   ///   - title: Title or label (optional)
   ///   - value: Current value (optional)
   ///   - description: Human-readable description (optional)
+  ///   - help: Help text (optional)
+  ///   - identifier: Element identifier (optional)
   ///   - frame: Element position and size
-  ///   - state: Current state values as strings
-  ///   - capabilities: Interaction capabilities
+  ///   - props: Combined properties (state and capabilities)
   ///   - actions: Available actions
   ///   - attributes: Additional attributes
   ///   - children: Child elements (optional)
@@ -69,9 +73,10 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     title: String? = nil,
     value: String? = nil,
     description: String? = nil,
+    help: String? = nil,
+    identifier: String? = nil,
     frame: ElementFrame,
-    state: [String],
-    capabilities: [String],
+    props: [String],
     actions: [String],
     attributes: [String: String] = [:],
     children: [EnhancedElementDescriptor]? = nil
@@ -82,9 +87,10 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     self.title = title
     self.value = value
     self.description = description
+    self.help = help
+    self.identifier = identifier
     self.frame = frame
-    self.state = state
-    self.capabilities = capabilities
+    self.props = props
     self.actions = actions
     self.attributes = attributes
     self.children = children
@@ -102,8 +108,17 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     currentDepth: Int = 0
   ) -> EnhancedElementDescriptor {
     // Generate a human-readable name
+    // Priority: identifier (most descriptive) > title > description > value > role
     let name: String =
-      if let title = element.title, !title.isEmpty {
+      if let identifier = element.identifier, !identifier.isEmpty {
+        // Prefer identifier when available (e.g., "Seven" instead of "7")
+        identifier
+      } else if let title = element.title, !title.isEmpty,
+                let desc = element.elementDescription, !desc.isEmpty,
+                title.count == 1 && desc.count > 1 && desc != title {
+        // Use description for single-character titles when description is more descriptive
+        desc
+      } else if let title = element.title, !title.isEmpty {
         title
       } else if let desc = element.elementDescription, !desc.isEmpty {
         desc
@@ -121,14 +136,21 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
       height: element.frame.size.height,
     )
 
-    // Get element state using the new UIElement method
+    // Get element state and capabilities
     let state = element.getStateArray()
-
-    // Get element capabilities using the new UIElement method
     let capabilities = element.getCapabilitiesArray()
+    
+    // Combine state and capabilities into props array
+    var props: [String] = []
+    props.append(contentsOf: state)
+    props.append(contentsOf: capabilities)
 
     // Get filtered attributes using the new UIElement method
     let filteredAttributes = element.getFilteredAttributes()
+    
+    // Extract help from attributes and get identifier from the dedicated property
+    let help = element.attributes[AXAttribute.help] as? String
+    let identifier = element.identifier
 
     // Always generate the fully qualified path
     var path: String?
@@ -182,9 +204,10 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
       title: element.title,
       value: element.value,
       description: element.elementDescription,
+      help: help,
+      identifier: identifier,
       frame: frame,
-      state: state,
-      capabilities: capabilities,
+      props: props,
       actions: element.actions,
       attributes: filteredAttributes,
       children: children
@@ -205,17 +228,23 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     try container.encodeIfPresent(title, forKey: .title)
     try container.encodeIfPresent(value, forKey: .value)
     try container.encodeIfPresent(description, forKey: .description)
+    try container.encodeIfPresent(help, forKey: .help)
+    try container.encodeIfPresent(identifier, forKey: .identifier)
     try container.encode(frame, forKey: .frame)
-    try container.encode(state, forKey: .state)
-    try container.encode(capabilities, forKey: .capabilities)
+    try container.encode(props, forKey: .props)
     try container.encode(actions, forKey: .actions)
-    try container.encode(attributes, forKey: .attributes)
+    
+    // Only include attributes if there are any
+    if !attributes.isEmpty {
+      try container.encode(attributes, forKey: .attributes)
+    }
+    
     try container.encodeIfPresent(children, forKey: .children)
   }
   
   /// Coding keys for custom Codable implementation
   private enum CodingKeys: String, CodingKey {
-    case id, role, name, title, value, description, frame
-    case state, capabilities, actions, attributes, children
+    case id, role, name, title, value, description, help, identifier, frame
+    case props, actions, attributes, children
   }
 }
