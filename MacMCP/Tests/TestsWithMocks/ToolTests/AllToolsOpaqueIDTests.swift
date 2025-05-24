@@ -8,12 +8,12 @@ import Foundation
 @Suite("All Tools Opaque ID Tests")
 struct AllToolsOpaqueIDTests {
   
-  @Test("All descriptor types output opaque IDs")
-  func allDescriptorTypesOutputOpaqueIDs() throws {
+  @Test("EnhancedElementDescriptor outputs opaque IDs")
+  func enhancedElementDescriptorOutputsOpaqueIDs() throws {
     let problematicPath = #"macos://ui/AXApplication[@AXTitle="Calculator"][@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="All Clear"]"#
     
-    // Test EnhancedElementDescriptor (used by InterfaceExplorerTool)
-    let enhancedDescriptor = EnhancedElementDescriptor(
+    // Test EnhancedElementDescriptor (used by all tools now)
+    let descriptor = EnhancedElementDescriptor(
       id: problematicPath,
       role: "AXButton",
       name: "All Clear", 
@@ -28,37 +28,20 @@ struct AllToolsOpaqueIDTests {
       children: nil
     )
     
-    // Test ElementDescriptor (legacy, still used in some tests)
-    let elementDescriptor = ElementDescriptor(
-      id: problematicPath,
-      role: "AXButton",
-      frame: ElementFrame(x: 0, y: 0, width: 50, height: 30)
-    )
-    
-    // Test JSON encoding for both
+    // Test JSON encoding
     let encoder = JSONConfiguration.encoder
-    
-    let enhancedJsonData = try encoder.encode([enhancedDescriptor])
-    let enhancedJsonString = String(data: enhancedJsonData, encoding: .utf8)!
-    
-    let elementJsonData = try encoder.encode([elementDescriptor])
-    let elementJsonString = String(data: elementJsonData, encoding: .utf8)!
+    let jsonData = try encoder.encode([descriptor])
+    let jsonString = String(data: jsonData, encoding: .utf8)!
     
     print("EnhancedElementDescriptor JSON:")
-    print(enhancedJsonString)
-    print("\nElementDescriptor JSON:")
-    print(elementJsonString)
+    print(jsonString)
     
-    // Both should use opaque IDs
-    #expect(!enhancedJsonString.contains("macos://ui/"), "EnhancedElementDescriptor should use opaque ID")
-    #expect(!enhancedJsonString.contains("[@AXTitle="), "EnhancedElementDescriptor should not contain raw path syntax")
-    #expect(!enhancedJsonString.contains("\\\""), "EnhancedElementDescriptor should not contain escaped quotes")
+    // Should use opaque IDs
+    #expect(!jsonString.contains("macos://ui/"), "Should use opaque ID, not raw path")
+    #expect(!jsonString.contains("[@AXTitle="), "Should not contain raw path syntax")
+    #expect(!jsonString.contains("\\\""), "Should not contain escaped quotes")
     
-    #expect(!elementJsonString.contains("macos://ui/"), "ElementDescriptor should use opaque ID")
-    #expect(!elementJsonString.contains("[@AXTitle="), "ElementDescriptor should not contain raw path syntax")
-    #expect(!elementJsonString.contains("\\\""), "ElementDescriptor should not contain escaped quotes")
-    
-    print("All descriptor types successfully output opaque IDs!")
+    print("EnhancedElementDescriptor successfully outputs opaque IDs!")
   }
   
   @Test("WindowManagementTool and ResourcesUIElement output opaque IDs")
