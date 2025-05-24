@@ -98,7 +98,7 @@ public struct ExplorationGuidance {
     ```json
     {
       "scope": "element",
-      "id": "macos://ui/AXApplication[@bundleId=\"com.example.app\"]/AXWindow/AXGroup",
+      "id": "example-group-uuid",
       "maxDepth": 10
     }
     ```
@@ -229,7 +229,7 @@ public struct ExplorationGuidance {
     ```json
     {
       "scope": "element",
-      "id": "macos://ui/AXApplication[@bundleId=\"com.example.app\"]/AXWindow/AXGroup",
+      "id": "example-group-uuid",
       "maxDepth": 10
     }
     ```

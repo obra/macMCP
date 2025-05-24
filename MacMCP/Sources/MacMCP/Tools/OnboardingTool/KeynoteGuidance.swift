@@ -67,7 +67,7 @@ public struct KeynoteGuidance {
     ```json
     {
       "action": "click",
-      "id": "macos://ui/AXApplication[@bundleId=\"com.apple.keynote\"]/AXWindow/AXImage[@AXDescription=\"Slide 2\"]"
+      "id": "slide-2-uuid"
     }
     ```
 
@@ -80,8 +80,8 @@ public struct KeynoteGuidance {
     ```json
     {
       "action": "drag",
-      "id": "macos://ui/AXApplication[@bundleId=\"com.apple.keynote\"]/AXWindow/AXImage[@AXDescription=\"Slide 2\"]",
-      "targetElementPath": "macos://ui/AXApplication[@bundleId=\"com.apple.keynote\"]/AXWindow/AXImage[@AXDescription=\"Slide 5\"]"
+      "id": "slide-2-uuid",
+      "targetId": "slide-5-uuid"
     }
     ```
 
@@ -186,7 +186,7 @@ public struct KeynoteGuidance {
        ```json
        {
          "action": "click",
-         "id": "macos://ui/AXApplication[@bundleId=\"com.apple.keynote\"]/AXWindow/AXTextField[@AXIdentifier=\"text_box_1\"]"
+         "id": "text-box-1-uuid"
        }
        ```
 
@@ -194,7 +194,7 @@ public struct KeynoteGuidance {
        ```json
        {
          "action": "click",
-         "id": "macos://ui/AXApplication[@bundleId=\"com.apple.keynote\"]/AXWindow/AXTextField[@AXIdentifier=\"text_box_1\"]"
+         "id": "text-box-1-uuid"
        }
        ```
 
@@ -345,7 +345,7 @@ public struct KeynoteGuidance {
     ```json
     {
       "action": "click",
-      "id": "macos://ui/AXApplication[@bundleId=\"com.apple.keynote\"]/AXWindow/AXImage[@AXIdentifier=\"image_1\"]"
+      "id": "image-1-uuid"
     }
     ```
 
@@ -354,8 +354,8 @@ public struct KeynoteGuidance {
     ```json
     {
       "action": "drag",
-      "id": "macos://ui/AXApplication[@bundleId=\"com.apple.keynote\"]/AXWindow/AXImage[@AXIdentifier=\"image_1\"]",
-      "targetElementPath": "macos://ui/AXApplication[@bundleId=\"com.apple.keynote\"]/AXWindow/AXCanvas"
+      "id": "image-1-uuid",
+      "targetId": "canvas-uuid"
     }
     ```
 
@@ -368,8 +368,8 @@ public struct KeynoteGuidance {
     ```json
     {
       "action": "drag",
-      "id": "macos://ui/AXApplication[@bundleId=\"com.apple.keynote\"]/AXWindow/AXButton[@AXRole=\"resize_handle\"]",
-      "targetElementPath": "macos://ui/AXApplication[@bundleId=\"com.apple.keynote\"]/AXWindow/AXCanvas"
+      "id": "resize-handle-uuid",
+      "targetId": "canvas-uuid"
     }
     ```
 

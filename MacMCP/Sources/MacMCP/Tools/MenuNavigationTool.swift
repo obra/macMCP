@@ -228,6 +228,17 @@ Bundle ID required for all operations to target specific application.
     return try formatResponse(menuItems)
   }
 
+  /// Decode element ID - handles both opaque IDs and raw paths
+  private func decodeElementID(_ elementID: String) -> String {
+    // Try to decode as opaque ID first, fall back to treating as raw path
+    do {
+      return try OpaqueIDEncoder.decode(elementID)
+    } catch {
+      // Not an opaque ID or decoding failed, treat as raw path
+      return elementID
+    }
+  }
+
   /// Handle the activateMenuItem action
   /// - Parameters:
   ///   - bundleId: The application bundle identifier
@@ -237,15 +248,13 @@ Bundle ID required for all operations to target specific application.
     bundleId: String,
     menuPath: String,
   ) async throws -> [Tool.Content] {
-    // Validate the path format
-    guard menuPath.hasPrefix("macos://ui/") else {
-      throw MCPError.invalidParams("id must be a valid Element ID URI starting with 'macos://ui/'")
-    }
+    // Decode the element ID (handles both opaque IDs and raw paths)
+    let decodedPath = decodeElementID(menuPath)
     
     // Activate the menu item
     let success = try await menuNavigationService.activateMenuItem(
       bundleId: bundleId,
-      elementPath: menuPath,
+      elementPath: decodedPath,
     )
 
     // Create response

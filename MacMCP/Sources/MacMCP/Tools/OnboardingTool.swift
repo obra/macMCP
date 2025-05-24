@@ -261,7 +261,7 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
        ```json
        {
          "action": "click",
-         "id": "macos://ui/AXApplication[@bundleId=\"com.apple.TextEdit\"]/AXWindow/AXTextArea"
+         "id": "text-area-element-uuid"
        }
        ```
 
@@ -368,7 +368,7 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
        ```json
        {
          "action": "click",
-         "id": "macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"Documents\"]"
+         "id": "documents-folder-uuid"
        }
        ```
 
@@ -376,7 +376,7 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
        ```json
        {
          "action": "double_click",
-         "id": "macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"Projects\"]"
+         "id": "projects-folder-uuid"
        }
        ```
 
@@ -399,7 +399,7 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
        ```json
        {
          "action": "click",
-         "id": "macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"Document.pdf\"]"
+         "id": "document-pdf-uuid"
        }
        ```
 
@@ -407,8 +407,8 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
        ```json
        {
          "action": "drag",
-         "id": "macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"Document.pdf\"]",
-         "targetElementPath": "macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"Projects\"]"
+         "id": "document-pdf-uuid",
+         "targetId": "projects-folder-uuid"
        }
        ```
 
@@ -524,7 +524,7 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
        ```json
        {
          "action": "click",
-         "id": "macos://ui/AXApplication[@bundleId=\"com.apple.safari\"]/AXWindow/AXToolbar/AXTextField[@AXSubrole=\"AXURLField\"]"
+         "id": "url-field-uuid"
        }
        ```
        Then type the URL:
@@ -549,7 +549,7 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
        ```json
        {
          "action": "click",
-         "id": "macos://ui/AXApplication[@bundleId=\"com.apple.safari\"]/AXWindow/AXToolbar/AXButton[@AXDescription=\"back\"]"
+         "id": "back-button-uuid"
        }
        ```
 
@@ -585,7 +585,7 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
        ```json
        {
          "action": "click",
-         "id": "macos://ui/AXApplication[@bundleId=\"com.apple.safari\"]/AXWindow/AXTabGroup/AXRadioButton[2]"
+         "id": "tab-2-uuid"
        }
        ```
 
@@ -608,7 +608,7 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
        ```json
        {
          "action": "click",
-         "id": "macos://ui/AXApplication[@bundleId=\"com.apple.safari\"]/AXWindow/AXWebArea/AXLink[@AXTitle=\"Example link\"]"
+         "id": "example-link-uuid"
        }
        ```
 
@@ -616,7 +616,7 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
        ```json
        {
          "action": "click",
-         "id": "macos://ui/AXApplication[@bundleId=\"com.apple.safari\"]/AXWindow/AXWebArea/AXTextField[@AXPlaceholderValue=\"Username\"]"
+         "id": "username-field-uuid"
        }
        ```
        Then type:
@@ -631,7 +631,7 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
        ```json
        {
          "action": "scroll",
-         "id": "macos://ui/AXApplication[@bundleId=\"com.apple.safari\"]/AXWindow/AXWebArea",
+         "id": "web-area-uuid",
          "direction": "down",
          "amount": 0.5
        }
@@ -713,7 +713,7 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
        ```json
        {
          "scope": "element",
-         "id": "macos://ui/AXApplication[@bundleId=\"com.example.app\"]/AXWindow/AXGroup[@AXIdentifier=\"tools_panel\"]",
+         "id": "tools-panel-uuid",
          "maxDepth": 10
        }
        ```
