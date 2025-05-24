@@ -48,7 +48,7 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
       mainScreen.frame,
       .optionOnScreenOnly,
       kCGNullWindowID,
-      .bestResolution,
+      .nominalResolution,
     ).unwrapping(throwing: "Failed to create screen image")
 
     return try createScreenshotResult(from: cgImage)
@@ -112,7 +112,7 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
       flippedRect,
       .optionOnScreenOnly,
       kCGNullWindowID,
-      .bestResolution,
+      .nominalResolution,
     ).unwrapping(throwing: "Failed to create area image")
 
     return try createScreenshotResult(from: cgImage)
@@ -183,7 +183,7 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
       .null,  // Use the window's bounds
       .optionIncludingWindow,
       windowID,
-      [.bestResolution, .boundsIgnoreFraming],
+      [.nominalResolution, .boundsIgnoreFraming],
     ).unwrapping(throwing: "Failed to create window image")
 
     return try createScreenshotResult(from: cgImage)
@@ -322,12 +322,12 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
       )
     }
 
-    // Return the result
+    // Return the result with scale 1.0 for regular DPI
     return ScreenshotResult(
       data: pngData,
       width: width,
       height: height,
-      scale: nsImage.recommendedLayerContentsScale(0),
+      scale: 1.0,
     )
   }
 

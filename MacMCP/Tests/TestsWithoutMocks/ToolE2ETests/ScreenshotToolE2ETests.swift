@@ -82,10 +82,10 @@ struct ScreenshotToolE2ETests {
       let decodedData = Data(base64Encoded: data)!
       let image = NSImage(data: decodedData)!
 
-      // Get the main screen dimensions
+      // Get the main screen dimensions (regular DPI, not HiDPI)
       let mainScreen = NSScreen.main!
-      let screenWidth = Int(mainScreen.frame.width * mainScreen.backingScaleFactor)
-      let screenHeight = Int(mainScreen.frame.height * mainScreen.backingScaleFactor)
+      let screenWidth = Int(mainScreen.frame.width)
+      let screenHeight = Int(mainScreen.frame.height)
 
       // Check that image dimensions match screen dimensions (approximately)
       // We use a tolerance because different scaling factors might affect the exact pixel dimensions
