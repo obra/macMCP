@@ -1,5 +1,5 @@
-// ABOUTME: OpaqueIDEncoder provides compact encoding/decoding of element paths to opaque IDs
-// ABOUTME: Uses gzip compression + Z85 encoding for maximum compactness and safety in JSON
+// ABOUTME: OpaqueIDEncoder provides genuinely opaque UUID-based element ID mapping
+// ABOUTME: Delegates to OpaqueIDMapper for secure, non-reversible element identification
 
 import Foundation
 import Compression
@@ -12,29 +12,7 @@ public enum OpaqueIDEncoder {
     /// - Returns: Compact opaque ID string
     /// - Throws: Error if encoding fails
     public static func encode(_ path: String) throws -> String {
-        // 1. Convert string to data
-        guard let data = path.data(using: .utf8) else {
-            throw OpaqueIDError.encodingFailed("Failed to convert path to UTF-8 data")
-        }
-        
-        // 2. Try compression, fall back to raw data if compression fails or isn't beneficial
-        let dataToEncode: Data
-        do {
-            let compressedData = try data.compressed(using: .zlib)
-            // Only use compression if it actually saves space
-            dataToEncode = compressedData.count < data.count ? compressedData : data
-        } catch {
-            // Compression failed, use raw data
-            dataToEncode = data
-        }
-        
-        // 3. Encode with URL-safe base64
-        let opaqueID = dataToEncode.base64EncodedString()
-            .replacingOccurrences(of: "+", with: "-")
-            .replacingOccurrences(of: "/", with: "_")
-            .replacingOccurrences(of: "=", with: "")
-        
-        return opaqueID
+        return OpaqueIDMapper.shared.opaqueID(for: path)
     }
     
     /// Decode an opaque ID back to an element path string
@@ -42,33 +20,9 @@ public enum OpaqueIDEncoder {
     /// - Returns: Original element path string
     /// - Throws: Error if decoding fails
     public static func decode(_ opaqueID: String) throws -> String {
-        // 1. Reverse URL-safe base64 encoding
-        let base64String = opaqueID
-            .replacingOccurrences(of: "-", with: "+")
-            .replacingOccurrences(of: "_", with: "/")
-        
-        // Add padding if needed
-        let paddedBase64 = base64String + String(repeating: "=", count: (4 - base64String.count % 4) % 4)
-        
-        // 2. Decode from base64
-        guard let encodedData = Data(base64Encoded: paddedBase64) else {
-            throw OpaqueIDError.decodingFailed("Failed to decode base64 data")
+        guard let path = OpaqueIDMapper.shared.elementPath(for: opaqueID) else {
+            throw OpaqueIDError.decodingFailed("Opaque ID not found in mapping cache")
         }
-        
-        // 3. Try decompression first, fall back to treating as raw data
-        let decodedData: Data
-        do {
-            decodedData = try encodedData.decompressed(using: .zlib)
-        } catch {
-            // Not compressed or decompression failed, treat as raw data
-            decodedData = encodedData
-        }
-        
-        // 4. Convert back to string
-        guard let path = String(data: decodedData, encoding: .utf8) else {
-            throw OpaqueIDError.decodingFailed("Failed to convert data to UTF-8 string")
-        }
-        
         return path
     }
 }
