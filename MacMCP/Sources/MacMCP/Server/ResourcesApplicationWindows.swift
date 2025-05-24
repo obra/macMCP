@@ -75,8 +75,7 @@ open class ApplicationWindowsResourceHandler: ResourceHandler, @unchecked Sendab
             }
             
             // Encode the windows as JSON
-            let encoder = JSONEncoder()
-            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            let encoder = JSONConfiguration.encoder
             let jsonData = try encoder.encode(windows)
             
             guard let jsonString = String(data: jsonData, encoding: .utf8) else {

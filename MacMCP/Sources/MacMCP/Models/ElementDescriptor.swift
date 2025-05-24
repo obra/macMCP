@@ -201,9 +201,9 @@ public struct ElementDescriptor: Codable, Sendable, Identifiable {
   /// Convert to MCP Value
   /// - Returns: An MCP Value representation of the descriptor
   public func toValue() throws -> Value {
-    let encoder = JSONEncoder()
+    let encoder = JSONConfiguration.encoder
     let data = try encoder.encode(self)
-    let decoder = JSONDecoder()
+    let decoder = JSONConfiguration.decoder
     return try decoder.decode(Value.self, from: data)
   }
 }
@@ -336,9 +336,9 @@ public struct WindowDescriptor: Codable, Sendable, Identifiable {
   /// Convert to MCP Value
   /// - Returns: An MCP Value representation of the descriptor
   public func toValue() throws -> Value {
-    let encoder = JSONEncoder()
+    let encoder = JSONConfiguration.encoder
     let data = try encoder.encode(self)
-    let decoder = JSONDecoder()
+    let decoder = JSONConfiguration.decoder
     return try decoder.decode(Value.self, from: data)
   }
 }
@@ -478,9 +478,9 @@ public struct MenuItemDescriptor: Codable, Sendable, Identifiable {
   /// Convert to MCP Value
   /// - Returns: An MCP Value representation of the descriptor
   public func toValue() throws -> Value {
-    let encoder = JSONEncoder()
+    let encoder = JSONConfiguration.encoder
     let data = try encoder.encode(self)
-    let decoder = JSONDecoder()
+    let decoder = JSONConfiguration.decoder
     return try decoder.decode(Value.self, from: data)
   }
 }

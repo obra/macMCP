@@ -63,8 +63,7 @@ open class ApplicationMenusResourceHandler: ResourceHandler, @unchecked Sendable
                 )
                 
                 // Encode the menu items as JSON
-                let encoder = JSONEncoder()
-                encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+                let encoder = JSONConfiguration.encoder
                 let jsonData = try encoder.encode(menuItems)
                 
                 guard let jsonString = String(data: jsonData, encoding: .utf8) else {
@@ -90,8 +89,7 @@ open class ApplicationMenusResourceHandler: ResourceHandler, @unchecked Sendable
                 )
                 
                 // Encode the menus as JSON
-                let encoder = JSONEncoder()
-                encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+                let encoder = JSONConfiguration.encoder
                 let jsonData = try encoder.encode(menus)
                 
                 guard let jsonString = String(data: jsonData, encoding: .utf8) else {

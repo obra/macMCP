@@ -140,8 +140,7 @@ open class UIElementResourceHandler: ResourceHandler, @unchecked Sendable {
                 logger.debug("Encoding \(descriptors.count) interactable elements as JSON array")
                 
                 // Encode as JSON
-                let encoder = JSONEncoder()
-                encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+                let encoder = JSONConfiguration.encoder
                 let jsonData = try encoder.encode(descriptors)
                 
                 guard let jsonString = String(data: jsonData, encoding: .utf8) else {
@@ -181,8 +180,7 @@ open class UIElementResourceHandler: ResourceHandler, @unchecked Sendable {
             )
             
             // Encode the descriptor as JSON
-            let encoder = JSONEncoder()
-            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            let encoder = JSONConfiguration.encoder
             let jsonData = try encoder.encode(descriptor)
             
             guard let jsonString = String(data: jsonData, encoding: .utf8) else {

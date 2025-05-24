@@ -668,8 +668,7 @@ Coordinate system: Screen pixels, (0,0) = top-left, positive values go right/dow
   /// - Parameter data: The data to format
   /// - Returns: The formatted tool content
   private func formatResponse(_ data: some Encodable) throws -> [Tool.Content] {
-    let encoder = JSONEncoder()
-    encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+    let encoder = JSONConfiguration.encoder
 
     do {
       let jsonData = try encoder.encode(data)

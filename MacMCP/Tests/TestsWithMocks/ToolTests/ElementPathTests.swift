@@ -148,6 +148,46 @@ struct ElementPathTests {
     #expect(path.segments[2].attributes["AXDescription"] == "Submit")
   }
 
+  @Test("ElementPath isElementPath with different slash formats")
+  func elementPathIsElementPathWithDifferentSlashFormats() throws {
+    // Test various slash escaping scenarios to understand what works vs fails
+    let unescapedPath = "macos://ui/AXApplication[@AXTitle=\"Calculator\"]"
+    let escapedSlashPath = "macos:\\/\\/ui\\/AXApplication[@AXTitle=\"Calculator\"]" 
+    let mixedPath = "macos:\\/\\/ui/AXApplication[@AXTitle=\"Calculator\"]"
+    
+    // Document current behavior - need to figure out which one is failing
+    print("Unescaped (canonical): \(ElementPath.isElementPath(unescapedPath))")
+    print("Escaped slashes: \(ElementPath.isElementPath(escapedSlashPath))")
+    print("Mixed: \(ElementPath.isElementPath(mixedPath))")
+    
+    // The canonical format should definitely work
+    #expect(ElementPath.isElementPath(unescapedPath) == true)
+  }
+  
+  @Test("ElementPath parsing with different slash formats")
+  func elementPathParsingWithDifferentSlashFormats() throws {
+    // Test what actually parses vs throws errors
+    let unescapedPath = "macos://ui/AXApplication[@AXTitle=\"Calculator\"]"
+    let escapedSlashPath = "macos:\\/\\/ui\\/AXApplication[@AXTitle=\"Calculator\"]"
+    
+    // Try parsing both and see which ones work
+    do {
+      let unescapedParsed = try ElementPath.parse(unescapedPath)
+      print("Unescaped parsing: SUCCESS")
+      print("  Segments: \(unescapedParsed.segments.count)")
+    } catch {
+      print("Unescaped parsing: FAILED - \(error)")
+    }
+    
+    do {
+      let escapedParsed = try ElementPath.parse(escapedSlashPath)
+      print("Escaped parsing: SUCCESS")
+      print("  Segments: \(escapedParsed.segments.count)")
+    } catch {
+      print("Escaped parsing: FAILED - \(error)")
+    }
+  }
+
   @Test("ElementPath parsing with index")
   func elementPathParsingWithIndex() throws {
     let pathString = "macos://ui/AXWindow/AXGroup[2]/AXButton"

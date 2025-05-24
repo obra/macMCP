@@ -267,8 +267,7 @@ Bundle ID required for all operations to target specific application.
   /// - Parameter data: The data to format
   /// - Returns: The formatted tool content
   private func formatResponse(_ data: some Encodable) throws -> [Tool.Content] {
-    let encoder = JSONEncoder()
-    encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+    let encoder = JSONConfiguration.encoder
 
     do {
       let jsonData = try encoder.encode(data)
