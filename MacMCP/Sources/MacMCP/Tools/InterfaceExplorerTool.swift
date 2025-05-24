@@ -40,6 +40,10 @@ Filtering capabilities:
 - title/titleContains: Element titles or partial matches
 - value/valueContains: Element values or partial matches  
 - description/descriptionContains: Element descriptions or partial matches
+- textContains: Universal text search across all text fields (title, description, value, identifier)
+- isInteractable: Filter for elements that can be acted upon (clickable, editable, etc.)
+- isEnabled: Filter by enabled/disabled state
+- inMenus/inMainContent: Location context filtering (menu system vs main content)
 
 Performance tips: Start with 'focused' scope, use filters to narrow results, adjust maxDepth based on needs.
 """
@@ -160,6 +164,26 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
               "type": .string("string"),
               "description": .string("Filter by description containing this text"),
             ]),
+            "textContains": .object([
+              "type": .string("string"),
+              "description": .string("Filter by text containing this string in any text field (title, description, value, identifier)"),
+            ]),
+            "isInteractable": .object([
+              "type": .string("boolean"),
+              "description": .string("Filter for elements that can be acted upon (clickable, editable, etc.)"),
+            ]),
+            "isEnabled": .object([
+              "type": .string("boolean"),
+              "description": .string("Filter by enabled state"),
+            ]),
+            "inMenus": .object([
+              "type": .string("boolean"),
+              "description": .string("Filter for elements in menu system"),
+            ]),
+            "inMainContent": .object([
+              "type": .string("boolean"),
+              "description": .string("Filter for elements in main content area (not menus)"),
+            ]),
           ]),
         ]),
         "elementTypes": .object([
@@ -217,6 +241,19 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
           ]),
         ]),
         .object([
+          "scope": .string("application"),
+          "bundleId": .string("com.apple.calculator"),
+          "filter": .object([
+            "textContains": .string("5")
+          ]),
+        ]),
+        .object([
+          "scope": .string("focused"),
+          "filter": .object([
+            "isInteractable": .bool(true)
+          ]),
+        ]),
+        .object([
           "scope": .string("position"),
           "x": .int(400),
           "y": .int(300),
@@ -269,6 +306,11 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
     var valueContains: String?
     var description: String?
     var descriptionContains: String?
+    var textContains: String?
+    var isInteractable: Bool?
+    var isEnabled: Bool?
+    var inMenus: Bool?
+    var inMainContent: Bool?
 
     if case .object(let filterObj)? = params["filter"] {
       role = filterObj["role"]?.stringValue
@@ -278,6 +320,11 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
       valueContains = filterObj["valueContains"]?.stringValue
       description = filterObj["description"]?.stringValue
       descriptionContains = filterObj["descriptionContains"]?.stringValue
+      textContains = filterObj["textContains"]?.stringValue
+      isInteractable = filterObj["isInteractable"]?.boolValue
+      isEnabled = filterObj["isEnabled"]?.boolValue
+      inMenus = filterObj["inMenus"]?.boolValue
+      inMainContent = filterObj["inMainContent"]?.boolValue
     }
 
     // Process based on scope
@@ -294,6 +341,11 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
         valueContains: valueContains,
         description: description,
         descriptionContains: descriptionContains,
+        textContains: textContains,
+        isInteractable: isInteractable,
+        isEnabled: isEnabled,
+        inMenus: inMenus,
+        inMainContent: inMainContent,
         elementTypes: elementTypes,
       )
 
@@ -315,6 +367,11 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
         valueContains: valueContains,
         description: description,
         descriptionContains: descriptionContains,
+        textContains: textContains,
+        isInteractable: isInteractable,
+        isEnabled: isEnabled,
+        inMenus: inMenus,
+        inMainContent: inMainContent,
         elementTypes: elementTypes,
       )
 
@@ -330,6 +387,11 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
         valueContains: valueContains,
         description: description,
         descriptionContains: descriptionContains,
+        textContains: textContains,
+        isInteractable: isInteractable,
+        isEnabled: isEnabled,
+        inMenus: inMenus,
+        inMainContent: inMainContent,
         elementTypes: elementTypes,
       )
 
@@ -367,6 +429,11 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
         valueContains: valueContains,
         description: description,
         descriptionContains: descriptionContains,
+        textContains: textContains,
+        isInteractable: isInteractable,
+        isEnabled: isEnabled,
+        inMenus: inMenus,
+        inMainContent: inMainContent,
         elementTypes: elementTypes,
       )
 
@@ -392,6 +459,11 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
         valueContains: valueContains,
         description: description,
         descriptionContains: descriptionContains,
+        textContains: textContains,
+        isInteractable: isInteractable,
+        isEnabled: isEnabled,
+        inMenus: inMenus,
+        inMainContent: inMainContent,
         elementTypes: elementTypes,
       )
 
@@ -413,6 +485,11 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
     valueContains: String?,
     description: String?,
     descriptionContains: String?,
+    textContains: String?,
+    isInteractable: Bool?,
+    isEnabled: Bool?,
+    inMenus: Bool?,
+    inMainContent: Bool?,
     elementTypes: [String],
   ) async throws -> [Tool.Content] {
     // Get system-wide UI state
@@ -424,7 +501,8 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
     // Apply filters if specified
     var elements: [UIElement]
     if role != nil || title != nil || titleContains != nil || value != nil || valueContains != nil
-      || description != nil || descriptionContains != nil || !elementTypes.contains("any")
+      || description != nil || descriptionContains != nil || textContains != nil || isInteractable != nil
+      || isEnabled != nil || inMenus != nil || inMainContent != nil || !elementTypes.contains("any")
     {
       // Use findUIElements for filtered results
       elements = try await accessibilityService.findUIElements(
@@ -450,6 +528,11 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
         valueContains: valueContains,
         description: description,
         descriptionContains: descriptionContains,
+        textContains: textContains,
+        isInteractable: isInteractable,
+        isEnabled: isEnabled,
+        inMenus: inMenus,
+        inMainContent: inMainContent,
         elementTypes: elementTypes,
         includeHidden: includeHidden,
         limit: limit,
@@ -486,13 +569,19 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
     valueContains: String?,
     description: String?,
     descriptionContains: String?,
+    textContains: String?,
+    isInteractable: Bool?,
+    isEnabled: Bool?,
+    inMenus: Bool?,
+    inMainContent: Bool?,
     elementTypes: [String],
   ) async throws -> [Tool.Content] {
     // Get application-specific UI state
     var elements: [UIElement]
 
     if role != nil || title != nil || titleContains != nil || value != nil || valueContains != nil
-      || description != nil || descriptionContains != nil || !elementTypes.contains("any")
+      || description != nil || descriptionContains != nil || textContains != nil || isInteractable != nil
+      || isEnabled != nil || inMenus != nil || inMainContent != nil || !elementTypes.contains("any")
     {
       // Use findUIElements for filtered results
       elements = try await accessibilityService.findUIElements(
@@ -518,6 +607,11 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
         valueContains: valueContains,
         description: description,
         descriptionContains: descriptionContains,
+        textContains: textContains,
+        isInteractable: isInteractable,
+        isEnabled: isEnabled,
+        inMenus: inMenus,
+        inMainContent: inMainContent,
         elementTypes: elementTypes,
         includeHidden: includeHidden,
         limit: limit,
@@ -559,13 +653,19 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
     valueContains: String?,
     description: String?,
     descriptionContains: String?,
+    textContains: String?,
+    isInteractable: Bool?,
+    isEnabled: Bool?,
+    inMenus: Bool?,
+    inMainContent: Bool?,
     elementTypes: [String],
   ) async throws -> [Tool.Content] {
     // Get focused application UI state
     var elements: [UIElement]
 
     if role != nil || title != nil || titleContains != nil || value != nil || valueContains != nil
-      || description != nil || descriptionContains != nil || !elementTypes.contains("any")
+      || description != nil || descriptionContains != nil || textContains != nil || isInteractable != nil
+      || isEnabled != nil || inMenus != nil || inMainContent != nil || !elementTypes.contains("any")
     {
       // Use findUIElements for filtered results
       elements = try await accessibilityService.findUIElements(
@@ -591,6 +691,11 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
         valueContains: valueContains,
         description: description,
         descriptionContains: descriptionContains,
+        textContains: textContains,
+        isInteractable: isInteractable,
+        isEnabled: isEnabled,
+        inMenus: inMenus,
+        inMainContent: inMainContent,
         elementTypes: elementTypes,
         includeHidden: includeHidden,
         limit: limit,
@@ -633,6 +738,11 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
     valueContains: String?,
     description: String?,
     descriptionContains: String?,
+    textContains: String?,
+    isInteractable: Bool?,
+    isEnabled: Bool?,
+    inMenus: Bool?,
+    inMainContent: Bool?,
     elementTypes: [String],
   ) async throws -> [Tool.Content] {
     // Get UI element at the specified position
@@ -651,7 +761,8 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
 
     // Apply filters if needed
     if role != nil || title != nil || titleContains != nil || value != nil || valueContains != nil
-      || description != nil || descriptionContains != nil || !elementTypes.contains("any")
+      || description != nil || descriptionContains != nil || textContains != nil || isInteractable != nil
+      || isEnabled != nil || inMenus != nil || inMainContent != nil || !elementTypes.contains("any")
       || !includeHidden
     {
       elements = applyAdditionalFilters(
@@ -663,6 +774,11 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
         valueContains: valueContains,
         description: description,
         descriptionContains: descriptionContains,
+        textContains: textContains,
+        isInteractable: isInteractable,
+        isEnabled: isEnabled,
+        inMenus: inMenus,
+        inMainContent: inMainContent,
         elementTypes: elementTypes,
         includeHidden: includeHidden,
         limit: limit,
@@ -693,6 +809,11 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
     valueContains: String?,
     description: String?,
     descriptionContains: String?,
+    textContains: String?,
+    isInteractable: Bool?,
+    isEnabled: Bool?,
+    inMenus: Bool?,
+    inMainContent: Bool?,
     elementTypes: [String],
   ) async throws -> [Tool.Content] {
     // First check if the path is valid
@@ -716,7 +837,8 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
       var resultElements: [UIElement] = []
 
       if role != nil || title != nil || titleContains != nil || value != nil || valueContains != nil
-        || description != nil || descriptionContains != nil || !elementTypes.contains("any")
+        || description != nil || descriptionContains != nil || textContains != nil || isInteractable != nil
+        || isEnabled != nil || inMenus != nil || inMainContent != nil || !elementTypes.contains("any")
       {
         // For filtering, we need to process the element and its descendants
         // Now search within this element for matching elements
@@ -729,6 +851,11 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
           valueContains: valueContains,
           description: description,
           descriptionContains: descriptionContains,
+          textContains: textContains,
+          isInteractable: isInteractable,
+          isEnabled: isEnabled,
+          inMenus: inMenus,
+          inMainContent: inMainContent,
           elementTypes: elementTypes,
           includeHidden: includeHidden,
           maxDepth: maxDepth,
@@ -774,6 +901,11 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
     valueContains: String?,
     description: String?,
     descriptionContains: String?,
+    textContains: String?,
+    isInteractable: Bool?,
+    isEnabled: Bool?,
+    inMenus: Bool?,
+    inMainContent: Bool?,
     elementTypes: [String],
   ) async throws -> [Tool.Content] {
     // First check if the path is valid
@@ -800,7 +932,8 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
       var resultElements: [UIElement] = []
 
       if role != nil || title != nil || titleContains != nil || value != nil || valueContains != nil
-        || description != nil || descriptionContains != nil || !elementTypes.contains("any")
+        || description != nil || descriptionContains != nil || textContains != nil || isInteractable != nil
+        || isEnabled != nil || inMenus != nil || inMainContent != nil || !elementTypes.contains("any")
       {
         // Find matching elements within the hierarchy
         resultElements = findMatchingDescendants(
@@ -812,6 +945,11 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
           valueContains: valueContains,
           description: description,
           descriptionContains: descriptionContains,
+          textContains: textContains,
+          isInteractable: isInteractable,
+          isEnabled: isEnabled,
+          inMenus: inMenus,
+          inMainContent: inMainContent,
           elementTypes: elementTypes,
           includeHidden: includeHidden,
           maxDepth: maxDepth,
@@ -918,6 +1056,11 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
     valueContains: String?,
     description: String?,
     descriptionContains: String?,
+    textContains: String?,
+    isInteractable: Bool?,
+    isEnabled: Bool?,
+    inMenus: Bool?,
+    inMainContent: Bool?,
     elementTypes: [String],
     includeHidden: Bool,
     maxDepth: Int,
@@ -932,6 +1075,11 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
       valueContains: valueContains,
       description: description,
       descriptionContains: descriptionContains,
+      textContains: textContains,
+      isInteractable: isInteractable,
+      isEnabled: isEnabled,
+      inMenus: inMenus,
+      inMainContent: inMainContent,
       elementTypes: elementTypes,
       includeHidden: includeHidden
     )
@@ -962,6 +1110,11 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
       valueContains: valueContains,
       description: descriptionContains,
       descriptionContains: descriptionContains,
+      textContains: nil,
+      isInteractable: nil,
+      isEnabled: nil,
+      inMenus: nil,
+      inMainContent: nil,
       elementTypes: elementTypes,
       includeHidden: includeHidden,
       limit: limit,
@@ -978,6 +1131,11 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
     valueContains: String? = nil,
     description: String? = nil,
     descriptionContains: String? = nil,
+    textContains: String? = nil,
+    isInteractable: Bool? = nil,
+    isEnabled: Bool? = nil,
+    inMenus: Bool? = nil,
+    inMainContent: Bool? = nil,
     elementTypes: [String]? = nil,
     includeHidden: Bool = true,
     limit: Int = 100,
@@ -991,6 +1149,11 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
       valueContains: valueContains,
       description: description,
       descriptionContains: descriptionContains,
+      textContains: textContains,
+      isInteractable: isInteractable,
+      isEnabled: isEnabled,
+      inMenus: inMenus,
+      inMainContent: inMainContent,
       elementTypes: elementTypes ?? ["any"],
       includeHidden: includeHidden
     )

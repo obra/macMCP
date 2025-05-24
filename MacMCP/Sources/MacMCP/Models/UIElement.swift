@@ -738,6 +738,21 @@ public enum FrameSource: String, Codable {
     /// Filter by description containing this text (case-insensitive)
     public let descriptionContains: String?
     
+    /// Filter by text containing this string in any text field (title, description, value, identifier)
+    public let textContains: String?
+    
+    /// Filter for elements that can be acted upon (clickable, editable, etc.)
+    public let isInteractable: Bool?
+    
+    /// Filter by enabled state
+    public let isEnabled: Bool?
+    
+    /// Filter for elements in menu system
+    public let inMenus: Bool?
+    
+    /// Filter for elements in main content area (not menus)
+    public let inMainContent: Bool?
+    
     /// Filter by element types (matches elements with these roles)
     public let elementTypes: [String]
     
@@ -753,6 +768,11 @@ public enum FrameSource: String, Codable {
     ///   - valueContains: Filter by value containing text
     ///   - description: Filter by description (exact match)
     ///   - descriptionContains: Filter by description containing text
+    ///   - textContains: Filter by text containing this string in any text field
+    ///   - isInteractable: Filter for elements that can be acted upon
+    ///   - isEnabled: Filter by enabled state
+    ///   - inMenus: Filter for elements in menu system
+    ///   - inMainContent: Filter for elements in main content area
     ///   - elementTypes: Filter by element types
     ///   - includeHidden: Whether to include hidden elements
     public init(
@@ -763,6 +783,11 @@ public enum FrameSource: String, Codable {
       valueContains: String? = nil,
       description: String? = nil,
       descriptionContains: String? = nil,
+      textContains: String? = nil,
+      isInteractable: Bool? = nil,
+      isEnabled: Bool? = nil,
+      inMenus: Bool? = nil,
+      inMainContent: Bool? = nil,
       elementTypes: [String] = ["any"],
       includeHidden: Bool = true
     ) {
@@ -773,6 +798,11 @@ public enum FrameSource: String, Codable {
       self.valueContains = valueContains
       self.description = description
       self.descriptionContains = descriptionContains
+      self.textContains = textContains
+      self.isInteractable = isInteractable
+      self.isEnabled = isEnabled
+      self.inMenus = inMenus
+      self.inMainContent = inMainContent
       self.elementTypes = elementTypes
       self.includeHidden = includeHidden
     }
@@ -831,11 +861,53 @@ public enum FrameSource: String, Codable {
       (criteria.description == nil || elementDescription == criteria.description) &&
       (criteria.descriptionContains == nil || (elementDescription?.localizedCaseInsensitiveContains(criteria.descriptionContains!) ?? false))
     
+    // Universal text search filter
+    let textContainsMatches: Bool
+    if let searchText = criteria.textContains {
+      textContainsMatches = 
+        (title?.localizedCaseInsensitiveContains(searchText) == true) ||
+        (elementDescription?.localizedCaseInsensitiveContains(searchText) == true) ||
+        (value?.localizedCaseInsensitiveContains(searchText) == true) ||
+        (identifier?.localizedCaseInsensitiveContains(searchText) == true)
+    } else {
+      textContainsMatches = true
+    }
+    
+    // Interactable filter
+    let interactableMatches: Bool
+    if let shouldBeInteractable = criteria.isInteractable {
+      let elementIsInteractable = isClickable || isEditable || isToggleable || isSelectable || isAdjustable
+      interactableMatches = elementIsInteractable == shouldBeInteractable
+    } else {
+      interactableMatches = true
+    }
+    
+    // Enabled state filter
+    let enabledMatches: Bool
+    if let shouldBeEnabled = criteria.isEnabled {
+      enabledMatches = isEnabled == shouldBeEnabled
+    } else {
+      enabledMatches = true
+    }
+    
+    // Location context filter (menu vs main content)
+    let locationMatches: Bool
+    if let shouldBeInMenus = criteria.inMenus {
+      let elementIsInMenus = isInMenuContext()
+      locationMatches = elementIsInMenus == shouldBeInMenus
+    } else if let shouldBeInMainContent = criteria.inMainContent {
+      let elementIsInMenus = isInMenuContext()
+      locationMatches = (!elementIsInMenus) == shouldBeInMainContent
+    } else {
+      locationMatches = true
+    }
+    
     // Visibility filter
     let visibilityMatches = criteria.includeHidden || isVisible
     
     // Element matches if it passes all applicable filters
-    return roleMatches && typeMatches && titleMatches && valueMatches && descriptionMatches && visibilityMatches
+    return roleMatches && typeMatches && titleMatches && valueMatches && descriptionMatches && 
+           textContainsMatches && interactableMatches && enabledMatches && locationMatches && visibilityMatches
   }
   
   /// Static method to filter a collection of elements by criteria
@@ -964,6 +1036,29 @@ public enum FrameSource: String, Codable {
     // Note: This comparison is implementation-defined and may not be reliable across all macOS versions
     // It relies on the system's notion of element equality
     return CFEqual(element1, element2)
+  }
+
+  /// Check if this element is in a menu context (part of the menu system)
+  /// - Returns: True if element is part of menu hierarchy, false otherwise
+  private func isInMenuContext() -> Bool {
+    // Check if this element or any of its ancestors is menu-related
+    var currentElement: UIElement? = self
+    
+    while let element = currentElement {
+      // Check if the current element is menu-related
+      if element.role.contains("Menu") || 
+         element.role == "AXMenuBar" || 
+         element.role == "AXMenuItem" ||
+         element.role == "AXMenuButton" ||
+         element.role == "AXMenuBarItem" {
+        return true
+      }
+      
+      // Move up the hierarchy
+      currentElement = element.parent
+    }
+    
+    return false
   }
 
   /// Generate a path-based identifier for this element

@@ -96,8 +96,7 @@ struct InterfaceExplorerToolTests {
         #expect(element["id"] != nil, "Element should have an ID")
         #expect(element["role"] != nil, "Element should have a role")
         #expect(element["name"] != nil, "Element should have a name")
-        #expect(element["state"] != nil, "Element should have state information")
-        #expect(element["capabilities"] != nil, "Element should have capabilities")
+        #expect(element["props"] != nil, "Element should have props")
 
         // Check frame data
         if let frame = element["frame"] as? [String: Any] {
@@ -374,9 +373,9 @@ struct InterfaceExplorerToolTests {
         #expect(element["role"] as? String == "AXButton", "All elements should be buttons")
 
         // Also check that the element has the clickable capability
-        if let capabilities = element["capabilities"] as? [String] {
+        if let props = element["props"] as? [String] {
           #expect(
-            capabilities.contains("clickable"), "Button should have clickable capability")
+            props.contains("clickable"), "Button should have clickable capability")
         }
       }
     } else {
@@ -424,20 +423,20 @@ struct InterfaceExplorerToolTests {
       var foundTextFieldWithState = false
 
       // Function to search recursively through the element tree
-      func checkElementsForCapabilitiesAndState(element: [String: Any]) {
+      func checkElementsForPropsAndState(element: [String: Any]) {
         // Check if this element has the expected properties
         if let role = element["role"] as? String {
           // Check buttons for clickable capability
-          if role == "AXButton", let capabilities = element["capabilities"] as? [String],
-            capabilities.contains("clickable")
+          if role == "AXButton", let props = element["props"] as? [String],
+            props.contains("clickable")
           {
             foundButtonWithCapabilities = true
           }
 
           // Check text fields for state info
           if role == "AXTextField" || role == "AXStaticText",
-            let state = element["state"] as? [String],
-            !state.isEmpty
+            let props = element["props"] as? [String],
+            !props.isEmpty
           {
             foundTextFieldWithState = true
           }
@@ -446,17 +445,17 @@ struct InterfaceExplorerToolTests {
         // Recursively check children
         if let children = element["children"] as? [[String: Any]] {
           for child in children {
-            checkElementsForCapabilitiesAndState(element: child)
+            checkElementsForPropsAndState(element: child)
           }
         }
       }
 
       // Check all elements
       for element in elements {
-        checkElementsForCapabilitiesAndState(element: element)
+        checkElementsForPropsAndState(element: element)
       }
 
-      // Verify that we found elements with the expected capabilities and state
+      // Verify that we found elements with the expected props and state
       #expect(
         foundButtonWithCapabilities || foundTextFieldWithState,
         "Should find at least one button with capabilities or text field with state",
@@ -668,6 +667,248 @@ struct InterfaceExplorerToolTests {
     #expect(path2String == pathString2, "Path2 string representation should match the original string")
     #expect(path1String != path2String, "Path strings should be different")
     
+    try await cleanupTest()
+  }
+
+  // MARK: - Phase 1 Enhanced Filtering Tests
+
+  /// Test textContains filter that searches across all text fields
+  @Test("Test textContains filter")
+  mutating func testTextContainsFilter() async throws {
+    try await setupTest()
+    
+    // Launch calculator first
+    try await launchCalculator()
+
+    // Define direct handler access for more precise testing
+    let interfaceExplorerTool = InterfaceExplorerTool(
+      accessibilityService: toolChain.accessibilityService,
+      logger: nil,
+    )
+
+    // Test searching for a number button by searching all text fields
+    let params: [String: Value] = [
+      "scope": .string("application"),
+      "bundleId": .string("com.apple.calculator"),
+      "filter": .object([
+        "textContains": .string("5")  // Should find the "5" button
+      ]),
+      "maxDepth": .int(10),
+    ]
+
+    // Call the handler directly
+    let result = try await interfaceExplorerTool.handler(params)
+
+    // Verify we got a result
+    #expect(!result.isEmpty, "Should receive a non-empty result")
+
+    // Verify result is text content
+    if case .text(let jsonString) = result[0] {
+      // Parse JSON
+      let jsonData = jsonString.data(using: String.Encoding.utf8)!
+      let elements = try JSONSerialization.jsonObject(with: jsonData) as! [[String: Any]]
+
+      // Should find at least one element containing "5"
+      #expect(!elements.isEmpty, "Should find elements containing '5'")
+
+      // Verify that all found elements contain "5" in some text field
+      for element in elements {
+        var containsFive = false
+        
+        // Check title
+        if let title = element["title"] as? String, title.contains("5") {
+          containsFive = true
+        }
+        
+        // Check description
+        if let description = element["description"] as? String, description.contains("5") {
+          containsFive = true
+        }
+        
+        // Check value
+        if let value = element["value"] as? String, value.contains("5") {
+          containsFive = true
+        }
+        
+        // Check identifier
+        if let id = element["identifier"] as? String, id.contains("5") {
+          containsFive = true
+        }
+        
+        #expect(containsFive, "Each found element should contain '5' in at least one text field")
+      }
+    } else {
+      #expect(Bool(false), "Result should be text content")
+    }
+
+    try await cleanupTest()
+  }
+
+  /// Test isInteractable filter for elements that can be acted upon
+  @Test("Test isInteractable filter")
+  mutating func testIsInteractableFilter() async throws {
+    try await setupTest()
+    
+    // Launch calculator first
+    try await launchCalculator()
+
+    // Define direct handler access for more precise testing
+    let interfaceExplorerTool = InterfaceExplorerTool(
+      accessibilityService: toolChain.accessibilityService,
+      logger: nil,
+    )
+
+    // Test filtering for interactable elements only
+    let params: [String: Value] = [
+      "scope": .string("application"),
+      "bundleId": .string("com.apple.calculator"),
+      "filter": .object([
+        "isInteractable": .bool(true)
+      ]),
+      "maxDepth": .int(10),
+    ]
+
+    // Call the handler directly
+    let result = try await interfaceExplorerTool.handler(params)
+
+    // Verify we got a result
+    #expect(!result.isEmpty, "Should receive a non-empty result")
+
+    // Verify result is text content
+    if case .text(let jsonString) = result[0] {
+      // Parse JSON
+      let jsonData = jsonString.data(using: String.Encoding.utf8)!
+      let elements = try JSONSerialization.jsonObject(with: jsonData) as! [[String: Any]]
+
+      // Should find interactable elements
+      #expect(!elements.isEmpty, "Should find interactable elements")
+
+      // Verify that all found elements are interactable
+      for element in elements {
+        if let props = element["props"] as? [String] {
+          let isInteractable = props.contains("clickable") || 
+                             props.contains("editable") || 
+                             props.contains("toggleable") ||
+                             props.contains("selectable") ||
+                             props.contains("adjustable")
+          #expect(isInteractable, "Element should have at least one interactable capability")
+        } else {
+          #expect(Bool(false), "Element should have props information")
+        }
+      }
+    } else {
+      #expect(Bool(false), "Result should be text content")
+    }
+
+    try await cleanupTest()
+  }
+
+  /// Test isEnabled filter for enabled/disabled state
+  @Test("Test isEnabled filter")
+  mutating func testIsEnabledFilter() async throws {
+    try await setupTest()
+    
+    // Launch calculator first
+    try await launchCalculator()
+
+    // Define direct handler access for more precise testing
+    let interfaceExplorerTool = InterfaceExplorerTool(
+      accessibilityService: toolChain.accessibilityService,
+      logger: nil,
+    )
+
+    // Test filtering for enabled elements only
+    let params: [String: Value] = [
+      "scope": .string("application"),
+      "bundleId": .string("com.apple.calculator"),
+      "filter": .object([
+        "isEnabled": .bool(true)
+      ]),
+      "maxDepth": .int(10),
+    ]
+
+    // Call the handler directly
+    let result = try await interfaceExplorerTool.handler(params)
+
+    // Verify we got a result
+    #expect(!result.isEmpty, "Should receive a non-empty result")
+
+    // Verify result is text content
+    if case .text(let jsonString) = result[0] {
+      // Parse JSON
+      let jsonData = jsonString.data(using: String.Encoding.utf8)!
+      let elements = try JSONSerialization.jsonObject(with: jsonData) as! [[String: Any]]
+
+      // Should find enabled elements
+      #expect(!elements.isEmpty, "Should find enabled elements")
+
+      // Verify that all found elements are enabled
+      for element in elements {
+        if let props = element["props"] as? [String] {
+          #expect(props.contains("enabled"), "Element should be enabled")
+          #expect(!props.contains("disabled"), "Element should not be disabled")
+        } else {
+          #expect(Bool(false), "Element should have props information")
+        }
+      }
+    } else {
+      #expect(Bool(false), "Result should be text content")
+    }
+
+    try await cleanupTest()
+  }
+
+  /// Test inMenus/inMainContent location context filtering
+  @Test("Test location context filtering")
+  mutating func testLocationContextFiltering() async throws {
+    try await setupTest()
+    
+    // Launch calculator first
+    try await launchCalculator()
+
+    // Define direct handler access for more precise testing
+    let interfaceExplorerTool = InterfaceExplorerTool(
+      accessibilityService: toolChain.accessibilityService,
+      logger: nil,
+    )
+
+    // Test filtering for main content elements (not in menus)
+    let params: [String: Value] = [
+      "scope": .string("application"),
+      "bundleId": .string("com.apple.calculator"),
+      "filter": .object([
+        "inMainContent": .bool(true)
+      ]),
+      "maxDepth": .int(10),
+    ]
+
+    // Call the handler directly
+    let result = try await interfaceExplorerTool.handler(params)
+
+    // Verify we got a result
+    #expect(!result.isEmpty, "Should receive a non-empty result")
+
+    // Verify result is text content
+    if case .text(let jsonString) = result[0] {
+      // Parse JSON
+      let jsonData = jsonString.data(using: String.Encoding.utf8)!
+      let elements = try JSONSerialization.jsonObject(with: jsonData) as! [[String: Any]]
+
+      // Should find main content elements
+      #expect(!elements.isEmpty, "Should find main content elements")
+
+      // Verify that found elements are not menu-related
+      for element in elements {
+        if let role = element["role"] as? String {
+          #expect(!role.contains("Menu"), "Main content elements should not be menu-related")
+          #expect(role != "AXMenuBar", "Main content elements should not be menu bars")
+          #expect(role != "AXMenuItem", "Main content elements should not be menu items")
+        }
+      }
+    } else {
+      #expect(Bool(false), "Result should be text content")
+    }
+
     try await cleanupTest()
   }
 }
