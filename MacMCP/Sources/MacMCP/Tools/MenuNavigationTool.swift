@@ -32,7 +32,7 @@ Menu structure hierarchy:
 - Menu → Menu items (New, Open, Save, etc.)
 - Menu items → Submenus or commands
 
-Element ID format: Menu items use macos://ui/ IDs from InterfaceExplorerTool or getMenuItems.
+Element IDs for menu items can be obtained from InterfaceExplorerTool or getMenuItems.
 
 Use cases:
 - Access app commands not available in UI
@@ -142,7 +142,7 @@ Bundle ID required for all operations to target specific application.
         .object([
           "action": .string("activateMenuItem"),
           "bundleId": .string("com.apple.TextEdit"),
-          "id": .string("macos://ui/AXApplication[@bundleId=\"com.apple.TextEdit\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"File\"]/AXMenu/AXMenuItem[@AXTitle=\"Save\"]"),
+          "id": .string("menu-item-uuid-example"),
         ]),
       ]),
     ])
