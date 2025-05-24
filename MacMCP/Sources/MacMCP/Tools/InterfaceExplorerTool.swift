@@ -26,7 +26,7 @@ Available scope types:
 - system: All applications (very broad, use sparingly)
 - position: Element at screen coordinates (x, y required)
 - element: Specific element by ID (advanced usage)
-- element: Element by macos://ui/ ID (for detailed exploration)
+- element: Element by ID (for detailed exploration)
 
 Common workflows:
 1. Initial exploration: Use 'focused' scope with maxDepth 15-20
@@ -113,7 +113,7 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
         ]),
         "id": .object([
           "type": .string("string"),
-          "description": .string("Element ID in macos://ui/ format (required for 'path' scope) for detailed element exploration"),
+          "description": .string("Element ID (required for 'element' scope) for detailed element exploration"),
         ]),
         "x": .object([
           "type": .array([.string("number"), .string("integer")]),
@@ -223,7 +223,7 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
         ]),
         .object([
           "scope": .string("element"),
-          "id": .string("macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow"),
+          "id": .string("element-uuid-example"),
           "maxDepth": .int(10),
         ]),
       ]),

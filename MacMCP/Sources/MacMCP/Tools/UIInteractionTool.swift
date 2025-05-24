@@ -14,7 +14,7 @@ public struct UIInteractionTool {
   public let description = """
 Interact with UI elements on macOS through clicking, dragging, scrolling, and coordinate-based actions.
 
-IMPORTANT: Use InterfaceExplorerTool first to discover element IDs. Element IDs use macos://ui/ format.
+IMPORTANT: Use InterfaceExplorerTool first to discover element IDs.
 
 Available actions:
 - click: Single click on element or coordinates
@@ -34,7 +34,6 @@ Common workflows:
 4. Scroll content: Container id + direction + amount
 5. Position clicks: Use x, y coordinates when element detection fails
 
-Element ID format: macos://ui/AXApplication[@bundleId="..."]/AXWindow/AXButton[@AXTitle="..."]
 Coordinate system: Screen pixels, (0,0) = top-left corner.
 """
 
@@ -101,7 +100,7 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
         ]),
         "id": .object([
           "type": .string("string"),
-          "description": .string("Element ID from InterfaceExplorerTool (macos://ui/...) - preferred method for reliability"),
+          "description": .string("Element ID from InterfaceExplorerTool - preferred method for reliability"),
         ]),
         "appBundleId": .object([
           "type": .string("string"),
@@ -117,7 +116,7 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
         ]),
         "targetId": .object([
           "type": .string("string"),
-          "description": .string("Destination element ID for drag operations (macos://ui/...) - required for 'drag' action"),
+          "description": .string("Destination element ID for drag operations - required for 'drag' action"),
         ]),
         "direction": .object([
           "type": .string("string"),
@@ -141,7 +140,7 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
       "examples": .array([
         .object([
           "action": .string("click"),
-          "id": .string("macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow/AXButton[@AXTitle=\"1\"]"),
+          "id": .string("element-uuid-example"),
         ]),
         .object([
           "action": .string("click"),
@@ -150,20 +149,20 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
         ]),
         .object([
           "action": .string("double_click"),
-          "id": .string("macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"Documents\"]"),
+          "id": .string("element-uuid-example"),
         ]),
         .object([
           "action": .string("right_click"),
-          "id": .string("macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"file.txt\"]"),
+          "id": .string("element-uuid-example"),
         ]),
         .object([
           "action": .string("drag"),
-          "id": .string("macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"file.txt\"]"),
-          "targetId": .string("macos://ui/AXApplication[@bundleId=\"com.apple.finder\"]/AXWindow/AXOutline/AXCell[@AXTitle=\"Folder\"]"),
+          "id": .string("source-element-uuid"),
+          "targetId": .string("target-element-uuid"),
         ]),
         .object([
           "action": .string("scroll"),
-          "id": .string("macos://ui/AXApplication[@bundleId=\"com.apple.safari\"]/AXWindow/AXWebArea"),
+          "id": .string("element-uuid-example"),
           "direction": .string("down"),
           "amount": .double(0.5),
         ]),

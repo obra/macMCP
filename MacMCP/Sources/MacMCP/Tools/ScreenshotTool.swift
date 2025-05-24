@@ -121,7 +121,7 @@ Coordinate system: Screen coordinates start at (0,0) in top-left corner.
         ]),
         "id": .object([
           "type": .string("string"),
-          "description": .string("UI element ID from InterfaceExplorerTool (required for 'element' region) - e.g., 'macos://ui/AXApplication/AXWindow/AXButton'"),
+          "description": .string("UI element ID from InterfaceExplorerTool (required for 'element' region)"),
         ]),
       ]),
       "required": .array([.string("region")]),
@@ -143,7 +143,7 @@ Coordinate system: Screen coordinates start at (0,0) in top-left corner.
         ]),
         .object([
           "region": .string("element"),
-          "id": .string("macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow/AXButton[@AXTitle=\"1\"]"),
+          "id": .string("element-uuid-example"),
         ]),
       ]),
     ])
