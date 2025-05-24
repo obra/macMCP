@@ -333,21 +333,30 @@ public struct ElementPath: Sendable {
   /// Helper method to get child elements of a given element
   /// - Parameter element: The element to get children for
   /// - Returns: Array of child elements, or nil if children couldn't be accessed
-  private func getChildElements(of element: AXUIElement) -> [AXUIElement]? {
-    var childrenRef: CFTypeRef?
-    let status = AXUIElementCopyAttributeValue(element, "AXChildren" as CFString, &childrenRef)
+  private func getChildElements(of element: AXUIElement) async -> [AXUIElement]? {
+    let maxRetries = 3
+    let baseDelay: UInt64 = 10_000_000 // 10ms in nanoseconds
+    
+    for attempt in 0..<maxRetries {
+      var childrenRef: CFTypeRef?
+      let status = AXUIElementCopyAttributeValue(element, "AXChildren" as CFString, &childrenRef)
 
-    // Skip if we couldn't get children
-    if status != .success || childrenRef == nil {
-      return nil
+      // If successful, convert to array of elements
+      if status == .success, let children = childrenRef as? [AXUIElement] {
+        return children
+      }
+      
+      // If this was the last attempt, return nil
+      if attempt == maxRetries - 1 {
+        return nil
+      }
+      
+      // Wait before retrying, with exponential backoff
+      let delay = baseDelay * UInt64(1 << attempt)
+      try? await Task.sleep(nanoseconds: delay)
     }
-
-    // Convert to array of elements
-    guard let children = childrenRef as? [AXUIElement] else {
-      return nil
-    }
-
-    return children
+    
+    return nil
   }
 
   /// Resolves a path using breadth-first search to handle ambiguities
@@ -492,7 +501,7 @@ public struct ElementPath: Sendable {
       failedSegmentIndex = max(failedSegmentIndex, node.segmentIndex)
 
       // Get children of the current element to explore
-      guard let children = getChildElements(of: node.element) else {
+      guard let children = await getChildElements(of: node.element) else {
         // print("DEBUG: No children found for this element")
         continue
       }
@@ -1677,7 +1686,7 @@ extension ElementPath {
       }
 
       // Get children
-      guard let children = path.getChildElements(of: element) else {
+      guard let children = await path.getChildElements(of: element) else {
         diagnosis += "❌ Couldn't get children of current element\n\n"
         break
       }
