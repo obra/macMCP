@@ -8,7 +8,7 @@ import Logging
 import MCP  // Import MCP for Value type
 
 // Configure a logger for the inspector
-let logger = Logger(label: "com.anthropic.mac-mcp.mcp-ax-inspector")
+let logger = Logger(label: "com.fsck.mac-mcp.mcp-ax-inspector")
 
 /// A class to handle JSON fetching tasks in a way that can be used with a semaphore
 /// This solves the issue of capturing state in Task closures

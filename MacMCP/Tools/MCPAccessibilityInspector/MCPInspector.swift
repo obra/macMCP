@@ -13,7 +13,7 @@ import MCP
 #endif
 
 // Configure a logger for the inspector
-private let inspectorLogger = Logger(label: "com.anthropic.mac-mcp.mcp-inspector")
+private let inspectorLogger = Logger(label: "com.fsck.mac-mcp.mcp-inspector")
 
 /// The main inspector class responsible for accessibility tree traversal using MCP tools
 class MCPInspector: @unchecked Sendable {

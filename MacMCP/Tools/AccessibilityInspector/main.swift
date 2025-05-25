@@ -6,7 +6,7 @@ import Foundation
 import Logging
 
 // Configure a logger for the inspector
-let logger = Logger(label: "com.anthropic.mac-mcp.ax-inspector")
+let logger = Logger(label: "com.fsck.mac-mcp.ax-inspector")
 
 // Define the command-line tool using ArgumentParser
 struct AccessibilityInspector: ParsableCommand {

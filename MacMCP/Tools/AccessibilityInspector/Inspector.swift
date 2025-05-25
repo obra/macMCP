@@ -7,7 +7,7 @@ import Foundation
 import Logging
 
 // Configure a logger for the inspector
-private let inspectorLogger = Logger(label: "com.anthropic.mac-mcp.inspector")
+private let inspectorLogger = Logger(label: "com.fsck.mac-mcp.inspector")
 
 /// Represents a UI element with all its accessibility properties
 class UIElementNode {
