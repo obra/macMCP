@@ -12,7 +12,6 @@ let package = Package(
     .executable(name: "MacMCP", targets: ["MacMCP"]),
     .executable(name: "ax-inspector", targets: ["AccessibilityInspector"]),
     .executable(name: "mcp-ax-inspector", targets: ["MCPAccessibilityInspector"]),
-    .executable(name: "keymon", targets: ["KeyboardMonitor"]),
   ],
   dependencies: [
     .package(path: "../swift-sdk"),
@@ -65,16 +64,6 @@ let package = Package(
         .product(name: "Logging", package: "swift-log"),
       ],
       path: "Tools/MCPAccessibilityInspector",
-      plugins: [
-        .plugin(name: "SwiftLintPlugin", package: "SwiftLintPlugin"),
-      ],
-    ),
-    .executableTarget(
-      name: "KeyboardMonitor",
-      dependencies: [
-        .product(name: "ArgumentParser", package: "swift-argument-parser")
-      ],
-      path: "Tools/KeyboardMonitor",
       plugins: [
         .plugin(name: "SwiftLintPlugin", package: "SwiftLintPlugin"),
       ],
