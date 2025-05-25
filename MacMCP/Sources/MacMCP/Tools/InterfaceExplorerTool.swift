@@ -21,7 +21,6 @@ Explore and examine UI elements and their capabilities in macOS applications - e
 IMPORTANT: This tool is critical for finding element IDs needed by UIInteractionTool and other tools. Always explore before interacting.
 
 Available scope types:
-- focused: Currently active application (RECOMMENDED - fastest and most relevant)
 - application: Specific app by bundleId (when you know the target app)
 - system: All applications (very broad, use sparingly)
 - position: Element at screen coordinates (x, y required)
@@ -29,7 +28,7 @@ Available scope types:
 - element: Element by ID (for detailed exploration)
 
 Common workflows:
-1. Initial exploration: Use 'focused' scope with maxDepth 15-20
+1. Initial exploration: Use 'application' scope with specific bundleId and maxDepth 15-20
 2. Find interactive elements: Use filter by role (AXButton, AXTextField, etc.)
 3. Search by content: Use titleContains or descriptionContains filters
 4. Navigate hierarchy: Use 'element' scope to explore specific elements deeper
@@ -45,7 +44,7 @@ Filtering capabilities:
 - isEnabled: Filter by enabled/disabled state
 - inMenus/inMainContent: Location context filtering (menu system vs main content)
 
-Performance tips: Start with 'focused' scope, use filters to narrow results, adjust maxDepth based on needs.
+Performance tips: Start with 'application' scope for specific apps, use filters to narrow results, adjust maxDepth based on needs.
 """
 
   /// Input schema for the tool
@@ -101,11 +100,10 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
       "properties": .object([
         "scope": .object([
           "type": .string("string"),
-          "description": .string("Exploration scope: 'focused' (recommended), 'application' (specific app), 'position' (coordinates), 'element' (specific element)"),
+          "description": .string("Exploration scope: 'application' (specific app), 'system' (all apps), 'position' (coordinates), 'element' (specific element)"),
           "enum": .array([
             .string("system"),
             .string("application"),
-            .string("focused"),
             .string("position"),
             .string("element"),
             .string("element"),
@@ -220,10 +218,12 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
       "additionalProperties": .bool(false),
       "examples": .array([
         .object([
-          "scope": .string("focused"),
+          "scope": .string("application"),
+          "bundleId": .string("com.apple.calculator"),
         ]),
         .object([
-          "scope": .string("focused"),
+          "scope": .string("application"),
+          "bundleId": .string("com.apple.calculator"),
           "maxDepth": .int(20),
           "filter": .object([
             "role": .string("AXButton")
@@ -235,7 +235,8 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
           "maxDepth": .int(15),
         ]),
         .object([
-          "scope": .string("focused"),
+          "scope": .string("application"),
+          "bundleId": .string("com.apple.textedit"),
           "filter": .object([
             "titleContains": .string("Save")
           ]),
@@ -248,7 +249,8 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
           ]),
         ]),
         .object([
-          "scope": .string("focused"),
+          "scope": .string("application"),
+          "bundleId": .string("com.apple.calculator"),
           "filter": .object([
             "isInteractable": .bool(true)
           ]),
@@ -357,26 +359,6 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
 
       return try await handleApplicationScope(
         bundleId: bundleId,
-        maxDepth: maxDepth,
-        includeHidden: includeHidden,
-        limit: limit,
-        role: role,
-        title: title,
-        titleContains: titleContains,
-        value: value,
-        valueContains: valueContains,
-        description: description,
-        descriptionContains: descriptionContains,
-        textContains: textContains,
-        isInteractable: isInteractable,
-        isEnabled: isEnabled,
-        inMenus: inMenus,
-        inMainContent: inMainContent,
-        elementTypes: elementTypes,
-      )
-
-    case "focused":
-      return try await handleFocusedScope(
         maxDepth: maxDepth,
         includeHidden: includeHidden,
         limit: limit,
@@ -641,88 +623,6 @@ Performance tips: Start with 'focused' scope, use filters to narrow results, adj
     return try formatResponse(Array(limitedDescriptors))
   }
 
-  /// Handle focused application scope
-  private func handleFocusedScope(
-    maxDepth: Int,
-    includeHidden: Bool,
-    limit: Int,
-    role: String?,
-    title: String?,
-    titleContains: String?,
-    value: String?,
-    valueContains: String?,
-    description: String?,
-    descriptionContains: String?,
-    textContains: String?,
-    isInteractable: Bool?,
-    isEnabled: Bool?,
-    inMenus: Bool?,
-    inMainContent: Bool?,
-    elementTypes: [String],
-  ) async throws -> [Tool.Content] {
-    // Get focused application UI state
-    var elements: [UIElement]
-
-    if role != nil || title != nil || titleContains != nil || value != nil || valueContains != nil
-      || description != nil || descriptionContains != nil || textContains != nil || isInteractable != nil
-      || isEnabled != nil || inMenus != nil || inMainContent != nil || !elementTypes.contains("any")
-    {
-      // Use findUIElements for filtered results
-      elements = try await accessibilityService.findUIElements(
-        role: role,
-        title: title,
-        titleContains: titleContains,
-        value: value,
-        valueContains: valueContains,
-        description: description,
-        descriptionContains: descriptionContains,
-        scope: .focusedApplication,
-        recursive: true,
-        maxDepth: maxDepth,
-      )
-
-      // Apply additional filters
-      elements = applyAdditionalFilters(
-        elements: elements,
-        role: role,
-        title: title,
-        titleContains: titleContains,
-        value: value,
-        valueContains: valueContains,
-        description: description,
-        descriptionContains: descriptionContains,
-        textContains: textContains,
-        isInteractable: isInteractable,
-        isEnabled: isEnabled,
-        inMenus: inMenus,
-        inMainContent: inMainContent,
-        elementTypes: elementTypes,
-        includeHidden: includeHidden,
-        limit: limit,
-      )
-    } else {
-      // Get the full focused application element
-      let focusedElement = try await accessibilityService.getFocusedApplicationUIElement(
-        recursive: true,
-        maxDepth: maxDepth,
-      )
-      elements = [focusedElement]
-
-      // Apply hidden filter if specified
-      if !includeHidden {
-        elements = filterVisibleElements(elements)
-      }
-    }
-
-    // Convert to enhanced element descriptors
-    let descriptors = convertToEnhancedDescriptors(elements: elements, maxDepth: maxDepth)
-
-    // Apply limit
-    let limitedDescriptors = descriptors.prefix(limit)
-
-    // Return formatted response
-    return try formatResponse(Array(limitedDescriptors))
-  }
 
   /// Handle position scope
   private func handlePositionScope(

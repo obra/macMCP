@@ -199,7 +199,7 @@ public final class ToolChain: @unchecked Sendable {
   /// Get UI elements matching criteria
   /// - Parameters:
   ///   - criteria: Criteria to match against UI elements
-  ///   - scope: Scope of the search ("system", "application", "focused", "position")
+  ///   - scope: Scope of the search ("system", "application", "position")
   ///   - bundleId: Bundle identifier for application scope
   ///   - position: Position for position scope
   ///   - maxDepth: Maximum depth of the element hierarchy
@@ -287,7 +287,7 @@ public final class ToolChain: @unchecked Sendable {
   /// Find a single UI element matching criteria
   /// - Parameters:
   ///   - criteria: Criteria to match against UI elements
-  ///   - scope: Scope of the search ("system", "application", "focused", "position")
+  ///   - scope: Scope of the search ("system", "application", "position")
   ///   - bundleId: Bundle identifier for application scope
   ///   - position: Position for position scope
   ///   - maxDepth: Maximum depth of the element hierarchy
@@ -578,9 +578,9 @@ public final class ToolChain: @unchecked Sendable {
 
   /// Explore UI elements using the InterfaceExplorerTool
   /// - Parameters:
-  ///   - scope: Scope of the search ("system", "application", "focused", "position", "path")
+  ///   - scope: Scope of the search ("system", "application", "position", "element")
   ///   - bundleId: Bundle identifier for application scope
-  ///   - elementPath: Element path for path scope (using macos://ui/ notation)
+  ///   - elementPath: Element path for element scope (using macos://ui/ notation)
   ///   - position: Position (x,y) for position scope
   ///   - filter: Optional filter criteria for elements
   ///   - elementTypes: Types of elements to find

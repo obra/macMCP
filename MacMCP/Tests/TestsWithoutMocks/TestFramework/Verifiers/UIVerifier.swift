@@ -20,7 +20,7 @@ public class UIVerifier {
   /// Verify that an element matching criteria exists
   /// - Parameters:
   ///   - criteria: Criteria to match against UI elements
-  ///   - scope: Scope of the search ("system", "application", "focused", "position")
+  ///   - scope: Scope of the search ("system", "application", "position")
   ///   - bundleId: Bundle identifier for application scope
   ///   - timeout: Maximum time to wait for the element to appear
   /// - Returns: The matching element
@@ -60,7 +60,7 @@ public class UIVerifier {
   /// Verify that an element matching criteria does not exist
   /// - Parameters:
   ///   - criteria: Criteria to match against UI elements
-  ///   - scope: Scope of the search ("system", "application", "focused", "position")
+  ///   - scope: Scope of the search ("system", "application", "position")
   ///   - bundleId: Bundle identifier for application scope
   ///   - timeout: Time to wait to ensure the element does not appear
   /// - Throws: XCTest failure if the element is found
@@ -97,7 +97,7 @@ public class UIVerifier {
   ///   - criteria: Criteria to match against UI elements
   ///   - property: The property to check ("title", "value", "description", etc.)
   ///   - expectedValue: The expected value of the property
-  ///   - scope: Scope of the search ("system", "application", "focused", "position")
+  ///   - scope: Scope of the search ("system", "application", "position")
   ///   - bundleId: Bundle identifier for application scope
   ///   - timeout: Maximum time to wait for the condition to be true
   /// - Returns: The matching element
@@ -195,7 +195,7 @@ public class UIVerifier {
   ///   - criteria: Criteria to match against UI elements
   ///   - property: The property to check ("title", "value", "description", etc.)
   ///   - substring: The string that should be contained in the property
-  ///   - scope: Scope of the search ("system", "application", "focused", "position")
+  ///   - scope: Scope of the search ("system", "application", "position")
   ///   - bundleId: Bundle identifier for application scope
   ///   - timeout: Maximum time to wait for the condition to be true
   /// - Returns: The matching element
