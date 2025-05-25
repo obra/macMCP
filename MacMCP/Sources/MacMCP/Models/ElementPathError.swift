@@ -59,6 +59,15 @@ public enum ElementPathError: Error, CustomStringConvertible, Equatable {
   /// Accessibility permissions are insufficient for path resolution
   case insufficientPermissions(String, details: String)
 
+  /// Index is out of range for the number of matching elements
+  case indexOutOfRange(Int, availableCount: Int, atSegment: Int)
+  
+  /// Multiple matches found but no index specified for disambiguation
+  case ambiguousMatchNoIndex(String, matchCount: Int, atSegment: Int)
+  
+  /// Index specified but only one element matches (index unnecessary)
+  case unnecessaryIndex(Int, atSegment: Int)
+  
   /// A suggested validation warning rather than a hard error
   case validationWarning(String, suggestion: String)
 
@@ -113,6 +122,12 @@ public enum ElementPathError: Error, CustomStringConvertible, Equatable {
         "Resolution timeout for segment \(segmentIndex): \(segment).\nThe UI hierarchy might be too deep or complex."
     case .insufficientPermissions(let feature, let details):
       return "Insufficient accessibility permissions for: \(feature).\n\(details)"
+    case .indexOutOfRange(let index, let availableCount, let segmentIndex):
+      return "Index \(index) is out of range at segment \(segmentIndex). Only \(availableCount) elements match this segment (valid indices: 0-\(availableCount - 1))."
+    case .ambiguousMatchNoIndex(let segment, let matchCount, let segmentIndex):
+      return "Ambiguous match at segment \(segmentIndex): \(matchCount) elements match '\(segment)' but no index specified. Use #0, #1, #2, etc. to select a specific element."
+    case .unnecessaryIndex(let index, let segmentIndex):
+      return "Unnecessary index #\(index) at segment \(segmentIndex): only one element matches this segment. Consider removing the index for cleaner paths."
     case .validationWarning(let message, let suggestion):
       return "Warning: \(message).\nSuggestion: \(suggestion)"
     }
@@ -201,6 +216,21 @@ public enum ElementPathError: Error, CustomStringConvertible, Equatable {
       .insufficientPermissions(let rhsFeature, let rhsDetails),
     ):
       lhsFeature == rhsFeature && lhsDetails == rhsDetails
+    case (
+      .indexOutOfRange(let lhsIndex, let lhsCount, let lhsSegment),
+      .indexOutOfRange(let rhsIndex, let rhsCount, let rhsSegment)
+    ):
+      lhsIndex == rhsIndex && lhsCount == rhsCount && lhsSegment == rhsSegment
+    case (
+      .ambiguousMatchNoIndex(let lhsSegment, let lhsCount, let lhsIndex),
+      .ambiguousMatchNoIndex(let rhsSegment, let rhsCount, let rhsIndex)
+    ):
+      lhsSegment == rhsSegment && lhsCount == rhsCount && lhsIndex == rhsIndex
+    case (
+      .unnecessaryIndex(let lhsIndex, let lhsSegment),
+      .unnecessaryIndex(let rhsIndex, let rhsSegment)
+    ):
+      lhsIndex == rhsIndex && lhsSegment == rhsSegment
     case (
       .validationWarning(let lhsMessage, let lhsSuggestion),
       .validationWarning(let rhsMessage, let rhsSuggestion),

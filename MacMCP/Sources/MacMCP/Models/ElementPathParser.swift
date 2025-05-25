@@ -50,34 +50,76 @@ public struct ElementPathParser {
   private static func parseSegment(_ segmentString: String, segmentIndex: Int) throws -> PathSegment
   {
     // Regular expressions for parsing
-    let rolePattern = "^([A-Za-z0-9]+)"  // Captures the role name
     // Combined pattern to handle both escaped and unescaped quotes
     let attributePattern = "\\[@([^=]+)=\\\\?\"((?:[^\"]|\\\\\")*?)\\\\?\"\\]"  // Captures attribute name and value
-    let indexPattern = "#([+-]?\\w+)"  // Captures the index (could be anywhere in the segment)
+    let indexPattern = "#([+-]?\\d+)(?=\\[|$)"  // Captures integer index only at end or before attributes
 
-    // Extract the role
-    guard let roleRange = segmentString.range(of: rolePattern, options: .regularExpression) else {
-      throw ElementPathError.invalidSegmentRole(segmentString)
+    // First, extract the index if present (from the end)
+    var workingString = segmentString
+    var index: Int? = nil
+    
+    // Check for valid integer index pattern only
+    if let regex = try? NSRegularExpression(pattern: indexPattern) {
+      let nsString = workingString as NSString
+      let range = NSRange(location: 0, length: nsString.length)
+      if let match = regex.firstMatch(in: workingString, options: [], range: range), match.numberOfRanges >= 2 {
+        let indexRange = Range(match.range(at: 1), in: workingString)!
+        let indexString = String(workingString[indexRange])
+        if let parsedIndex = Int(indexString) {
+          index = parsedIndex
+          // Remove the index from the working string
+          let fullMatchRange = Range(match.range(at: 0), in: workingString)!
+          workingString.removeSubrange(fullMatchRange)
+        }
+      }
     }
 
-    let role = String(segmentString[roleRange])
+    // Check for obvious invalid index attempts that users might try
+    // We only want to catch clearly mistaken index patterns, not hashes that are part of role names
+    
+    // Pattern 1: Bare hash at the very end or before attributes (#)
+    if workingString.hasSuffix("#") || workingString.contains("#[") {
+      let bareHashPattern = "#(?=\\[|$)"
+      if let bareHashRegex = try? NSRegularExpression(pattern: bareHashPattern) {
+        let nsString = workingString as NSString
+        let range = NSRange(location: 0, length: nsString.length)
+        if bareHashRegex.firstMatch(in: workingString, options: [], range: range) != nil {
+          throw ElementPathError.invalidIndexSyntax("#", atSegment: segmentIndex)
+        }
+      }
+    }
+    
+    // Pattern 2: Hash followed by obvious non-integer attempts (like #abc, #@!$) at the end
+    let clearInvalidPattern = "#([a-z]+|[A-Z]+|[@!\\$%^&*()]+)(?=\\[|$)"
+    if let clearInvalidRegex = try? NSRegularExpression(pattern: clearInvalidPattern) {
+      let nsString = workingString as NSString
+      let range = NSRange(location: 0, length: nsString.length)
+      if let match = clearInvalidRegex.firstMatch(in: workingString, options: [], range: range), match.numberOfRanges >= 2 {
+        let invalidIndexRange = Range(match.range(at: 1), in: workingString)!
+        let invalidIndexString = String(workingString[invalidIndexRange])
+        throw ElementPathError.invalidIndexSyntax("#\(invalidIndexString)", atSegment: segmentIndex)
+      }
+    }
 
-    // Extract attributes using regex groups
+    // Extract attributes and remove them from the working string
     var attributes: [String: String] = [:]
     
     // Use NSRegularExpression to extract attributes with proper group capture
     if let regex = try? NSRegularExpression(pattern: attributePattern) {
-      let nsString = segmentString as NSString
+      let nsString = workingString as NSString
       let range = NSRange(location: 0, length: nsString.length)
-      let matches = regex.matches(in: segmentString, options: [], range: range)
+      let matches = regex.matches(in: workingString, options: [], range: range)
+      
+      // Sort matches by location in reverse order to safely remove from string
+      let sortedMatches = matches.sorted { $0.range.location > $1.range.location }
       
       for match in matches {
         if match.numberOfRanges >= 3 {
-          let nameRange = Range(match.range(at: 1), in: segmentString)!
-          let valueRange = Range(match.range(at: 2), in: segmentString)!
+          let nameRange = Range(match.range(at: 1), in: workingString)!
+          let valueRange = Range(match.range(at: 2), in: workingString)!
           
-          let name = String(segmentString[nameRange])
-          var value = String(segmentString[valueRange])
+          let name = String(workingString[nameRange])
+          var value = String(workingString[valueRange])
           
           // Unescape quotes in the value
           value = value.replacingOccurrences(of: "\\\"", with: "\"")
@@ -87,22 +129,19 @@ public struct ElementPathParser {
           attributes[normalizedName] = value
         }
       }
+      
+      // Remove all attribute patterns from the working string
+      for match in sortedMatches {
+        let fullMatchRange = Range(match.range(at: 0), in: workingString)!
+        workingString.removeSubrange(fullMatchRange)
+      }
     }
 
-    // Extract index if present
-    var index: Int? = nil
-    if let regex = try? NSRegularExpression(pattern: indexPattern) {
-      let nsString = segmentString as NSString
-      let range = NSRange(location: 0, length: nsString.length)
-      if let match = regex.firstMatch(in: segmentString, options: [], range: range), match.numberOfRanges >= 2 {
-        let indexRange = Range(match.range(at: 1), in: segmentString)!
-        let indexString = String(segmentString[indexRange])
-        if let parsedIndex = Int(indexString) {
-          index = parsedIndex
-        } else {
-          throw ElementPathError.invalidIndexSyntax("#\(indexString)", atSegment: segmentIndex)
-        }
-      }
+    // Whatever remains should be the role name
+    let role = workingString.trimmingCharacters(in: .whitespacesAndNewlines)
+    
+    guard !role.isEmpty else {
+      throw ElementPathError.invalidSegmentRole(segmentString)
     }
 
     return PathSegment(role: role, attributes: attributes, index: index)

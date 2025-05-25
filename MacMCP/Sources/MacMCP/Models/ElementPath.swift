@@ -170,15 +170,19 @@ public struct ElementPath: Sendable {
             currentElement = matchingChildren[index]
             logger.trace("DIAGNOSTIC: Selected match \(index) of \(matchingChildren.count) for segment \(i)")
           } else {
-            throw ElementPathError.invalidIndexSyntax(
-              "Index \(index) is out of range (0..\(matchingChildren.count - 1))",
+            throw ElementPathError.indexOutOfRange(
+              index,
+              availableCount: matchingChildren.count,
               atSegment: i
             )
           }
         } else {
-          // No index specified but multiple matches found
-          currentElement = matchingChildren[0]
-          logger.trace("DIAGNOSTIC: Multiple matches (\(matchingChildren.count)) found for segment \(i), using first match")
+          // No index specified but multiple matches found - this is potentially ambiguous
+          throw ElementPathError.ambiguousMatchNoIndex(
+            segment.toString(),
+            matchCount: matchingChildren.count,
+            atSegment: i
+          )
         }
       }
     }
@@ -1018,9 +1022,10 @@ public struct ElementPath: Sendable {
 
       // Validate the index is in range
       if index < 0 || index >= matches.count {
-        throw ElementPathError.invalidIndexSyntax(
-          "Index \(index) is out of range (0..\(matches.count - 1))",
-          atSegment: segmentIndex,
+        throw ElementPathError.indexOutOfRange(
+          index,
+          availableCount: matches.count,
+          atSegment: segmentIndex
         )
       }
 
@@ -1065,13 +1070,11 @@ public struct ElementPath: Sendable {
         matchCandidates.append("...and \(matches.count - 5) more matches")
       }
 
-      // Throw enhanced error with candidate information
-      throw ElementPathError.resolutionFailed(
-        segment: segmentString,
-        index: segmentIndex,
-        candidates: matchCandidates,
-        reason:
-          "Multiple elements (\(matches.count)) match this segment. Add more specific attributes or use an index.",
+      // Throw enhanced error with candidate information - prefer the new ambiguous match error
+      throw ElementPathError.ambiguousMatchNoIndex(
+        segmentString,
+        matchCount: matches.count,
+        atSegment: segmentIndex
       )
     }
   }

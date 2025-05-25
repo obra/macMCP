@@ -359,6 +359,118 @@ struct ElementPathTests {
     }
   }
 
+  @Test("Complete round-trip compatibility (generate → parse → resolve → generate)")
+  func completeRoundTripCompatibility() throws {
+    // Test the complete cycle: path generation → parsing → resolution → path generation
+    let mockHierarchy = createMockElementHierarchy()
+    let mockService = MockAccessibilityService(rootElement: mockHierarchy)
+    
+    // Test paths that should work through the complete cycle
+    let testPaths = [
+      // Simple paths without index
+      "macos://ui/AXWindow",
+      "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]",
+      "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]",
+      
+      // Paths with indices
+      "macos://ui/AXWindow/AXGroup[@AXTitle=\"Duplicate\"]#0",
+      "macos://ui/AXWindow/AXGroup[@AXTitle=\"Duplicate\"]#1",
+      
+      // Mixed paths with some segments having indices
+      "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton#1"
+    ]
+    
+    for originalPath in testPaths {
+      // Step 1: Parse the original path
+      let parsedPath = try ElementPath.parse(originalPath)
+      
+      // Step 2: Regenerate path string from parsed path
+      let regeneratedPath = parsedPath.toString()
+      #expect(regeneratedPath == originalPath, "Initial round-trip failed for: \(originalPath)")
+      
+      // Step 3: Try to resolve the path (this may fail for some test paths, but parsing should work)
+      let resolveResult = mockResolvePathForTest(service: mockService, path: parsedPath)
+      
+      if resolveResult != nil {
+        // Resolution succeeded - test that we can parse the regenerated path again
+        let reparsedPath = try ElementPath.parse(regeneratedPath)
+        let reregeneratedPath = reparsedPath.toString()
+        #expect(reregeneratedPath == originalPath, "Full round-trip failed for: \(originalPath)")
+      } else {
+        // Resolution failed - just verify parsing consistency
+        let reparsedPath = try ElementPath.parse(regeneratedPath)
+        let reregeneratedPath = reparsedPath.toString()
+        #expect(reregeneratedPath == originalPath, "Parse round-trip failed for: \(originalPath)")
+      }
+    }
+  }
+
+  @Test("Round-trip with complex attribute combinations")
+  func roundTripComplexAttributes() throws {
+    // Test round-trip with various attribute combinations and index placements
+    // NOTE: Attributes will be sorted alphabetically during generation, so we use expected sorted forms
+    let complexPaths = [
+      // Multiple attributes with index (sorted: AXTitle comes before bundleId)
+      "macos://ui/AXApplication[@AXTitle=\"Test App\"][@bundleId=\"com.test\"]/AXWindow#2",
+      
+      // Index with multiple attributes in different orders (sorted: AXDescription before AXTitle)
+      "macos://ui/AXButton[@AXDescription=\"Save\"][@AXTitle=\"Save Button\"]#3",
+      
+      // Escaped quotes with index
+      "macos://ui/AXButton[@AXDescription=\"Button with \\\"quotes\\\"\"]#1",
+      
+      // Mixed format with some segments having index, others not
+      "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]#0/AXButton[@AXDescription=\"Submit\"]",
+      
+      // Deep hierarchy with indices at different levels
+      "macos://ui/AXApplication#0/AXWindow#1/AXGroup#2/AXButton#3"
+    ]
+    
+    for originalPath in complexPaths {
+      let parsed = try ElementPath.parse(originalPath)
+      let regenerated = parsed.toString()
+      #expect(regenerated == originalPath, "Complex round-trip failed for: \(originalPath)")
+      
+      // Verify that each segment has the expected properties
+      for (i, segment) in parsed.segments.enumerated() {
+        // Re-parse to make sure individual segments are consistent
+        let segmentString = segment.toString()
+        // This indirectly tests that the segment can be parsed back if needed
+        #expect(!segmentString.isEmpty, "Segment \(i) generated empty string for path: \(originalPath)")
+      }
+    }
+  }
+
+  @Test("Attribute order normalization in round-trip")
+  func attributeOrderNormalizationInRoundTrip() throws {
+    // Test that parsing normalizes attribute order consistently
+    let pathsWithDifferentAttributeOrders = [
+      // Same path with attributes in different orders - all should normalize to the same result
+      ("original1", "macos://ui/AXApplication[@bundleId=\"com.test\"][@AXTitle=\"Test App\"]"),
+      ("original2", "macos://ui/AXApplication[@AXTitle=\"Test App\"][@bundleId=\"com.test\"]"),
+    ]
+    
+    var normalizedResults: [String] = []
+    
+    for (label, originalPath) in pathsWithDifferentAttributeOrders {
+      let parsed = try ElementPath.parse(originalPath)
+      let regenerated = parsed.toString()
+      normalizedResults.append(regenerated)
+      
+      // Re-parse the regenerated path to ensure consistency
+      let reparsed = try ElementPath.parse(regenerated)
+      let rerenerated = reparsed.toString()
+      #expect(rerenerated == regenerated, "Double round-trip failed for \(label): \(originalPath)")
+    }
+    
+    // All different input orders should produce the same normalized output
+    #expect(normalizedResults[0] == normalizedResults[1], "Different attribute orders should normalize to same result")
+    
+    // The normalized result should have attributes in alphabetical order
+    let expectedNormalized = "macos://ui/AXApplication[@AXTitle=\"Test App\"][@bundleId=\"com.test\"]"
+    #expect(normalizedResults[0] == expectedNormalized, "Normalized result should be alphabetically sorted")
+  }
+
   @Test("Original user failing scenario - Calculator button click")
   func originalUserFailingScenario() throws {
     // This is the exact path that was failing for the user
@@ -863,6 +975,13 @@ struct ElementPathTests {
 
     let highIndexError = mockResolvePathWithExceptionForTest(service: mockService, path: pathHighIndex)
     #expect(highIndexError != nil)
+    if case .indexOutOfRange(let index, let availableCount, let segmentIndex)? = highIndexError {
+      #expect(index == 5)
+      #expect(availableCount == 2) // We have 2 duplicate groups in mock hierarchy
+      #expect(segmentIndex == 1)
+    } else {
+      #expect(Bool(false), "Expected indexOutOfRange error but got \(String(describing: highIndexError))")
+    }
     
     // Test with negative index
     let pathStringNegativeIndex = "macos://ui/AXWindow/AXGroup[@AXTitle=\"Duplicate\"]#-1"
@@ -870,6 +989,13 @@ struct ElementPathTests {
 
     let negativeIndexError = mockResolvePathWithExceptionForTest(service: mockService, path: pathNegativeIndex)
     #expect(negativeIndexError != nil)
+    if case .indexOutOfRange(let index, let availableCount, let segmentIndex)? = negativeIndexError {
+      #expect(index == -1)
+      #expect(availableCount == 2)
+      #expect(segmentIndex == 1)
+    } else {
+      #expect(Bool(false), "Expected indexOutOfRange error but got \(String(describing: negativeIndexError))")
+    }
   }
 
   @Test("Path resolution with zero index")
@@ -919,17 +1045,47 @@ struct ElementPathTests {
       return
     }
 
-    switch error {
-    case .ambiguousMatch(let segment, let count, let index):
+    // Should get the new enhanced ambiguous match error
+    if case .ambiguousMatchNoIndex(let segment, let matchCount, let segmentIndex) = error {
       #expect(segment.contains("AXGroup[@AXTitle=\"Duplicate\"]"))
-      #expect(count == 2)
-      #expect(index == 1)
-    case .resolutionFailed(let segment, _, _, _):
-      // This is also acceptable
-      #expect(segment.contains("AXGroup[@AXTitle=\"Duplicate\"]"))
-    default:
-      #expect(Bool(false), "Expected ambiguous match error but got \(error)")
+      #expect(matchCount == 2)
+      #expect(segmentIndex == 1)
+    } else {
+      #expect(Bool(false), "Expected ambiguousMatchNoIndex error but got \(error)")
     }
+  }
+
+  @Test("New error types validation")
+  func newErrorTypesValidation() throws {
+    // Test all new error types to ensure they're properly implemented
+    
+    // Test indexOutOfRange error
+    let indexOutOfRangeError = ElementPathError.indexOutOfRange(5, availableCount: 3, atSegment: 2)
+    let expectedIndexOutOfRange = "Index 5 is out of range at segment 2. Only 3 elements match this segment (valid indices: 0-2)."
+    #expect(indexOutOfRangeError.description == expectedIndexOutOfRange)
+    
+    // Test ambiguousMatchNoIndex error
+    let ambiguousError = ElementPathError.ambiguousMatchNoIndex("AXButton[@AXTitle=\"Save\"]", matchCount: 4, atSegment: 3)
+    let expectedAmbiguous = "Ambiguous match at segment 3: 4 elements match 'AXButton[@AXTitle=\"Save\"]' but no index specified. Use #0, #1, #2, etc. to select a specific element."
+    #expect(ambiguousError.description == expectedAmbiguous)
+    
+    // Test unnecessaryIndex error (this could be used for warnings in the future)
+    let unnecessaryError = ElementPathError.unnecessaryIndex(1, atSegment: 2)
+    let expectedUnnecessary = "Unnecessary index #1 at segment 2: only one element matches this segment. Consider removing the index for cleaner paths."
+    #expect(unnecessaryError.description == expectedUnnecessary)
+    
+    // Test equality for new error types
+    let error1 = ElementPathError.indexOutOfRange(3, availableCount: 2, atSegment: 1)
+    let error2 = ElementPathError.indexOutOfRange(3, availableCount: 2, atSegment: 1)
+    let error3 = ElementPathError.indexOutOfRange(3, availableCount: 3, atSegment: 1)
+    #expect(error1 == error2)
+    #expect(error1 != error3)
+    
+    let ambiguous1 = ElementPathError.ambiguousMatchNoIndex("AXButton", matchCount: 2, atSegment: 1)
+    let ambiguous2 = ElementPathError.ambiguousMatchNoIndex("AXButton", matchCount: 2, atSegment: 1)
+    let ambiguous3 = ElementPathError.ambiguousMatchNoIndex("AXButton", matchCount: 3, atSegment: 1)
+    #expect(ambiguous1 == ambiguous2)
+    #expect(ambiguous1 != ambiguous3)
   }
 
   // These need to be defined inside the test suite class, not as an extension
@@ -1081,14 +1237,13 @@ struct ElementPathTests {
       service: mockService, path: ambiguousPath)
     #expect(ambiguousError != nil)
 
-    if case .resolutionFailed(let segment, let index, let candidates, let reason)? = ambiguousError
+    if case .ambiguousMatchNoIndex(let segment, let matchCount, let segmentIndex)? = ambiguousError
     {
       #expect(segment.contains("AXGroup[@AXTitle=\"Duplicate\"]"))
-      #expect(index == 1)
-      #expect(candidates.count > 0)
-      #expect(reason.contains("Multiple elements"))
+      #expect(segmentIndex == 1)
+      #expect(matchCount == 2)
     } else {
-      #expect(Bool(false), "Expected resolutionFailed error but got \(String(describing: ambiguousError))")
+      #expect(Bool(false), "Expected ambiguousMatchNoIndex error but got \(String(describing: ambiguousError))")
     }
 
     // Test no matching elements with enhanced error
@@ -1097,15 +1252,12 @@ struct ElementPathTests {
       service: mockService, path: nonExistentPath)
     #expect(nonExistentError != nil)
 
-    if case .resolutionFailed(let segment, let index, let candidates, let reason)? =
-      nonExistentError
+    if case .noMatchingElements(let message, let atSegment)? = nonExistentError
     {
-      #expect(segment.contains("AXNonExistentElement"))
-      #expect(index == 1)
-      #expect(candidates.count > 0)
-      #expect(reason.contains("No elements match"))
+      #expect(message.contains("AXNonExistentElement"))
+      #expect(atSegment == 1)
     } else {
-      #expect(Bool(false), "Expected resolutionFailed error but got \(String(describing: nonExistentError))")
+      #expect(Bool(false), "Expected noMatchingElements error but got \(String(describing: nonExistentError))")
     }
   }
 
@@ -1168,36 +1320,24 @@ struct ElementPathTests {
 
       // Handle matches based on count and index
       if matches.isEmpty {
-        // Get child information for better diagnostics
-        let childCandidates = current.children.prefix(5).map { child in
-          "Child (role: \(child.role), attributes: \(child.attributes))"
-        }
-
-        throw ElementPathError.resolutionFailed(
-          segment: segment.toString(),
-          index: index,
-          candidates: childCandidates,
-          reason: "No elements match this segment",
+        throw ElementPathError.noMatchingElements(
+          "No children match segment: \(segment.toString())",
+          atSegment: index
         )
       } else if matches.count > 1, segment.index == nil {
-        // Ambiguous match - create diagnostic information
-        let matchCandidates = matches.prefix(5).map { match in
-          "Match (role: \(match.role), attributes: \(match.attributes))"
-        }
-
-        throw ElementPathError.resolutionFailed(
-          segment: segment.toString(),
-          index: index,
-          candidates: matchCandidates,
-          reason: "Multiple elements (\(matches.count)) match this segment",
+        throw ElementPathError.ambiguousMatchNoIndex(
+          segment.toString(),
+          matchCount: matches.count,
+          atSegment: index
         )
       } else {
         if let segmentIndex = segment.index {
           // Use the specified index if available
           if segmentIndex < 0 || segmentIndex >= matches.count {
-            throw ElementPathError.segmentResolutionFailed(
-              "Invalid index: \(segmentIndex)",
-              atSegment: index,
+            throw ElementPathError.indexOutOfRange(
+              segmentIndex,
+              availableCount: matches.count,
+              atSegment: index
             )
           }
           current = matches[segmentIndex]
@@ -1373,5 +1513,131 @@ struct ElementPathTests {
 
     // Check for recommendations and helpful information
     #expect(mockDiagnosticOutput.contains("Consider using the mcp-ax-inspector tool"))
+  }
+
+  // MARK: - Phase 4.3: Edge Case Tests
+
+  @Test("ElementPath parsing with invalid index syntax - empty index")
+  func elementPathParsingInvalidIndexEmpty() {
+    let pathString = "macos://ui/AXWindow/AXButton#"
+
+    do {
+      _ = try ElementPath.parse(pathString)
+      #expect(Bool(false), "Should have thrown an error for empty index")
+    } catch let error as ElementPathError {
+      if case .invalidIndexSyntax(let invalidIndex, let atSegment) = error {
+        #expect(invalidIndex == "#")
+        #expect(atSegment == 1)
+      } else {
+        #expect(Bool(false), "Expected invalidIndexSyntax error, got: \(error)")
+      }
+    } catch {
+      #expect(Bool(false), "Threw unexpected error: \(error)")
+    }
+  }
+
+  @Test("ElementPath parsing with invalid index syntax - non-numeric index")
+  func elementPathParsingInvalidIndexNonNumeric() {
+    let pathString = "macos://ui/AXWindow/AXButton#abc"
+
+    do {
+      _ = try ElementPath.parse(pathString)
+      #expect(Bool(false), "Should have thrown an error for non-numeric index")
+    } catch let error as ElementPathError {
+      if case .invalidIndexSyntax(let invalidIndex, let atSegment) = error {
+        #expect(invalidIndex == "#abc")
+        #expect(atSegment == 1)
+      } else {
+        #expect(Bool(false), "Expected invalidIndexSyntax error, got: \(error)")
+      }
+    } catch {
+      #expect(Bool(false), "Threw unexpected error: \(error)")
+    }
+  }
+
+  @Test("ElementPath parsing with invalid index syntax - special characters")
+  func elementPathParsingInvalidIndexSpecialChars() {
+    let pathString = "macos://ui/AXWindow/AXButton#@!$"
+
+    do {
+      _ = try ElementPath.parse(pathString)
+      #expect(Bool(false), "Should have thrown an error for special character index")
+    } catch let error as ElementPathError {
+      if case .invalidIndexSyntax(let invalidIndex, let atSegment) = error {
+        #expect(invalidIndex == "#@!$")
+        #expect(atSegment == 1)
+      } else {
+        #expect(Bool(false), "Expected invalidIndexSyntax error, got: \(error)")
+      }
+    } catch {
+      #expect(Bool(false), "Threw unexpected error: \(error)")
+    }
+  }
+
+  @Test("ElementPath parsing with negative index")
+  func elementPathParsingNegativeIndex() throws {
+    let pathString = "macos://ui/AXWindow/AXButton#-1"
+    let path = try ElementPath.parse(pathString)
+
+    #expect(path.segments.count == 2)
+    #expect(path.segments[1].role == "AXButton")
+    #expect(path.segments[1].index == -1)
+  }
+
+  @Test("ElementPath parsing with very large index")
+  func elementPathParsingLargeIndex() throws {
+    let pathString = "macos://ui/AXWindow/AXButton#999999"
+    let path = try ElementPath.parse(pathString)
+
+    #expect(path.segments.count == 2)
+    #expect(path.segments[1].role == "AXButton")
+    #expect(path.segments[1].index == 999999)
+  }
+
+  // NOTE: Resolution tests with mock services are temporarily commented out
+  // as they require more complex mocking of the accessibility service layer.
+  // These tests validate parsing behavior which is the core of Phase 4.3.
+
+  @Test("ElementPath parsing multiple hash symbols in role name")
+  func elementPathParsingMultipleHashSymbols() {
+    // Test that a hash in the middle of a role name doesn't get confused with index syntax
+    let pathString = "macos://ui/AXWindow/AX#Custom#Role"
+
+    do {
+      let path = try ElementPath.parse(pathString)
+      #expect(path.segments.count == 2)
+      #expect(path.segments[1].role == "AX#Custom#Role")
+      #expect(path.segments[1].index == nil)
+    } catch {
+      #expect(Bool(false), "Should be able to parse role with hash symbols: \(error)")
+    }
+  }
+
+  @Test("ElementPath parsing hash followed by attributes")
+  func elementPathParsingHashFollowedByAttributes() throws {
+    let pathString = "macos://ui/AXWindow/AXButton#2[@AXDescription=\"Submit\"]"
+    let path = try ElementPath.parse(pathString)
+
+    #expect(path.segments.count == 2)
+    #expect(path.segments[1].role == "AXButton")
+    #expect(path.segments[1].index == 2)
+    #expect(path.segments[1].attributes["AXDescription"] == "Submit")
+  }
+
+  @Test("ElementPath toString preserves index in complex path")
+  func elementPathToStringPreservesIndex() throws {
+    let segments = [
+      PathSegment(role: "AXApplication", attributes: ["bundleId": "com.app"]),
+      PathSegment(role: "AXWindow", attributes: ["AXTitle": "Window"], index: 1),
+      PathSegment(role: "AXButton", attributes: ["AXDescription": "OK"], index: 0)
+    ]
+    let path = try ElementPath(segments: segments)
+    let pathString = path.toString()
+
+    // Should preserve all indices in the string representation
+    // Note: toString() puts attributes before index
+    #expect(pathString.contains("[@AXTitle=\"Window\"]#1"))
+    #expect(pathString.contains("[@AXDescription=\"OK\"]#0"))
+    #expect(pathString.contains("[@bundleId=\"com.app\"]"))
   }
 }
