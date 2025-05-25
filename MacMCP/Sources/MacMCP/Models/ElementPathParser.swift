@@ -53,7 +53,7 @@ public struct ElementPathParser {
     let rolePattern = "^([A-Za-z0-9]+)"  // Captures the role name
     // Combined pattern to handle both escaped and unescaped quotes
     let attributePattern = "\\[@([^=]+)=\\\\?\"((?:[^\"]|\\\\\")*?)\\\\?\"\\]"  // Captures attribute name and value
-    let indexPattern = "\\[(\\d+)\\]"  // Captures the index (could be anywhere in the segment)
+    let indexPattern = "#([+-]?\\w+)"  // Captures the index (could be anywhere in the segment)
 
     // Extract the role
     guard let roleRange = segmentString.range(of: rolePattern, options: .regularExpression) else {
@@ -91,14 +91,17 @@ public struct ElementPathParser {
 
     // Extract index if present
     var index: Int? = nil
-    if let indexRange = segmentString.range(of: indexPattern, options: .regularExpression) {
-      let indexString = segmentString[indexRange]
-      let startIndex = indexString.index(after: indexString.startIndex)
-      let endIndex = indexString.index(before: indexString.endIndex)
-      if let parsedIndex = Int(indexString[startIndex..<endIndex]) {
-        index = parsedIndex
-      } else {
-        throw ElementPathError.invalidIndexSyntax(String(indexString), atSegment: segmentIndex)
+    if let regex = try? NSRegularExpression(pattern: indexPattern) {
+      let nsString = segmentString as NSString
+      let range = NSRange(location: 0, length: nsString.length)
+      if let match = regex.firstMatch(in: segmentString, options: [], range: range), match.numberOfRanges >= 2 {
+        let indexRange = Range(match.range(at: 1), in: segmentString)!
+        let indexString = String(segmentString[indexRange])
+        if let parsedIndex = Int(indexString) {
+          index = parsedIndex
+        } else {
+          throw ElementPathError.invalidIndexSyntax("#\(indexString)", atSegment: segmentIndex)
+        }
       }
     }
 

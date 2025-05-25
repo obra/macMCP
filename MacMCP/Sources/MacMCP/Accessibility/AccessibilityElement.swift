@@ -28,6 +28,7 @@ public class AccessibilityElement {
     depth: Int,
     parent: UIElement? = nil,
     path: String = "",
+    siblingIndex: Int? = nil
   ) throws -> UIElement {
     // Get basic properties - with robust error handling
     // If we can't get the role attribute, use "unknown" and continue rather than fail completely
@@ -124,8 +125,18 @@ public class AccessibilityElement {
       }
     }
 
-    // Construct the element-only path segment - format: AXRole[@attr="value"]
-    let elementPathSegment = createElementPathString(role: role, attributes: attributePairs)
+    // Construct the element-only path segment - format: AXRole[@attr="value"] or AXRole#index[@attr="value"]
+    let baseElementPathSegment = createElementPathString(role: role, attributes: attributePairs)
+    
+    // Add positional index if provided to resolve path collisions among siblings
+    // Format: AXRole#index[@attributes] where index is the 1-based position in parent's children
+    // Only added for elements that share the same base path with siblings
+    let elementPathSegment = if let siblingIndex = siblingIndex {
+      // Insert #index after the role but before the attributes
+      insertPositionalIndex(siblingIndex, into: baseElementPathSegment)
+    } else {
+      baseElementPathSegment
+    }
 
     // Build the complete hierarchical path for this element
     let hierarchicalPath = path.isEmpty ? elementPathSegment : "\(path)/\(elementPathSegment)"
@@ -200,8 +211,11 @@ public class AccessibilityElement {
           // Sort children to prioritize likely interactive elements and containers
           let prioritizedChildren = try prioritizeChildren(axChildren)
 
-          // Process each child
-          for axChild in prioritizedChildren {
+          // Pre-process children to detect path collisions and assign positional indices
+          let childrenWithIndices = try createSiblingIndices(for: prioritizedChildren, parentPath: hierarchicalPath)
+
+          // Process each child with collision-aware path generation
+          for (axChild, pathIndex) in childrenWithIndices {
             do {
               // Check child's role to determine if it's worth exploring
               var childRole = "unknown"
@@ -309,6 +323,7 @@ public class AccessibilityElement {
                 depth: depth + 1,
                 parent: element,
                 path: hierarchicalPath,
+                siblingIndex: pathIndex
               )
               children.append(child)
             } catch {
@@ -1219,5 +1234,99 @@ public class AccessibilityElement {
     }
 
     return pathString
+  }
+  
+  /// Create sibling indices to resolve path collisions using positional indexing
+  /// 
+  /// Algorithm:
+  /// 1. Assign positional indices (1, 2, 3...) to ALL siblings based on their order in parent's children
+  /// 2. Generate base paths (role + attributes) for each sibling
+  /// 3. Identify which base paths have multiple occurrences (duplicates)
+  /// 4. Only show positional index for elements with duplicate base paths
+  /// 5. Unique elements get no index (clean paths)
+  ///
+  /// Example with 5 children:
+  /// Position 1: AXButton[@AXDescription="Save"]    → Unique, index=nil (no #1 shown)
+  /// Position 2: AXButton[@AXDescription="Add"]     → Duplicate, index=2 (shows #2)  
+  /// Position 3: AXButton[@AXDescription="Add"]     → Duplicate, index=3 (shows #3)
+  /// Position 4: AXButton[@AXDescription="Cancel"]  → Unique, index=nil (no #4 shown)
+  /// Position 5: AXButton[@AXDescription="Add"]     → Duplicate, index=5 (shows #5)
+  ///
+  /// Ordering Assumption: The order of children returned by AXUIElementCopyAttributeValue(element, kAXChildrenAttribute)
+  /// is stable and deterministic for the same UI state. This ordering is used for positional indexing.
+  ///
+  /// - Parameters:
+  ///   - children: Array of sibling AXUIElement objects in their natural order from accessibility API
+  ///   - parentPath: The parent element's path (for context/debugging, not used in indexing logic)
+  /// - Returns: Array of tuples containing (element, positionalIndex) where positionalIndex is nil for unique paths or 1-based position for duplicates
+  private static func createSiblingIndices(for children: [AXUIElement], parentPath: String) throws -> [(AXUIElement, Int?)] {
+    // First pass: generate base paths for all children and assign positional indices
+    var childData: [(element: AXUIElement, basePath: String, position: Int)] = []
+    
+    for (index, child) in children.enumerated() {
+      // Get basic attributes needed for path generation
+      let role = (try? getAttribute(child, attribute: AXAttribute.role) as? String) ?? "unknown"
+      
+      var attributePairs: [String: String] = [:]
+      
+      // Add title if available and not empty
+      if let title = try? getAttribute(child, attribute: AXAttribute.title) as? String, !title.isEmpty {
+        attributePairs["AXTitle"] = title
+      }
+      
+      // Add description if available and not empty
+      if let description = try? getAttribute(child, attribute: AXAttribute.description) as? String, !description.isEmpty {
+        attributePairs["AXDescription"] = description
+      }
+      
+      // Generate the base path (role + attributes, no index)
+      let basePath = createElementPathString(role: role, attributes: attributePairs)
+      
+      // Store element, base path, and 1-based position
+      childData.append((element: child, basePath: basePath, position: index + 1))
+    }
+    
+    // Second pass: count occurrences of each base path to identify duplicates
+    var pathCounts: [String: Int] = [:]
+    for data in childData {
+      pathCounts[data.basePath, default: 0] += 1
+    }
+    
+    // Third pass: assign indices only to elements with duplicate base paths
+    var result: [(AXUIElement, Int?)] = []
+    
+    for data in childData {
+      let positionalIndex: Int?
+      
+      if pathCounts[data.basePath]! > 1 {
+        // This base path has duplicates, show the positional index
+        positionalIndex = data.position
+      } else {
+        // This base path is unique, no index needed (clean path)
+        positionalIndex = nil
+      }
+      
+      result.append((data.element, positionalIndex))
+    }
+    
+    return result
+  }
+  
+  /// Insert positional index into a base element path segment
+  /// Converts "AXButton[@AXDescription=\"Add\"]" to "AXButton#2[@AXDescription=\"Add\"]"
+  /// - Parameters:
+  ///   - index: The 1-based positional index within the parent's children
+  ///   - basePath: The base path segment (role + attributes)
+  /// - Returns: Path segment with positional index inserted after role, before attributes
+  internal static func insertPositionalIndex(_ index: Int, into basePath: String) -> String {
+    // Find the first '[' character which starts the attributes section
+    if let attributeStart = basePath.firstIndex(of: "[") {
+      let roleString = String(basePath[..<attributeStart])
+      let attributesString = String(basePath[attributeStart...])
+      return "\(roleString)#\(index)\(attributesString)"
+    } else {
+      // No attributes, just append index to role
+      return "\(basePath)#\(index)"
+    }
   }
 }

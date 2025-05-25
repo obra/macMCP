@@ -39,7 +39,7 @@ public struct PathSegment: Sendable {
 
     // Add index if present
     if let index {
-      result += "[\(index)]"
+      result += "#\(index)"
     }
 
     return result
