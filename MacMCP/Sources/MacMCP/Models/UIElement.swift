@@ -573,6 +573,15 @@ public enum FrameSource: String, Codable {
   public static func == (lhs: UIElement, rhs: UIElement) -> Bool {
     lhs.path == rhs.path
   }
+  
+  public static func != (lhs: UIElement, rhs: UIElement) -> Bool {
+    !(lhs == rhs)
+  }
+  
+  override public func isEqual(_ object: Any?) -> Bool {
+    guard let other = object as? UIElement else { return false }
+    return self == other
+  }
 
   override public var hash: Int {
     path.hashValue
