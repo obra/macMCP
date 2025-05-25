@@ -334,8 +334,8 @@ class MCPInspector: @unchecked Sendable {
       role = pattern.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    // Extract attributes using regex
-    let attributePattern = "\\[@([^=]+)=\"([^\"]+)\"\\]"
+    // Extract attributes using regex - support both [@attr="value"] and [attr="value"] formats
+    let attributePattern = "\\[@?([^=]+)=\"([^\"]+)\"\\]"
     let regex = try? NSRegularExpression(pattern: attributePattern)
     let nsRange = NSRange(pattern.startIndex..<pattern.endIndex, in: pattern)
 
@@ -382,16 +382,14 @@ class MCPInspector: @unchecked Sendable {
     filter["role"] = .string(role)
 
     // Add attribute filters - make sure we only set the attributes actually supported by the API
-    var titleContains: String? = nil
     for (key, value) in attributes {
       if key.lowercased().contains("title") {
-        titleContains = value
-        break
+        filter["titleContains"] = .string(value)
+      } else if key.lowercased().contains("description") {
+        filter["descriptionContains"] = .string(value)
+      } else if key.lowercased().contains("value") {
+        filter["valueContains"] = .string(value)
       }
-    }
-
-    if let titleContains {
-      filter["titleContains"] = .string(titleContains)
     }
 
     // Create the request parameters
@@ -404,15 +402,10 @@ class MCPInspector: @unchecked Sendable {
 
     // Send request to MCP
     print("Sending filtered request to MCP for: \(bundleId) with filter: \(filter)")
+    print("DEBUG: role=\(role), attributes=\(attributes)")
     // Add the filter to the arguments
     var argumentsWithFilter = arguments
-    if let titleContains {
-      argumentsWithFilter["filter"] = .object([
-        "role": .string(role), "titleContains": .string(titleContains),
-      ])
-    } else {
-      argumentsWithFilter["filter"] = .object(["role": .string(role)])
-    }
+    argumentsWithFilter["filter"] = .object(filter)
 
     let (content, isError) = try await mcpClient.callTool(
       name: "macos_interface_explorer",

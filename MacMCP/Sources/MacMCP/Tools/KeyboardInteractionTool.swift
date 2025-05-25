@@ -44,15 +44,31 @@ Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, o
   /// The interaction service for UI interactions
   private let interactionService: any UIInteractionServiceProtocol
 
+  /// The accessibility service
+  private let accessibilityService: any AccessibilityServiceProtocol
+
+  /// The change detection service
+  private let changeDetectionService: UIChangeDetectionServiceProtocol
+
+  /// The interaction wrapper for change detection
+  private let interactionWrapper: InteractionWithChangeDetection
+
   /// Create a new keyboard interaction tool
   /// - Parameters:
   ///   - interactionService: The UI interaction service
+  ///   - accessibilityService: The accessibility service
+  ///   - changeDetectionService: The change detection service
   ///   - logger: Optional logger to use
   public init(
     interactionService: any UIInteractionServiceProtocol,
+    accessibilityService: any AccessibilityServiceProtocol,
+    changeDetectionService: UIChangeDetectionServiceProtocol,
     logger: Logger? = nil
   ) {
     self.interactionService = interactionService
+    self.accessibilityService = accessibilityService
+    self.changeDetectionService = changeDetectionService
+    self.interactionWrapper = InteractionWithChangeDetection(changeDetectionService: changeDetectionService)
     self.logger = logger ?? Logger(label: "mcp.tool.keyboard")
 
     // Set tool annotations
@@ -73,9 +89,7 @@ Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, o
 
   /// Create the input schema for the tool
   private func createInputSchema() -> Value {
-    .object([
-      "type": .string("object"),
-      "properties": .object([
+    let baseProperties: [String: Value] = [
         "action": .object([
           "type": .string("string"),
           "description": .string("Use 'type_text' for typing text, 'key_sequence' for shortcuts and special keys"),
@@ -113,12 +127,19 @@ Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, o
               ]),
             ]),
           ]),
-        ]),
-      ]),
-      "required": .array([.string("action")]),
-      "additionalProperties": .bool(false),
-      "examples": .array([
-        .object([
+        ])
+      ]
+      
+      // Merge in change detection properties 
+      let properties = baseProperties.merging(ChangeDetectionHelper.addChangeDetectionSchemaProperties()) { _, new in new }
+      
+      return .object([
+        "type": .string("object"),
+        "properties": .object(properties),
+        "required": .array([.string("action")]),
+        "additionalProperties": .bool(false),
+        "examples": .array([
+          .object([
           "action": .string("key_sequence"),
           "sequence": .array([
             .object([
@@ -156,6 +177,7 @@ Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, o
       }
     }
   }
+
 
   /// Process a keyboard interaction request
   /// - Parameters:
@@ -215,42 +237,50 @@ Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, o
       ).asMCPError
     }
 
-    // Type the text
-    logger.debug("Typing text", metadata: ["length": "\(text.count)"])
+    let (detectChanges, delay) = ChangeDetectionHelper.extractChangeDetectionParams(params)
 
-    for character in text {
-      // Map each character to its key code and modifiers
-      guard let keyCodeInfo = KeyCodeMapping.keyCodeForCharacter(character) else {
-        throw createError(
-          message: "Unsupported character: \(character)",
-          context: [
-            "toolName": name,
-            "action": "type_text",
-            "character": String(character),
-          ],
-        ).asMCPError
+    // Type the text with change detection
+    let result = try await interactionWrapper.performWithChangeDetection(
+      detectChanges: detectChanges,
+      delay: delay
+    ) {
+      logger.debug("Typing text", metadata: ["length": "\(text.count)"])
+
+      for character in text {
+        // Map each character to its key code and modifiers
+        guard let keyCodeInfo = KeyCodeMapping.keyCodeForCharacter(character) else {
+          throw createError(
+            message: "Unsupported character: \(character)",
+            context: [
+              "toolName": name,
+              "action": "type_text",
+              "character": String(character),
+            ],
+          ).asMCPError
+        }
+
+        // Press the key with modifiers (if any)
+        let keyCode = Int(keyCodeInfo.keyCode)
+        let modifiers = keyCodeInfo.modifiers
+
+        logger.debug(
+          "Typing character",
+          metadata: [
+            "character": "\(character)",
+            "keyCode": "\(keyCode)",
+            "modifiers": "\(modifiers)",
+          ])
+
+        try await interactionService.pressKey(keyCode: keyCode, modifiers: modifiers)
+
+        // Add a small delay between keypresses for a more natural typing effect
+        try await Task.sleep(for: .milliseconds(30))
       }
 
-      // Press the key with modifiers (if any)
-      let keyCode = Int(keyCodeInfo.keyCode)
-      let modifiers = keyCodeInfo.modifiers
-
-      logger.debug(
-        "Typing character",
-        metadata: [
-          "character": "\(character)",
-          "keyCode": "\(keyCode)",
-          "modifiers": "\(modifiers)",
-        ])
-
-      try await interactionService.pressKey(keyCode: keyCode, modifiers: modifiers)
-
-      // Add a small delay between keypresses for a more natural typing effect
-      try await Task.sleep(for: .milliseconds(30))
+      return "Successfully typed \(text.count) characters"
     }
 
-    // Return success message
-    return [.text("Successfully typed \(text.count) characters")]
+    return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
   }
 
   /// Handle key_sequence action
@@ -271,8 +301,15 @@ Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, o
       ).asMCPError
     }
 
-    // Process the sequence
-    logger.debug("Executing key sequence", metadata: ["steps": "\(sequenceArray.count)"])
+    let (detectChanges, delay) = ChangeDetectionHelper.extractChangeDetectionParams(params)
+
+    // Execute the key sequence with change detection
+    let result = try await interactionWrapper.performWithChangeDetection(
+      detectChanges: detectChanges,
+      delay: delay
+    ) {
+      // Process the sequence
+      logger.debug("Executing key sequence", metadata: ["steps": "\(sequenceArray.count)"])
 
     // Track currently pressed modifier keys
     var activeModifiers: [String: Bool] = [:]
@@ -329,8 +366,10 @@ Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, o
     // Ensure all modifier keys are released
     try await releaseAllModifiers(activeModifiers: &activeModifiers)
 
-    // Return success message
-    return [.text("Successfully executed key sequence with \(sequenceArray.count) commands")]
+      return "Successfully executed key sequence with \(sequenceArray.count) commands"
+    }
+
+    return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
   }
 
   /// Extract modifier keys from a sequence item

@@ -88,9 +88,11 @@ public final class ToolChain: @unchecked Sendable {
       logger: logger,
     )
 
+    let changeDetectionService = UIChangeDetectionService(accessibilityService: accessibilityService)
     uiInteractionTool = UIInteractionTool(
       interactionService: interactionService,
       accessibilityService: accessibilityService,
+      changeDetectionService: changeDetectionService,
       logger: logger,
     )
 
@@ -106,6 +108,8 @@ public final class ToolChain: @unchecked Sendable {
 
     menuNavigationTool = MenuNavigationTool(
       menuNavigationService: menuNavigationService,
+      accessibilityService: accessibilityService,
+      changeDetectionService: changeDetectionService,
       logger: logger,
     )
 
@@ -116,6 +120,8 @@ public final class ToolChain: @unchecked Sendable {
 
     keyboardInteractionTool = KeyboardInteractionTool(
       interactionService: interactionService,
+      accessibilityService: accessibilityService,
+      changeDetectionService: changeDetectionService,
       logger: logger,
     )
 
@@ -306,7 +312,36 @@ public final class ToolChain: @unchecked Sendable {
 
   // MARK: - UI Interaction Operations
 
-  /// Click on a UI element using its path
+  /// Click on a UI element using its element ID with change detection support
+  /// - Parameters:
+  ///   - elementId: Element ID or path of the element to click  
+  ///   - appBundleId: Optional bundle identifier of the application
+  ///   - detectChanges: Enable UI change detection (default: false for compatibility)
+  ///   - changeDetectionDelay: Delay in milliseconds before capturing changes
+  /// - Returns: Array of tool content (may include change detection results)
+  public func clickElement(
+    elementId: String,
+    appBundleId: String? = nil,
+    detectChanges: Bool = false,
+    changeDetectionDelay: Int = 200
+  ) async throws -> [Tool.Content] {
+    // Create parameters for the tool
+    var params: [String: Value] = [
+      "action": .string("click"),
+      "id": .string(elementId),
+      "detectChanges": .bool(detectChanges),
+      "changeDetectionDelay": .int(changeDetectionDelay),
+    ]
+
+    if let appBundleId {
+      params["appBundleId"] = .string(appBundleId)
+    }
+
+    // Call the UI interaction tool and return full result
+    return try await uiInteractionTool.handler(params)
+  }
+
+  /// Click on a UI element using its path (legacy method for backward compatibility)
   /// - Parameters:
   ///   - elementPath: Path of the element to click in macos://ui/ format
   ///   - bundleId: Optional bundle identifier of the application
@@ -450,7 +485,30 @@ public final class ToolChain: @unchecked Sendable {
     return false
   }
 
-  /// Type text using the keyboard interaction tool
+  /// Type text using the keyboard interaction tool with change detection support
+  /// - Parameters:
+  ///   - text: The text to type
+  ///   - detectChanges: Enable UI change detection (default: false for compatibility) 
+  ///   - changeDetectionDelay: Delay in milliseconds before capturing changes
+  /// - Returns: Array of tool content (may include change detection results)
+  public func typeTextWithKeyboard(
+    text: String,
+    detectChanges: Bool = false,
+    changeDetectionDelay: Int = 200
+  ) async throws -> [Tool.Content] {
+    // Create parameters for the tool
+    let params: [String: Value] = [
+      "action": .string("type_text"),
+      "text": .string(text),
+      "detectChanges": .bool(detectChanges),
+      "changeDetectionDelay": .int(changeDetectionDelay),
+    ]
+
+    // Call the keyboard interaction tool and return full result
+    return try await keyboardInteractionTool.handler(params)
+  }
+
+  /// Type text using the keyboard interaction tool (legacy method for backward compatibility)
   /// - Parameter text: The text to type
   /// - Returns: True if the text was successfully typed
   public func typeTextWithKeyboard(text: String) async throws -> Bool {
@@ -492,6 +550,28 @@ public final class ToolChain: @unchecked Sendable {
     }
 
     return false
+  }
+
+  // MARK: - Menu Navigation Operations
+
+  /// Get menu items for a specific menu
+  /// - Parameters:
+  ///   - bundleId: Application bundle identifier
+  ///   - menuTitle: Title of the menu to explore (e.g., "File", "Edit")
+  /// - Returns: Array of tool content containing menu items
+  public func getMenuItems(
+    bundleId: String,
+    menuTitle: String
+  ) async throws -> [Tool.Content] {
+    // Create parameters for the tool
+    let params: [String: Value] = [
+      "action": .string("getMenuItems"),
+      "bundleId": .string(bundleId),
+      "menuTitle": .string(menuTitle),
+    ]
+
+    // Call the menu navigation tool
+    return try await menuNavigationTool.handler(params)
   }
 
   // MARK: - Interface Explorer

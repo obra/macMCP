@@ -63,9 +63,11 @@ struct ErrorHandlingTests {
       logger: logger,
     )
 
+    let changeDetectionService = UIChangeDetectionService(accessibilityService: accessibilityService)
     let tool = UIInteractionTool(
       interactionService: interactionService,
       accessibilityService: accessibilityService,
+      changeDetectionService: changeDetectionService,
       logger: logger,
     )
 

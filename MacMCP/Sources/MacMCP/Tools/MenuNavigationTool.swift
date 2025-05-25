@@ -52,6 +52,15 @@ Bundle ID required for all operations to target specific application.
   /// The menu navigation service to use
   private let menuNavigationService: any MenuNavigationServiceProtocol
 
+  /// The accessibility service
+  private let accessibilityService: any AccessibilityServiceProtocol
+
+  /// The change detection service
+  private let changeDetectionService: UIChangeDetectionServiceProtocol
+
+  /// The interaction wrapper for change detection
+  private let interactionWrapper: InteractionWithChangeDetection
+
   /// The logger
   private let logger: Logger
 
@@ -65,12 +74,19 @@ Bundle ID required for all operations to target specific application.
   /// Create a new menu navigation tool
   /// - Parameters:
   ///   - menuNavigationService: The menu navigation service to use
+  ///   - accessibilityService: The accessibility service to use
+  ///   - changeDetectionService: The change detection service to use
   ///   - logger: Optional logger to use
   public init(
     menuNavigationService: any MenuNavigationServiceProtocol,
+    accessibilityService: any AccessibilityServiceProtocol,
+    changeDetectionService: UIChangeDetectionServiceProtocol,
     logger: Logger? = nil
   ) {
     self.menuNavigationService = menuNavigationService
+    self.accessibilityService = accessibilityService
+    self.changeDetectionService = changeDetectionService
+    self.interactionWrapper = InteractionWithChangeDetection(changeDetectionService: changeDetectionService)
     self.logger = logger ?? Logger(label: "mcp.tool.menu_navigation")
 
     // Set tool annotations
@@ -91,9 +107,7 @@ Bundle ID required for all operations to target specific application.
 
   /// Create the input schema for the tool
   private func createInputSchema() -> Value {
-    .object([
-      "type": .string("object"),
-      "properties": .object([
+    let baseProperties: [String: Value] = [
         "action": .object([
           "type": .string("string"),
           "description": .string("Menu operation: list app menus, explore menu items, or activate specific menu commands"),
@@ -119,12 +133,19 @@ Bundle ID required for all operations to target specific application.
           "type": .string("boolean"),
           "description": .string("Include nested submenus in getMenuItems results (default: false for simpler output)"),
           "default": .bool(false),
-        ]),
-      ]),
+        ])
+    ]
+    
+    // Merge in change detection properties 
+    let properties = baseProperties.merging(ChangeDetectionHelper.addChangeDetectionSchemaProperties()) { _, new in new }
+    
+    return .object([
+      "type": .string("object"),
+      "properties": .object(properties),
       "required": .array([.string("action"), .string("bundleId")]),
       "additionalProperties": .bool(false),
-      "examples": .array([
-        .object([
+        "examples": .array([
+          .object([
           "action": .string("getApplicationMenus"),
           "bundleId": .string("com.apple.TextEdit"),
         ]),
@@ -188,7 +209,7 @@ Bundle ID required for all operations to target specific application.
       guard let menuPath = params["id"]?.stringValue else {
         throw MCPError.invalidParams("id is required for activateMenuItem")
       }
-      return try await handleActivateMenuItem(bundleId: bundleId, menuPath: menuPath)
+      return try await handleActivateMenuItem(bundleId: bundleId, menuPath: menuPath, params: params)
 
     default:
       throw MCPError.invalidParams("Invalid action: \(actionValue)")
@@ -243,33 +264,31 @@ Bundle ID required for all operations to target specific application.
   /// - Parameters:
   ///   - bundleId: The application bundle identifier
   ///   - menuPath: Element ID URI to the menu item to activate
+  ///   - params: The request parameters for change detection settings
   /// - Returns: The tool result
   private func handleActivateMenuItem(
     bundleId: String,
     menuPath: String,
+    params: [String: Value]
   ) async throws -> [Tool.Content] {
     // Decode the element ID (handles both opaque IDs and raw paths)
     let decodedPath = decodeElementID(menuPath)
     
-    // Activate the menu item
-    let success = try await menuNavigationService.activateMenuItem(
-      bundleId: bundleId,
-      elementPath: decodedPath,
-    )
+    let (detectChanges, delay) = ChangeDetectionHelper.extractChangeDetectionParams(params)
 
-    // Create response
-    struct ActivationResult: Codable {
-      let success: Bool
-      let message: String
+    // Activate the menu item with change detection
+    let result = try await interactionWrapper.performWithChangeDetection(
+      detectChanges: detectChanges,
+      delay: delay
+    ) {
+      let success = try await menuNavigationService.activateMenuItem(
+        bundleId: bundleId,
+        elementPath: decodedPath,
+      )
+      return "Menu item activated: \(menuPath) (success: \(success))"
     }
 
-    let result = ActivationResult(
-      success: success,
-      message: "Menu item activated: \(menuPath)",
-    )
-
-    // Return the result
-    return try formatResponse(result)
+    return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
   }
 
   /// Format a response as JSON

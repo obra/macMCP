@@ -344,9 +344,11 @@ public actor MCPServer {
     )
 
     // Register the UI interaction tool
+    let changeDetectionService = UIChangeDetectionService(accessibilityService: accessibilityService)
     let interactionTool = UIInteractionTool(
       interactionService: interactionService,
       accessibilityService: accessibilityService,
+      changeDetectionService: changeDetectionService,
       logger: logger,
     )
     await registerTool(
@@ -386,6 +388,8 @@ public actor MCPServer {
     // Register the menu navigation tool
     let menuNavigationTool = MenuNavigationTool(
       menuNavigationService: menuNavigationService,
+      accessibilityService: accessibilityService,
+      changeDetectionService: changeDetectionService,
       logger: logger,
     )
     await registerTool(
@@ -412,6 +416,8 @@ public actor MCPServer {
     // Register the keyboard interaction tool
     let keyboardInteractionTool = KeyboardInteractionTool(
       interactionService: interactionService,
+      accessibilityService: accessibilityService,
+      changeDetectionService: changeDetectionService,
       logger: logger,
     )
     await registerTool(

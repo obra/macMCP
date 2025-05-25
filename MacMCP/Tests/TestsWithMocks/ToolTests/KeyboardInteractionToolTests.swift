@@ -25,8 +25,12 @@ struct KeyboardInteractionToolTests {
     interactionService = UIInteractionServiceStub()
 
     // Create the tool
+    let mockAccessibilityService = MockAccessibilityService()
+    let changeDetectionService = UIChangeDetectionService(accessibilityService: mockAccessibilityService)
     keyboardInteractionTool = KeyboardInteractionTool(
       interactionService: interactionService,
+      accessibilityService: mockAccessibilityService,
+      changeDetectionService: changeDetectionService,
     )
 
     // Set up keyboard event monitor

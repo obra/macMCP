@@ -49,6 +49,12 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
   /// The accessibility service
   private let accessibilityService: any AccessibilityServiceProtocol
 
+  /// The change detection service
+  private let changeDetectionService: UIChangeDetectionServiceProtocol
+
+  /// The interaction wrapper for change detection
+  private let interactionWrapper: InteractionWithChangeDetection
+
   /// The logger
   private let logger: Logger
 
@@ -56,14 +62,18 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
   /// - Parameters:
   ///   - interactionService: The UI interaction service to use
   ///   - accessibilityService: The accessibility service to use
+  ///   - changeDetectionService: The change detection service to use
   ///   - logger: Optional logger to use
   public init(
     interactionService: any UIInteractionServiceProtocol,
     accessibilityService: any AccessibilityServiceProtocol,
+    changeDetectionService: UIChangeDetectionServiceProtocol,
     logger: Logger? = nil
   ) {
     self.interactionService = interactionService
     self.accessibilityService = accessibilityService
+    self.changeDetectionService = changeDetectionService
+    self.interactionWrapper = InteractionWithChangeDetection(changeDetectionService: changeDetectionService)
     self.logger = logger ?? Logger(label: "mcp.tool.ui_interact")
 
     // Set tool annotations first
@@ -84,9 +94,7 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
 
   /// Create the input schema for the tool
   private func createInputSchema() -> Value {
-    .object([
-      "type": .string("object"),
-      "properties": .object([
+    var properties: [String: Value] = [
         "action": .object([
           "type": .string("string"),
           "description": .string("UI interaction type: click/double_click/right_click for buttons/links, drag for file ops, scroll for navigation"),
@@ -134,7 +142,14 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
           "minimum": .double(0.0),
           "maximum": .double(1.0),
         ]),
-      ]),
+    ]
+    
+    // Add change detection properties
+    properties.merge(ChangeDetectionHelper.addChangeDetectionSchemaProperties()) { _, new in new }
+    
+    return .object([
+      "type": .string("object"),
+      "properties": .object(properties),
       "required": .array([.string("action")]),
       "additionalProperties": .bool(false),
       "examples": .array([
@@ -182,9 +197,13 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
       accessibilityService: accessibilityService,
       logger: Logger(label: "mcp.tool.ui_interact.interaction"),
     )
+    let changeDetectionService = UIChangeDetectionService(
+      accessibilityService: accessibilityService
+    )
     let tool = UIInteractionTool(
       interactionService: interactionService,
       accessibilityService: accessibilityService,
+      changeDetectionService: changeDetectionService,
       logger: handlerLogger,
     )
 
@@ -263,6 +282,7 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
     }
   }
 
+
   /// Decode element ID - handles both opaque IDs and raw paths
   private func decodeElementID(_ elementID: String) -> String {
     // Try to decode as opaque ID first, fall back to treating as raw path
@@ -276,6 +296,7 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
   
   /// Handle click action
   private func handleClick(_ params: [String: Value]) async throws -> [Tool.Content] {
+    let (detectChanges, delay) = ChangeDetectionHelper.extractChangeDetectionParams(params)
     // Element path click
     if let elementID = params["id"]?.stringValue {
       // Decode the element ID (handles both opaque IDs and raw paths)
@@ -329,10 +350,16 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
       }
 
       do {
-        try await interactionService.clickElementByPath(path: elementPath, appBundleId: appBundleId)
+        let result = try await interactionWrapper.performWithChangeDetection(
+          detectChanges: detectChanges,
+          delay: delay
+        ) {
+          try await interactionService.clickElementByPath(path: elementPath, appBundleId: appBundleId)
+          let bundleIdInfo = appBundleId != nil ? " in app \(appBundleId!)" : ""
+          return "Successfully clicked element with path: \(elementPath)\(bundleIdInfo)"
+        }
 
-        let bundleIdInfo = appBundleId != nil ? " in app \(appBundleId!)" : ""
-        return [.text("Successfully clicked element with path: \(elementPath)\(bundleIdInfo)")]
+        return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
       } catch {
         let nsError = error as NSError
         logger.error(
@@ -353,8 +380,15 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
       let y = yDouble
 
       do {
-        try await interactionService.clickAtPosition(position: CGPoint(x: x, y: y))
-        return [.text("Successfully clicked at position (\(x), \(y))")]
+        let result = try await interactionWrapper.performWithChangeDetection(
+          detectChanges: detectChanges,
+          delay: delay
+        ) {
+          try await interactionService.clickAtPosition(position: CGPoint(x: x, y: y))
+          return "Successfully clicked at position (\(x), \(y))"
+        }
+
+        return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
       } catch {
         logger.error(
           "Position click operation failed", metadata: ["error": "\(error.localizedDescription)"])
@@ -366,8 +400,15 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
       let y = Double(yInt)
 
       do {
-        try await interactionService.clickAtPosition(position: CGPoint(x: x, y: y))
-        return [.text("Successfully clicked at position (\(x), \(y))")]
+        let result = try await interactionWrapper.performWithChangeDetection(
+          detectChanges: detectChanges,
+          delay: delay
+        ) {
+          try await interactionService.clickAtPosition(position: CGPoint(x: x, y: y))
+          return "Successfully clicked at position (\(x), \(y))"
+        }
+
+        return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
       } catch {
         logger.error(
           "Position click operation failed", metadata: ["error": "\(error.localizedDescription)"])
