@@ -254,12 +254,13 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     if showCoordinates {
       try container.encode(frame, forKey: .frame)
     }
-    
-    try container.encode(props, forKey: .props)
+    if !props.isEmpty {
+      try container.encodeIfPresent(props, forKey: .props)
+    }
     
     // Only include actions if requested
-    if showActions {
-      try container.encode(actions, forKey: .actions)
+    if showActions && !actions.isEmpty {
+      try container.encodeIfPresent(actions, forKey: .actions)
     }
     
     // Only include attributes if there are any
@@ -267,7 +268,9 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
       try container.encode(attributes, forKey: .attributes)
     }
     
-    try container.encodeIfPresent(children, forKey: .children)
+    if children?.isEmpty == false {
+      try container.encodeIfPresent(children, forKey: .children)
+    }
   }
   
   /// Custom decoding that doesn't require showCoordinates property
