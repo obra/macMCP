@@ -140,10 +140,30 @@ public struct ElementPath: Sendable {
       
       // Get children of current element
       guard let children = await getChildElements(of: currentElement) else {
-        throw ElementPathError.segmentResolutionFailed(
-          "Could not get children for segment: \(segment.toString())",
-          atSegment: i
-        )
+        // Build detailed error message with context
+        var currentElementInfo = "unknown"
+        var roleRef: CFTypeRef?
+        if AXUIElementCopyAttributeValue(currentElement, "AXRole" as CFString, &roleRef) == .success,
+           let role = roleRef as? String {
+          currentElementInfo = role
+          
+          // Add title if available
+          var titleRef: CFTypeRef?
+          if AXUIElementCopyAttributeValue(currentElement, "AXTitle" as CFString, &titleRef) == .success,
+             let title = titleRef as? String, !title.isEmpty {
+            currentElementInfo += " '\(title)'"
+          }
+        }
+        
+        let errorMessage = """
+        Could not get children for segment '\(segment.toString())' at step \(i+1)/\(segments.count).
+        
+        Current element: \(currentElementInfo)
+        
+        The element may have become invalid or the UI may have changed. Requery with \(ToolNames.interfaceExplorer) to get updated element IDs.
+        """
+        
+        throw ElementPathError.segmentResolutionFailed(errorMessage, atSegment: i)
       }
       
       // Find matching children
@@ -156,10 +176,57 @@ public struct ElementPath: Sendable {
       
       // Handle the results
       if matchingChildren.isEmpty {
-        throw ElementPathError.noMatchingElements(
-          "No children match segment: \(segment.toString())",
-          atSegment: i
-        )
+        // Build detailed error message with context
+        var currentElementInfo = "unknown"
+        var roleRef: CFTypeRef?
+        if AXUIElementCopyAttributeValue(currentElement, "AXRole" as CFString, &roleRef) == .success,
+           let role = roleRef as? String {
+          currentElementInfo = role
+          
+          // Add title if available
+          var titleRef: CFTypeRef?
+          if AXUIElementCopyAttributeValue(currentElement, "AXTitle" as CFString, &titleRef) == .success,
+             let title = titleRef as? String, !title.isEmpty {
+            currentElementInfo += " '\(title)'"
+          }
+        }
+        
+        // Get sample of available children for the error message
+        var availableChildrenSample: [String] = []
+        for (idx, child) in children.prefix(5).enumerated() {
+          var childInfo = "[\(idx)]"
+          var childRoleRef: CFTypeRef?
+          if AXUIElementCopyAttributeValue(child, "AXRole" as CFString, &childRoleRef) == .success,
+             let childRole = childRoleRef as? String {
+            childInfo += " \(childRole)"
+            
+            // Add identifying attribute
+            for attr in ["AXTitle", "AXDescription", "AXIdentifier"] {
+              var attrRef: CFTypeRef?
+              if AXUIElementCopyAttributeValue(child, attr as CFString, &attrRef) == .success,
+                 let value = attrRef as? String, !value.isEmpty {
+                childInfo += " \(attr)='\(value)'"
+                break
+              }
+            }
+          }
+          availableChildrenSample.append(childInfo)
+        }
+        
+        let childrenInfo = children.count > 5 ? 
+          "\(availableChildrenSample.joined(separator: ", ")) ... and \(children.count - 5) more" :
+          availableChildrenSample.joined(separator: ", ")
+        
+        let errorMessage = """
+        No children match segment '\(segment.toString())' at step \(i+1)/\(segments.count).
+        
+        Current element: \(currentElementInfo)
+        Available children (\(children.count) total): \(childrenInfo)
+        
+        The UI may have changed since the element was discovered. Requery with \(ToolNames.interfaceExplorer) to get updated element IDs.
+        """
+        
+        throw ElementPathError.noMatchingElements(errorMessage, atSegment: i)
       } else if matchingChildren.count == 1 {
         currentElement = matchingChildren[0]
         logger.trace("DIAGNOSTIC: Found single match for segment \(i)")
@@ -170,16 +237,58 @@ public struct ElementPath: Sendable {
             currentElement = matchingChildren[index]
             logger.trace("DIAGNOSTIC: Selected match \(index) of \(matchingChildren.count) for segment \(i)")
           } else {
-            throw ElementPathError.indexOutOfRange(
-              index,
+            let errorMessage = """
+            Index \(index) is out of range at step \(i+1)/\(segments.count).
+            
+            Segment '\(segment.toString())' matched \(matchingChildren.count) elements (valid indices: 0-\(matchingChildren.count-1)).
+            
+            The UI may have changed since the element was discovered. Requery with \(ToolNames.interfaceExplorer) to get updated element IDs.
+            """
+            
+            throw ElementPathError.indexOutOfRangeEnhanced(
+              errorMessage,
+              index: index,
               availableCount: matchingChildren.count,
               atSegment: i
             )
           }
         } else {
-          // No index specified but multiple matches found - this is potentially ambiguous
+          // Build detailed error message showing the ambiguous matches
+          var matchDescriptions: [String] = []
+          for (idx, match) in matchingChildren.prefix(5).enumerated() {
+            var matchInfo = "[\(idx)]"
+            var roleRef: CFTypeRef?
+            if AXUIElementCopyAttributeValue(match, "AXRole" as CFString, &roleRef) == .success,
+               let role = roleRef as? String {
+              matchInfo += " \(role)"
+              
+              // Add identifying attribute
+              for attr in ["AXTitle", "AXDescription", "AXIdentifier"] {
+                var attrRef: CFTypeRef?
+                if AXUIElementCopyAttributeValue(match, attr as CFString, &attrRef) == .success,
+                   let value = attrRef as? String, !value.isEmpty {
+                  matchInfo += " \(attr)='\(value)'"
+                  break
+                }
+              }
+            }
+            matchDescriptions.append(matchInfo)
+          }
+          
+          let matchesInfo = matchingChildren.count > 5 ?
+            "\(matchDescriptions.joined(separator: ", ")) ... and \(matchingChildren.count - 5) more" :
+            matchDescriptions.joined(separator: ", ")
+          
+          let errorMessage = """
+          Multiple elements (\(matchingChildren.count)) match segment '\(segment.toString())' at step \(i+1)/\(segments.count), but no index specified.
+          
+          Matching elements: \(matchesInfo)
+          
+          The UI structure may have changed. Requery with \(ToolNames.interfaceExplorer) to get updated element information.
+          """
+          
           throw ElementPathError.ambiguousMatchNoIndex(
-            segment.toString(),
+            errorMessage,
             matchCount: matchingChildren.count,
             atSegment: i
           )

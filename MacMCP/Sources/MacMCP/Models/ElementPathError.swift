@@ -62,6 +62,9 @@ public enum ElementPathError: Error, CustomStringConvertible, Equatable {
   /// Index is out of range for the number of matching elements
   case indexOutOfRange(Int, availableCount: Int, atSegment: Int)
   
+  /// Enhanced index out of range with custom message
+  case indexOutOfRangeEnhanced(String, index: Int, availableCount: Int, atSegment: Int)
+  
   /// Multiple matches found but no index specified for disambiguation
   case ambiguousMatchNoIndex(String, matchCount: Int, atSegment: Int)
   
@@ -124,6 +127,8 @@ public enum ElementPathError: Error, CustomStringConvertible, Equatable {
       return "Insufficient accessibility permissions for: \(feature).\n\(details)"
     case .indexOutOfRange(let index, let availableCount, let segmentIndex):
       return "Index \(index) is out of range at segment \(segmentIndex). Only \(availableCount) elements match this segment (valid indices: 0-\(availableCount - 1))."
+    case .indexOutOfRangeEnhanced(let message, _, _, _):
+      return message
     case .ambiguousMatchNoIndex(let segment, let matchCount, let segmentIndex):
       return "Ambiguous match at segment \(segmentIndex): \(matchCount) elements match '\(segment)' but no index specified. Use #0, #1, #2, etc. to select a specific element."
     case .unnecessaryIndex(let index, let segmentIndex):
@@ -221,6 +226,11 @@ public enum ElementPathError: Error, CustomStringConvertible, Equatable {
       .indexOutOfRange(let rhsIndex, let rhsCount, let rhsSegment)
     ):
       lhsIndex == rhsIndex && lhsCount == rhsCount && lhsSegment == rhsSegment
+    case (
+      .indexOutOfRangeEnhanced(let lhsMessage, let lhsIndex, let lhsCount, let lhsSegment),
+      .indexOutOfRangeEnhanced(let rhsMessage, let rhsIndex, let rhsCount, let rhsSegment)
+    ):
+      lhsMessage == rhsMessage && lhsIndex == rhsIndex && lhsCount == rhsCount && lhsSegment == rhsSegment
     case (
       .ambiguousMatchNoIndex(let lhsSegment, let lhsCount, let lhsIndex),
       .ambiguousMatchNoIndex(let rhsSegment, let rhsCount, let rhsIndex)
