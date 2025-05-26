@@ -14,25 +14,26 @@ public struct MenuNavigationTool: @unchecked Sendable {
   public let description = """
 Navigate and interact with macOS application menus for accessing commands and functionality.
 
-IMPORTANT: Use InterfaceExplorerTool first to discover available menus and menu structures for applications.
+CRITICAL: Menu item IDs must be obtained from prior menu exploration - you cannot guess or construct them!
 
 Available actions:
 - getApplicationMenus: List all top-level menus for an application
 - getMenuItems: Get items within a specific menu (File, Edit, View, etc.)
-- activateMenuItem: Click/activate a specific menu item using element ID
+- activateMenuItem: Click/activate a specific menu item using element ID from getMenuItems
 
-Common workflows:
-1. Discover menus: getApplicationMenus with bundleId
-2. Explore menu content: getMenuItems with menuTitle
-3. Activate commands: activateMenuItem with id from previous exploration
-4. Handle submenus: Use includeSubmenus for complete menu tree exploration
+REQUIRED workflow for activating menu items:
+1. First: getApplicationMenus with bundleId to see available menus
+2. Second: getMenuItems with bundleId and menuTitle to get menu item IDs
+3. Finally: activateMenuItem with bundleId and the exact 'id' from step 2
 
 Menu structure hierarchy:
 - Application → Top-level menus (File, Edit, View, etc.)
 - Menu → Menu items (New, Open, Save, etc.)
 - Menu items → Submenus or commands
 
-Element IDs for menu items can be obtained from InterfaceExplorerTool or getMenuItems.
+IMPORTANT: Element IDs are UUIDs generated during menu exploration, not menu titles!
+- ✅ Correct: Use the 'id' field from getMenuItems results
+- ❌ Incorrect: Using menu names like 'New Document', 'Save', etc.
 
 Use cases:
 - Access app commands not available in UI
@@ -127,7 +128,7 @@ Bundle ID required for all operations to target specific application.
         ]),
         "id": .object([
           "type": .string("string"),
-          "description": .string("Element ID to menu item for activation (required for activateMenuItem, from getMenuItems results)"),
+          "description": .string("Element ID (UUID) obtained from getMenuItems results (required for activateMenuItem). Must be the exact 'id' field from menu exploration, not a menu title or name."),
         ]),
         "includeSubmenus": .object([
           "type": .string("boolean"),
@@ -163,7 +164,7 @@ Bundle ID required for all operations to target specific application.
         .object([
           "action": .string("activateMenuItem"),
           "bundleId": .string("com.apple.TextEdit"),
-          "id": .string("menu-item-uuid-example"),
+          "id": .string("opaque_id_B4F2A9D8-3E5C-4A1B-9F7D-2E8A1C6B0F93"),
         ]),
       ]),
     ])
@@ -274,21 +275,73 @@ Bundle ID required for all operations to target specific application.
     // Decode the element ID (handles both opaque IDs and raw paths)
     let decodedPath = decodeElementID(menuPath)
     
+    // Validate the path format before proceeding
+    guard decodedPath.hasPrefix("macos://ui/") else {
+      let errorMessage = """
+        Invalid menu item ID format: '\(menuPath)'
+        
+        The ID must be a UUID obtained from previous menu exploration using:
+        1. First call getApplicationMenus with bundleId: '\(bundleId)' to see available menus
+        2. Then call getMenuItems with bundleId and menuTitle to see menu items
+        3. Use the 'id' field from those results for activateMenuItem
+        
+        Example valid ID: 'opaque_id_abc123' or 'macos://ui/application[@bundleId=...]/menubar/...'
+        
+        If you're looking for a menu item like 'New Document', first explore the File menu:
+        - Action: getMenuItems, bundleId: '\(bundleId)', menuTitle: 'File'
+        """
+      
+      throw MCPError.invalidParams(errorMessage)
+    }
+    
     let (detectChanges, delay) = ChangeDetectionHelper.extractChangeDetectionParams(params)
 
-    // Activate the menu item with change detection
-    let result = try await interactionWrapper.performWithChangeDetection(
-      detectChanges: detectChanges,
-      delay: delay
-    ) {
-      let success = try await menuNavigationService.activateMenuItem(
-        bundleId: bundleId,
-        elementPath: decodedPath,
-      )
-      return "Menu item activated: \(menuPath) (success: \(success))"
-    }
+    do {
+      // Activate the menu item with change detection
+      let result = try await interactionWrapper.performWithChangeDetection(
+        detectChanges: detectChanges,
+        delay: delay
+      ) {
+        let success = try await menuNavigationService.activateMenuItem(
+          bundleId: bundleId,
+          elementPath: decodedPath,
+        )
+        return "Menu item activated: \(menuPath) (success: \(success))"
+      }
 
-    return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
+      return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
+    } catch let error as MenuNavigationError {
+      // Provide more helpful error messages for menu navigation errors
+      let helpfulMessage = """
+        Menu navigation failed: \(error.description)
+        
+        Troubleshooting steps:
+        1. Verify the application '\(bundleId)' is running and accessible
+        2. Use getApplicationMenus to confirm the app has menus
+        3. Use getMenuItems to get valid menu item IDs for the target menu
+        4. Ensure the menu item ID is from recent exploration (menu structures can change)
+        
+        Original ID provided: '\(menuPath)'
+        Decoded path: '\(decodedPath)'
+        """
+      
+      throw MCPError.internalError(helpfulMessage)
+    } catch {
+      // Handle other errors with context
+      let contextualMessage = """
+        Unexpected error during menu activation: \(error.localizedDescription)
+        
+        Context:
+        - Application: \(bundleId)
+        - Menu item ID: \(menuPath)
+        - Decoded path: \(decodedPath)
+        
+        This may indicate an application state change or accessibility issue.
+        Try exploring the menus again to get fresh menu item IDs.
+        """
+      
+      throw MCPError.internalError(contextualMessage)
+    }
   }
 
   /// Format a response as JSON

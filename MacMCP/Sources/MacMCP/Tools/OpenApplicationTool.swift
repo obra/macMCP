@@ -70,14 +70,6 @@ public struct OpenApplicationTool: Sendable {
     )
   }
 
-  /// Helper method to convert Value dictionary to JSON-serializable dictionary
-  private func valueToJsonDict(_ valueDict: [String: Value]) -> [String: Any] {
-    var result: [String: Any] = [:]
-    for (key, value) in valueDict {
-      result[key] = value.asAnyDictionary()
-    }
-    return result
-  }
 
   /// Handler for tool calls
   public var handler: @Sendable ([String: Value]?) async throws -> [Tool.Content] {
@@ -146,6 +138,17 @@ public struct OpenApplicationTool: Sendable {
             hideOthers: hideOthers,
           )
           resultInfo["applicationName"] = .string(applicationName)
+          
+          // If successful, try to get the bundleId from the frontmost application
+          if success {
+            if let frontmostApp = try? await applicationService.getFrontmostApplication() {
+              // Check if the frontmost app name matches what we opened (case-insensitive)
+              if frontmostApp.name.lowercased().contains(applicationName.lowercased()) || 
+                 applicationName.lowercased().contains(frontmostApp.name.lowercased()) {
+                resultInfo["bundleId"] = .string(frontmostApp.bundleId)
+              }
+            }
+          }
         }
 
         // Include arguments and hideOthers in result if provided
@@ -161,7 +164,7 @@ public struct OpenApplicationTool: Sendable {
         resultInfo["success"] = .bool(success)
 
         // Convert result to JSON string and return as text
-        let jsonDict = self.valueToJsonDict(resultInfo)
+        let jsonDict = JSONConfiguration.valueToJsonDict(resultInfo)
         let jsonData = try JSONSerialization.data(
           withJSONObject: jsonDict, options: [.prettyPrinted])
         let jsonString = String(data: jsonData, encoding: .utf8) ?? "{}"
@@ -189,7 +192,7 @@ public struct OpenApplicationTool: Sendable {
         ]
 
         // Convert error to JSON string
-        let jsonDict = self.valueToJsonDict(errorInfo)
+        let jsonDict = JSONConfiguration.valueToJsonDict(errorInfo)
         let jsonData = try JSONSerialization.data(
           withJSONObject: jsonDict, options: [.prettyPrinted])
         let jsonString = String(data: jsonData, encoding: .utf8) ?? "{}"
@@ -217,7 +220,7 @@ public struct OpenApplicationTool: Sendable {
         ]
 
         // Convert error to JSON string
-        let jsonDict = self.valueToJsonDict(errorInfo)
+        let jsonDict = JSONConfiguration.valueToJsonDict(errorInfo)
         let jsonData = try JSONSerialization.data(
           withJSONObject: jsonDict, options: [.prettyPrinted])
         let jsonString = String(data: jsonData, encoding: .utf8) ?? "{}"
