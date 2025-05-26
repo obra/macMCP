@@ -196,4 +196,51 @@ struct VerbosityUnitTests {
     print("Without coordinates (\(jsonStringWithoutCoords.count) chars): \(jsonStringWithoutCoords)")
     print("With coordinates (\(jsonStringWithCoords.count) chars): \(jsonStringWithCoords)")
   }
+  
+  @Test("showActions parameter controls actions output")
+  func testShowActionsParameter() async throws {
+    let element = UIElement(
+      path: "test://actions",
+      role: "AXButton",
+      title: "Button",
+      elementDescription: nil,
+      frame: CGRect(x: 0, y: 0, width: 50, height: 30),
+      children: [],
+      attributes: [:],
+      actions: ["AXPress", "AXFocus", "AXShowMenu"]
+    )
+    
+    // Test with showActions = false (default)
+    let descriptorWithoutActions = EnhancedElementDescriptor.from(
+      element: element, 
+      maxDepth: 1, 
+      showActions: false
+    )
+    let jsonWithoutActions = try JSONEncoder().encode(descriptorWithoutActions)
+    let jsonStringWithoutActions = String(data: jsonWithoutActions, encoding: .utf8)!
+    
+    #expect(!jsonStringWithoutActions.contains("actions"), "Actions should be omitted when showActions=false")
+    #expect(!jsonStringWithoutActions.contains("AXPress"), "AXPress action should not appear when showActions=false")
+    
+    // Test with showActions = true
+    let descriptorWithActions = EnhancedElementDescriptor.from(
+      element: element,
+      maxDepth: 1,
+      showActions: true
+    )
+    let jsonWithActions = try JSONEncoder().encode(descriptorWithActions)
+    let jsonStringWithActions = String(data: jsonWithActions, encoding: .utf8)!
+    
+    #expect(jsonStringWithActions.contains("actions"), "Actions should be included when showActions=true")
+    #expect(jsonStringWithActions.contains("AXPress"), "AXPress action should appear when showActions=true")
+    #expect(jsonStringWithActions.contains("AXFocus"), "AXFocus action should appear when showActions=true")
+    #expect(jsonStringWithActions.contains("AXShowMenu"), "AXShowMenu action should appear when showActions=true")
+    
+    // Verify significant size difference
+    let sizeDifference = jsonStringWithActions.count - jsonStringWithoutActions.count
+    #expect(sizeDifference > 20, "Including actions should add significant content, got difference: \(sizeDifference)")
+    
+    print("Without actions (\(jsonStringWithoutActions.count) chars): \(jsonStringWithoutActions)")
+    print("With actions (\(jsonStringWithActions.count) chars): \(jsonStringWithActions)")
+  }
 }

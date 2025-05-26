@@ -227,6 +227,11 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
           "description": .string("Include position and size information in results (default: false for cleaner output)"),
           "default": .bool(false),
         ]),
+        "showActions": .object([
+          "type": .string("boolean"),
+          "description": .string("Include available actions in results (default: false for cleaner output)"),
+          "default": .bool(false),
+        ]),
         "limit": .object([
           "type": .string("integer"),
           "description": .string("Maximum elements to return (default: 100, increase for comprehensive exploration)"),
@@ -307,6 +312,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     let includeDisabled = params["includeDisabled"]?.boolValue ?? false
     let includeNonInteractable = params["includeNonInteractable"]?.boolValue ?? false
     let showCoordinates = params["showCoordinates"]?.boolValue ?? false
+    let showActions = params["showActions"]?.boolValue ?? false
     let limit = params["limit"]?.intValue ?? 100
 
     // Get element types if specified
@@ -362,6 +368,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         includeDisabled: includeDisabled,
         includeNonInteractable: includeNonInteractable,
         showCoordinates: showCoordinates,
+        showActions: showActions,
         limit: limit,
         role: role,
         title: title,
@@ -392,6 +399,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         includeDisabled: includeDisabled,
         includeNonInteractable: includeNonInteractable,
         showCoordinates: showCoordinates,
+        showActions: showActions,
         limit: limit,
         role: role,
         title: title,
@@ -438,6 +446,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         includeDisabled: includeDisabled,
         includeNonInteractable: includeNonInteractable,
         showCoordinates: showCoordinates,
+        showActions: showActions,
         limit: limit,
         role: role,
         title: title,
@@ -472,6 +481,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         includeDisabled: includeDisabled,
         includeNonInteractable: includeNonInteractable,
         showCoordinates: showCoordinates,
+        showActions: showActions,
         limit: limit,
         role: role,
         title: title,
@@ -502,6 +512,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     includeDisabled: Bool,
     includeNonInteractable: Bool,
     showCoordinates: Bool,
+    showActions: Bool,
     limit: Int,
     role: String?,
     title: String?,
@@ -579,7 +590,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     }
 
     // Convert to enhanced element descriptors
-    let descriptors = convertToEnhancedDescriptors(elements: elements, maxDepth: maxDepth, showCoordinates: showCoordinates)
+    let descriptors = convertToEnhancedDescriptors(elements: elements, maxDepth: maxDepth, showCoordinates: showCoordinates, showActions: showActions)
 
     // Apply limit
     let limitedDescriptors = descriptors.prefix(limit)
@@ -596,6 +607,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     includeDisabled: Bool,
     includeNonInteractable: Bool,
     showCoordinates: Bool,
+    showActions: Bool,
     limit: Int,
     role: String?,
     title: String?,
@@ -676,7 +688,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     }
 
     // Convert to enhanced element descriptors
-    let descriptors = convertToEnhancedDescriptors(elements: elements, maxDepth: maxDepth, showCoordinates: showCoordinates)
+    let descriptors = convertToEnhancedDescriptors(elements: elements, maxDepth: maxDepth, showCoordinates: showCoordinates, showActions: showActions)
 
     // Apply limit
     let limitedDescriptors = descriptors.prefix(limit)
@@ -695,6 +707,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     includeDisabled: Bool,
     includeNonInteractable: Bool,
     showCoordinates: Bool,
+    showActions: Bool,
     limit: Int,
     role: String?,
     title: String?,
@@ -754,7 +767,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     }
 
     // Convert to enhanced element descriptors
-    let descriptors = convertToEnhancedDescriptors(elements: elements, maxDepth: maxDepth, showCoordinates: showCoordinates)
+    let descriptors = convertToEnhancedDescriptors(elements: elements, maxDepth: maxDepth, showCoordinates: showCoordinates, showActions: showActions)
 
     // Apply limit
     let limitedDescriptors = descriptors.prefix(limit)
@@ -772,6 +785,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     includeDisabled: Bool,
     includeNonInteractable: Bool,
     showCoordinates: Bool,
+    showActions: Bool,
     limit: Int,
     role: String?,
     title: String?,
@@ -851,7 +865,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
       }
 
       // Convert to enhanced element descriptors
-      let descriptors = convertToEnhancedDescriptors(elements: resultElements, maxDepth: maxDepth, showCoordinates: showCoordinates)
+      let descriptors = convertToEnhancedDescriptors(elements: resultElements, maxDepth: maxDepth, showCoordinates: showCoordinates, showActions: showActions)
 
       // Apply limit
       let limitedDescriptors = descriptors.prefix(limit)
@@ -1043,7 +1057,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
   }
 
   /// Convert UI elements to enhanced element descriptors
-  private func convertToEnhancedDescriptors(elements: [UIElement], maxDepth: Int, showCoordinates: Bool)
+  private func convertToEnhancedDescriptors(elements: [UIElement], maxDepth: Int, showCoordinates: Bool, showActions: Bool)
     -> [EnhancedElementDescriptor]
   {
     elements.map { element in
@@ -1107,7 +1121,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
       }
 
       // Use the EnhancedElementDescriptor from the Models directory
-      return EnhancedElementDescriptor.from(element: element, maxDepth: maxDepth, showCoordinates: showCoordinates)
+      return EnhancedElementDescriptor.from(element: element, maxDepth: maxDepth, showCoordinates: showCoordinates, showActions: showActions)
     }
   }
 

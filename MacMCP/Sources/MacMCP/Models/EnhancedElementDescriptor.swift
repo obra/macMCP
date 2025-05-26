@@ -54,6 +54,9 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
   /// Whether to include coordinate information in output
   private let showCoordinates: Bool
   
+  /// Whether to include actions information in output
+  private let showActions: Bool
+  
   /// Create a new element descriptor with enhanced state and capability information
   /// - Parameters:
   ///   - id: Unique identifier
@@ -84,7 +87,8 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     actions: [String],
     attributes: [String: String] = [:],
     children: [EnhancedElementDescriptor]? = nil,
-    showCoordinates: Bool = false
+    showCoordinates: Bool = false,
+    showActions: Bool = false
   ) {
     self.id = id
     self.role = role
@@ -100,6 +104,7 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     self.attributes = attributes
     self.children = children
     self.showCoordinates = showCoordinates
+    self.showActions = showActions
   }
 
   /// Convert a UIElement to an EnhancedElementDescriptor with detailed state and capability information
@@ -113,7 +118,8 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     element: UIElement,
     maxDepth: Int = 10,
     currentDepth: Int = 0,
-    showCoordinates: Bool = false
+    showCoordinates: Bool = false,
+    showActions: Bool = false
   ) -> EnhancedElementDescriptor {
     // Generate a human-readable name
     // Priority: title > description > value > role (don't use identifier to avoid deduplication conflicts)
@@ -193,7 +199,7 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
 
       // Recursively convert children with incremented depth
       children = element.children.map {
-        from(element: $0, maxDepth: maxDepth, currentDepth: currentDepth + 1, showCoordinates: showCoordinates)
+        from(element: $0, maxDepth: maxDepth, currentDepth: currentDepth + 1, showCoordinates: showCoordinates, showActions: showActions)
       }
     } else {
       children = nil
@@ -216,7 +222,8 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
       actions: element.actions,
       attributes: filteredAttributes,
       children: children,
-      showCoordinates: showCoordinates
+      showCoordinates: showCoordinates,
+      showActions: showActions
     )
   }
   
@@ -249,7 +256,11 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     }
     
     try container.encode(props, forKey: .props)
-    try container.encode(actions, forKey: .actions)
+    
+    // Only include actions if requested
+    if showActions {
+      try container.encode(actions, forKey: .actions)
+    }
     
     // Only include attributes if there are any
     if !attributes.isEmpty {
@@ -273,12 +284,13 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     self.identifier = try container.decodeIfPresent(String.self, forKey: .identifier)
     self.frame = try container.decodeIfPresent(ElementFrame.self, forKey: .frame) ?? ElementFrame(x: 0, y: 0, width: 0, height: 0)
     self.props = try container.decode([String].self, forKey: .props)
-    self.actions = try container.decode([String].self, forKey: .actions)
+    self.actions = try container.decodeIfPresent([String].self, forKey: .actions) ?? []
     self.attributes = try container.decodeIfPresent([String: String].self, forKey: .attributes) ?? [:]
     self.children = try container.decodeIfPresent([EnhancedElementDescriptor].self, forKey: .children)
     
-    // showCoordinates is not encoded/decoded, defaults to false for decoded instances
+    // showCoordinates and showActions are not encoded/decoded, default to false for decoded instances
     self.showCoordinates = false
+    self.showActions = false
   }
   
   /// Coding keys for custom Codable implementation
