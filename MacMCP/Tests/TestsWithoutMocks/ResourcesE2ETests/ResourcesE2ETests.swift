@@ -77,7 +77,7 @@ struct ResourcesE2ETests {
             #expect(jsonString.contains(calculatorBundleId), "Calculator should be in the applications list")
             #expect(jsonString.contains("Calculator"), "Calculator name should be in the applications list")
         } else {
-            #expect(false, "Content should be text")
+            #expect(Bool(false), "Content should be text")
         }
         
         // Verify metadata
@@ -117,7 +117,7 @@ struct ResourcesE2ETests {
             #expect(jsonString.contains("\"isMain\""), "Response should include main window status")
             #expect(jsonString.contains("\"frame\""), "Response should include frame information")
         } else {
-            #expect(false, "Content should be text")
+            #expect(Bool(false), "Content should be text")
         }
         
         // Verify metadata
@@ -155,7 +155,7 @@ struct ResourcesE2ETests {
             #expect(jsonString.contains("children"), "Response should include children")
             #expect(jsonString.contains("AXWindow"), "Response should include AXWindow in children")
         } else {
-            #expect(false, "Content should be text")
+            #expect(Bool(false), "Content should be text")
         }
         
         // Verify metadata
@@ -217,7 +217,7 @@ struct ResourcesE2ETests {
                        "Metadata should include interactable count")
             }
         } else {
-            #expect(false, "Content should be text")
+            #expect(Bool(false), "Content should be text")
         }
         
         try await tearDown()

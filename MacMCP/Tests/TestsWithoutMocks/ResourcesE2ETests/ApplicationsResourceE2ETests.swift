@@ -89,7 +89,7 @@ struct ApplicationsResourceE2ETests {
             #expect(metadata != nil, "Metadata should be provided")
             #expect(metadata?.mimeType == "application/json", "MIME type should be application/json")
         } else {
-            #expect(false, "Content should be text")
+            #expect(Bool(false), "Content should be text")
         }
         
         try await tearDown()
@@ -132,7 +132,7 @@ struct ApplicationsResourceE2ETests {
             #expect(!beforeHasCalculator, "Calculator should not be in applications list before launch")
             #expect(afterHasCalculator, "Calculator should be in applications list after launch")
         } else {
-            #expect(false, "Content should be text")
+            #expect(Bool(false), "Content should be text")
         }
         
         // Now terminate Calculator
@@ -151,7 +151,7 @@ struct ApplicationsResourceE2ETests {
             let finalHasCalculator = finalJson.contains(calculatorBundleId)
             #expect(!finalHasCalculator, "Calculator should not be in applications list after termination")
         } else {
-            #expect(false, "Content should be text")
+            #expect(Bool(false), "Content should be text")
         }
         
         try await tearDown()
