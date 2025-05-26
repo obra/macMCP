@@ -215,12 +215,21 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     // Encode all other fields normally
     try container.encode(role, forKey: .role)
     
-
-    try container.encodeIfPresent(title, forKey: .title)
-    try container.encodeIfPresent(value, forKey: .value)
-    try container.encodeIfPresent(description, forKey: .description)
-    try container.encodeIfPresent(help, forKey: .help)
-    try container.encodeIfPresent(identifier, forKey: .identifier)
+    if title != nil {
+      try container.encodeIfPresent(title, forKey: .title)
+    }
+    if value != nil {
+      try container.encodeIfPresent(value, forKey: .value)
+    }
+    if description != nil {
+      try container.encodeIfPresent(description, forKey: .description)
+    }
+    if help != nil {
+      try container.encodeIfPresent(help, forKey: .help)
+    }
+    if identifier != nil {
+      try container.encodeIfPresent(identifier, forKey: .identifier)
+    }
     
     // Only include frame/coordinates if requested
     if showCoordinates {
