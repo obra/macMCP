@@ -67,7 +67,7 @@ struct MenuNavigationCalculatorTest {
 
     // List all menu items in the application menu bar
     let menuParams: [String: Value] = [
-      "action": .string("getApplicationMenus"),
+      "action": .string("showAllMenus"),
       "bundleId": .string("com.apple.calculator"),
     ]
     
@@ -172,11 +172,11 @@ struct MenuNavigationCalculatorTest {
     try await activateCalculatorWithMCP()
     try await Task.sleep(for: .milliseconds(1000))
 
-    // Use menu paths with MenuNavigationTool in ElementPath URI format
+    // Use menu paths with MenuNavigationTool
     let menuParams: [String: Value] = [
-      "action": .string("activateMenuItem"),
+      "action": .string("selectMenuItem"),
       "bundleId": .string("com.apple.calculator"),
-      "id": .string("macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"View\"]/AXMenu/AXMenuItem[@AXTitle=\"" + mode + "\"]"),
+      "menuPath": .string("View > " + mode),
     ]
 
     // Use MenuNavigationTool's handler method

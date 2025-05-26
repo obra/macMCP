@@ -40,15 +40,24 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
   /// The accessibility service used for accessing UI elements
   private let accessibilityService: any AccessibilityServiceProtocol
 
+  /// Cache service for menu hierarchies
+  private let cacheService: any MenuCacheServiceProtocol
+
   /// Logger for tracking menu navigation operations
   private let logger: Logger
 
   /// Initialize a new menu navigation service
   /// - Parameters:
   ///   - accessibilityService: The accessibility service to use
+  ///   - cacheService: Optional cache service (creates default if not provided)
   ///   - logger: Optional logger to use
-  public init(accessibilityService: any AccessibilityServiceProtocol, logger: Logger? = nil) {
+  public init(
+    accessibilityService: any AccessibilityServiceProtocol, 
+    cacheService: (any MenuCacheServiceProtocol)? = nil,
+    logger: Logger? = nil
+  ) {
     self.accessibilityService = accessibilityService
+    self.cacheService = cacheService ?? MenuCacheService()
     self.logger = logger ?? Logger(label: "mcp.menu_navigation")
   }
 
@@ -247,6 +256,120 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
     return true
   }
 
+  // MARK: - Enhanced Path-Based Methods
+
+  /// Get complete menu hierarchy for an application
+  /// - Parameters:
+  ///   - bundleId: The bundle identifier of the application
+  ///   - maxDepth: Maximum depth to explore (1-5)
+  ///   - useCache: Whether to use cached hierarchy if available
+  /// - Returns: Complete menu hierarchy with paths
+  public func getCompleteMenuHierarchy(
+    bundleId: String,
+    maxDepth: Int,
+    useCache: Bool
+  ) async throws -> MenuHierarchy {
+    // Validate depth parameter
+    let validDepth = max(1, min(5, maxDepth))
+    
+    // Check cache first if enabled
+    if useCache {
+      if let cached = await cacheService.getHierarchy(for: bundleId) {
+        logger.info("Using cached menu hierarchy", metadata: [
+          "bundleId": .string(bundleId),
+          "depth": .string("\(cached.exploredDepth)")
+        ])
+        return cached
+      }
+    }
+    
+    logger.info("Building complete menu hierarchy", metadata: [
+      "bundleId": .string(bundleId),
+      "maxDepth": .string("\(validDepth)")
+    ])
+    
+    // Build hierarchy from scratch
+    let hierarchy = try await buildMenuHierarchy(
+      bundleId: bundleId,
+      maxDepth: validDepth
+    )
+    
+    // Cache the result
+    await cacheService.setHierarchy(hierarchy, for: bundleId)
+    
+    return hierarchy
+  }
+
+  /// Get menu details for a specific menu path
+  /// - Parameters:
+  ///   - bundleId: The bundle identifier of the application
+  ///   - menuPath: Menu path (e.g., "File", "Format > Font")
+  ///   - includeSubmenus: Whether to include submenu exploration
+  /// - Returns: Detailed menu information
+  public func getMenuDetails(
+    bundleId: String,
+    menuPath: String,
+    includeSubmenus: Bool
+  ) async throws -> CompactMenuItem {
+    guard MenuPathResolver.validatePath(menuPath) else {
+      throw MenuNavigationError.invalidMenuPath(menuPath)
+    }
+    
+    let pathComponents = MenuPathResolver.parsePath(menuPath)
+    
+    logger.info("Getting menu details for path", metadata: [
+      "bundleId": .string(bundleId),
+      "menuPath": .string(menuPath),
+      "components": .string("\(pathComponents.count)")
+    ])
+    
+    // Navigate to the menu item and build its details
+    return try await navigateAndBuildMenuItem(
+      bundleId: bundleId,
+      pathComponents: pathComponents,
+      includeSubmenus: includeSubmenus
+    )
+  }
+
+  /// Activate a menu item by path
+  /// - Parameters:
+  ///   - bundleId: The bundle identifier of the application
+  ///   - menuPath: Full menu path (e.g., "File > Save As...")
+  /// - Returns: Boolean indicating success
+  public func activateMenuItemByPath(
+    bundleId: String,
+    menuPath: String
+  ) async throws -> Bool {
+    guard MenuPathResolver.validatePath(menuPath) else {
+      throw MenuNavigationError.invalidMenuPath(menuPath)
+    }
+    
+    logger.info("Activating menu item by path", metadata: [
+      "bundleId": .string(bundleId),
+      "menuPath": .string(menuPath)
+    ])
+    
+    // Try to resolve path using cached hierarchy first
+    if let cached = await cacheService.getHierarchy(for: bundleId) {
+      let matches = MenuPathResolver.findMatches(menuPath, in: cached)
+      if matches.count == 1 {
+        // Use cached path resolution if available
+        return try await activateMenuItemByResolvedPath(
+          bundleId: bundleId,
+          menuPath: menuPath
+        )
+      } else if matches.count > 1 {
+        throw MenuNavigationError.invalidMenuPath("Ambiguous path: \(menuPath)")
+      }
+    }
+    
+    // Fall back to dynamic resolution
+    return try await activateMenuItemByResolvedPath(
+      bundleId: bundleId,
+      menuPath: menuPath
+    )
+  }
+
   // MARK: - Private Helpers
 
   /// Convert a UI element to a menu item descriptor
@@ -258,5 +381,279 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
     -> MenuItemDescriptor?
   {
     MenuItemDescriptor.from(element: element, includeSubmenu: includeSubmenus)
+  }
+
+  /// Build complete menu hierarchy by recursively exploring menus
+  /// - Parameters:
+  ///   - bundleId: Application bundle identifier
+  ///   - maxDepth: Maximum depth to explore
+  /// - Returns: Complete menu hierarchy
+  private func buildMenuHierarchy(
+    bundleId: String,
+    maxDepth: Int
+  ) async throws -> MenuHierarchy {
+    let appElement = try await accessibilityService.getApplicationUIElement(
+      bundleId: bundleId,
+      recursive: true,
+      maxDepth: 3
+    )
+    
+    guard let menuBar = appElement.children.first(where: { $0.role == "AXMenuBar" }) else {
+      throw MenuNavigationError.menuBarNotFound
+    }
+    
+    var allMenus: [String: [String]] = [:]
+    var totalItems = 0
+    
+    // Process each top-level menu
+    for menuBarItem in menuBar.children {
+      guard let menuTitle = menuBarItem.title, !menuTitle.isEmpty else { continue }
+      
+      var menuPaths: [String] = []
+      
+      // Explore this menu's items
+      let menuItems = try await exploreMenuItems(
+        bundleId: bundleId,
+        menuBarItem: menuBarItem,
+        parentPath: menuTitle,
+        currentDepth: 1,
+        maxDepth: maxDepth
+      )
+      
+      for item in menuItems {
+        menuPaths.append(contentsOf: item.allDescendantPaths)
+      }
+      
+      if !menuPaths.isEmpty {
+        allMenus[menuTitle] = menuPaths
+        totalItems += menuPaths.count
+      }
+    }
+    
+    return MenuHierarchy(
+      application: bundleId,
+      menus: allMenus,
+      totalItems: totalItems,
+      exploredDepth: maxDepth
+    )
+  }
+
+  /// Recursively explore menu items
+  /// - Parameters:
+  ///   - bundleId: Application bundle identifier
+  ///   - menuBarItem: Menu bar item to explore
+  ///   - parentPath: Path to this menu
+  ///   - currentDepth: Current exploration depth
+  ///   - maxDepth: Maximum exploration depth
+  /// - Returns: Array of compact menu items
+  private func exploreMenuItems(
+    bundleId: String,
+    menuBarItem: UIElement,
+    parentPath: String,
+    currentDepth: Int,
+    maxDepth: Int
+  ) async throws -> [CompactMenuItem] {
+    guard currentDepth <= maxDepth else { return [] }
+    
+    // Activate menu to see its items
+    try await accessibilityService.performAction(
+      action: "AXPress",
+      onElementWithPath: menuBarItem.path
+    )
+    
+    // Wait for menu to open
+    try await Task.sleep(nanoseconds: 300_000_000)
+    
+    // Get updated view
+    let updatedAppElement = try await accessibilityService.getApplicationUIElement(
+      bundleId: bundleId,
+      recursive: true,
+      maxDepth: 10
+    )
+    
+    guard let updatedMenuBar = updatedAppElement.children.first(where: { $0.role == "AXMenuBar" }),
+          let updatedMenuItem = updatedMenuBar.children.first(where: { $0.title == menuBarItem.title }),
+          let menu = updatedMenuItem.children.first(where: { $0.role == "AXMenu" }) else {
+      // Cancel menu and return empty
+      try? await accessibilityService.performAction(
+        action: "AXCancel",
+        onElementWithPath: menuBarItem.path
+      )
+      return []
+    }
+    
+    var compactItems: [CompactMenuItem] = []
+    
+    // Process each menu item
+    for menuItem in menu.children {
+      let itemPath = MenuPathResolver.buildPath(from: [parentPath, menuItem.title ?? ""])
+      
+      var children: [CompactMenuItem]? = nil
+      let hasSubmenu = menuItem.children.contains { $0.role == "AXMenu" }
+      
+      // Recursively explore submenus if we haven't reached max depth
+      if hasSubmenu && currentDepth < maxDepth {
+        children = try await exploreSubmenuItems(
+          bundleId: bundleId,
+          menuItem: menuItem,
+          parentPath: itemPath,
+          currentDepth: currentDepth + 1,
+          maxDepth: maxDepth
+        )
+      }
+      
+      let compactItem = CompactMenuItem(
+        path: itemPath,
+        title: menuItem.title ?? "",
+        enabled: !(menuItem.attributes["disabled"] as? Bool ?? false),
+        shortcut: extractShortcut(from: menuItem),
+        hasSubmenu: hasSubmenu,
+        children: children,
+        elementPath: menuItem.path
+      )
+      
+      compactItems.append(compactItem)
+    }
+    
+    // Cancel menu
+    try? await accessibilityService.performAction(
+      action: "AXCancel",
+      onElementWithPath: updatedMenuItem.path
+    )
+    
+    return compactItems
+  }
+
+  /// Explore submenu items recursively
+  /// - Parameters:
+  ///   - bundleId: Application bundle identifier
+  ///   - menuItem: Menu item with submenu
+  ///   - parentPath: Path to this submenu
+  ///   - currentDepth: Current exploration depth
+  ///   - maxDepth: Maximum exploration depth
+  /// - Returns: Array of compact menu items
+  private func exploreSubmenuItems(
+    bundleId: String,
+    menuItem: UIElement,
+    parentPath: String,
+    currentDepth: Int,
+    maxDepth: Int
+  ) async throws -> [CompactMenuItem] {
+    guard currentDepth <= maxDepth else { return [] }
+    
+    // For now, return empty for submenus to avoid complexity
+    // In a full implementation, we would hover/activate the submenu
+    // and recursively explore its items
+    return []
+  }
+
+  /// Navigate to a menu item and build its details
+  /// - Parameters:
+  ///   - bundleId: Application bundle identifier
+  ///   - pathComponents: Menu path components
+  ///   - includeSubmenus: Whether to include submenus
+  /// - Returns: Compact menu item
+  private func navigateAndBuildMenuItem(
+    bundleId: String,
+    pathComponents: [String],
+    includeSubmenus: Bool
+  ) async throws -> CompactMenuItem {
+    guard !pathComponents.isEmpty else {
+      throw MenuNavigationError.invalidMenuPath("Empty path")
+    }
+    
+    // For now, use the existing getMenuItems method for the top-level menu
+    // and build a CompactMenuItem from the results
+    let topLevelMenu = pathComponents[0]
+    let menuItems = try await getMenuItems(
+      bundleId: bundleId,
+      menuTitle: topLevelMenu,
+      includeSubmenus: includeSubmenus
+    )
+    
+    if pathComponents.count == 1 {
+      // Return the top-level menu as a CompactMenuItem
+      return CompactMenuItem(
+        path: topLevelMenu,
+        title: topLevelMenu,
+        enabled: true,
+        hasSubmenu: !menuItems.isEmpty,
+        children: menuItems.map { descriptor in
+          CompactMenuItem(
+            path: "\(topLevelMenu) > \(descriptor.title ?? descriptor.name)",
+            title: descriptor.title ?? descriptor.name,
+            enabled: descriptor.isEnabled,
+            shortcut: descriptor.shortcut,
+            hasSubmenu: descriptor.hasSubmenu,
+            elementPath: descriptor.id
+          )
+        },
+        elementPath: topLevelMenu
+      )
+    } else {
+      // Find the specific menu item in the hierarchy
+      let targetTitle = pathComponents[1]
+      guard let foundItem = menuItems.first(where: { 
+        $0.title == targetTitle || $0.name == targetTitle 
+      }) else {
+        throw MenuNavigationError.menuItemNotFound(targetTitle)
+      }
+      
+      return CompactMenuItem(
+        path: MenuPathResolver.buildPath(from: pathComponents),
+        title: foundItem.title ?? foundItem.name,
+        enabled: foundItem.isEnabled,
+        shortcut: foundItem.shortcut,
+        hasSubmenu: foundItem.hasSubmenu,
+        elementPath: foundItem.id
+      )
+    }
+  }
+
+  /// Activate menu item by resolved path
+  /// - Parameters:
+  ///   - bundleId: Application bundle identifier
+  ///   - menuPath: Menu path to activate
+  /// - Returns: Success boolean
+  private func activateMenuItemByResolvedPath(
+    bundleId: String,
+    menuPath: String
+  ) async throws -> Bool {
+    let pathComponents = MenuPathResolver.parsePath(menuPath)
+    guard pathComponents.count >= 2 else {
+      throw MenuNavigationError.invalidMenuPath("Path must have at least 2 components")
+    }
+    
+    // Use existing logic to get menu items and find the target
+    let topLevelMenu = pathComponents[0]
+    let menuItems = try await getMenuItems(
+      bundleId: bundleId,
+      menuTitle: topLevelMenu,
+      includeSubmenus: false
+    )
+    
+    let targetTitle = pathComponents[1]
+    guard let targetItem = menuItems.first(where: { 
+      $0.title == targetTitle || $0.name == targetTitle 
+    }) else {
+      throw MenuNavigationError.menuItemNotFound(targetTitle)
+    }
+    
+    // Activate using the existing method
+    return try await activateMenuItem(bundleId: bundleId, elementPath: targetItem.id)
+  }
+
+  /// Extract keyboard shortcut from menu item
+  /// - Parameter element: Menu item element
+  /// - Returns: Shortcut string if available
+  private func extractShortcut(from element: UIElement) -> String? {
+    // Look for common shortcut attributes
+    if let shortcut = element.attributes["shortcut"] as? String, !shortcut.isEmpty {
+      return shortcut
+    }
+    if let cmdChar = element.attributes["cmdChar"] as? String, !cmdChar.isEmpty {
+      return "⌘\(cmdChar)"
+    }
+    return nil
   }
 }

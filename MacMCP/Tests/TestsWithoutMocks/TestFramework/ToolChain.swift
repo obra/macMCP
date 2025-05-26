@@ -566,9 +566,9 @@ public final class ToolChain: @unchecked Sendable {
   ) async throws -> [Tool.Content] {
     // Create parameters for the tool
     let params: [String: Value] = [
-      "action": .string("getMenuItems"),
+      "action": .string("showMenu"),
       "bundleId": .string(bundleId),
-      "menuTitle": .string(menuTitle),
+      "menuPath": .string(menuTitle),
     ]
 
     // Call the menu navigation tool

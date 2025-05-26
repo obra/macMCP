@@ -176,9 +176,9 @@ struct MenuNavigationTest {
     try await Task.sleep(for: .milliseconds(1000))
 
     let menuParams: [String: Value] = [
-      "action": .string("activateMenuItem"),
+      "action": .string("selectMenuItem"),
       "bundleId": .string("com.apple.TextEdit"),
-      "id": .string("macos://ui/AXApplication[@bundleId=\"com.apple.TextEdit\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"File\"]/AXMenu/AXMenuItem[@AXTitle=\"New\"]"),
+      "menuPath": .string("File > New"),
     ]
 
     let result = try await helper.toolChain.menuNavigationTool.handler(menuParams)
@@ -198,9 +198,9 @@ struct MenuNavigationTest {
     try await Task.sleep(for: .milliseconds(1000))
 
     let menuParams: [String: Value] = [
-      "action": .string("activateMenuItem"),
+      "action": .string("selectMenuItem"),
       "bundleId": .string("com.apple.TextEdit"),
-      "id": .string("macos://ui/AXApplication[@bundleId=\"com.apple.TextEdit\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"File\"]/AXMenu/AXMenuItem[@AXTitle=\"Close\"]"),
+      "menuPath": .string("File > Close"),
     ]
 
     let result = try await helper.toolChain.menuNavigationTool.handler(menuParams)

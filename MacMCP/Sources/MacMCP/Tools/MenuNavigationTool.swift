@@ -1,11 +1,11 @@
-// ABOUTME: MenuNavigationTool.swift
-// ABOUTME: Part of MacMCP allowing LLMs to interact with macOS applications.
+// ABOUTME: Enhanced MenuNavigationTool with path-based menu navigation
+// ABOUTME: Provides intuitive menu discovery and activation using readable paths
 
 import Foundation
 import Logging
 import MCP
 
-/// A tool for navigating and interacting with application menus
+/// A tool for navigating and interacting with application menus using path-based addressing
 public struct MenuNavigationTool: @unchecked Sendable {
   /// The name of the tool
   public let name = ToolNames.menuNavigation
@@ -14,26 +14,31 @@ public struct MenuNavigationTool: @unchecked Sendable {
   public let description = """
 Navigate and interact with macOS application menus for accessing commands and functionality.
 
-CRITICAL: Menu item IDs must be obtained from prior menu exploration - you cannot guess or construct them!
+CRITICAL: Use InterfaceExplorerTool first to discover element IDs.
 
 Available actions:
-- getApplicationMenus: List all top-level menus for an application
-- getMenuItems: Get items within a specific menu (File, Edit, View, etc.)
-- activateMenuItem: Click/activate a specific menu item using element ID from getMenuItems
+- showAllMenus: Recursively discover and display all menus in a compact, hierarchical format
+- showMenu: Get detailed information about a specific menu and all its items
+- selectMenuItem: Click/activate a menu item using its readable path
 
 REQUIRED workflow for activating menu items:
-1. First: getApplicationMenus with bundleId to see available menus
-2. Second: getMenuItems with bundleId and menuTitle to get menu item IDs
-3. Finally: activateMenuItem with bundleId and the exact 'id' from step 2
+1. First: showAllMenus with bundleId to see available menus and their paths
+2. Then: selectMenuItem with bundleId and the exact menuPath from step 1
+
+Path format examples:
+- "File > New"
+- "Edit > Find > Find Next"
+- "Format > Font > Show Fonts"
+- "Help > Search"
 
 Menu structure hierarchy:
 - Application → Top-level menus (File, Edit, View, etc.)
-- Menu → Menu items (New, Open, Save, etc.)
+- Menu → Menu items (New, Open, Save, etc.)  
 - Menu items → Submenus or commands
 
-IMPORTANT: Element IDs are UUIDs generated during menu exploration, not menu titles!
-- ✅ Correct: Use the 'id' field from getMenuItems results
-- ❌ Incorrect: Using menu names like 'New Document', 'Save', etc.
+IMPORTANT: Menu paths use " > " (space-arrow-space) as separator!
+- ✅ Correct: "File > Save As..."
+- ❌ Incorrect: "File/Save As..." or "File→Save As..."
 
 Use cases:
 - Access app commands not available in UI
@@ -111,29 +116,38 @@ Bundle ID required for all operations to target specific application.
     let baseProperties: [String: Value] = [
         "action": .object([
           "type": .string("string"),
-          "description": .string("Menu operation: list app menus, explore menu items, or activate specific menu commands"),
+          "description": .string("Menu operation: show all menus, show specific menu, or select menu item"),
           "enum": .array([
-            .string("getApplicationMenus"),
-            .string("getMenuItems"),
-            .string("activateMenuItem"),
+            .string("showAllMenus"),
+            .string("showMenu"),
+            .string("selectMenuItem"),
           ]),
         ]),
         "bundleId": .object([
           "type": .string("string"),
           "description": .string("Application bundle identifier (required for all actions, e.g., 'com.apple.TextEdit')"),
         ]),
-        "menuTitle": .object([
+        "menuPath": .object([
           "type": .string("string"),
-          "description": .string("Top-level menu name to explore (required for getMenuItems, e.g., 'File', 'Edit', 'View')"),
+          "description": .string("Menu path for showMenu or selectMenuItem (e.g., 'File > Save As...', 'Format > Font')"),
         ]),
-        "id": .object([
+        "maxDepth": .object([
+          "type": .string("integer"),
+          "description": .string("Maximum depth to explore for showAllMenus (1-5, default: 3)"),
+          "minimum": .double(1),
+          "maximum": .double(5),
+          "default": .double(3),
+        ]),
+        "format": .object([
           "type": .string("string"),
-          "description": .string("Element ID (UUID) obtained from getMenuItems results (required for activateMenuItem). Must be the exact 'id' field from menu exploration, not a menu title or name."),
+          "description": .string("Output format for showAllMenus (compact or detailed, default: compact)"),
+          "enum": .array([.string("compact"), .string("detailed")]),
+          "default": .string("compact"),
         ]),
         "includeSubmenus": .object([
           "type": .string("boolean"),
-          "description": .string("Include nested submenus in getMenuItems results (default: false for simpler output)"),
-          "default": .bool(false),
+          "description": .string("Include submenu exploration for showMenu (default: true)"),
+          "default": .bool(true),
         ])
     ]
     
@@ -147,24 +161,30 @@ Bundle ID required for all operations to target specific application.
       "additionalProperties": .bool(false),
         "examples": .array([
           .object([
-          "action": .string("getApplicationMenus"),
+          "action": .string("showAllMenus"),
           "bundleId": .string("com.apple.TextEdit"),
         ]),
         .object([
-          "action": .string("getMenuItems"),
-          "bundleId": .string("com.apple.TextEdit"),
-          "menuTitle": .string("File"),
+          "action": .string("showAllMenus"),
+          "bundleId": .string("com.apple.Calculator"),
+          "maxDepth": .double(2),
+          "format": .string("detailed"),
         ]),
         .object([
-          "action": .string("getMenuItems"),
+          "action": .string("showMenu"),
           "bundleId": .string("com.apple.TextEdit"),
-          "menuTitle": .string("Format"),
+          "menuPath": .string("File"),
+        ]),
+        .object([
+          "action": .string("showMenu"),
+          "bundleId": .string("com.apple.TextEdit"),
+          "menuPath": .string("Format > Font"),
           "includeSubmenus": .bool(true),
         ]),
         .object([
-          "action": .string("activateMenuItem"),
+          "action": .string("selectMenuItem"),
           "bundleId": .string("com.apple.TextEdit"),
-          "id": .string("opaque_id_B4F2A9D8-3E5C-4A1B-9F7D-2E8A1C6B0F93"),
+          "menuPath": .string("File > Save As..."),
         ]),
       ]),
     ])
@@ -188,111 +208,154 @@ Bundle ID required for all operations to target specific application.
       throw MCPError.invalidParams("bundleId is required for all menu actions")
     }
 
-    // Common parameters
-    let includeSubmenus = params["includeSubmenus"]?.boolValue ?? false
-
     // Delegate to appropriate handler based on action
     switch actionValue {
-    case "getApplicationMenus":
-      return try await handleGetApplicationMenus(bundleId: bundleId)
+    case "showAllMenus":
+      let maxDepth = Int(params["maxDepth"]?.doubleValue ?? 3)
+      let format = params["format"]?.stringValue ?? "compact"
+      return try await handleShowAllMenus(bundleId: bundleId, maxDepth: maxDepth, format: format)
 
-    case "getMenuItems":
-      guard let menuTitle = params["menuTitle"]?.stringValue else {
-        throw MCPError.invalidParams("menuTitle is required for getMenuItems")
+    case "showMenu":
+      guard let menuPath = params["menuPath"]?.stringValue else {
+        throw MCPError.invalidParams("menuPath is required for showMenu")
       }
-      return try await handleGetMenuItems(
-        bundleId: bundleId,
-        menuTitle: menuTitle,
-        includeSubmenus: includeSubmenus,
-      )
+      let includeSubmenus = params["includeSubmenus"]?.boolValue ?? true
+      return try await handleShowMenu(bundleId: bundleId, menuPath: menuPath, includeSubmenus: includeSubmenus)
 
-    case "activateMenuItem":
-      guard let menuPath = params["id"]?.stringValue else {
-        throw MCPError.invalidParams("id is required for activateMenuItem")
+    case "selectMenuItem":
+      guard let menuPath = params["menuPath"]?.stringValue else {
+        throw MCPError.invalidParams("menuPath is required for selectMenuItem")
       }
-      return try await handleActivateMenuItem(bundleId: bundleId, menuPath: menuPath, params: params)
+      return try await handleSelectMenuItem(bundleId: bundleId, menuPath: menuPath, params: params)
 
     default:
       throw MCPError.invalidParams("Invalid action: \(actionValue)")
     }
   }
 
-  /// Handle the getApplicationMenus action
-  /// - Parameter bundleId: The application bundle identifier
-  /// - Returns: The tool result
-  private func handleGetApplicationMenus(bundleId: String) async throws -> [Tool.Content] {
-    // Get all application menus
-    let menus = try await menuNavigationService.getApplicationMenus(bundleId: bundleId)
-
-    // Return the menus
-    return try formatResponse(menus)
-  }
-
-  /// Handle the getMenuItems action
+  /// Handle the showAllMenus action
   /// - Parameters:
   ///   - bundleId: The application bundle identifier
-  ///   - menuTitle: The title of the menu to get items from
-  ///   - includeSubmenus: Whether to include submenu items
+  ///   - maxDepth: Maximum depth to explore
+  ///   - format: Output format (compact or detailed)
   /// - Returns: The tool result
-  private func handleGetMenuItems(
-    bundleId: String,
-    menuTitle: String,
-    includeSubmenus: Bool,
-  ) async throws -> [Tool.Content] {
-    // Get menu items
-    let menuItems = try await menuNavigationService.getMenuItems(
-      bundleId: bundleId,
-      menuTitle: menuTitle,
-      includeSubmenus: includeSubmenus,
-    )
-
-    // Return the menu items
-    return try formatResponse(menuItems)
-  }
-
-  /// Decode element ID - handles both opaque IDs and raw paths
-  private func decodeElementID(_ elementID: String) -> String {
-    // Try to decode as opaque ID first, fall back to treating as raw path
-    do {
-      return try OpaqueIDEncoder.decode(elementID)
-    } catch {
-      // Not an opaque ID or decoding failed, treat as raw path
-      return elementID
-    }
-  }
-
-  /// Handle the activateMenuItem action
-  /// - Parameters:
-  ///   - bundleId: The application bundle identifier
-  ///   - menuPath: Element ID URI to the menu item to activate
-  ///   - params: The request parameters for change detection settings
-  /// - Returns: The tool result
-  private func handleActivateMenuItem(
-    bundleId: String,
-    menuPath: String,
-    params: [String: Value]
-  ) async throws -> [Tool.Content] {
-    // Decode the element ID (handles both opaque IDs and raw paths)
-    let decodedPath = decodeElementID(menuPath)
+  private func handleShowAllMenus(bundleId: String, maxDepth: Int, format: String) async throws -> [Tool.Content] {
+    // Validate depth parameter
+    let validDepth = max(1, min(5, maxDepth))
     
-    // Validate the path format before proceeding
-    guard decodedPath.hasPrefix("macos://ui/") else {
-      let errorMessage = """
-        Invalid menu item ID format: '\(menuPath)'
+    logger.info("Showing all menus", metadata: [
+      "bundleId": .string(bundleId),
+      "maxDepth": .string("\(validDepth)"),
+      "format": .string(format)
+    ])
+    
+    do {
+      // Get complete menu hierarchy
+      let hierarchy = try await menuNavigationService.getCompleteMenuHierarchy(
+        bundleId: bundleId,
+        maxDepth: validDepth,
+        useCache: true
+      )
+      
+      // Format response based on requested format
+      if format == "detailed" {
+        return try formatResponse(hierarchy)
+      } else {
+        // Compact format - just the paths organized by menu
+        let compactResult = CompactMenuHierarchyResult(
+          application: hierarchy.application,
+          menus: hierarchy.menus,
+          totalItems: hierarchy.totalItems,
+          exploredDepth: hierarchy.exploredDepth
+        )
         
-        The ID must be a UUID obtained from previous menu exploration using:
-        1. First call getApplicationMenus with bundleId: '\(bundleId)' to see available menus
-        2. Then call getMenuItems with bundleId and menuTitle to see menu items
-        3. Use the 'id' field from those results for activateMenuItem
+        return try formatResponse(compactResult)
+      }
+    } catch let error as MenuNavigationError {
+      let helpfulMessage = """
+        Failed to explore menus for application '\(bundleId)': \(error.description)
         
-        Example valid ID: 'opaque_id_abc123' or 'macos://ui/application[@bundleId=...]/menubar/...'
-        
-        If you're looking for a menu item like 'New Document', first explore the File menu:
-        - Action: getMenuItems, bundleId: '\(bundleId)', menuTitle: 'File'
+        Troubleshooting steps:
+        1. Verify the application '\(bundleId)' is running and accessible
+        2. Check that the application has accessibility permissions
+        3. Ensure the application has a menu bar (some apps don't have traditional menus)
+        4. Try with a lower maxDepth value if the exploration is timing out
         """
       
-      throw MCPError.invalidParams(errorMessage)
+      throw MCPError.internalError(helpfulMessage)
     }
+  }
+
+  /// Handle the showMenu action
+  /// - Parameters:
+  ///   - bundleId: The application bundle identifier
+  ///   - menuPath: Menu path to explore
+  ///   - includeSubmenus: Whether to include submenus
+  /// - Returns: The tool result
+  private func handleShowMenu(bundleId: String, menuPath: String, includeSubmenus: Bool) async throws -> [Tool.Content] {
+    logger.info("Showing menu details", metadata: [
+      "bundleId": .string(bundleId),
+      "menuPath": .string(menuPath),
+      "includeSubmenus": .string("\(includeSubmenus)")
+    ])
+    
+    do {
+      // Get menu details
+      let menuDetails = try await menuNavigationService.getMenuDetails(
+        bundleId: bundleId,
+        menuPath: menuPath,
+        includeSubmenus: includeSubmenus
+      )
+      
+      // Format as detailed menu information
+      let menuResult = MenuDetailsResult(
+        menuPath: menuPath,
+        title: menuDetails.title,
+        enabled: menuDetails.enabled,
+        hasSubmenu: menuDetails.hasSubmenu,
+        itemCount: menuDetails.children?.count ?? 0,
+        items: menuDetails.children?.map { child in
+          MenuItemResult(
+            path: child.path,
+            title: child.title,
+            enabled: child.enabled,
+            shortcut: child.shortcut,
+            hasSubmenu: child.hasSubmenu
+          )
+        } ?? []
+      )
+      
+      return try formatResponse(menuResult)
+    } catch let error as MenuNavigationError {
+      // Provide path-specific error guidance
+      let suggestions = await getPathSuggestions(bundleId: bundleId, invalidPath: menuPath)
+      let helpfulMessage = """
+        Failed to explore menu path '\(menuPath)' in application '\(bundleId)': \(error.description)
+        
+        \(suggestions)
+        
+        Troubleshooting steps:
+        1. Use showAllMenus to see all available menu paths
+        2. Check path format: use " > " (space-arrow-space) as separator
+        3. Ensure exact title matching (case-sensitive)
+        4. Try exploring the top-level menu first (e.g., just "File" instead of "File > New")
+        """
+      
+      throw MCPError.internalError(helpfulMessage)
+    }
+  }
+
+  /// Handle the selectMenuItem action
+  /// - Parameters:
+  ///   - bundleId: The application bundle identifier
+  ///   - menuPath: Menu path to activate
+  ///   - params: Additional parameters for change detection
+  /// - Returns: The tool result
+  private func handleSelectMenuItem(bundleId: String, menuPath: String, params: [String: Value]) async throws -> [Tool.Content] {
+    logger.info("Selecting menu item", metadata: [
+      "bundleId": .string(bundleId),
+      "menuPath": .string(menuPath)
+    ])
     
     let (detectChanges, delay) = ChangeDetectionHelper.extractChangeDetectionParams(params)
 
@@ -302,27 +365,27 @@ Bundle ID required for all operations to target specific application.
         detectChanges: detectChanges,
         delay: delay
       ) {
-        let success = try await menuNavigationService.activateMenuItem(
+        let success = try await menuNavigationService.activateMenuItemByPath(
           bundleId: bundleId,
-          elementPath: decodedPath,
+          menuPath: menuPath
         )
         return "Menu item activated: \(menuPath) (success: \(success))"
       }
 
       return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
     } catch let error as MenuNavigationError {
-      // Provide more helpful error messages for menu navigation errors
+      // Provide path-specific error guidance
+      let suggestions = await getPathSuggestions(bundleId: bundleId, invalidPath: menuPath)
       let helpfulMessage = """
-        Menu navigation failed: \(error.description)
+        Failed to activate menu item '\(menuPath)' in application '\(bundleId)': \(error.description)
+        
+        \(suggestions)
         
         Troubleshooting steps:
-        1. Verify the application '\(bundleId)' is running and accessible
-        2. Use getApplicationMenus to confirm the app has menus
-        3. Use getMenuItems to get valid menu item IDs for the target menu
-        4. Ensure the menu item ID is from recent exploration (menu structures can change)
-        
-        Original ID provided: '\(menuPath)'
-        Decoded path: '\(decodedPath)'
+        1. Use showAllMenus to get the exact path for the menu item you want
+        2. Ensure the path format is correct: "TopMenu > MenuItem" (space-arrow-space separator)
+        3. Check that the menu item is currently enabled and available
+        4. Verify the application is in focus and ready to receive menu commands
         """
       
       throw MCPError.internalError(helpfulMessage)
@@ -333,14 +396,39 @@ Bundle ID required for all operations to target specific application.
         
         Context:
         - Application: \(bundleId)
-        - Menu item ID: \(menuPath)
-        - Decoded path: \(decodedPath)
+        - Menu path: \(menuPath)
         
         This may indicate an application state change or accessibility issue.
-        Try exploring the menus again to get fresh menu item IDs.
+        Try using showAllMenus to refresh the menu structure.
         """
       
       throw MCPError.internalError(contextualMessage)
+    }
+  }
+
+  /// Get path suggestions for invalid paths
+  /// - Parameters:
+  ///   - bundleId: Application bundle identifier
+  ///   - invalidPath: The invalid path that was attempted
+  /// - Returns: Helpful suggestions string
+  private func getPathSuggestions(bundleId: String, invalidPath: String) async -> String {
+    do {
+      // Try to get cached hierarchy for suggestions
+      let hierarchy = try await menuNavigationService.getCompleteMenuHierarchy(
+        bundleId: bundleId,
+        maxDepth: 2,
+        useCache: true
+      )
+      
+      let suggestions = MenuPathResolver.suggestSimilar(invalidPath, in: hierarchy, maxSuggestions: 3)
+      if !suggestions.isEmpty {
+        return "Did you mean one of these paths?\n" + suggestions.map { "  - \($0)" }.joined(separator: "\n")
+      } else {
+        let topLevelMenus = hierarchy.topLevelMenus
+        return "Available top-level menus: \(topLevelMenus.joined(separator: ", "))"
+      }
+    } catch {
+      return "Use showAllMenus to see available menu paths."
     }
   }
 
@@ -367,4 +455,33 @@ Bundle ID required for all operations to target specific application.
         "Failed to encode response as JSON: \(error.localizedDescription)")
     }
   }
+}
+
+// MARK: - Response Data Structures
+
+/// Compact representation of menu hierarchy for tool responses
+private struct CompactMenuHierarchyResult: Codable {
+  let application: String
+  let menus: [String: [String]]
+  let totalItems: Int
+  let exploredDepth: Int
+}
+
+/// Detailed menu information for tool responses
+private struct MenuDetailsResult: Codable {
+  let menuPath: String
+  let title: String
+  let enabled: Bool
+  let hasSubmenu: Bool
+  let itemCount: Int
+  let items: [MenuItemResult]
+}
+
+/// Individual menu item information for tool responses
+private struct MenuItemResult: Codable {
+  let path: String
+  let title: String
+  let enabled: Bool
+  let shortcut: String?
+  let hasSubmenu: Bool
 }

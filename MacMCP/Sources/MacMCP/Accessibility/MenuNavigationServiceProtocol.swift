@@ -31,4 +31,40 @@ public protocol MenuNavigationServiceProtocol: Actor {
     bundleId: String,
     elementPath: String,
   ) async throws -> Bool
+
+  // MARK: - Enhanced Path-Based Methods
+
+  /// Get complete menu hierarchy for an application
+  /// - Parameters:
+  ///   - bundleId: The bundle identifier of the application
+  ///   - maxDepth: Maximum depth to explore (1-5)
+  ///   - useCache: Whether to use cached hierarchy if available
+  /// - Returns: Complete menu hierarchy with paths
+  func getCompleteMenuHierarchy(
+    bundleId: String,
+    maxDepth: Int,
+    useCache: Bool
+  ) async throws -> MenuHierarchy
+
+  /// Get menu details for a specific menu path
+  /// - Parameters:
+  ///   - bundleId: The bundle identifier of the application
+  ///   - menuPath: Menu path (e.g., "File", "Format > Font")
+  ///   - includeSubmenus: Whether to include submenu exploration
+  /// - Returns: Detailed menu information
+  func getMenuDetails(
+    bundleId: String,
+    menuPath: String,
+    includeSubmenus: Bool
+  ) async throws -> CompactMenuItem
+
+  /// Activate a menu item by path
+  /// - Parameters:
+  ///   - bundleId: The bundle identifier of the application
+  ///   - menuPath: Full menu path (e.g., "File > Save As...")
+  /// - Returns: Boolean indicating success
+  func activateMenuItemByPath(
+    bundleId: String,
+    menuPath: String
+  ) async throws -> Bool
 }

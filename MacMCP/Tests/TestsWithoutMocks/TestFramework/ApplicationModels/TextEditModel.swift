@@ -300,34 +300,19 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
   /// - Parameter menuPath: Path to the menu item (e.g., "Format/Font/Show Fonts")
   /// - Returns: True if navigation was successful
   public func navigateToMenuItem(_ menuPath: String) async throws -> Bool {
-    // Convert the forward-slash path format to ElementPath URI format
+    // Convert the forward-slash path format to the new " > " format
     let parts = menuPath.split(separator: "/")
     guard parts.count >= 1 else {
       return false
     }
     
-    // Build the ElementPath URI for the menu item
-    var uri = "macos://ui/AXApplication[@bundleId=\"\(bundleId)\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"\(parts[0])\"]"
-    
-    if parts.count > 1 {
-      uri += "/AXMenu"
-      
-      // Add submenu items
-      for i in 1..<parts.count {
-        // If this is an intermediate submenu (not the last item) and there are more parts
-        if i < parts.count - 1 {
-          uri += "/AXMenuItem[@AXTitle=\"\(parts[i])\"]/AXMenu"
-        } else {
-          // For the final menu item
-          uri += "/AXMenuItem[@AXTitle=\"\(parts[i])\"]"
-        }
-      }
-    }
+    // Build the new menu path format
+    let newMenuPath = parts.joined(separator: " > ")
     
     let menuParams: [String: Value] = [
-      "action": .string("activateMenuItem"),
+      "action": .string("selectMenuItem"),
       "bundleId": .string(bundleId),
-      "id": .string(uri),
+      "menuPath": .string(newMenuPath),
     ]
 
     let result = try await toolChain.menuNavigationTool.handler(menuParams)
