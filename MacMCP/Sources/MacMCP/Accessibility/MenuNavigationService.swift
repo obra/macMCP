@@ -438,7 +438,7 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
     )
   }
 
-  /// Recursively explore menu items
+  /// Recursively explore menu items using non-intrusive approach (like InterfaceExplorerTool)
   /// - Parameters:
   ///   - bundleId: Application bundle identifier
   ///   - menuBarItem: Menu bar item to explore
@@ -455,37 +455,34 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
   ) async throws -> [CompactMenuItem] {
     guard currentDepth <= maxDepth else { return [] }
     
-    // Activate menu to see its items
-    try await accessibilityService.performAction(
-      action: "AXPress",
-      onElementWithPath: menuBarItem.path
-    )
-    
-    // Wait for menu to open
-    try await Task.sleep(nanoseconds: 300_000_000)
-    
-    // Get updated view
-    let updatedAppElement = try await accessibilityService.getApplicationUIElement(
+    // Use non-intrusive approach - get full accessibility tree like InterfaceExplorerTool does
+    let appElement = try await accessibilityService.getApplicationUIElement(
       bundleId: bundleId,
       recursive: true,
-      maxDepth: 10
+      maxDepth: 15  // Deep enough to capture menu structure
     )
     
-    guard let updatedMenuBar = updatedAppElement.children.first(where: { $0.role == "AXMenuBar" }),
-          let updatedMenuItem = updatedMenuBar.children.first(where: { $0.title == menuBarItem.title }),
-          let menu = updatedMenuItem.children.first(where: { $0.role == "AXMenu" }) else {
-      // Cancel menu and return empty
-      try? await accessibilityService.performAction(
-        action: "AXCancel",
-        onElementWithPath: menuBarItem.path
-      )
+    // Find the menu bar
+    guard let menuBar = appElement.children.first(where: { $0.role == "AXMenuBar" }) else {
       return []
     }
     
+    // Find the specific menu bar item
+    guard let targetMenuItem = menuBar.children.first(where: { $0.title == menuBarItem.title }) else {
+      return []
+    }
+    
+    // Look for menu children in the accessibility tree (without physical activation)
+    let menuItems = targetMenuItem.children.filter { $0.role == "AXMenu" }
+      .flatMap { $0.children }
+    
     var compactItems: [CompactMenuItem] = []
     
-    // Process each menu item
-    for menuItem in menu.children {
+    // Process each menu item and filter out non-actionable items
+    for menuItem in menuItems {
+      // Filter out separators, dividers, and other non-actionable items
+      guard isActionableMenuItem(menuItem) else { continue }
+      
       let itemPath = MenuPathResolver.buildPath(from: [parentPath, menuItem.title ?? ""])
       
       var children: [CompactMenuItem]? = nil
@@ -515,16 +512,53 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
       compactItems.append(compactItem)
     }
     
-    // Cancel menu
-    try? await accessibilityService.performAction(
-      action: "AXCancel",
-      onElementWithPath: updatedMenuItem.path
-    )
-    
     return compactItems
   }
 
-  /// Explore submenu items recursively
+  /// Check if a menu item is actionable (not a separator or divider)
+  /// - Parameter menuItem: The menu item to check
+  /// - Returns: True if the item is actionable, false if it's a separator/divider
+  private func isActionableMenuItem(_ menuItem: UIElement) -> Bool {
+    // Filter out separators and dividers based on role
+    let nonActionableRoles = [
+      "AXSeparator",
+      "AXDivider",
+      "AXMenuSeparator",
+      "AXGroup",  // Often used for visual grouping
+      "AXUnknown" // Unknown elements are usually not actionable
+    ]
+    
+    if nonActionableRoles.contains(menuItem.role) {
+      return false
+    }
+    
+    // Filter out items with empty or separator-like titles
+    if let title = menuItem.title {
+      let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+      // Common separator patterns
+      let separatorPatterns = [
+        "",           // Empty title
+        "-",          // Single dash
+        "—",          // Em dash
+        "–",          // En dash
+        "___",        // Underscores
+        "...",        // Ellipsis-only items are usually placeholders
+      ]
+      
+      if separatorPatterns.contains(trimmedTitle) || trimmedTitle.allSatisfy({ $0 == "-" || $0 == "_" || $0 == " " }) {
+        return false
+      }
+    }
+    
+    // Items without titles that aren't clearly actionable are likely separators
+    if (menuItem.title?.isEmpty ?? true) && menuItem.role != "AXMenuItem" {
+      return false
+    }
+    
+    return true
+  }
+
+  /// Explore submenu items recursively using non-intrusive approach
   /// - Parameters:
   ///   - bundleId: Application bundle identifier
   ///   - menuItem: Menu item with submenu
@@ -541,10 +575,46 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
   ) async throws -> [CompactMenuItem] {
     guard currentDepth <= maxDepth else { return [] }
     
-    // For now, return empty for submenus to avoid complexity
-    // In a full implementation, we would hover/activate the submenu
-    // and recursively explore its items
-    return []
+    // Look for submenu children in the current accessibility tree
+    let submenuItems = menuItem.children.filter { $0.role == "AXMenu" }
+      .flatMap { $0.children }
+    
+    var compactItems: [CompactMenuItem] = []
+    
+    // Process each submenu item and filter out non-actionable items
+    for subMenuItem in submenuItems {
+      guard isActionableMenuItem(subMenuItem) else { continue }
+      
+      let itemPath = MenuPathResolver.buildPath(from: [parentPath, subMenuItem.title ?? ""])
+      
+      var children: [CompactMenuItem]? = nil
+      let hasSubmenu = subMenuItem.children.contains { $0.role == "AXMenu" }
+      
+      // Recursively explore deeper submenus if we haven't reached max depth
+      if hasSubmenu && currentDepth < maxDepth {
+        children = try await exploreSubmenuItems(
+          bundleId: bundleId,
+          menuItem: subMenuItem,
+          parentPath: itemPath,
+          currentDepth: currentDepth + 1,
+          maxDepth: maxDepth
+        )
+      }
+      
+      let compactItem = CompactMenuItem(
+        path: itemPath,
+        title: subMenuItem.title ?? "",
+        enabled: !(subMenuItem.attributes["disabled"] as? Bool ?? false),
+        shortcut: extractShortcut(from: subMenuItem),
+        hasSubmenu: hasSubmenu,
+        children: children,
+        elementPath: subMenuItem.path
+      )
+      
+      compactItems.append(compactItem)
+    }
+    
+    return compactItems
   }
 
   /// Navigate to a menu item and build its details
