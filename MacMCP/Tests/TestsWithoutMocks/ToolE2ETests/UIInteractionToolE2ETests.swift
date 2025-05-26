@@ -1078,7 +1078,10 @@ struct UIInteractionToolE2ETests {
       if let content = result.first, case .image(let data, _, _) = content {
         let decodedData = Data(base64Encoded: data)!
 
-        let outputDir = "/Users/jesse/Documents/GitHub/projects/mac-mcp/MacMCP/test-screenshots"
+        // Save screenshots to a temporary directory so the path works on any machine
+        let outputDir = FileManager.default.temporaryDirectory
+          .appendingPathComponent("macmcp-test-screenshots", isDirectory: true)
+          .path
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyyMMdd_HHmmss"
         let timestamp = dateFormatter.string(from: Date())

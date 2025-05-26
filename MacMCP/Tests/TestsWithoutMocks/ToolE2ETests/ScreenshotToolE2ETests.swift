@@ -513,7 +513,10 @@ struct ScreenshotToolE2ETests {
   private func saveScreenshotForInspection(
     imageData: Data, region: String, width: String, height: String
   ) {
-    let outputDir = "/Users/jesse/Documents/GitHub/projects/mac-mcp/MacMCP/test-screenshots"
+    // Use a temporary directory so the tests can run on any machine
+    let outputDir = FileManager.default.temporaryDirectory
+      .appendingPathComponent("macmcp-test-screenshots", isDirectory: true)
+      .path
     let dateFormatter = DateFormatter()
     dateFormatter.dateFormat = "yyyyMMdd_HHmmss"
     let timestamp = dateFormatter.string(from: Date())
@@ -536,7 +539,10 @@ struct ScreenshotToolE2ETests {
 
   /// Save a screenshot with custom identifier for easier tracking
   private func saveScreenshotWithIdentifier(imageData: Data, identifier: String) {
-    let outputDir = "/Users/jesse/Documents/GitHub/projects/mac-mcp/MacMCP/test-screenshots"
+    // Use the temporary directory so the path is valid on any machine
+    let outputDir = FileManager.default.temporaryDirectory
+      .appendingPathComponent("macmcp-test-screenshots", isDirectory: true)
+      .path
     let dateFormatter = DateFormatter()
     dateFormatter.dateFormat = "yyyyMMdd_HHmmss"
     let timestamp = dateFormatter.string(from: Date())
