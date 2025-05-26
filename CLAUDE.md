@@ -173,7 +173,7 @@ When to use which:
    - `InterfaceExplorerTool`: Enhanced UI exploration with state and capabilities information (replaces UIStateTool)
    - `ScreenshotTool`: Takes screenshots of the screen or UI elements
    - `UIInteractionTool`: Interacts with UI elements (clicking, typing, scrolling)
-   - `OpenApplicationTool`: Opens macOS applications by name or bundle ID
+   - `ApplicationManagementTool`: Manages application lifecycle (launch, terminate, query status)
    - `WindowManagementTool`: Manages application windows (move, resize, minimize, maximize)
    - `MenuNavigationTool`: Navigates application menus and activates menu items
    - `KeyboardInteractionTool`: Executes keyboard shortcuts and types text

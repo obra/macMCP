@@ -40,8 +40,6 @@ public final class ToolChain: @unchecked Sendable {
   /// Tool for interacting with UI elements
   public let uiInteractionTool: UIInteractionTool
 
-  /// Tool for opening applications
-  public let openApplicationTool: OpenApplicationTool
 
   /// Tool for managing windows
   public let windowManagementTool: WindowManagementTool
@@ -97,10 +95,6 @@ public final class ToolChain: @unchecked Sendable {
       logger: logger,
     )
 
-    openApplicationTool = OpenApplicationTool(
-      applicationService: applicationService,
-      logger: logger,
-    )
 
     windowManagementTool = WindowManagementTool(
       accessibilityService: accessibilityService,
@@ -145,8 +139,9 @@ public final class ToolChain: @unchecked Sendable {
     arguments: [String]? = nil,
     hideOthers: Bool = false,
   ) async throws -> Bool {
-    // Create parameters for the tool
+    // Create parameters for the application management tool
     var params: [String: Value] = [
+      "action": .string("launch"),
       "bundleId": .string(bundleId)
     ]
 
@@ -156,8 +151,8 @@ public final class ToolChain: @unchecked Sendable {
 
     params["hideOthers"] = .bool(hideOthers)
 
-    // Call the tool
-    let result = try await openApplicationTool.handler(params)
+    // Call the application management tool
+    let result = try await applicationManagementTool.handler(params)
 
     // Parse the result
     if let content = result.first, case .text(let text) = content {

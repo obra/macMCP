@@ -360,18 +360,6 @@ public actor MCPServer {
       handler: interactionTool.handler,
     )
 
-    // Register the open application tool
-    let openApplicationTool = OpenApplicationTool(
-      applicationService: applicationService,
-      logger: logger,
-    )
-    await registerTool(
-      name: openApplicationTool.name,
-      description: openApplicationTool.description,
-      inputSchema: openApplicationTool.inputSchema,
-      annotations: openApplicationTool.annotations,
-      handler: openApplicationTool.handler,
-    )
 
     // Register the window management tool
     let windowManagementTool = WindowManagementTool(

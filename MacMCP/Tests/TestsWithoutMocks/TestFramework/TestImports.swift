@@ -37,7 +37,6 @@ public typealias ApplicationManagementTool = MacMCP.ApplicationManagementTool
 public typealias WindowManagementTool = MacMCP.WindowManagementTool
 public typealias MenuNavigationTool = MacMCP.MenuNavigationTool
 public typealias ClipboardManagementTool = MacMCP.ClipboardManagementTool
-public typealias OpenApplicationTool = MacMCP.OpenApplicationTool
 
 // MCP Types
 public typealias Value = MCP.Value

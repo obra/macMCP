@@ -17,7 +17,7 @@ public enum ToolNames {
   /// UI interaction tool (click, type, etc.)
   public static let uiInteraction = "\(prefix)_ui_interact"
 
-  /// Application management tool (replacing openApplication)
+  /// Application management tool
   public static let applicationManagement = "\(prefix)_manage_app_state"
 
   /// Window management tool
@@ -38,6 +38,4 @@ public enum ToolNames {
   /// Onboarding tool for AI assistants
   public static let onboarding = "\(prefix)_onboarding"
 
-  /// Legacy tool names (for backward compatibility)
-  public static let openApplication = "\(prefix)_open_application"
 }
