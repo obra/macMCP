@@ -347,6 +347,10 @@ class UIInteractionServiceStub: UIInteractionServiceProtocol {
     // No-op for testing
   }
 
+  func rightClickAtPosition(position _: CGPoint) async throws {
+    // No-op for testing
+  }
+
   func typeTextByPath(path _: String, text _: String, appBundleId _: String?) async throws {
     // No-op for testing
   }

@@ -78,6 +78,10 @@ public protocol UIInteractionServiceProtocol {
   /// - Parameter position: The screen position to double-click
   func doubleClickAtPosition(position: CGPoint) async throws
 
+  /// Right click at a specific screen position
+  /// - Parameter position: The screen position to right-click
+  func rightClickAtPosition(position: CGPoint) async throws
+
   /// Press a specific key on the keyboard
   /// - Parameters:
   ///   - keyCode: The key code to press

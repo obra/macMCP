@@ -348,6 +348,7 @@ public actor MCPServer {
     let interactionTool = UIInteractionTool(
       interactionService: interactionService,
       accessibilityService: accessibilityService,
+      applicationService: applicationService,
       changeDetectionService: changeDetectionService,
       logger: logger,
     )

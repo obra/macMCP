@@ -51,6 +51,49 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
     try await clickAtPosition(position: position)
   }
 
+  /// Right-click at a specific screen position
+  /// - Parameter position: The screen position to right-click
+  public func rightClickAtPosition(position: CGPoint) async throws {
+    logger.debug(
+      "Right-clicking at position",
+      metadata: [
+        "x": "\(position.x)", "y": "\(position.y)",
+      ])
+
+    // Get the element at the position (if any) using a separate task to avoid data races
+    let elementAtPosition = await Task.detached {
+      let localAccessibilityService = self.accessibilityService
+      let localPosition = position
+
+      do {
+        return try await localAccessibilityService.getUIElementAtPosition(
+          position: localPosition,
+          recursive: false,
+          maxDepth: 1,
+        )
+      } catch {
+        return nil
+      }
+    }.value
+
+    if let element = elementAtPosition {
+      if let axElement = element.axElement {
+        // Use accessibility action directly on the element
+        let actions = try getActionNames(for: axElement)
+        if actions.contains(AXAttribute.Action.showMenu) {
+          try AccessibilityElement.performAction(axElement, action: AXAttribute.Action.showMenu)
+          return
+        }
+      }
+      
+      // Fallback to position-based right clicking
+      try simulateMouseRightClick(at: position)
+    } else {
+      // If no element found, use the lower-level mouse event API
+      try simulateMouseRightClick(at: position)
+    }
+  }
+
   public func clickAtPosition(position: CGPoint) async throws {
     logger.debug(
       "Clicking at position",

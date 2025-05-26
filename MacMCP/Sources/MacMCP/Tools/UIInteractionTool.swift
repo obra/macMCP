@@ -19,7 +19,7 @@ IMPORTANT: Use InterfaceExplorerTool first to discover element IDs.
 Available actions:
 - click: Single click on element or coordinates
 - double_click: Double click on element or coordinates  
-- right_click: Right click to open context menus
+- right_click: Right click on element or coordinates to open context menus
 - drag: Drag from one element to another (file operations, selections)
 - scroll: Scroll within scrollable elements or views
 
@@ -49,6 +49,9 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
   /// The accessibility service
   private let accessibilityService: any AccessibilityServiceProtocol
 
+  /// The application service
+  private let applicationService: any ApplicationServiceProtocol
+
   /// The change detection service
   private let changeDetectionService: UIChangeDetectionServiceProtocol
 
@@ -62,16 +65,19 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
   /// - Parameters:
   ///   - interactionService: The UI interaction service to use
   ///   - accessibilityService: The accessibility service to use
+  ///   - applicationService: The application service to use
   ///   - changeDetectionService: The change detection service to use
   ///   - logger: Optional logger to use
   public init(
     interactionService: any UIInteractionServiceProtocol,
     accessibilityService: any AccessibilityServiceProtocol,
+    applicationService: any ApplicationServiceProtocol,
     changeDetectionService: UIChangeDetectionServiceProtocol,
     logger: Logger? = nil
   ) {
     self.interactionService = interactionService
     self.accessibilityService = accessibilityService
+    self.applicationService = applicationService
     self.changeDetectionService = changeDetectionService
     self.interactionWrapper = InteractionWithChangeDetection(changeDetectionService: changeDetectionService)
     self.logger = logger ?? Logger(label: "mcp.tool.ui_interact")
@@ -167,8 +173,18 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
           "id": .string("element-uuid-example"),
         ]),
         .object([
+          "action": .string("double_click"),
+          "x": .int(400),
+          "y": .int(300),
+        ]),
+        .object([
           "action": .string("right_click"),
           "id": .string("element-uuid-example"),
+        ]),
+        .object([
+          "action": .string("right_click"),
+          "x": .int(400),
+          "y": .int(300),
         ]),
         .object([
           "action": .string("drag"),
@@ -193,6 +209,9 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
     let accessibilityService = AccessibilityService(
       logger: Logger(label: "mcp.tool.ui_interact.accessibility"),
     )
+    let applicationService = ApplicationService(
+      logger: Logger(label: "mcp.tool.ui_interact.application")
+    )
     let interactionService = UIInteractionService(
       accessibilityService: accessibilityService,
       logger: Logger(label: "mcp.tool.ui_interact.interaction"),
@@ -203,6 +222,7 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
     let tool = UIInteractionTool(
       interactionService: interactionService,
       accessibilityService: accessibilityService,
+      applicationService: applicationService,
       changeDetectionService: changeDetectionService,
       logger: handlerLogger,
     )
@@ -294,6 +314,50 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
     }
   }
   
+  /// Extract bundle ID from element path or parameters
+  private func extractBundleID(from elementPath: String, params: [String: Value]) -> String? {
+    // First check if bundleId is explicitly provided in params
+    if let appBundleId = params["appBundleId"]?.stringValue {
+      return appBundleId
+    }
+    
+    // Try to extract from element path
+    do {
+      let path = try ElementPath.parse(elementPath)
+      if !path.segments.isEmpty {
+        let firstSegment = path.segments[0]
+        if firstSegment.role == "AXApplication" {
+          return firstSegment.attributes["bundleId"] ?? firstSegment.attributes["@bundleId"]
+        }
+      }
+    } catch {
+      logger.debug("Could not parse element path to extract bundleId: \(error)")
+    }
+    
+    return nil
+  }
+  
+  /// Ensure application is focused before interaction
+  private func ensureApplicationFocus(bundleId: String) async throws {
+    do {
+      logger.debug("Activating application", metadata: ["bundleId": "\(bundleId)"])
+      let activated = try await applicationService.activateApplication(bundleId: bundleId)
+      if activated {
+        logger.debug("Successfully activated application", metadata: ["bundleId": "\(bundleId)"])
+        // Give the application a moment to come to the foreground
+        try await Task.sleep(for: .milliseconds(100))
+      } else {
+        logger.warning("Failed to activate application", metadata: ["bundleId": "\(bundleId)"])
+      }
+    } catch {
+      logger.warning("Error activating application", metadata: [
+        "bundleId": "\(bundleId)",
+        "error": "\(error.localizedDescription)"
+      ])
+      // Don't fail the entire interaction if activation fails
+    }
+  }
+  
   /// Handle click action
   private func handleClick(_ params: [String: Value]) async throws -> [Tool.Content] {
     let (detectChanges, delay) = ChangeDetectionHelper.extractChangeDetectionParams(params)
@@ -301,8 +365,13 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
     if let elementID = params["id"]?.stringValue {
       // Decode the element ID (handles both opaque IDs and raw paths)
       let elementPath = decodeElementID(elementID)
-      // Check if app bundle ID is provided
-      let appBundleId = params["appBundleId"]?.stringValue
+      // Extract bundle ID for focus management and change detection
+      let appBundleId = extractBundleID(from: elementPath, params: params)
+      
+      // Ensure application is focused before interaction
+      if let bundleId = appBundleId {
+        try await ensureApplicationFocus(bundleId: bundleId)
+      }
 
       // Before clicking, try to look up the element to verify it exists
       do {
@@ -350,9 +419,14 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
       }
 
       do {
+        // Determine scope for change detection
+        let scope: UIElementScope = appBundleId != nil ? .application(bundleId: appBundleId!) : .focusedApplication
+        
         let result = try await interactionWrapper.performWithChangeDetection(
+          scope: scope,
           detectChanges: detectChanges,
-          delay: delay
+          delay: delay,
+          maxDepth: 15
         ) {
           try await interactionService.clickElementByPath(path: elementPath, appBundleId: appBundleId)
           let bundleIdInfo = appBundleId != nil ? " in app \(appBundleId!)" : ""
@@ -368,8 +442,21 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
             "error": "\(error.localizedDescription)",
             "domain": "\(nsError.domain)",
             "code": "\(nsError.code)",
+            "elementPath": "\(elementPath)",
           ])
-        throw error
+        
+        // Create a more informative error that includes the actual path
+        let enhancedError = createInteractionError(
+          message: "Failed to click element at path: \(elementPath). \(error.localizedDescription)",
+          context: [
+            "toolName": name,
+            "action": "click",
+            "elementID": elementID,
+            "elementPath": elementPath,
+            "originalError": error.localizedDescription,
+          ]
+        )
+        throw enhancedError.asMCPError
       }
     }
 
@@ -432,50 +519,230 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
 
   /// Handle double click action
   private func handleDoubleClick(_ params: [String: Value]) async throws -> [Tool.Content] {
-    guard let elementID = params["id"]?.stringValue else {
-      throw createInteractionError(
-        message: "Double click action requires id",
-        context: [
-          "toolName": name,
-          "action": "double_click",
-          "providedParams": "\(params.keys.joined(separator: ", "))",
-        ],
-      ).asMCPError
+    let (detectChanges, delay) = ChangeDetectionHelper.extractChangeDetectionParams(params)
+    // Element path double click
+    if let elementID = params["id"]?.stringValue {
+      // Decode the element ID (handles both opaque IDs and raw paths)
+      let elementPath = decodeElementID(elementID)
+      // Extract bundle ID for focus management and change detection
+      let appBundleId = extractBundleID(from: elementPath, params: params)
+      
+      // Ensure application is focused before interaction
+      if let bundleId = appBundleId {
+        try await ensureApplicationFocus(bundleId: bundleId)
+      }
+
+      do {
+        // Determine scope for change detection
+        let scope: UIElementScope = appBundleId != nil ? .application(bundleId: appBundleId!) : .focusedApplication
+        
+        let result = try await interactionWrapper.performWithChangeDetection(
+          scope: scope,
+          detectChanges: detectChanges,
+          delay: delay,
+          maxDepth: 15
+        ) {
+          try await interactionService.doubleClickElementByPath(path: elementPath, appBundleId: appBundleId)
+          let bundleIdInfo = appBundleId != nil ? " in app \(appBundleId!)" : ""
+          return "Successfully double-clicked element with path: \(elementPath)\(bundleIdInfo)"
+        }
+
+        return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
+      } catch {
+        let nsError = error as NSError
+        logger.error(
+          "Double click operation failed",
+          metadata: [
+            "error": "\(error.localizedDescription)",
+            "domain": "\(nsError.domain)",
+            "code": "\(nsError.code)",
+            "elementPath": "\(elementPath)",
+          ])
+        
+        // Create a more informative error that includes the actual path
+        let enhancedError = createInteractionError(
+          message: "Failed to double-click element at path: \(elementPath). \(error.localizedDescription)",
+          context: [
+            "toolName": name,
+            "action": "double_click",
+            "elementID": elementID,
+            "elementPath": elementPath,
+            "originalError": error.localizedDescription,
+          ]
+        )
+        throw enhancedError.asMCPError
+      }
     }
-    
-    // Decode the element ID (handles both opaque IDs and raw paths)
-    let elementPath = decodeElementID(elementID)
 
-    // Check if app bundle ID is provided
-    let appBundleId = params["appBundleId"]?.stringValue
+    // Position double click
+    // Check for double first, then fall back to int for backward compatibility
+    if let xDouble = params["x"]?.doubleValue, let yDouble = params["y"]?.doubleValue {
+      let x = xDouble
+      let y = yDouble
 
-    try await interactionService.doubleClickElementByPath(
-      path: elementPath, appBundleId: appBundleId)
-    return [.text("Successfully double-clicked element with path: \(elementPath)")]
+      do {
+        let result = try await interactionWrapper.performWithChangeDetection(
+          detectChanges: detectChanges,
+          delay: delay
+        ) {
+          try await interactionService.doubleClickAtPosition(position: CGPoint(x: x, y: y))
+          return "Successfully double-clicked at position (\(x), \(y))"
+        }
+
+        return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
+      } catch {
+        logger.error(
+          "Position double click operation failed", metadata: ["error": "\(error.localizedDescription)"])
+        throw error
+      }
+    } else if let xInt = params["x"]?.intValue, let yInt = params["y"]?.intValue {
+      // Fallback to integers if doubles are not provided
+      let x = Double(xInt)
+      let y = Double(yInt)
+
+      do {
+        let result = try await interactionWrapper.performWithChangeDetection(
+          detectChanges: detectChanges,
+          delay: delay
+        ) {
+          try await interactionService.doubleClickAtPosition(position: CGPoint(x: x, y: y))
+          return "Successfully double-clicked at position (\(x), \(y))"
+        }
+
+        return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
+      } catch {
+        logger.error(
+          "Position double click operation failed", metadata: ["error": "\(error.localizedDescription)"])
+        throw error
+      }
+    }
+
+    logger.error(
+      "Missing required parameters",
+      metadata: ["details": "Double click action requires either id or x,y coordinates"],
+    )
+    throw createInteractionError(
+      message: "Double click action requires either id or x,y coordinates",
+      context: [
+        "toolName": name,
+        "action": "double_click",
+        "providedParams": "\(params.keys.joined(separator: ", "))",
+      ],
+    ).asMCPError
   }
 
   /// Handle right click action
   private func handleRightClick(_ params: [String: Value]) async throws -> [Tool.Content] {
-    guard let elementID = params["id"]?.stringValue else {
-      throw createInteractionError(
-        message: "Right click action requires id",
-        context: [
-          "toolName": name,
-          "action": "right_click",
-          "providedParams": "\(params.keys.joined(separator: ", "))",
-        ],
-      ).asMCPError
+    let (detectChanges, delay) = ChangeDetectionHelper.extractChangeDetectionParams(params)
+    // Element path right click
+    if let elementID = params["id"]?.stringValue {
+      // Decode the element ID (handles both opaque IDs and raw paths)
+      let elementPath = decodeElementID(elementID)
+      // Extract bundle ID for focus management and change detection
+      let appBundleId = extractBundleID(from: elementPath, params: params)
+      
+      // Ensure application is focused before interaction
+      if let bundleId = appBundleId {
+        try await ensureApplicationFocus(bundleId: bundleId)
+      }
+
+      do {
+        // Determine scope for change detection
+        let scope: UIElementScope = appBundleId != nil ? .application(bundleId: appBundleId!) : .focusedApplication
+        
+        let result = try await interactionWrapper.performWithChangeDetection(
+          scope: scope,
+          detectChanges: detectChanges,
+          delay: delay,
+          maxDepth: 15
+        ) {
+          try await interactionService.rightClickElementByPath(path: elementPath, appBundleId: appBundleId)
+          let bundleIdInfo = appBundleId != nil ? " in app \(appBundleId!)" : ""
+          return "Successfully right-clicked element with path: \(elementPath)\(bundleIdInfo)"
+        }
+
+        return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
+      } catch {
+        let nsError = error as NSError
+        logger.error(
+          "Right click operation failed",
+          metadata: [
+            "error": "\(error.localizedDescription)",
+            "domain": "\(nsError.domain)",
+            "code": "\(nsError.code)",
+            "elementPath": "\(elementPath)",
+          ])
+        
+        // Create a more informative error that includes the actual path
+        let enhancedError = createInteractionError(
+          message: "Failed to right-click element at path: \(elementPath). \(error.localizedDescription)",
+          context: [
+            "toolName": name,
+            "action": "right_click",
+            "elementID": elementID,
+            "elementPath": elementPath,
+            "originalError": error.localizedDescription,
+          ]
+        )
+        throw enhancedError.asMCPError
+      }
     }
-    
-    // Decode the element ID (handles both opaque IDs and raw paths)
-    let elementPath = decodeElementID(elementID)
 
-    // Check if app bundle ID is provided
-    let appBundleId = params["appBundleId"]?.stringValue
+    // Position right click
+    // Check for double first, then fall back to int for backward compatibility
+    if let xDouble = params["x"]?.doubleValue, let yDouble = params["y"]?.doubleValue {
+      let x = xDouble
+      let y = yDouble
 
-    try await interactionService.rightClickElementByPath(
-      path: elementPath, appBundleId: appBundleId)
-    return [.text("Successfully right-clicked element with path: \(elementPath)")]
+      do {
+        let result = try await interactionWrapper.performWithChangeDetection(
+          detectChanges: detectChanges,
+          delay: delay
+        ) {
+          try await interactionService.rightClickAtPosition(position: CGPoint(x: x, y: y))
+          return "Successfully right-clicked at position (\(x), \(y))"
+        }
+
+        return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
+      } catch {
+        logger.error(
+          "Position right click operation failed", metadata: ["error": "\(error.localizedDescription)"])
+        throw error
+      }
+    } else if let xInt = params["x"]?.intValue, let yInt = params["y"]?.intValue {
+      // Fallback to integers if doubles are not provided
+      let x = Double(xInt)
+      let y = Double(yInt)
+
+      do {
+        let result = try await interactionWrapper.performWithChangeDetection(
+          detectChanges: detectChanges,
+          delay: delay
+        ) {
+          try await interactionService.rightClickAtPosition(position: CGPoint(x: x, y: y))
+          return "Successfully right-clicked at position (\(x), \(y))"
+        }
+
+        return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
+      } catch {
+        logger.error(
+          "Position right click operation failed", metadata: ["error": "\(error.localizedDescription)"])
+        throw error
+      }
+    }
+
+    logger.error(
+      "Missing required parameters",
+      metadata: ["details": "Right click action requires either id or x,y coordinates"],
+    )
+    throw createInteractionError(
+      message: "Right click action requires either id or x,y coordinates",
+      context: [
+        "toolName": name,
+        "action": "right_click",
+        "providedParams": "\(params.keys.joined(separator: ", "))",
+      ],
+    ).asMCPError
   }
 
   /// Handle drag action
