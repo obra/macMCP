@@ -27,13 +27,13 @@ public enum ToolNames {
   public static let menuNavigation = "\(prefix)_menu_navigation"
 
   /// Clipboard management tool
-  public static let clipboardManagement = "\(prefix)_clipboard_management"
+  public static let clipboardManagement = "\(prefix)_manage_clipboard"
 
   /// Interface explorer tool (consolidates UI state, interactive elements, and capabilities)
-  public static let interfaceExplorer = "\(prefix)_interface_explorer"
+  public static let interfaceExplorer = "\(prefix)_explore_ui"
 
   /// Keyboard interaction tool
-  public static let keyboardInteraction = "\(prefix)_keyboard_interaction"
+  public static let keyboardInteraction = "\(prefix)_use_keyboard"
 
   /// Onboarding tool for AI assistants
   public static let onboarding = "\(prefix)_onboarding"

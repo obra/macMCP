@@ -225,7 +225,7 @@ class MCPInspector: @unchecked Sendable {
     do {
       print("Sending interface explorer request to MCP for: \(bundleId)")
       let (content, isError) = try await mcpClient.callTool(
-        name: "macos_interface_explorer",  // Updated tool name
+        name: "macos_explore_ui",  // Updated tool name
         arguments: arguments,
       )
 
@@ -271,7 +271,7 @@ class MCPInspector: @unchecked Sendable {
     do {
       print("Sending element path request to MCP: \(path)")
       let (content, isError) = try await mcpClient.callTool(
-        name: "macos_interface_explorer",
+        name: "macos_explore_ui",
         arguments: arguments,
       )
 
@@ -408,7 +408,7 @@ class MCPInspector: @unchecked Sendable {
     argumentsWithFilter["filter"] = .object(filter)
 
     let (content, isError) = try await mcpClient.callTool(
-      name: "macos_interface_explorer",
+      name: "macos_explore_ui",
       arguments: argumentsWithFilter,
     )
 

@@ -84,7 +84,7 @@ final class JsonFetcher: @unchecked Sendable {
 
     // Call the MCP server
     let (content, isError) = try await client.callTool(
-      name: "macos_interface_explorer",
+      name: "macos_explore_ui",
       arguments: arguments,
     )
 
