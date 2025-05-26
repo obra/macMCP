@@ -166,6 +166,10 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
               "type": .string("string"),
               "description": .string("Filter by text containing this string in any text field (title, description, value, identifier)"),
             ]),
+            "anyFieldContains": .object([
+              "type": .string("string"),
+              "description": .string("Search across all text fields simultaneously (title, description, value, identifier, role)"),
+            ]),
             "isInteractable": .object([
               "type": .string("boolean"),
               "description": .string("Filter for elements that can be acted upon (clickable, editable, etc.)"),
@@ -206,6 +210,21 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         "includeHidden": .object([
           "type": .string("boolean"),
           "description": .string("Include hidden/invisible elements in results (default: false for cleaner output)"),
+          "default": .bool(false),
+        ]),
+        "includeDisabled": .object([
+          "type": .string("boolean"),
+          "description": .string("Include disabled elements in results (default: false for cleaner output)"),
+          "default": .bool(false),
+        ]),
+        "includeNonInteractable": .object([
+          "type": .string("boolean"),
+          "description": .string("Include non-interactable elements in results (default: false for cleaner output)"),
+          "default": .bool(false),
+        ]),
+        "showCoordinates": .object([
+          "type": .string("boolean"),
+          "description": .string("Include position and size information in results (default: false for cleaner output)"),
           "default": .bool(false),
         ]),
         "limit": .object([
@@ -285,6 +304,9 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     // Get common parameters
     let maxDepth = params["maxDepth"]?.intValue ?? 10
     let includeHidden = params["includeHidden"]?.boolValue ?? false
+    let includeDisabled = params["includeDisabled"]?.boolValue ?? false
+    let includeNonInteractable = params["includeNonInteractable"]?.boolValue ?? false
+    let showCoordinates = params["showCoordinates"]?.boolValue ?? false
     let limit = params["limit"]?.intValue ?? 100
 
     // Get element types if specified
@@ -309,6 +331,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     var description: String?
     var descriptionContains: String?
     var textContains: String?
+    var anyFieldContains: String?
     var isInteractable: Bool?
     var isEnabled: Bool?
     var inMenus: Bool?
@@ -323,6 +346,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
       description = filterObj["description"]?.stringValue
       descriptionContains = filterObj["descriptionContains"]?.stringValue
       textContains = filterObj["textContains"]?.stringValue
+      anyFieldContains = filterObj["anyFieldContains"]?.stringValue
       isInteractable = filterObj["isInteractable"]?.boolValue
       isEnabled = filterObj["isEnabled"]?.boolValue
       inMenus = filterObj["inMenus"]?.boolValue
@@ -335,6 +359,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
       return try await handleSystemScope(
         maxDepth: maxDepth,
         includeHidden: includeHidden,
+        includeDisabled: includeDisabled,
         limit: limit,
         role: role,
         title: title,
@@ -361,6 +386,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         bundleId: bundleId,
         maxDepth: maxDepth,
         includeHidden: includeHidden,
+        includeDisabled: includeDisabled,
         limit: limit,
         role: role,
         title: title,
@@ -403,6 +429,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         y: yCoord,
         maxDepth: maxDepth,
         includeHidden: includeHidden,
+        includeDisabled: includeDisabled,
         limit: limit,
         role: role,
         title: title,
@@ -433,6 +460,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         bundleId: bundleId,
         maxDepth: maxDepth,
         includeHidden: includeHidden,
+        includeDisabled: includeDisabled,
         limit: limit,
         role: role,
         title: title,
@@ -459,6 +487,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
   private func handleSystemScope(
     maxDepth: Int,
     includeHidden: Bool,
+    includeDisabled: Bool,
     limit: Int,
     role: String?,
     title: String?,
@@ -522,10 +551,14 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     } else {
       elements = [systemElement]
 
-      // Apply hidden filter if specified
+      // Apply visibility, enabled, and interactability filters if specified
       if !includeHidden {
         elements = filterVisibleElements(elements)
       }
+      if !includeDisabled {
+        elements = filterEnabledElements(elements)
+      }
+      // Note: includeNonInteractable filter will be implemented in next iteration
     }
 
     // Convert to enhanced element descriptors
@@ -543,6 +576,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     bundleId: String,
     maxDepth: Int,
     includeHidden: Bool,
+    includeDisabled: Bool,
     limit: Int,
     role: String?,
     title: String?,
@@ -630,6 +664,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     y: Double,
     maxDepth: Int,
     includeHidden: Bool,
+    includeDisabled: Bool,
     limit: Int,
     role: String?,
     title: String?,
@@ -701,6 +736,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     bundleId: String?,
     maxDepth: Int,
     includeHidden: Bool,
+    includeDisabled: Bool,
     limit: Int,
     role: String?,
     title: String?,
@@ -1076,6 +1112,23 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
 
       // Include visible elements
       return true
+    }
+  }
+
+  /// Filter to only include enabled elements
+  private func filterEnabledElements(_ elements: [UIElement]) -> [UIElement] {
+    elements.filter { element in
+      // Include only enabled elements
+      return element.isEnabled
+    }
+  }
+
+  /// Filter to only include interactable elements
+  private func filterInteractableElements(_ elements: [UIElement]) -> [UIElement] {
+    elements.filter { element in
+      // Include only elements that can be interacted with
+      return element.isClickable || element.isEditable || element.isToggleable || 
+             element.isSelectable || element.isAdjustable
     }
   }
 

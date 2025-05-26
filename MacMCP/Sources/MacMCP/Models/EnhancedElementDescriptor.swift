@@ -108,14 +108,11 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     currentDepth: Int = 0
   ) -> EnhancedElementDescriptor {
     // Generate a human-readable name
-    // Priority: identifier (most descriptive) > title > description > value > role
+    // Priority: title > description > value > role (don't use identifier to avoid deduplication conflicts)
     let name: String =
-      if let identifier = element.identifier, !identifier.isEmpty {
-        // Prefer identifier when available (e.g., "Seven" instead of "7")
-        identifier
-      } else if let title = element.title, !title.isEmpty,
-                let desc = element.elementDescription, !desc.isEmpty,
-                title.count == 1 && desc.count > 1 && desc != title {
+      if let title = element.title, !title.isEmpty,
+         let desc = element.elementDescription, !desc.isEmpty,
+         title.count == 1 && desc.count > 1 && desc != title {
         // Use description for single-character titles when description is more descriptive
         desc
       } else if let title = element.title, !title.isEmpty {
@@ -224,7 +221,13 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     
     // Encode all other fields normally
     try container.encode(role, forKey: .role)
-    try container.encode(name, forKey: .name)
+    
+    // Only encode name if it's different from role and identifier to reduce verbosity
+    let shouldIncludeName = name != role && name != identifier
+    if shouldIncludeName {
+      try container.encode(name, forKey: .name)
+    }
+    
     try container.encodeIfPresent(title, forKey: .title)
     try container.encodeIfPresent(value, forKey: .value)
     try container.encodeIfPresent(description, forKey: .description)

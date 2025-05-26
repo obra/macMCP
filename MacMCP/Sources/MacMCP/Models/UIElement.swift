@@ -611,33 +611,27 @@ public enum FrameSource: String, Codable {
   }
   
   /// Get an array of state strings describing the current state of this element
-  /// - Returns: Array of state strings (e.g., "enabled", "disabled", "visible", etc.)
+  /// Only includes exceptional states to reduce verbosity (disabled, hidden, focused, selected)
+  /// - Returns: Array of exceptional state strings
   public func getStateArray() -> [String] {
     var states: [String] = []
     
-    // Map boolean attributes to string state values
-    if isEnabled {
-      states.append("enabled")
-    } else {
+    // Only include exceptional states (not normal/default states)
+    // Don't show: enabled, visible, unfocused, unselected
+    if !isEnabled {
       states.append("disabled")
     }
     
-    if isVisible {
-      states.append("visible")
-    } else {
+    if !isVisible {
       states.append("hidden")
     }
     
     if isFocused {
       states.append("focused")
-    } else {
-      states.append("unfocused")
     }
     
     if isSelected {
       states.append("selected")
-    } else {
-      states.append("unselected")
     }
     
     // Add other state mappings based on attributes

@@ -92,6 +92,7 @@ public final class ToolChain: @unchecked Sendable {
     uiInteractionTool = UIInteractionTool(
       interactionService: interactionService,
       accessibilityService: accessibilityService,
+      applicationService: applicationService,
       changeDetectionService: changeDetectionService,
       logger: logger,
     )

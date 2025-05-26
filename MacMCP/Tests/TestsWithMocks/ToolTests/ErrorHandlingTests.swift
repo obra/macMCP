@@ -58,6 +58,7 @@ struct ErrorHandlingTests {
     // Create a real tool instance with real services
     let logger = Logger(label: "test.error-handling")
     let accessibilityService = AccessibilityService(logger: logger)
+    let applicationService = ApplicationService(logger: logger)
     let interactionService = UIInteractionService(
       accessibilityService: accessibilityService,
       logger: logger,
@@ -67,6 +68,7 @@ struct ErrorHandlingTests {
     let tool = UIInteractionTool(
       interactionService: interactionService,
       accessibilityService: accessibilityService,
+      applicationService: applicationService,
       changeDetectionService: changeDetectionService,
       logger: logger,
     )
