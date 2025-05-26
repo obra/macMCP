@@ -30,16 +30,14 @@ Available scope types:
 Common workflows:
 1. Initial exploration: Use 'application' scope with specific bundleId and maxDepth 15-20
 2. Find interactive elements: Use filter by role (AXButton, AXTextField, etc.)
-3. Search by content: Use titleContains or descriptionContains filters
+3. Search by content: Use textContains to search across all element fields
 4. Navigate hierarchy: Use 'element' scope to explore specific elements deeper
 5. Performance optimization: Reduce maxDepth for faster responses
 
 Filtering capabilities:
 - role: Element type (AXButton, AXTextField, AXWindow, etc.)
-- title/titleContains: Element titles or partial matches
 - value/valueContains: Element values or partial matches  
-- description/descriptionContains: Element descriptions or partial matches
-- textContains: Universal text search across all text fields (title, description, value, identifier)
+- textContains: Universal text search across all text fields (now includes role, identifier, title, description)
 - isInteractable: Filter for elements that can be acted upon (clickable, editable, etc.)
 - isEnabled: Filter by enabled/disabled state
 - inMenus/inMainContent: Location context filtering (menu system vs main content)
@@ -138,14 +136,6 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
               "type": .string("string"),
               "description": .string("Filter by accessibility role (e.g., 'AXButton', 'AXTextField', 'AXWindow')"),
             ]),
-            "title": .object([
-              "type": .string("string"),
-              "description": .string("Filter by exact title match"),
-            ]),
-            "titleContains": .object([
-              "type": .string("string"),
-              "description": .string("Filter by title containing this text (case-sensitive)"),
-            ]),
             "value": .object([
               "type": .string("string"),
               "description": .string("Filter by exact value match"),
@@ -154,17 +144,9 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
               "type": .string("string"),
               "description": .string("Filter by value containing this text"),
             ]),
-            "description": .object([
-              "type": .string("string"),
-              "description": .string("Filter by exact description match"),
-            ]),
-            "descriptionContains": .object([
-              "type": .string("string"),
-              "description": .string("Filter by description containing this text"),
-            ]),
             "textContains": .object([
               "type": .string("string"),
-              "description": .string("Filter by text containing this string in any text field (title, description, value, identifier)"),
+              "description": .string("Filter by text containing this string in any text field (role, title, description, value, identifier)"),
             ]),
             "anyFieldContains": .object([
               "type": .string("string"),
@@ -330,12 +312,8 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
 
     // Extract filter criteria
     var role: String?
-    var title: String?
-    var titleContains: String?
     var value: String?
     var valueContains: String?
-    var description: String?
-    var descriptionContains: String?
     var textContains: String?
     var anyFieldContains: String?
     var isInteractable: Bool?
@@ -345,12 +323,8 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
 
     if case .object(let filterObj)? = params["filter"] {
       role = filterObj["role"]?.stringValue
-      title = filterObj["title"]?.stringValue
-      titleContains = filterObj["titleContains"]?.stringValue
       value = filterObj["value"]?.stringValue
       valueContains = filterObj["valueContains"]?.stringValue
-      description = filterObj["description"]?.stringValue
-      descriptionContains = filterObj["descriptionContains"]?.stringValue
       textContains = filterObj["textContains"]?.stringValue
       anyFieldContains = filterObj["anyFieldContains"]?.stringValue
       isInteractable = filterObj["isInteractable"]?.boolValue
@@ -371,12 +345,8 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         showActions: showActions,
         limit: limit,
         role: role,
-        title: title,
-        titleContains: titleContains,
         value: value,
         valueContains: valueContains,
-        description: description,
-        descriptionContains: descriptionContains,
         textContains: textContains,
         anyFieldContains: anyFieldContains,
         isInteractable: isInteractable,
@@ -402,12 +372,8 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         showActions: showActions,
         limit: limit,
         role: role,
-        title: title,
-        titleContains: titleContains,
         value: value,
         valueContains: valueContains,
-        description: description,
-        descriptionContains: descriptionContains,
         textContains: textContains,
         anyFieldContains: anyFieldContains,
         isInteractable: isInteractable,
@@ -449,12 +415,8 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         showActions: showActions,
         limit: limit,
         role: role,
-        title: title,
-        titleContains: titleContains,
         value: value,
         valueContains: valueContains,
-        description: description,
-        descriptionContains: descriptionContains,
         textContains: textContains,
         anyFieldContains: anyFieldContains,
         isInteractable: isInteractable,
@@ -484,12 +446,8 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         showActions: showActions,
         limit: limit,
         role: role,
-        title: title,
-        titleContains: titleContains,
         value: value,
         valueContains: valueContains,
-        description: description,
-        descriptionContains: descriptionContains,
         textContains: textContains,
         anyFieldContains: anyFieldContains,
         isInteractable: isInteractable,
@@ -515,12 +473,8 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     showActions: Bool,
     limit: Int,
     role: String?,
-    title: String?,
-    titleContains: String?,
     value: String?,
     valueContains: String?,
-    description: String?,
-    descriptionContains: String?,
     textContains: String?,
     anyFieldContains: String?,
     isInteractable: Bool?,
@@ -537,19 +491,18 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
 
     // Apply filters if specified
     var elements: [UIElement]
-    if role != nil || title != nil || titleContains != nil || value != nil || valueContains != nil
-      || description != nil || descriptionContains != nil || textContains != nil || anyFieldContains != nil || isInteractable != nil
+    if role != nil || value != nil || valueContains != nil || textContains != nil || anyFieldContains != nil || isInteractable != nil
       || isEnabled != nil || inMenus != nil || inMainContent != nil || !elementTypes.contains("any")
     {
       // Use findUIElements for filtered results
       elements = try await accessibilityService.findUIElements(
         role: role,
-        title: title,
-        titleContains: titleContains,
+        title: nil,  // No longer supported at tool level, rely on textContains
+        titleContains: nil,  // No longer supported at tool level, rely on textContains
         value: value,
         valueContains: valueContains,
-        description: description,
-        descriptionContains: descriptionContains,
+        description: nil,  // No longer supported at tool level, rely on textContains
+        descriptionContains: nil,  // No longer supported at tool level, rely on textContains
         scope: .systemWide,
         recursive: true,
         maxDepth: maxDepth,
@@ -559,12 +512,8 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
       elements = applyAdditionalFilters(
         elements: elements,
         role: role,
-        title: title,
-        titleContains: titleContains,
         value: value,
         valueContains: valueContains,
-        description: description,
-        descriptionContains: descriptionContains,
         textContains: textContains,
         anyFieldContains: anyFieldContains,
         isInteractable: isInteractable,
@@ -610,12 +559,8 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     showActions: Bool,
     limit: Int,
     role: String?,
-    title: String?,
-    titleContains: String?,
     value: String?,
     valueContains: String?,
-    description: String?,
-    descriptionContains: String?,
     textContains: String?,
     anyFieldContains: String?,
     isInteractable: Bool?,
@@ -627,19 +572,18 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     // Get application-specific UI state
     var elements: [UIElement]
 
-    if role != nil || title != nil || titleContains != nil || value != nil || valueContains != nil
-      || description != nil || descriptionContains != nil || textContains != nil || isInteractable != nil
+    if role != nil || value != nil || valueContains != nil || textContains != nil || anyFieldContains != nil || isInteractable != nil
       || isEnabled != nil || inMenus != nil || inMainContent != nil || !elementTypes.contains("any")
     {
       // Use findUIElements for filtered results
       elements = try await accessibilityService.findUIElements(
         role: role,
-        title: title,
-        titleContains: titleContains,
+        title: nil,  // No longer supported at tool level, rely on textContains
+        titleContains: nil,  // No longer supported at tool level, rely on textContains
         value: value,
         valueContains: valueContains,
-        description: description,
-        descriptionContains: descriptionContains,
+        description: nil,  // No longer supported at tool level, rely on textContains
+        descriptionContains: nil,  // No longer supported at tool level, rely on textContains
         scope: .application(bundleId: bundleId),
         recursive: true,
         maxDepth: maxDepth,
@@ -649,12 +593,8 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
       elements = applyAdditionalFilters(
         elements: elements,
         role: role,
-        title: title,
-        titleContains: titleContains,
         value: value,
         valueContains: valueContains,
-        description: description,
-        descriptionContains: descriptionContains,
         textContains: textContains,
         anyFieldContains: anyFieldContains,
         isInteractable: isInteractable,
@@ -710,12 +650,8 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     showActions: Bool,
     limit: Int,
     role: String?,
-    title: String?,
-    titleContains: String?,
     value: String?,
     valueContains: String?,
-    description: String?,
-    descriptionContains: String?,
     textContains: String?,
     anyFieldContains: String?,
     isInteractable: Bool?,
@@ -739,20 +675,15 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     var elements = [element]
 
     // Apply filters if needed
-    if role != nil || title != nil || titleContains != nil || value != nil || valueContains != nil
-      || description != nil || descriptionContains != nil || textContains != nil || isInteractable != nil
+    if role != nil || value != nil || valueContains != nil || textContains != nil || anyFieldContains != nil || isInteractable != nil
       || isEnabled != nil || inMenus != nil || inMainContent != nil || !elementTypes.contains("any")
       || !includeHidden
     {
       elements = applyAdditionalFilters(
         elements: elements,
         role: role,
-        title: title,
-        titleContains: titleContains,
         value: value,
         valueContains: valueContains,
-        description: description,
-        descriptionContains: descriptionContains,
         textContains: textContains,
         anyFieldContains: anyFieldContains,
         isInteractable: isInteractable,
@@ -788,12 +719,8 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     showActions: Bool,
     limit: Int,
     role: String?,
-    title: String?,
-    titleContains: String?,
     value: String?,
     valueContains: String?,
-    description: String?,
-    descriptionContains: String?,
     textContains: String?,
     anyFieldContains: String?,
     isInteractable: Bool?,
@@ -822,8 +749,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
       // If we're searching within this element, we need to apply filters to its children
       var resultElements: [UIElement] = []
 
-      if role != nil || title != nil || titleContains != nil || value != nil || valueContains != nil
-        || description != nil || descriptionContains != nil || textContains != nil || isInteractable != nil
+      if role != nil || value != nil || valueContains != nil || textContains != nil || anyFieldContains != nil || isInteractable != nil
         || isEnabled != nil || inMenus != nil || inMainContent != nil || !elementTypes.contains("any")
       {
         // For filtering, we need to process the element and its descendants
@@ -831,12 +757,8 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         resultElements = findMatchingDescendants(
           in: element,
           role: role,
-          title: title,
-          titleContains: titleContains,
           value: value,
           valueContains: valueContains,
-          description: description,
-          descriptionContains: descriptionContains,
           textContains: textContains,
           anyFieldContains: anyFieldContains,
           isInteractable: isInteractable,
@@ -885,12 +807,8 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
   private func findMatchingDescendants(
     in element: UIElement,
     role: String?,
-    title: String?,
-    titleContains: String?,
     value: String?,
     valueContains: String?,
-    description: String?,
-    descriptionContains: String?,
     textContains: String?,
     anyFieldContains: String?,
     isInteractable: Bool?,
@@ -905,12 +823,12 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     // Create a filter criteria from the parameters
     let criteria = UIElement.FilterCriteria(
       role: role,
-      title: title,
-      titleContains: titleContains,
+      title: nil,
+      titleContains: nil,
       value: value,
       valueContains: valueContains,
-      description: description,
-      descriptionContains: descriptionContains,
+      description: nil,
+      descriptionContains: nil,
       textContains: textContains,
       isInteractable: isInteractable,
       isEnabled: isEnabled,
@@ -932,7 +850,6 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
   private func applyAdditionalFilters(
     elements: [UIElement],
     valueContains: String? = nil,
-    descriptionContains: String? = nil,
     elementTypes: [String]? = nil,
     includeHidden: Bool = true,
     includeNonInteractable: Bool = true,
@@ -941,13 +858,10 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     applyAdditionalFilters(
       elements: elements,
       role: nil,
-      title: nil,
-      titleContains: nil,
       value: valueContains,
       valueContains: valueContains,
-      description: descriptionContains,
-      descriptionContains: descriptionContains,
       textContains: nil,
+      anyFieldContains: nil,
       isInteractable: nil,
       isEnabled: nil,
       inMenus: nil,
@@ -963,12 +877,8 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
   private func applyAdditionalFilters(
     elements: [UIElement],
     role: String? = nil,
-    title: String? = nil,
-    titleContains: String? = nil,
     value: String? = nil,
     valueContains: String? = nil,
-    description: String? = nil,
-    descriptionContains: String? = nil,
     textContains: String? = nil,
     anyFieldContains: String? = nil,
     isInteractable: Bool? = nil,
@@ -983,12 +893,12 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     // Create filter criteria from the parameters
     let criteria = UIElement.FilterCriteria(
       role: role,
-      title: title,
-      titleContains: titleContains,
+      title: nil,  // No longer supported at tool level, rely on textContains
+      titleContains: nil,  // No longer supported at tool level, rely on textContains
       value: value,
       valueContains: valueContains,
-      description: description,
-      descriptionContains: descriptionContains,
+      description: nil,  // No longer supported at tool level, rely on textContains
+      descriptionContains: nil,  // No longer supported at tool level, rely on textContains
       textContains: textContains,
       isInteractable: isInteractable,
       isEnabled: isEnabled,

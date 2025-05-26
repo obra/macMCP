@@ -204,7 +204,7 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     )
   }
   
-  /// Custom encoding to output opaque IDs instead of raw element paths
+  /// Custom encoding to output compact format with coalesced fields
   public func encode(to encoder: Encoder) throws {
     var container = encoder.container(keyedBy: CodingKeys.self)
     
@@ -212,41 +212,54 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     let opaqueID = try OpaqueIDEncoder.encode(id)
     try container.encode(opaqueID, forKey: .id)
     
-    // Encode all other fields normally
-    try container.encode(role, forKey: .role)
+    // Create coalesced role field: role: "{{role}} {{identifier? identifier." "}}{{ title ? title. " "}}{{ description ? description}}"
+    var roleValue = role  // Start with the actual role
+    if let identifier = identifier, !identifier.isEmpty {
+      roleValue += " \(identifier)."
+    }
+    if let title = title, !title.isEmpty {
+      roleValue += " \(title)."
+    }
+    if let description = description, !description.isEmpty {
+      roleValue += " \(description)"
+    }
+    // Remove trailing "." if we only had identifier/title but no description
+    if roleValue.hasSuffix(".") && description?.isEmpty != false {
+      roleValue = String(roleValue.dropLast(1))
+    }
+    try container.encode(roleValue, forKey: .role)
     
-    if title != nil {
-      try container.encodeIfPresent(title, forKey: .title)
+    // Include value if present
+    if let value = value, !value.isEmpty {
+      try container.encode(value, forKey: .value)
     }
-    if value != nil {
-      try container.encodeIfPresent(value, forKey: .value)
-    }
-    if description != nil {
-      try container.encodeIfPresent(description, forKey: .description)
-    }
-    if help != nil {
-      try container.encodeIfPresent(help, forKey: .help)
-    }
-    if identifier != nil {
-      try container.encodeIfPresent(identifier, forKey: .identifier)
+    
+    // Include help if present
+    if let help = help, !help.isEmpty {
+      try container.encode(help, forKey: .help)
     }
     
     // Only include frame/coordinates if requested
     if showCoordinates {
       try container.encode(frame, forKey: .frame)
     }
+    
+    // Convert props array to comma-separated string
     if !props.isEmpty {
-      try container.encodeIfPresent(props, forKey: .props)
+      let propsString = props.joined(separator: ", ")
+      try container.encode(propsString, forKey: .props)
     }
     
-    // Only include actions if requested
+    // Convert actions array to comma-separated string if requested
     if showActions && !actions.isEmpty {
-      try container.encodeIfPresent(actions, forKey: .actions)
+      let actionsString = actions.joined(separator: ", ")
+      try container.encode(actionsString, forKey: .actions)
     }
     
-    // Only include attributes if there are any
+    // Convert attributes dictionary to comma-separated string
     if !attributes.isEmpty {
-      try container.encode(attributes, forKey: .attributes)
+      let attributesString = attributes.map { "\($0.key)=\($0.value)" }.joined(separator: ", ")
+      try container.encode(attributesString, forKey: .attributes)
     }
     
     if children?.isEmpty == false {
@@ -254,21 +267,67 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     }
   }
   
-  /// Custom decoding that doesn't require showCoordinates property
+  /// Custom decoding that handles both old and new compact format
   public init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     
     self.id = try container.decode(String.self, forKey: .id)
-    self.role = try container.decode(String.self, forKey: .role)
+    
+    // The role field now contains coalesced information, extract just the role part
+    let roleValue = try container.decode(String.self, forKey: .role)
+    // For backward compatibility, if it's just a role (like "AXButton"), use as is
+    // If it contains spaces, take the first part as the role
+    let roleParts = roleValue.components(separatedBy: " ")
+    self.role = roleParts.first ?? roleValue
+    
+    // For the new compact format, these fields are embedded in the role field
+    // For backward compatibility, still try to decode them if present
     self.title = try container.decodeIfPresent(String.self, forKey: .title)
     self.value = try container.decodeIfPresent(String.self, forKey: .value)
     self.description = try container.decodeIfPresent(String.self, forKey: .description)
     self.help = try container.decodeIfPresent(String.self, forKey: .help)
     self.identifier = try container.decodeIfPresent(String.self, forKey: .identifier)
+    
     self.frame = try container.decodeIfPresent(ElementFrame.self, forKey: .frame) ?? ElementFrame(x: 0, y: 0, width: 0, height: 0)
-    self.props = try container.decode([String].self, forKey: .props)
-    self.actions = try container.decodeIfPresent([String].self, forKey: .actions) ?? []
-    self.attributes = try container.decodeIfPresent([String: String].self, forKey: .attributes) ?? [:]
+    
+    // Handle props - could be array (old format) or string (new format)
+    if let propsArray = try? container.decode([String].self, forKey: .props) {
+      self.props = propsArray
+    } else if let propsString = try? container.decode(String.self, forKey: .props) {
+      self.props = propsString.components(separatedBy: ", ").map { $0.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines) }
+    } else {
+      self.props = []
+    }
+    
+    // Handle actions - could be array (old format) or string (new format)
+    if let actionsArray = try? container.decodeIfPresent([String].self, forKey: .actions) {
+      self.actions = actionsArray
+    } else if let actionsString = try? container.decodeIfPresent(String.self, forKey: .actions) {
+      self.actions = actionsString.components(separatedBy: ", ").map { $0.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines) }
+    } else {
+      self.actions = []
+    }
+    
+    // Handle attributes - could be dictionary (old format) or string (new format)
+    if let attributesDict = try? container.decodeIfPresent([String: String].self, forKey: .attributes) {
+      self.attributes = attributesDict
+    } else if let attributesString = try? container.decodeIfPresent(String.self, forKey: .attributes) {
+      // Parse "key=value, key2=value2" format
+      var attributesDict: [String: String] = [:]
+      let pairs = attributesString.components(separatedBy: ", ")
+      for pair in pairs {
+        let components = pair.components(separatedBy: "=")
+        if components.count == 2 {
+          let key = components[0].trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+          let value = components[1].trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+          attributesDict[key] = value
+        }
+      }
+      self.attributes = attributesDict
+    } else {
+      self.attributes = [:]
+    }
+    
     self.children = try container.decodeIfPresent([EnhancedElementDescriptor].self, forKey: .children)
     
     // showCoordinates and showActions are not encoded/decoded, default to false for decoded instances
