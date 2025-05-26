@@ -14,7 +14,8 @@ public struct MenuNavigationTool: @unchecked Sendable {
   public let description = """
 Navigate and interact with macOS application menus for accessing commands and functionality.
 
-CRITICAL: Use InterfaceExplorerTool first to discover element IDs.
+IMPORTANT: Menu bar actions are typically faster and more reliable than clicking UI elements directly.
+Most application functions are accessible through menus, making this the preferred interaction method.
 
 Available actions:
 - showAllMenus: Recursively discover and display all menus in a compact, hierarchical format

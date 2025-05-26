@@ -815,6 +815,11 @@ public enum FrameSource: String, Codable {
   /// - Parameter criteria: The filter criteria to check against
   /// - Returns: True if the element matches all criteria, false otherwise
   public func matchesFilter(criteria: FilterCriteria) -> Bool {
+    // Skip AXMenuBar elements by default (unless specifically searching for them)
+    if role == "AXMenuBar" && criteria.role != "AXMenuBar" {
+      return false
+    }
+    
     // Define type-to-role mappings
     let typeToRoles: [String: [String]] = [
       "button": [AXAttribute.Role.button, "AXButtonSubstitute", "AXButtton"],
