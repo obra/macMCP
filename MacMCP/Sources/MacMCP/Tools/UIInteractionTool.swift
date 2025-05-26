@@ -28,11 +28,11 @@ Interaction methods:
 2. Coordinate-based: Use x, y coordinates for direct positioning (when elements unavailable)
 
 Common workflows:
-1. Explore UI: InterfaceExplorerTool → find id
-2. Click element: UIInteractionTool with id
-3. Drag operations: Source id + target targetId  
-4. Scroll content: Container id + direction + amount
-5. Position clicks: Use x, y coordinates when element detection fails
+1. Explore UI: InterfaceExplorerTool → find element id
+2. Click element: Use id from InterfaceExplorerTool
+3. Drag operations: Use source id + target targetId  
+4. Scroll content: Use container id + direction + amount
+5. Coordinate fallback: Use x, y coordinates when element detection fails
 
 Coordinate system: Screen pixels, (0,0) = top-left corner.
 """
@@ -114,19 +114,19 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
         ]),
         "id": .object([
           "type": .string("string"),
-          "description": .string("Element ID from InterfaceExplorerTool - preferred method for reliability"),
+          "description": .string("Element ID from \(ToolNames.interfaceExplorer) - preferred method for reliability"),
         ]),
         "appBundleId": .object([
           "type": .string("string"),
-          "description": .string("Application bundle ID to help locate elements (e.g., 'com.apple.calculator')"),
+          "description": .string("Application bundle ID for element context (e.g., 'com.apple.calculator')"),
         ]),
         "x": .object([
           "type": .string("number"),
-          "description": .string("X coordinate in screen pixels for position-based actions (0 = left edge)"),
+          "description": .string("X coordinate in screen pixels (0 = left edge) - use when element ID unavailable"),
         ]),
         "y": .object([
           "type": .string("number"),
-          "description": .string("Y coordinate in screen pixels for position-based actions (0 = top edge)"),
+          "description": .string("Y coordinate in screen pixels (0 = top edge) - use when element ID unavailable"),
         ]),
         "targetId": .object([
           "type": .string("string"),
@@ -144,7 +144,7 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
         ]),
         "amount": .object([
           "type": .string("number"),
-          "description": .string("Scroll distance from 0.0 (minimal) to 1.0 (full) - required for 'scroll' action"),
+          "description": .string("Scroll distance: 0.0 (minimal) to 1.0 (full page) - required for scroll action"),
           "minimum": .double(0.0),
           "maximum": .double(1.0),
         ]),
