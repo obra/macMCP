@@ -78,11 +78,20 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
 
     if let element = elementAtPosition {
       if let axElement = element.axElement {
-        // Use accessibility action directly on the element
-        let actions = try getActionNames(for: axElement)
-        if actions.contains(AXAttribute.Action.showMenu) {
-          try AccessibilityElement.performAction(axElement, action: AXAttribute.Action.showMenu)
-          return
+        // Try accessibility action directly on the element, but fall back to mouse simulation if it fails
+        do {
+          let actions = try getActionNames(for: axElement)
+          if actions.contains(AXAttribute.Action.showMenu) {
+            try AccessibilityElement.performAction(axElement, action: AXAttribute.Action.showMenu)
+            logger.debug("AXShowMenu succeeded for position-based right-click")
+            return
+          }
+        } catch {
+          logger.debug(
+            "Accessibility right-click failed for position-based click, falling back to mouse simulation",
+            metadata: ["error": "\(error.localizedDescription)"]
+          )
+          // Fall through to mouse simulation
         }
       }
       
@@ -122,9 +131,18 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
 
     if let element = elementAtPosition {
       if let axElement = element.axElement {
-        // Use AXPress directly on the element
-        try AccessibilityElement.performAction(axElement, action: "AXPress")
-        return
+        // Try AXPress on the element, but fall back to mouse simulation if it fails
+        do {
+          try AccessibilityElement.performAction(axElement, action: "AXPress")
+          logger.debug("AXPress succeeded for position-based click")
+          return
+        } catch {
+          logger.debug(
+            "AXPress failed for position-based click, falling back to mouse simulation",
+            metadata: ["error": "\(error.localizedDescription)"]
+          )
+          // Fall through to mouse simulation
+        }
       }
 
       // Fallback to position-based clicking
