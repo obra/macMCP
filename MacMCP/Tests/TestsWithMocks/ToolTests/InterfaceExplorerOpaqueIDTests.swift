@@ -16,7 +16,6 @@ struct InterfaceExplorerOpaqueIDTests {
     let descriptor = EnhancedElementDescriptor(
       id: problematicPath,
       role: "AXButton",
-      name: "All Clear",
       title: "All Clear",
       value: nil,
       description: "All Clear",

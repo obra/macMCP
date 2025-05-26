@@ -16,7 +16,6 @@ struct AllToolsOpaqueIDTests {
     let descriptor = EnhancedElementDescriptor(
       id: problematicPath,
       role: "AXButton",
-      name: "All Clear", 
       title: "All Clear",
       value: nil,
       description: "All Clear",
@@ -54,7 +53,6 @@ struct AllToolsOpaqueIDTests {
     let descriptor = EnhancedElementDescriptor(
       id: problematicPath,
       role: "AXWindow",
-      name: "Calculator",
       title: "Calculator", 
       value: nil,
       description: nil,

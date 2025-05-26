@@ -16,7 +16,6 @@ struct OpaqueIDWorkflowTests {
     let descriptor = EnhancedElementDescriptor(
       id: originalPath,
       role: "AXButton", 
-      name: "All Clear",
       title: "All Clear",
       value: nil,
       description: "All Clear",
@@ -65,7 +64,6 @@ struct OpaqueIDWorkflowTests {
     let descriptor = EnhancedElementDescriptor(
       id: problematicPath,
       role: "AXButton",
-      name: "All Clear", 
       title: "All Clear",
       value: nil,
       description: "All Clear",

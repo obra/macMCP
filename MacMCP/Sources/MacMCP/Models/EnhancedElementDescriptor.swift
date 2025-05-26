@@ -16,10 +16,7 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
   
   /// The accessibility role of the element
   public let role: String
-  
-  /// Human-readable name of the element (derived from title or description)
-  public let name: String
-  
+    
   /// The title or label of the element (if any)
   public let title: String?
   
@@ -61,7 +58,6 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
   /// - Parameters:
   ///   - id: Unique identifier
   ///   - role: Accessibility role
-  ///   - name: Human-readable name
   ///   - title: Title or label (optional)
   ///   - value: Current value (optional)
   ///   - description: Human-readable description (optional)
@@ -76,7 +72,6 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
   public init(
     id: String,
     role: String,
-    name: String,
     title: String? = nil,
     value: String? = nil,
     description: String? = nil,
@@ -92,7 +87,6 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
   ) {
     self.id = id
     self.role = role
-    self.name = name
     self.title = title
     self.value = value
     self.description = description
@@ -121,23 +115,7 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     showCoordinates: Bool = false,
     showActions: Bool = false
   ) -> EnhancedElementDescriptor {
-    // Generate a human-readable name
-    // Priority: title > description > value > role (don't use identifier to avoid deduplication conflicts)
-    let name: String =
-      if let title = element.title, !title.isEmpty,
-         let desc = element.elementDescription, !desc.isEmpty,
-         title.count == 1 && desc.count > 1 && desc != title {
-        // Use description for single-character titles when description is more descriptive
-        desc
-      } else if let title = element.title, !title.isEmpty {
-        title
-      } else if let desc = element.elementDescription, !desc.isEmpty {
-        desc
-      } else if let val = element.value, !val.isEmpty {
-        "\(element.role) with value \(val)"
-      } else {
-        element.role
-      }
+
 
     // Create the frame
     let frame = ElementFrame(
@@ -211,7 +189,6 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     return EnhancedElementDescriptor(
       id: finalPath,  // Always use fully qualified path for id
       role: element.role,
-      name: name,
       title: element.title,
       value: element.value,
       description: element.elementDescription,
@@ -238,12 +215,7 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     // Encode all other fields normally
     try container.encode(role, forKey: .role)
     
-    // Only encode name if it's different from role and identifier to reduce verbosity
-    let shouldIncludeName = name != role && name != identifier
-    if shouldIncludeName {
-      try container.encode(name, forKey: .name)
-    }
-    
+
     try container.encodeIfPresent(title, forKey: .title)
     try container.encodeIfPresent(value, forKey: .value)
     try container.encodeIfPresent(description, forKey: .description)
@@ -279,7 +251,6 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     
     self.id = try container.decode(String.self, forKey: .id)
     self.role = try container.decode(String.self, forKey: .role)
-    self.name = try container.decodeIfPresent(String.self, forKey: .name) ?? role
     self.title = try container.decodeIfPresent(String.self, forKey: .title)
     self.value = try container.decodeIfPresent(String.self, forKey: .value)
     self.description = try container.decodeIfPresent(String.self, forKey: .description)
@@ -298,7 +269,7 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
   
   /// Coding keys for custom Codable implementation
   private enum CodingKeys: String, CodingKey {
-    case id, role, name, title, value, description, help, identifier, frame
+    case id, role, title, value, description, help, identifier, frame
     case props, actions, attributes, children
   }
 }
