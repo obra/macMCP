@@ -149,4 +149,51 @@ struct VerbosityUnitTests {
     
     print("Reduced JSON (\(json.count) chars): \(json)")
   }
+  
+  @Test("showCoordinates parameter controls frame output")
+  func testShowCoordinatesParameter() async throws {
+    let element = UIElement(
+      path: "test://coordinates",
+      role: "AXButton",
+      title: "Button",
+      elementDescription: nil,
+      frame: CGRect(x: 100, y: 200, width: 50, height: 30),
+      children: [],
+      attributes: [:]
+    )
+    
+    // Test with showCoordinates = false (default)
+    let descriptorWithoutCoordinates = EnhancedElementDescriptor.from(
+      element: element, 
+      maxDepth: 1, 
+      showCoordinates: false
+    )
+    let jsonWithoutCoords = try JSONEncoder().encode(descriptorWithoutCoordinates)
+    let jsonStringWithoutCoords = String(data: jsonWithoutCoords, encoding: .utf8)!
+    
+    #expect(!jsonStringWithoutCoords.contains("frame"), "Frame should be omitted when showCoordinates=false")
+    #expect(!jsonStringWithoutCoords.contains("100"), "X coordinate should not appear when showCoordinates=false")
+    
+    // Test with showCoordinates = true
+    let descriptorWithCoordinates = EnhancedElementDescriptor.from(
+      element: element,
+      maxDepth: 1,
+      showCoordinates: true
+    )
+    let jsonWithCoords = try JSONEncoder().encode(descriptorWithCoordinates)
+    let jsonStringWithCoords = String(data: jsonWithCoords, encoding: .utf8)!
+    
+    #expect(jsonStringWithCoords.contains("frame"), "Frame should be included when showCoordinates=true")
+    #expect(jsonStringWithCoords.contains("100"), "X coordinate should appear when showCoordinates=true")
+    #expect(jsonStringWithCoords.contains("200"), "Y coordinate should appear when showCoordinates=true")
+    #expect(jsonStringWithCoords.contains("50"), "Width should appear when showCoordinates=true")
+    #expect(jsonStringWithCoords.contains("30"), "Height should appear when showCoordinates=true")
+    
+    // Verify significant size difference
+    let sizeDifference = jsonStringWithCoords.count - jsonStringWithoutCoords.count
+    #expect(sizeDifference > 20, "Including coordinates should add significant content, got difference: \(sizeDifference)")
+    
+    print("Without coordinates (\(jsonStringWithoutCoords.count) chars): \(jsonStringWithoutCoords)")
+    print("With coordinates (\(jsonStringWithCoords.count) chars): \(jsonStringWithCoords)")
+  }
 }

@@ -361,6 +361,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         includeHidden: includeHidden,
         includeDisabled: includeDisabled,
         includeNonInteractable: includeNonInteractable,
+        showCoordinates: showCoordinates,
         limit: limit,
         role: role,
         title: title,
@@ -390,6 +391,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         includeHidden: includeHidden,
         includeDisabled: includeDisabled,
         includeNonInteractable: includeNonInteractable,
+        showCoordinates: showCoordinates,
         limit: limit,
         role: role,
         title: title,
@@ -435,6 +437,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         includeHidden: includeHidden,
         includeDisabled: includeDisabled,
         includeNonInteractable: includeNonInteractable,
+        showCoordinates: showCoordinates,
         limit: limit,
         role: role,
         title: title,
@@ -468,6 +471,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         includeHidden: includeHidden,
         includeDisabled: includeDisabled,
         includeNonInteractable: includeNonInteractable,
+        showCoordinates: showCoordinates,
         limit: limit,
         role: role,
         title: title,
@@ -497,6 +501,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     includeHidden: Bool,
     includeDisabled: Bool,
     includeNonInteractable: Bool,
+    showCoordinates: Bool,
     limit: Int,
     role: String?,
     title: String?,
@@ -574,7 +579,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     }
 
     // Convert to enhanced element descriptors
-    let descriptors = convertToEnhancedDescriptors(elements: elements, maxDepth: maxDepth)
+    let descriptors = convertToEnhancedDescriptors(elements: elements, maxDepth: maxDepth, showCoordinates: showCoordinates)
 
     // Apply limit
     let limitedDescriptors = descriptors.prefix(limit)
@@ -590,6 +595,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     includeHidden: Bool,
     includeDisabled: Bool,
     includeNonInteractable: Bool,
+    showCoordinates: Bool,
     limit: Int,
     role: String?,
     title: String?,
@@ -670,7 +676,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     }
 
     // Convert to enhanced element descriptors
-    let descriptors = convertToEnhancedDescriptors(elements: elements, maxDepth: maxDepth)
+    let descriptors = convertToEnhancedDescriptors(elements: elements, maxDepth: maxDepth, showCoordinates: showCoordinates)
 
     // Apply limit
     let limitedDescriptors = descriptors.prefix(limit)
@@ -688,6 +694,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     includeHidden: Bool,
     includeDisabled: Bool,
     includeNonInteractable: Bool,
+    showCoordinates: Bool,
     limit: Int,
     role: String?,
     title: String?,
@@ -747,7 +754,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     }
 
     // Convert to enhanced element descriptors
-    let descriptors = convertToEnhancedDescriptors(elements: elements, maxDepth: maxDepth)
+    let descriptors = convertToEnhancedDescriptors(elements: elements, maxDepth: maxDepth, showCoordinates: showCoordinates)
 
     // Apply limit
     let limitedDescriptors = descriptors.prefix(limit)
@@ -764,6 +771,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     includeHidden: Bool,
     includeDisabled: Bool,
     includeNonInteractable: Bool,
+    showCoordinates: Bool,
     limit: Int,
     role: String?,
     title: String?,
@@ -843,173 +851,13 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
       }
 
       // Convert to enhanced element descriptors
-      let descriptors = convertToEnhancedDescriptors(elements: resultElements, maxDepth: maxDepth)
+      let descriptors = convertToEnhancedDescriptors(elements: resultElements, maxDepth: maxDepth, showCoordinates: showCoordinates)
 
       // Apply limit
       let limitedDescriptors = descriptors.prefix(limit)
 
       // Return formatted response
       return try formatResponse(Array(limitedDescriptors))
-    } catch let pathError as ElementPathError {
-      // If there's a path resolution error, provide specific information
-      throw MCPError.internalError("Failed to resolve element path: \(pathError.description)")
-    } catch {
-      // For other errors
-      throw MCPError.internalError("Error finding element by path: \(error.localizedDescription)")
-    }
-  }
-
-  /// Handle element-by-id scope
-  private func handleElementByIdScope(
-    elementPath: String,
-    maxDepth: Int,
-    includeHidden: Bool,
-    limit: Int,
-    role: String?,
-    title: String?,
-    titleContains: String?,
-    value: String?,
-    valueContains: String?,
-    description: String?,
-    descriptionContains: String?,
-    textContains: String?,
-    anyFieldContains: String?,
-    isInteractable: Bool?,
-    isEnabled: Bool?,
-    inMenus: Bool?,
-    inMainContent: Bool?,
-    elementTypes: [String],
-  ) async throws -> [Tool.Content] {
-    // First check if the path is valid
-    guard ElementPath.isElementPath(elementPath) else {
-      throw MCPError.invalidParams("Invalid element path format: \(elementPath)")
-    }
-
-    // Parse and resolve the path
-    do {
-      let parsedPath = try ElementPath.parse(elementPath)
-      let axElement = try await parsedPath.resolve(using: accessibilityService)
-
-      // Convert to UIElement
-      let element = try AccessibilityElement.convertToUIElement(
-        axElement,
-        recursive: true,
-        maxDepth: maxDepth,
-      )
-
-      // Don't set element.path here
-      // We'll calculate accurate hierarchical paths for each element instead
-
-      // If we're searching within this element, apply filters to it and its children
-      var resultElements: [UIElement] = []
-
-      if role != nil || title != nil || titleContains != nil || value != nil || valueContains != nil
-        || description != nil || descriptionContains != nil || textContains != nil || isInteractable != nil
-        || isEnabled != nil || inMenus != nil || inMainContent != nil || !elementTypes.contains("any")
-      {
-        // Find matching elements within the hierarchy
-        resultElements = findMatchingDescendants(
-          in: element,
-          role: role,
-          title: title,
-          titleContains: titleContains,
-          value: value,
-          valueContains: valueContains,
-          description: description,
-          descriptionContains: descriptionContains,
-          textContains: textContains,
-          anyFieldContains: anyFieldContains,
-          isInteractable: isInteractable,
-          isEnabled: isEnabled,
-          inMenus: inMenus,
-          inMainContent: inMainContent,
-          elementTypes: elementTypes,
-          includeHidden: includeHidden,
-          maxDepth: maxDepth,
-          limit: limit,
-        )
-
-        // When using path filter, ensure we have proper full paths
-        // This ensures we have complete hierarchy information
-        for resultElement in resultElements {
-          // For path filtering, we need to handle both fully qualified and partial paths
-          if elementPath.hasPrefix("macos://ui/"), elementPath.contains("/") {
-            // This appears to be a fully qualified path, so use it directly
-            resultElement.path = elementPath
-            logger.debug(
-              "PATH FILTER - Using provided fully qualified path",
-              metadata: ["path": "\(elementPath)"],
-            )
-          } else {
-            // Try to generate a fully qualified path
-            do {
-              let fullPath = try resultElement.generatePath()
-              resultElement.path = fullPath
-              logger.debug(
-                "PATH FILTER - Generated fully qualified path",
-                metadata: [
-                  "original": "\(elementPath)",
-                  "fully_qualified": "\(fullPath)",
-                ])
-            } catch {
-              // Fall back to using the provided path if generation fails
-              resultElement.path = elementPath
-              logger.warning(
-                "PATH FILTER - Using partial path due to generation failure",
-                metadata: ["path": "\(elementPath)"],
-              )
-            }
-          }
-        }
-      } else {
-        // If no filters, just use the element itself
-        resultElements = [element]
-
-        // Apply visibility filter if needed
-        if !includeHidden {
-          resultElements = filterVisibleElements(resultElements)
-        }
-
-        // When using path-based filtering, set the base path for each element
-        // This ensures clients have the proper context for each element
-        for resultElement in resultElements {
-          // For path filtering, we set a base path that the element will extend
-          // when creating its fully qualified path
-          if elementPath.hasPrefix("macos://ui/"), elementPath.contains("/") {
-            // This appears to be a fully qualified path, so use it directly
-            resultElement.path = elementPath
-            logger.debug(
-              "Using provided fully qualified path", metadata: ["path": "\(elementPath)"])
-          } else {
-            // Try to generate a fully qualified path
-            do {
-              let fullPath = try resultElement.generatePath()
-              resultElement.path = fullPath
-              logger.debug(
-                "Generated fully qualified path for element",
-                metadata: ["path": "\(fullPath)"],
-              )
-            } catch {
-              // Fall back to using the provided path if generation fails
-              resultElement.path = elementPath
-              logger.warning(
-                "Using partial path due to path generation failure",
-                metadata: ["path": "\(elementPath)"],
-              )
-            }
-          }
-        }
-      }
-
-      // Convert to enhanced element descriptors
-      let descriptors = convertToEnhancedDescriptors(elements: resultElements, maxDepth: maxDepth)
-
-      // Apply limit
-      let limitedDescriptors = descriptors.prefix(limit)
-
-      // Return formatted response
-      return try formatResponse(Array(limitedDescriptors))
-
     } catch let pathError as ElementPathError {
       // If there's a path resolution error, provide specific information
       throw MCPError.internalError("Failed to resolve element path: \(pathError.description)")
@@ -1195,7 +1043,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
   }
 
   /// Convert UI elements to enhanced element descriptors
-  private func convertToEnhancedDescriptors(elements: [UIElement], maxDepth: Int)
+  private func convertToEnhancedDescriptors(elements: [UIElement], maxDepth: Int, showCoordinates: Bool)
     -> [EnhancedElementDescriptor]
   {
     elements.map { element in
@@ -1259,7 +1107,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
       }
 
       // Use the EnhancedElementDescriptor from the Models directory
-      return EnhancedElementDescriptor.from(element: element, maxDepth: maxDepth)
+      return EnhancedElementDescriptor.from(element: element, maxDepth: maxDepth, showCoordinates: showCoordinates)
     }
   }
 
