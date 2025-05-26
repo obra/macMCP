@@ -3,6 +3,7 @@
 
 import Testing
 import Foundation
+import Logging
 @testable import MacMCP
 
 @Suite("Verbosity Unit Tests")
@@ -242,5 +243,48 @@ struct VerbosityUnitTests {
     
     print("Without actions (\(jsonStringWithoutActions.count) chars): \(jsonStringWithoutActions)")
     print("With actions (\(jsonStringWithActions.count) chars): \(jsonStringWithActions)")
+  }
+  
+  @Test("ChangeDetectionHelper uses verbosity reduction")
+  func testChangeDetectionHelperVerbosityReduction() async throws {
+    let element = UIElement(
+      path: "test://change-detection",
+      role: "AXButton",
+      title: "Test Button",
+      elementDescription: "A test button for change detection",
+      frame: CGRect(x: 100, y: 200, width: 150, height: 40),
+      children: [],
+      attributes: [:],
+      actions: ["AXPress", "AXFocus", "AXShowMenu"]
+    )
+    
+    // Create mock UI changes
+    let changes = UIChanges(newElements: [element])
+    
+    // Test ChangeDetectionHelper response formatting
+    let logger = Logger(label: "test.verbosity")
+    let response = ChangeDetectionHelper.formatResponse(
+      message: "Element added successfully", 
+      uiChanges: changes, 
+      logger: logger
+    )
+    
+    // Extract the JSON response
+    #expect(response.count == 1, "Should return one content item")
+    if case .text(let jsonString) = response[0] {
+      // Verify verbosity reduction is applied
+      #expect(!jsonString.contains("\"frame\""), "Frame should be excluded due to showCoordinates=false")
+      #expect(!jsonString.contains("\"actions\""), "Actions should be excluded due to showActions=false") 
+      #expect(!jsonString.contains("100"), "X coordinate should not appear in response")
+      #expect(!jsonString.contains("AXPress"), "Actions should not appear in response")
+      
+      // Verify essential information is still present
+      #expect(jsonString.contains("AXButton"), "Role should be included")
+      #expect(jsonString.contains("newElements"), "newElements should be included")
+      
+      print("ChangeDetectionHelper response (\(jsonString.count) chars): \(jsonString)")
+    } else {
+      #expect(Bool(false), "Response should be text content")
+    }
   }
 }

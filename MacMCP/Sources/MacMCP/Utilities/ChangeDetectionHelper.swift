@@ -67,19 +67,32 @@ public struct ChangeDetectionHelper {
     
     /// Format a single UI element for response with opaque ID
     private static func formatElementForResponse(_ element: UIElement) -> [String: Any] {
-        let opaqueID = (try? OpaqueIDEncoder.encode(element.path)) ?? element.path
-        return [
-            "id": opaqueID,
-            "role": element.role,
-            "description": element.elementDescription ?? "",
-            "capabilities": element.getCapabilitiesArray(),
-            "frame": [
-                "x": element.frame.origin.x,
-                "y": element.frame.origin.y,
-                "width": element.frame.size.width,
-                "height": element.frame.size.height
+        // Use EnhancedElementDescriptor with verbosity reduction for consistent formatting
+        let descriptor = EnhancedElementDescriptor.from(
+            element: element, 
+            maxDepth: 1, 
+            showCoordinates: false,  // Exclude frame for reduced verbosity
+            showActions: false       // Exclude actions for reduced verbosity
+        )
+        
+        // Convert to dictionary for JSON serialization
+        do {
+            let jsonData = try JSONEncoder().encode(descriptor)
+            if let jsonObject = try JSONSerialization.jsonObject(with: jsonData) as? [String: Any] {
+                return jsonObject
+            }
+        } catch {
+            // Fallback to manual formatting if encoding fails
+            let opaqueID = (try? OpaqueIDEncoder.encode(element.path)) ?? element.path
+            return [
+                "id": opaqueID,
+                "role": element.role,
+                "description": element.elementDescription ?? ""
             ]
-        ]
+        }
+        
+        // Final fallback
+        return ["id": element.path, "role": element.role]
     }
     
     /// Add change detection schema properties to a tool's input schema
