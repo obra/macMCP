@@ -360,6 +360,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         maxDepth: maxDepth,
         includeHidden: includeHidden,
         includeDisabled: includeDisabled,
+        includeNonInteractable: includeNonInteractable,
         limit: limit,
         role: role,
         title: title,
@@ -369,6 +370,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         description: description,
         descriptionContains: descriptionContains,
         textContains: textContains,
+        anyFieldContains: anyFieldContains,
         isInteractable: isInteractable,
         isEnabled: isEnabled,
         inMenus: inMenus,
@@ -387,6 +389,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         maxDepth: maxDepth,
         includeHidden: includeHidden,
         includeDisabled: includeDisabled,
+        includeNonInteractable: includeNonInteractable,
         limit: limit,
         role: role,
         title: title,
@@ -396,6 +399,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         description: description,
         descriptionContains: descriptionContains,
         textContains: textContains,
+        anyFieldContains: anyFieldContains,
         isInteractable: isInteractable,
         isEnabled: isEnabled,
         inMenus: inMenus,
@@ -430,6 +434,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         maxDepth: maxDepth,
         includeHidden: includeHidden,
         includeDisabled: includeDisabled,
+        includeNonInteractable: includeNonInteractable,
         limit: limit,
         role: role,
         title: title,
@@ -439,6 +444,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         description: description,
         descriptionContains: descriptionContains,
         textContains: textContains,
+        anyFieldContains: anyFieldContains,
         isInteractable: isInteractable,
         isEnabled: isEnabled,
         inMenus: inMenus,
@@ -461,6 +467,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         maxDepth: maxDepth,
         includeHidden: includeHidden,
         includeDisabled: includeDisabled,
+        includeNonInteractable: includeNonInteractable,
         limit: limit,
         role: role,
         title: title,
@@ -470,6 +477,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         description: description,
         descriptionContains: descriptionContains,
         textContains: textContains,
+        anyFieldContains: anyFieldContains,
         isInteractable: isInteractable,
         isEnabled: isEnabled,
         inMenus: inMenus,
@@ -488,6 +496,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     maxDepth: Int,
     includeHidden: Bool,
     includeDisabled: Bool,
+    includeNonInteractable: Bool,
     limit: Int,
     role: String?,
     title: String?,
@@ -497,6 +506,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     description: String?,
     descriptionContains: String?,
     textContains: String?,
+    anyFieldContains: String?,
     isInteractable: Bool?,
     isEnabled: Bool?,
     inMenus: Bool?,
@@ -512,7 +522,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     // Apply filters if specified
     var elements: [UIElement]
     if role != nil || title != nil || titleContains != nil || value != nil || valueContains != nil
-      || description != nil || descriptionContains != nil || textContains != nil || isInteractable != nil
+      || description != nil || descriptionContains != nil || textContains != nil || anyFieldContains != nil || isInteractable != nil
       || isEnabled != nil || inMenus != nil || inMainContent != nil || !elementTypes.contains("any")
     {
       // Use findUIElements for filtered results
@@ -540,12 +550,14 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         description: description,
         descriptionContains: descriptionContains,
         textContains: textContains,
+        anyFieldContains: anyFieldContains,
         isInteractable: isInteractable,
         isEnabled: isEnabled,
         inMenus: inMenus,
         inMainContent: inMainContent,
         elementTypes: elementTypes,
         includeHidden: includeHidden,
+        includeNonInteractable: includeNonInteractable,
         limit: limit,
       )
     } else {
@@ -577,6 +589,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     maxDepth: Int,
     includeHidden: Bool,
     includeDisabled: Bool,
+    includeNonInteractable: Bool,
     limit: Int,
     role: String?,
     title: String?,
@@ -586,6 +599,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     description: String?,
     descriptionContains: String?,
     textContains: String?,
+    anyFieldContains: String?,
     isInteractable: Bool?,
     isEnabled: Bool?,
     inMenus: Bool?,
@@ -624,12 +638,14 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         description: description,
         descriptionContains: descriptionContains,
         textContains: textContains,
+        anyFieldContains: anyFieldContains,
         isInteractable: isInteractable,
         isEnabled: isEnabled,
         inMenus: inMenus,
         inMainContent: inMainContent,
         elementTypes: elementTypes,
         includeHidden: includeHidden,
+        includeNonInteractable: includeNonInteractable,
         limit: limit,
       )
     } else {
@@ -641,9 +657,15 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
       )
       elements = [appElement]
 
-      // Apply hidden filter if specified
+      // Apply visibility, enabled, and interactability filters if specified
       if !includeHidden {
         elements = filterVisibleElements(elements)
+      }
+      if !includeDisabled {
+        elements = filterEnabledElements(elements)
+      }
+      if !includeNonInteractable {
+        elements = filterInteractableElements(elements)
       }
     }
 
@@ -665,6 +687,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     maxDepth: Int,
     includeHidden: Bool,
     includeDisabled: Bool,
+    includeNonInteractable: Bool,
     limit: Int,
     role: String?,
     title: String?,
@@ -674,6 +697,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     description: String?,
     descriptionContains: String?,
     textContains: String?,
+    anyFieldContains: String?,
     isInteractable: Bool?,
     isEnabled: Bool?,
     inMenus: Bool?,
@@ -710,12 +734,14 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         description: description,
         descriptionContains: descriptionContains,
         textContains: textContains,
+        anyFieldContains: anyFieldContains,
         isInteractable: isInteractable,
         isEnabled: isEnabled,
         inMenus: inMenus,
         inMainContent: inMainContent,
         elementTypes: elementTypes,
         includeHidden: includeHidden,
+        includeNonInteractable: includeNonInteractable,
         limit: limit,
       )
     }
@@ -737,6 +763,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     maxDepth: Int,
     includeHidden: Bool,
     includeDisabled: Bool,
+    includeNonInteractable: Bool,
     limit: Int,
     role: String?,
     title: String?,
@@ -746,6 +773,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     description: String?,
     descriptionContains: String?,
     textContains: String?,
+    anyFieldContains: String?,
     isInteractable: Bool?,
     isEnabled: Bool?,
     inMenus: Bool?,
@@ -788,6 +816,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
           description: description,
           descriptionContains: descriptionContains,
           textContains: textContains,
+          anyFieldContains: anyFieldContains,
           isInteractable: isInteractable,
           isEnabled: isEnabled,
           inMenus: inMenus,
@@ -801,9 +830,15 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         // If no filters, just use the element as is
         resultElements = [element]
 
-        // Apply hidden filter if specified
+        // Apply visibility, enabled, and interactability filters if specified
         if !includeHidden {
           resultElements = filterVisibleElements(resultElements)
+        }
+        if !includeDisabled {
+          resultElements = filterEnabledElements(resultElements)
+        }
+        if !includeNonInteractable {
+          resultElements = filterInteractableElements(resultElements)
         }
       }
 
@@ -838,6 +873,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     description: String?,
     descriptionContains: String?,
     textContains: String?,
+    anyFieldContains: String?,
     isInteractable: Bool?,
     isEnabled: Bool?,
     inMenus: Bool?,
@@ -882,6 +918,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
           description: description,
           descriptionContains: descriptionContains,
           textContains: textContains,
+          anyFieldContains: anyFieldContains,
           isInteractable: isInteractable,
           isEnabled: isEnabled,
           inMenus: inMenus,
@@ -993,6 +1030,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     description: String?,
     descriptionContains: String?,
     textContains: String?,
+    anyFieldContains: String?,
     isInteractable: Bool?,
     isEnabled: Bool?,
     inMenus: Bool?,
@@ -1035,6 +1073,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     descriptionContains: String? = nil,
     elementTypes: [String]? = nil,
     includeHidden: Bool = true,
+    includeNonInteractable: Bool = true,
     limit: Int = 100,
   ) -> [UIElement] {
     applyAdditionalFilters(
@@ -1053,6 +1092,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
       inMainContent: nil,
       elementTypes: elementTypes,
       includeHidden: includeHidden,
+      includeNonInteractable: includeNonInteractable,
       limit: limit,
     )
   }
@@ -1068,12 +1108,14 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     description: String? = nil,
     descriptionContains: String? = nil,
     textContains: String? = nil,
+    anyFieldContains: String? = nil,
     isInteractable: Bool? = nil,
     isEnabled: Bool? = nil,
     inMenus: Bool? = nil,
     inMainContent: Bool? = nil,
     elementTypes: [String]? = nil,
     includeHidden: Bool = true,
+    includeNonInteractable: Bool = true,
     limit: Int = 100,
   ) -> [UIElement] {
     // Create filter criteria from the parameters
@@ -1095,11 +1137,31 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     )
     
     // Use the static UIElement filterElements method
-    return UIElement.filterElements(
+    var filteredElements = UIElement.filterElements(
       elements: elements,
       criteria: criteria,
       limit: limit
     )
+    
+    // Apply anyFieldContains filter if specified
+    if let searchText = anyFieldContains, !searchText.isEmpty {
+      filteredElements = filteredElements.filter { element in
+        // Search across all string fields
+        let searchFields = [
+          element.role,
+          element.title,
+          element.elementDescription,
+          element.value,
+          element.identifier
+        ].compactMap { $0 }
+        
+        return searchFields.contains { field in
+          field.localizedCaseInsensitiveContains(searchText)
+        }
+      }
+    }
+    
+    return filteredElements
   }
 
   /// Filter to only include visible elements
