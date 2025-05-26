@@ -18,13 +18,13 @@ public enum ToolNames {
   public static let uiInteraction = "\(prefix)_ui_interact"
 
   /// Application management tool (replacing openApplication)
-  public static let applicationManagement = "\(prefix)_application_management"
+  public static let applicationManagement = "\(prefix)_manage_app_state"
 
   /// Window management tool
-  public static let windowManagement = "\(prefix)_window_management"
+  public static let windowManagement = "\(prefix)_manage_windows"
 
   /// Menu navigation tool
-  public static let menuNavigation = "\(prefix)_menu_navigation"
+  public static let menuNavigation = "\(prefix)_navigate_menus"
 
   /// Clipboard management tool
   public static let clipboardManagement = "\(prefix)_manage_clipboard"
