@@ -1001,6 +1001,62 @@ public enum FrameSource: String, Codable {
     return results
   }
 
+  // MARK: - Hierarchy Analysis Methods
+
+  /// Computed property to check if this element is interactable
+  public var isInteractable: Bool {
+    return isClickable || isEditable || isToggleable || isSelectable || isAdjustable
+  }
+
+  /// Check if this element has any interactable descendants
+  public func hasInteractableDescendants() -> Bool {
+    return hasDescendantsMatching { $0.isInteractable }
+  }
+
+  /// Check if this element has any descendants that match the given predicate
+  public func hasDescendantsMatching(_ predicate: (UIElement) -> Bool) -> Bool {
+    // Check direct children first
+    for child in children {
+      if predicate(child) {
+        return true
+      }
+      // Recursively check grandchildren
+      if child.hasDescendantsMatching(predicate) {
+        return true
+      }
+    }
+    return false
+  }
+
+  /// Get the flattened child for chain skipping.
+  /// If this element has exactly one child and that child is non-interactable,
+  /// recursively skip to find the first meaningful level.
+  /// Returns nil if no meaningful level is found.
+  public func getFlattenedChild() -> UIElement? {
+    guard children.count == 1 else {
+      return nil // Only flatten single-child chains
+    }
+    
+    let onlyChild = children[0]
+    
+    // If the child is interactable, don't skip it
+    if onlyChild.isInteractable {
+      return nil
+    }
+    
+    // If the child has multiple children, stop here and use the child
+    if onlyChild.children.count != 1 {
+      return onlyChild
+    }
+    
+    // Recursively check if we can skip further
+    if let grandchild = onlyChild.getFlattenedChild() {
+      return grandchild
+    } else {
+      return onlyChild
+    }
+  }
+
   /// Compare two path strings to determine if they refer to the same UI element
   /// - Parameters:
   ///   - path1: The first path string
@@ -1048,7 +1104,7 @@ public enum FrameSource: String, Codable {
 
   /// Check if this element is in a menu context (part of the menu system)
   /// - Returns: True if element is part of menu hierarchy, false otherwise
-  private func isInMenuContext() -> Bool {
+  public func isInMenuContext() -> Bool {
     // Check if this element or any of its ancestors is menu-related
     var currentElement: UIElement? = self
     

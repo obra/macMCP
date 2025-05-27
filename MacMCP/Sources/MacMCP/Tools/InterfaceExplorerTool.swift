@@ -622,6 +622,17 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
       if !includeDisabled {
         elements = filterEnabledElements(elements)
       }
+      
+      // Apply default menu filtering - exclude menus unless explicitly requested
+      if inMenus == nil && inMainContent == nil {
+        // Default behavior: exclude menu elements, show main content only
+        elements = filterMainContentElements(elements)
+      } else if let shouldShowMenus = inMenus, !shouldShowMenus {
+        elements = filterMainContentElements(elements)
+      } else if let shouldShowMainContent = inMainContent, shouldShowMainContent {
+        elements = filterMainContentElements(elements)
+      }
+      
       if !includeNonInteractable {
         elements = filterInteractableElements(elements)
       }
@@ -957,13 +968,104 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     }
   }
 
+  /// Filter to only include main content elements (exclude menu bars and menu items)
+  private func filterMainContentElements(_ elements: [UIElement]) -> [UIElement] {
+    return filterWithHierarchyPreservation(elements) { element in
+      // Exclude elements in menu context
+      return !element.isInMenuContext()
+    }
+  }
+
   /// Filter to only include interactable elements
   private func filterInteractableElements(_ elements: [UIElement]) -> [UIElement] {
-    elements.filter { element in
-      // Include only elements that can be interacted with
-      return element.isClickable || element.isEditable || element.isToggleable || 
-             element.isSelectable || element.isAdjustable
+    return filterWithHierarchyPreservation(elements) { element in
+      return element.isInteractable
     }
+  }
+
+  /// Smart hierarchy preservation with chain skipping.
+  /// Keeps containers if they have descendants that match the predicate,
+  /// and skips unnecessary single-child container chains.
+  private func filterWithHierarchyPreservation(_ elements: [UIElement], keepIf predicate: @escaping (UIElement) -> Bool = { $0.isInteractable }) -> [UIElement] {
+    return elements.compactMap { element in
+      return processElementForHierarchyPreservation(element, keepIf: predicate)
+    }
+  }
+
+  /// Process a single element for hierarchy preservation and chain skipping
+  private func processElementForHierarchyPreservation(_ element: UIElement, keepIf predicate: @escaping (UIElement) -> Bool = { $0.isInteractable }) -> UIElement? {
+    // If the element matches the predicate, always keep it
+    if predicate(element) {
+      return element
+    }
+    
+    // If the element has no descendants that match the predicate, remove it
+    if !element.hasDescendantsMatching(predicate) {
+      return nil
+    }
+    
+    // Check if we can skip this element due to single-child chain skipping
+    if let flattenedChild = element.getFlattenedChild() {
+      // Recursively process the flattened children first
+      let processedChildren = flattenedChild.children.compactMap { child in
+        return processElementForHierarchyPreservation(child, keepIf: predicate)
+      }
+      
+      guard !processedChildren.isEmpty else {
+        return nil
+      }
+      
+      // Create a new element that represents the flattened structure
+      let skippedElement = UIElement(
+        path: element.path,
+        role: element.role,
+        title: element.title,
+        value: element.value,
+        elementDescription: element.elementDescription,
+        identifier: element.identifier,
+        frame: element.frame,
+        normalizedFrame: element.normalizedFrame,
+        viewportFrame: element.viewportFrame,
+        frameSource: element.frameSource,
+        parent: element.parent,
+        children: processedChildren,
+        attributes: element.attributes,
+        actions: element.actions,
+        axElement: element.axElement
+      )
+      
+      return skippedElement
+    }
+    
+    // Normal case: keep the container but filter its children
+    // Recursively process children first
+    let processedChildren = element.children.compactMap { child in
+      return processElementForHierarchyPreservation(child, keepIf: predicate)
+    }
+    
+    guard !processedChildren.isEmpty else {
+      return nil
+    }
+    
+    let processedElement = UIElement(
+      path: element.path,
+      role: element.role,
+      title: element.title,
+      value: element.value,
+      elementDescription: element.elementDescription,
+      identifier: element.identifier,
+      frame: element.frame,
+      normalizedFrame: element.normalizedFrame,
+      viewportFrame: element.viewportFrame,
+      frameSource: element.frameSource,
+      parent: element.parent,
+      children: processedChildren,
+      attributes: element.attributes,
+      actions: element.actions,
+      axElement: element.axElement
+    )
+    
+    return processedElement
   }
 
   /// Convert UI elements to enhanced element descriptors
