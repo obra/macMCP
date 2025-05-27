@@ -250,8 +250,8 @@ Coordinate system: Screen coordinates start at (0,0) in top-left corner.
       )
 
     case "element":
-      // Extract required element path
-      guard let elementPath = params["id"]?.stringValue else {
+      // Extract required element ID
+      guard let elementId = params["id"]?.stringValue else {
         throw createScreenshotError(
           message: "Element screenshots require an id parameter",
           context: [
@@ -263,7 +263,7 @@ Coordinate system: Screen coordinates start at (0,0) in top-left corner.
       }
 
       result = try await screenshotService.captureElementByPath(
-        elementPath: elementPath,
+        elementPath: elementId,
       )
 
     default:

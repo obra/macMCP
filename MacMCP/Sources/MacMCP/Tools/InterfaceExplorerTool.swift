@@ -428,7 +428,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
 
     case "element":
       // Validate element ID
-      guard let elementPath = params["id"]?.stringValue else {
+      guard let elementId = params["id"]?.stringValue else {
         throw MCPError.invalidParams("id is required when scope is 'element'")
       }
 
@@ -436,7 +436,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
       let bundleId = params["bundleId"]?.stringValue
 
       return try await handleElementScope(
-        elementPath: elementPath,
+        elementId: elementId,
         bundleId: bundleId,
         maxDepth: maxDepth,
         includeHidden: includeHidden,
@@ -720,7 +720,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
 
   /// Handle element scope
   private func handleElementScope(
-    elementPath: String,
+    elementId: String,
     bundleId: String?,
     maxDepth: Int,
     includeHidden: Bool,
@@ -742,7 +742,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
   ) async throws -> [Tool.Content] {
     // Parse and resolve the element ID (handles both opaque IDs and raw paths)
     do {
-      let parsedPath = try ElementPath.parseElementId(elementPath)
+      let parsedPath = try ElementPath.parseElementId(elementId)
       let axElement = try await parsedPath.resolve(using: accessibilityService)
 
       // Convert to UIElement
