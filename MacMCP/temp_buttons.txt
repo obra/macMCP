@@ -1,8 +1,0 @@
-[1;32m[0] AXApplication: Calculator[0m
-   Identifier: yGV1OYAARfKWPjR0F6eSRw
-   Path (generated): macos://ui/AXApplication[@AXTitle="Calculator"]
-   Frame: (x:0, y:0, w:0, h:0)
-   State: Disabled, Invisible, Not clickable, Unfocused, Unselected
-   Role: AXApplication
-   Relationships: Children: 2, Has Parent
-   │
