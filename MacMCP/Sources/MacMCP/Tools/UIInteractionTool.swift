@@ -303,16 +303,6 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
   }
 
 
-  /// Decode element ID - handles both opaque IDs and raw paths
-  private func decodeElementID(_ elementID: String) -> String {
-    // Try to decode as opaque ID first, fall back to treating as raw path
-    do {
-      return try OpaqueIDEncoder.decode(elementID)
-    } catch {
-      // Not an opaque ID or decoding failed, treat as raw path
-      return elementID
-    }
-  }
   
   /// Extract bundle ID from element path or parameters
   private func extractBundleID(from elementPath: String, params: [String: Value]) -> String? {
@@ -321,7 +311,7 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
       return appBundleId
     }
     
-    // Try to extract from element path
+    // Try to extract from element path (elementPath is already resolved)
     do {
       let path = try ElementPath.parse(elementPath)
       if !path.segments.isEmpty {
@@ -363,8 +353,8 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
     let (detectChanges, delay) = ChangeDetectionHelper.extractChangeDetectionParams(params)
     // Element path click
     if let elementID = params["id"]?.stringValue {
-      // Decode the element ID (handles both opaque IDs and raw paths)
-      let elementPath = decodeElementID(elementID)
+      // Resolve the element ID (handles both opaque IDs and raw paths)
+      let elementPath = ElementPath.resolveElementId(elementID)
       // Extract bundle ID for focus management and change detection
       let appBundleId = extractBundleID(from: elementPath, params: params)
       
@@ -375,7 +365,7 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
 
       // Before clicking, try to look up the element to verify it exists
       do {
-        // Try to parse the path first
+        // Try to parse the element path (elementPath is already resolved)
         let path = try ElementPath.parse(elementPath)
 
         // Make sure the path is valid
@@ -522,8 +512,8 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
     let (detectChanges, delay) = ChangeDetectionHelper.extractChangeDetectionParams(params)
     // Element path double click
     if let elementID = params["id"]?.stringValue {
-      // Decode the element ID (handles both opaque IDs and raw paths)
-      let elementPath = decodeElementID(elementID)
+      // Resolve the element ID (handles both opaque IDs and raw paths)
+      let elementPath = ElementPath.resolveElementId(elementID)
       // Extract bundle ID for focus management and change detection
       let appBundleId = extractBundleID(from: elementPath, params: params)
       
@@ -636,8 +626,8 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
     let (detectChanges, delay) = ChangeDetectionHelper.extractChangeDetectionParams(params)
     // Element path right click
     if let elementID = params["id"]?.stringValue {
-      // Decode the element ID (handles both opaque IDs and raw paths)
-      let elementPath = decodeElementID(elementID)
+      // Resolve the element ID (handles both opaque IDs and raw paths)
+      let elementPath = ElementPath.resolveElementId(elementID)
       // Extract bundle ID for focus management and change detection
       let appBundleId = extractBundleID(from: elementPath, params: params)
       
@@ -770,9 +760,9 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
       ).asMCPError
     }
     
-    // Decode both element IDs (handles both opaque IDs and raw paths)
-    let sourceElementPath = decodeElementID(sourceElementID)
-    let targetElementPath = decodeElementID(targetElementID)
+    // Resolve both element IDs (handles both opaque IDs and raw paths)
+    let sourceElementPath = ElementPath.resolveElementId(sourceElementID)
+    let targetElementPath = ElementPath.resolveElementId(targetElementID)
 
     // Check if app bundle ID is provided
     let appBundleId = params["appBundleId"]?.stringValue
@@ -801,8 +791,8 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
       ).asMCPError
     }
     
-    // Decode the element ID (handles both opaque IDs and raw paths)
-    let elementPath = decodeElementID(elementID)
+    // Resolve the element ID (handles both opaque IDs and raw paths)
+    let elementPath = ElementPath.resolveElementId(elementID)
 
     guard let directionString = params["direction"]?.stringValue,
       let direction = ScrollDirection(rawValue: directionString)

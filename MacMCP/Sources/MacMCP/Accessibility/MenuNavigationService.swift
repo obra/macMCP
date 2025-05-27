@@ -66,14 +66,8 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
   ///   - elementPath: The ElementPath URI to the menu item
   ///   - bundleId: The bundle identifier of the application (for validation)
   public func navigateToMenuElement(elementPath: String, in bundleId: String) async throws {
-    // Validate the element path format
-    guard elementPath.hasPrefix("macos://ui/") else {
-      logger.error("Invalid element path format", metadata: ["path": "\(elementPath)"])
-      throw MenuNavigationError.invalidMenuPath(elementPath)
-    }
-    
-    // Parse and resolve the path
-    let parsedPath = try ElementPath.parse(elementPath)
+    // Parse and resolve the element ID (handles both opaque IDs and raw paths)
+    let parsedPath = try ElementPath.parseElementId(elementPath)
     let axElement = try await accessibilityService.run {
       try await parsedPath.resolve(using: accessibilityService)
     }

@@ -435,19 +435,9 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
   public func findElementByPath(path: String) async throws -> UIElement? {
     logger.debug("Finding element by path", metadata: ["path": "\(path)"])
 
-    // First check if the path is valid
-    guard ElementPath.isElementPath(path) else {
-      logger.error("Invalid element path format", metadata: ["path": "\(path)"])
-      throw NSError(
-        domain: "com.macos.mcp.accessibility",
-        code: MacMCPErrorCode.invalidActionParams,
-        userInfo: [NSLocalizedDescriptionKey: "Invalid element path format: \(path)"],
-      )
-    }
-
-    // Parse and resolve the path
+    // Parse and resolve the element ID (handles both opaque IDs and raw paths)
     do {
-      let parsedPath = try ElementPath.parse(path)
+      let parsedPath = try ElementPath.parseElementId(path)
       let axElement = try await run {
         try await parsedPath.resolve(using: self)
       }

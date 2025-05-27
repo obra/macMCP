@@ -740,14 +740,9 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     inMainContent: Bool?,
     elementTypes: [String],
   ) async throws -> [Tool.Content] {
-    // First check if the path is valid
-    guard ElementPath.isElementPath(elementPath) else {
-      throw MCPError.invalidParams("Invalid element path format: \(elementPath)")
-    }
-
-    // Parse and resolve the path
+    // Parse and resolve the element ID (handles both opaque IDs and raw paths)
     do {
-      let parsedPath = try ElementPath.parse(elementPath)
+      let parsedPath = try ElementPath.parseElementId(elementPath)
       let axElement = try await parsedPath.resolve(using: accessibilityService)
 
       // Convert to UIElement

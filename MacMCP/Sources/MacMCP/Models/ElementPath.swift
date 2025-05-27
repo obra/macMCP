@@ -80,6 +80,37 @@ public struct ElementPath: Sendable {
     return ElementPathParser.isElementPath(string)
   }
 
+  /// Resolve an element ID (either a raw element path or an opaque ID) to a raw element path string
+  /// - Parameter elementId: Either a raw element path (macos://ui/...) or an opaque ID
+  /// - Returns: A raw element path string
+  /// 
+  /// This method gracefully handles both opaque IDs and raw element paths. If the input appears
+  /// to be an opaque ID but cannot be resolved (e.g., expired from cache), it will fall back 
+  /// to returning the input unchanged.
+  public static func resolveElementId(_ elementId: String) -> String {
+    // Check if it's already a valid element path
+    if ElementPathParser.isElementPath(elementId) {
+      return elementId
+    }
+    
+    // Try to resolve as opaque ID - if that fails, fall back to returning input unchanged
+    return OpaqueIDMapper.shared.elementPath(for: elementId) ?? elementId
+  }
+
+  /// Parse an element ID (either a raw element path or an opaque ID) into an ElementPath
+  /// - Parameter elementId: Either a raw element path (macos://ui/...) or an opaque ID
+  /// - Returns: An ElementPath instance
+  /// - Throws: ElementPathError if the element ID is invalid
+  /// 
+  /// This method gracefully handles both opaque IDs and raw element paths. If the input appears
+  /// to be an opaque ID but cannot be resolved (e.g., expired from cache), it will fall back 
+  /// to treating the input as a raw element path.
+  public static func parseElementId(_ elementId: String) throws -> ElementPath {
+    // First resolve to raw path, then parse
+    let resolvedPath = resolveElementId(elementId)
+    return try ElementPathParser.parse(resolvedPath)
+  }
+
   /// Resolve this path to a UI element in the accessibility hierarchy
   /// - Parameter accessibilityService: The AccessibilityService to use for accessing the accessibility API
   /// - Returns: The AXUIElement that matches this path, or nil if no match is found

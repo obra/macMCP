@@ -199,22 +199,10 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
         "elementPath": "\(elementPath)"
       ])
 
-    // First check if the path is valid
-    guard ElementPath.isElementPath(elementPath) else {
-      logger.error("Invalid element path format", metadata: ["elementPath": "\(elementPath)"])
-      throw NSError(
-        domain: "com.macos.mcp.screenshot",
-        code: 1005,
-        userInfo: [
-          NSLocalizedDescriptionKey: "Invalid element path format: \(elementPath)"
-        ],
-      )
-    }
-
-    // Use the path to find the element
+    // Use the element ID to find the element
     do {
-      // Parse the path
-      let parsedPath = try ElementPath.parse(elementPath)
+      // Parse the element ID (handles both opaque IDs and raw paths)
+      let parsedPath = try ElementPath.parseElementId(elementPath)
 
       // Resolve the path to get the AXUIElement
       let axElement = try await parsedPath.resolve(using: accessibilityService)
