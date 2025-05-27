@@ -56,11 +56,8 @@ swift test --num-workers 1
 swift test --no-parallel --enable-code-coverage
 ```
 
-### Checking Accessibility Permissions
-```bash
-# Check if the app has the required accessibility permissions
-swift run --package-path MacMCP check_permissions.swift
-```
+### Accessibility Permissions
+The MCP server automatically checks all required permissions at startup and displays a native macOS dialog to guide users through granting any missing permissions. No manual checking is required.
 
 ### Using the Accessibility Inspector Tools
 
@@ -330,7 +327,7 @@ The MCP-based inspector provides a rich set of options for exploring UI hierarch
 
 1. **NEVER Implement Mocks**: NEVER implement mocks for system behavior inside the MCP server. It is better to have a hard failure than to serve up mocked data. The server must always interact with the real macOS accessibility APIs and never simulate or fake functionality.
 
-2. **Accessibility Permissions**: The app requires accessibility permissions to function correctly. During testing, ensure these permissions are granted in System Settings > Privacy & Security > Accessibility.
+2. **Accessibility Permissions**: The app requires accessibility permissions to function correctly. The MCP server automatically detects missing permissions at startup and displays a native macOS dialog to guide users through granting them. The permissions are granted to the host process (e.g., Terminal, Claude.app, or other LLM host applications).
 
 3. **Error Handling**: Use the provided error handling utilities in `ErrorHandling.swift` for consistent error reporting.
 

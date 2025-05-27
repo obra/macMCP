@@ -11,15 +11,12 @@ public enum ComprehensivePermissions {
     /// All the permission types we need to check
     public enum PermissionType: String, CaseIterable {
         case accessibility = "Accessibility"
-        case automation = "Automation" 
         case screenRecording = "Screen Recording"
         
         public var description: String {
             switch self {
             case .accessibility:
                 return "Accessibility permissions allow the app to interact with UI elements"
-            case .automation:
-                return "Automation permissions allow the app to control other applications"
             case .screenRecording:
                 return "Screen Recording permissions allow the app to capture screen content"
             }
@@ -29,8 +26,6 @@ public enum ComprehensivePermissions {
             switch self {
             case .accessibility:
                 return "Privacy & Security > Accessibility"
-            case .automation:
-                return "Privacy & Security > Automation"
             case .screenRecording:
                 return "Privacy & Security > Screen Recording"
             }
@@ -42,25 +37,6 @@ public enum ComprehensivePermissions {
         return AXIsProcessTrusted()
     }
     
-    /// Check if automation permissions are granted
-    /// This is tricky because there's no direct API - we test by trying an operation
-    public static func hasAutomationPermissions() -> Bool {
-        // Try to get the list of running applications
-        // If automation permissions are denied, this will fail
-        let script = """
-        tell application "System Events"
-            get name of first process
-        end tell
-        """
-        
-        var error: NSDictionary?
-        if let scriptObject = NSAppleScript(source: script) {
-            let result = scriptObject.executeAndReturnError(&error)
-            return error == nil && result.stringValue != nil
-        }
-        
-        return false
-    }
     
     /// Check if screen recording permissions are granted
     public static func hasScreenRecordingPermissions() -> Bool {
@@ -78,7 +54,6 @@ public enum ComprehensivePermissions {
     public static func checkAllPermissions() -> [PermissionType: Bool] {
         return [
             .accessibility: hasAccessibilityPermissions(),
-            .automation: hasAutomationPermissions(),
             .screenRecording: hasScreenRecordingPermissions()
         ]
     }
@@ -97,24 +72,6 @@ public enum ComprehensivePermissions {
         _ = AXIsProcessTrustedWithOptions(options)
     }
     
-    /// Request automation permissions
-    /// This requires AppleScript to trigger the permission prompt
-    public static func requestAutomationPermissions() {
-        let script = """
-        tell application "System Events"
-            try
-                get name of first process
-            on error
-                -- This will trigger the automation permission prompt
-            end try
-        end tell
-        """
-        
-        if let scriptObject = NSAppleScript(source: script) {
-            var error: NSDictionary?
-            _ = scriptObject.executeAndReturnError(&error)
-        }
-    }
     
     /// Request screen recording permissions
     public static func requestScreenRecordingPermissions() {
@@ -132,8 +89,6 @@ public enum ComprehensivePermissions {
             switch permission {
             case .accessibility:
                 requestAccessibilityPermissions()
-            case .automation:
-                requestAutomationPermissions()  
             case .screenRecording:
                 requestScreenRecordingPermissions()
             }

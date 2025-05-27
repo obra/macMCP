@@ -144,6 +144,9 @@ public actor MCPServer {
   private func checkAccessibilityPermissions() async throws {
     logger.debug("Checking accessibility permissions")
 
+    // Perform interactive permission check
+    InteractivePermissionService.performStartupPermissionCheck()
+
     // For now, don't enforce accessibility permissions to avoid crashes
     // Just log the status but continue running
     if AccessibilityPermissions.isAccessibilityEnabled() {
@@ -304,10 +307,20 @@ public actor MCPServer {
         // Execute the tool handler
         let content = try await handler(params.arguments)
         return CallTool.Result(content: content)
+      } catch let error as AccessibilityPermissions.Error {
+        // Handle accessibility permission errors specifically
+        logger.warning("Accessibility permission error in tool \(params.name)")
+        InteractivePermissionService.showPermissionSetupDialogForAccessibility()
+        throw error.asMCPError
       } catch let error as MCPError {
         // Rethrow MCP errors for proper handling by the server framework
         throw error
       } catch {
+        // Check if this might be a screen recording permission error for screenshot tools
+        if params.name == ToolNames.screenshot {
+          logger.warning("Potential screen recording permission error in screenshot tool")
+          InteractivePermissionService.showPermissionSetupDialogForScreenRecording()
+        }
         // Convert any error to MCPError using the standard conversion
         throw error.asMCPError
       }
