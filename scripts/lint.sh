@@ -16,20 +16,13 @@ cd "$PROJECT_ROOT"
 if command -v swift-format &> /dev/null; then
     echo "📏 Checking code formatting..."
     
-    FORMAT_ISSUES=()
-    while IFS= read -r -d '' file; do
-        if ! swift-format --mode diff "$file" | head -1 | grep -q "no changes"; then
-            FORMAT_ISSUES+=("$file")
-        fi
-    done < <(find MacMCP/Sources MacMCP/Tests MacMCP/Tools -name "*.swift" -print0 2>/dev/null)
-    
-    if [ ${#FORMAT_ISSUES[@]} -gt 0 ]; then
-        echo "❌ Formatting issues found in:"
-        printf '  %s\n' "${FORMAT_ISSUES[@]}"
+    # Use swift-format lint to check for formatting issues
+    if swift-format lint --recursive MacMCP/Sources MacMCP/Tests MacMCP/Tools --strict; then
+        echo "✅ Code formatting is correct"
+    else
+        echo "❌ Formatting issues found"
         echo "Run ./scripts/format.sh to fix formatting issues"
         exit 1
-    else
-        echo "✅ Code formatting is correct"
     fi
 else
     echo "⚠️  swift-format not found. Install with: brew install swift-format"
