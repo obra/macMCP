@@ -230,7 +230,7 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
     // Extract and log the key parameters for debugging
     if let params {
       let action = params["action"]?.stringValue ?? "unknown"
-      let elementPath = params["id"]?.stringValue ?? "none"
+      let elementId = params["id"]?.stringValue ?? "none"
       let appBundleId = params["appBundleId"]?.stringValue ?? "none"
 
       if action == "click" {
@@ -304,16 +304,16 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
 
 
   
-  /// Extract bundle ID from element path or parameters
-  private func extractBundleID(from elementPath: String, params: [String: Value]) -> String? {
+  /// Extract bundle ID from element ID or parameters
+  private func extractBundleID(from elementId: String, params: [String: Value]) -> String? {
     // First check if bundleId is explicitly provided in params
     if let appBundleId = params["appBundleId"]?.stringValue {
       return appBundleId
     }
     
-    // Try to extract from element path (elementPath is already resolved)
+    // Try to extract from element ID (elementId is already resolved)
     do {
-      let path = try ElementPath.parse(elementPath)
+      let path = try ElementPath.parse(elementId)
       if !path.segments.isEmpty {
         let firstSegment = path.segments[0]
         if firstSegment.role == "AXApplication" {
@@ -351,12 +351,12 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
   /// Handle click action
   private func handleClick(_ params: [String: Value]) async throws -> [Tool.Content] {
     let (detectChanges, delay) = ChangeDetectionHelper.extractChangeDetectionParams(params)
-    // Element path click
+    // Element ID click
     if let elementID = params["id"]?.stringValue {
       // Resolve the element ID (handles both opaque IDs and raw paths)
-      let elementPath = ElementPath.resolveElementId(elementID)
+      let resolvedElementId = ElementPath.resolveElementId(elementID)
       // Extract bundle ID for focus management and change detection
-      let appBundleId = extractBundleID(from: elementPath, params: params)
+      let appBundleId = extractBundleID(from: resolvedElementId, params: params)
       
       // Ensure application is focused before interaction
       if let bundleId = appBundleId {
@@ -365,12 +365,12 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
 
       // Before clicking, try to look up the element to verify it exists
       do {
-        // Try to parse the element path (elementPath is already resolved)
-        let path = try ElementPath.parse(elementPath)
+        // Try to parse the element ID (resolvedElementId is already resolved)
+        let path = try ElementPath.parse(resolvedElementId)
 
         // Make sure the path is valid
         if path.segments.isEmpty {
-          logger.warning("Invalid element path, no segments found")
+          logger.warning("Invalid element ID, no segments found")
         }
 
         // Check if the path already specifies an application - if so, don't override with appBundleId
@@ -383,27 +383,27 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
         // If path doesn't specify an app but appBundleId is provided, log a message
         if !pathSpecifiesApp, appBundleId != nil {
           logger.info(
-            "Using provided appBundleId alongside element path",
+            "Using provided appBundleId alongside element ID",
             metadata: ["appBundleId": "\(appBundleId!)"],
           )
         }
 
         // Attempt to resolve the path to verify it exists (only if path is not empty)
         // This is just for validation - actual resolution happens in interactionService
-        if !elementPath.isEmpty {
+        if !resolvedElementId.isEmpty {
           do {
             _ = try await path.resolve(using: accessibilityService)
-            logger.debug("Element path verified and resolved successfully")
+            logger.debug("Element ID verified and resolved successfully")
           } catch {
             logger.warning(
-              "Element path did not resolve, but will still attempt click operation",
+              "Element ID did not resolve, but will still attempt click operation",
               metadata: ["error": "\(error.localizedDescription)"],
             )
           }
         }
       } catch {
         logger.warning(
-          "Error parsing or validating element path, but will still attempt click operation",
+          "Error parsing or validating element ID, but will still attempt click operation",
           metadata: ["error": "\(error.localizedDescription)"],
         )
       }
@@ -418,9 +418,9 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
           delay: delay,
           maxDepth: 15
         ) {
-          try await interactionService.clickElementByPath(path: elementPath, appBundleId: appBundleId)
+          try await interactionService.clickElementByPath(path: resolvedElementId, appBundleId: appBundleId)
           let bundleIdInfo = appBundleId != nil ? " in app \(appBundleId!)" : ""
-          return "Successfully clicked element with path: \(elementPath)\(bundleIdInfo)"
+          return "Successfully clicked element with ID: \(resolvedElementId)\(bundleIdInfo)"
         }
 
         return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
@@ -432,17 +432,17 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
             "error": "\(error.localizedDescription)",
             "domain": "\(nsError.domain)",
             "code": "\(nsError.code)",
-            "elementPath": "\(elementPath)",
+            "elementId": "\(resolvedElementId)",
           ])
         
-        // Create a more informative error that includes the actual path
+        // Create a more informative error that includes the actual ID
         let enhancedError = createInteractionError(
-          message: "Failed to click element at path: \(elementPath). \(error.localizedDescription)",
+          message: "Failed to click element with ID: \(resolvedElementId). \(error.localizedDescription)",
           context: [
             "toolName": name,
             "action": "click",
-            "elementID": elementID,
-            "elementPath": elementPath,
+            "originalElementId": elementID,
+            "resolvedElementId": resolvedElementId,
             "originalError": error.localizedDescription,
           ]
         )
@@ -510,12 +510,12 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
   /// Handle double click action
   private func handleDoubleClick(_ params: [String: Value]) async throws -> [Tool.Content] {
     let (detectChanges, delay) = ChangeDetectionHelper.extractChangeDetectionParams(params)
-    // Element path double click
+    // Element ID double click
     if let elementID = params["id"]?.stringValue {
       // Resolve the element ID (handles both opaque IDs and raw paths)
-      let elementPath = ElementPath.resolveElementId(elementID)
+      let resolvedElementId = ElementPath.resolveElementId(elementID)
       // Extract bundle ID for focus management and change detection
-      let appBundleId = extractBundleID(from: elementPath, params: params)
+      let appBundleId = extractBundleID(from: resolvedElementId, params: params)
       
       // Ensure application is focused before interaction
       if let bundleId = appBundleId {
@@ -532,9 +532,9 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
           delay: delay,
           maxDepth: 15
         ) {
-          try await interactionService.doubleClickElementByPath(path: elementPath, appBundleId: appBundleId)
+          try await interactionService.doubleClickElementByPath(path: resolvedElementId, appBundleId: appBundleId)
           let bundleIdInfo = appBundleId != nil ? " in app \(appBundleId!)" : ""
-          return "Successfully double-clicked element with path: \(elementPath)\(bundleIdInfo)"
+          return "Successfully double-clicked element with ID: \(resolvedElementId)\(bundleIdInfo)"
         }
 
         return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
@@ -546,17 +546,17 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
             "error": "\(error.localizedDescription)",
             "domain": "\(nsError.domain)",
             "code": "\(nsError.code)",
-            "elementPath": "\(elementPath)",
+            "elementId": "\(resolvedElementId)",
           ])
         
-        // Create a more informative error that includes the actual path
+        // Create a more informative error that includes the actual ID
         let enhancedError = createInteractionError(
-          message: "Failed to double-click element at path: \(elementPath). \(error.localizedDescription)",
+          message: "Failed to double-click element with ID: \(resolvedElementId). \(error.localizedDescription)",
           context: [
             "toolName": name,
             "action": "double_click",
-            "elementID": elementID,
-            "elementPath": elementPath,
+            "originalElementId": elementID,
+            "resolvedElementId": resolvedElementId,
             "originalError": error.localizedDescription,
           ]
         )
@@ -624,12 +624,12 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
   /// Handle right click action
   private func handleRightClick(_ params: [String: Value]) async throws -> [Tool.Content] {
     let (detectChanges, delay) = ChangeDetectionHelper.extractChangeDetectionParams(params)
-    // Element path right click
+    // Element ID right click
     if let elementID = params["id"]?.stringValue {
       // Resolve the element ID (handles both opaque IDs and raw paths)
-      let elementPath = ElementPath.resolveElementId(elementID)
+      let resolvedElementId = ElementPath.resolveElementId(elementID)
       // Extract bundle ID for focus management and change detection
-      let appBundleId = extractBundleID(from: elementPath, params: params)
+      let appBundleId = extractBundleID(from: resolvedElementId, params: params)
       
       // Ensure application is focused before interaction
       if let bundleId = appBundleId {
@@ -646,9 +646,9 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
           delay: delay,
           maxDepth: 15
         ) {
-          try await interactionService.rightClickElementByPath(path: elementPath, appBundleId: appBundleId)
+          try await interactionService.rightClickElementByPath(path: resolvedElementId, appBundleId: appBundleId)
           let bundleIdInfo = appBundleId != nil ? " in app \(appBundleId!)" : ""
-          return "Successfully right-clicked element with path: \(elementPath)\(bundleIdInfo)"
+          return "Successfully right-clicked element with ID: \(resolvedElementId)\(bundleIdInfo)"
         }
 
         return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
@@ -660,17 +660,17 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
             "error": "\(error.localizedDescription)",
             "domain": "\(nsError.domain)",
             "code": "\(nsError.code)",
-            "elementPath": "\(elementPath)",
+            "elementId": "\(resolvedElementId)",
           ])
         
-        // Create a more informative error that includes the actual path
+        // Create a more informative error that includes the actual ID
         let enhancedError = createInteractionError(
-          message: "Failed to right-click element at path: \(elementPath). \(error.localizedDescription)",
+          message: "Failed to right-click element with ID: \(resolvedElementId). \(error.localizedDescription)",
           context: [
             "toolName": name,
             "action": "right_click",
-            "elementID": elementID,
-            "elementPath": elementPath,
+            "originalElementId": elementID,
+            "resolvedElementId": resolvedElementId,
             "originalError": error.localizedDescription,
           ]
         )
@@ -792,7 +792,7 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
     }
     
     // Resolve the element ID (handles both opaque IDs and raw paths)
-    let elementPath = ElementPath.resolveElementId(elementID)
+    let resolvedElementId = ElementPath.resolveElementId(elementID)
 
     guard let directionString = params["direction"]?.stringValue,
       let direction = ScrollDirection(rawValue: directionString)
@@ -802,7 +802,7 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
         context: [
           "toolName": name,
           "action": "scroll",
-          "id": elementPath,
+          "id": resolvedElementId,
           "providedDirection": params["direction"]?.stringValue ?? "nil",
           "validDirections": "up, down, left, right",
         ],
@@ -815,7 +815,7 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
         context: [
           "toolName": name,
           "action": "scroll",
-          "id": elementPath,
+          "id": resolvedElementId,
           "direction": directionString,
           "providedAmount": params["amount"]?
             .doubleValue != nil ? "\(params["amount"]!.doubleValue!)" : "nil",
@@ -827,13 +827,13 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
     let appBundleId = params["appBundleId"]?.stringValue
 
     try await interactionService.scrollElementByPath(
-      path: elementPath,
+      path: resolvedElementId,
       direction: direction,
       amount: amount,
       appBundleId: appBundleId,
     )
     return [
-      .text("Successfully scrolled element \(elementPath) in direction \(direction.rawValue)")
+      .text("Successfully scrolled element \(resolvedElementId) in direction \(direction.rawValue)")
     ]
   }
 }
