@@ -872,11 +872,14 @@ public enum FrameSource: String, Codable {
     // Universal text search filter
     let textContainsMatches: Bool
     if let searchText = criteria.textContains {
+      
       textContainsMatches = 
         (title?.localizedCaseInsensitiveContains(searchText) == true) ||
         (elementDescription?.localizedCaseInsensitiveContains(searchText) == true) ||
         (value?.localizedCaseInsensitiveContains(searchText) == true) ||
-        (identifier?.localizedCaseInsensitiveContains(searchText) == true)
+        (identifier?.localizedCaseInsensitiveContains(searchText) == true) ||
+        (role.localizedCaseInsensitiveContains(searchText) == true)
+      
     } else {
       textContainsMatches = true
     }
@@ -914,8 +917,11 @@ public enum FrameSource: String, Codable {
     let visibilityMatches = criteria.includeHidden || isVisible
     
     // Element matches if it passes all applicable filters
-    return roleMatches && typeMatches && titleMatches && valueMatches && descriptionMatches && 
+    let finalResult = roleMatches && typeMatches && titleMatches && valueMatches && descriptionMatches && 
            textContainsMatches && interactableMatches && enabledMatches && locationMatches && visibilityMatches
+    
+    
+    return finalResult
   }
   
   /// Static method to filter a collection of elements by criteria
@@ -943,7 +949,6 @@ public enum FrameSource: String, Codable {
         results.append(element)
       }
     }
-    
     return results
   }
   

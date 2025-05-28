@@ -350,6 +350,17 @@ public class MockAccessibilityService: @unchecked Sendable, AccessibilityService
         }
       }
       
+      // Handle exact description as textContains (for compact JSON format compatibility)
+      if let exactDescription = description {
+        elements = elements.filter { element in
+          // Check all text fields for match (simulating textContains behavior)
+          return element.elementDescription?.contains(exactDescription) ?? false ||
+                 element.title?.contains(exactDescription) ?? false ||
+                 element.role.contains(exactDescription) ||
+                 element.identifier?.contains(exactDescription) ?? false
+        }
+      }
+      
       if let titleValue = title {
         elements = elements.filter { element in
           element.title == titleValue

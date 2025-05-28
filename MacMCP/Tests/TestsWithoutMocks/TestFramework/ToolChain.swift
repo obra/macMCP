@@ -244,6 +244,11 @@ public final class ToolChain: @unchecked Sendable {
     if criteria.descriptionContains != nil {
       filterObj["descriptionContains"] = .string(criteria.descriptionContains!)
     }
+    
+    // Add exact description as textContains filter (for compact JSON format compatibility)
+    if criteria.description != nil {
+      filterObj["textContains"] = .string(criteria.description!)
+    }
 
     // Only add filter if we have filter criteria
     if !filterObj.isEmpty {
@@ -254,15 +259,20 @@ public final class ToolChain: @unchecked Sendable {
     if criteria.isVisible != nil {
       params["includeHidden"] = .bool(true)  // We'll filter later based on isVisible
     }
+    
+    // Always include coordinates since tests need them for clicking
+    params["showCoordinates"] = .bool(true)
 
     // Call the interface explorer tool
     let result = try await interfaceExplorerTool.handler(params)
+
 
     // Parse the result
     if let content = result.first, case .text(let jsonString) = content {
       // Parse the JSON into UI elements
       let jsonData = jsonString.data(using: .utf8)!
       let json = try JSONSerialization.jsonObject(with: jsonData) as! [[String: Any]]
+
 
       // Create UI elements from JSON
       var elements: [UIElement] = []
@@ -271,8 +281,15 @@ public final class ToolChain: @unchecked Sendable {
         elements.append(element)
       }
 
-      // Filter elements by criteria
-      let matchingElements = elements.filter { criteria.matches($0) }
+      // Filter elements by criteria - but skip if we used textContains since InterfaceExplorerTool already filtered
+      let matchingElements: [UIElement]
+      if criteria.description != nil {
+        // We converted description to textContains, so InterfaceExplorerTool already did the filtering
+        matchingElements = elements
+      } else {
+        // Apply our own filtering for other criteria
+        matchingElements = elements.filter { criteria.matches($0) }
+      }
 
       return matchingElements
     }

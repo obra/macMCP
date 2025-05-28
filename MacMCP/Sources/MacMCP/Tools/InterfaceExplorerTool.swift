@@ -491,24 +491,37 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
 
     // Apply filters if specified
     var elements: [UIElement]
-    if role != nil || value != nil || valueContains != nil || textContains != nil || anyFieldContains != nil || isInteractable != nil
+    if role != nil || value != nil || valueContains != nil || isInteractable != nil
       || isEnabled != nil || inMenus != nil || inMainContent != nil || !elementTypes.contains("any")
+      || textContains != nil || anyFieldContains != nil
     {
-      // Use findUIElements for filtered results
-      elements = try await accessibilityService.findUIElements(
-        role: role,
-        title: nil,  // No longer supported at tool level, rely on textContains
-        titleContains: nil,  // No longer supported at tool level, rely on textContains
-        value: value,
-        valueContains: valueContains,
-        description: nil,  // No longer supported at tool level, rely on textContains
-        descriptionContains: nil,  // No longer supported at tool level, rely on textContains
-        scope: .systemWide,
-        recursive: true,
-        maxDepth: maxDepth,
-      )
+      // Check if we can use AccessibilityService filtering (only for filters it supports)
+      let canUseAccessibilityServiceFilters = textContains == nil && anyFieldContains == nil
+      
+      if canUseAccessibilityServiceFilters {
+        // Use findUIElements for filtered results (only for filters supported by AccessibilityService)
+        elements = try await accessibilityService.findUIElements(
+          role: role,
+          title: nil,
+          titleContains: nil,
+          value: value,
+          valueContains: valueContains,
+          description: nil,
+          descriptionContains: nil,
+          scope: .systemWide,
+          recursive: true,
+          maxDepth: maxDepth,
+        )
+      } else {
+        // Get the full system element first, then filter
+        let systemElement = try await accessibilityService.getSystemUIElement(
+          recursive: true,
+          maxDepth: maxDepth,
+        )
+        elements = [systemElement]
+      }
 
-      // Apply additional filters that weren't directly supported by findUIElements
+      // Apply additional filters (including textContains and anyFieldContains)
       elements = applyAdditionalFilters(
         elements: elements,
         role: role,
@@ -572,40 +585,53 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     // Get application-specific UI state
     var elements: [UIElement]
 
-    if role != nil || value != nil || valueContains != nil || textContains != nil || anyFieldContains != nil || isInteractable != nil
+    if role != nil || value != nil || valueContains != nil || isInteractable != nil
       || isEnabled != nil || inMenus != nil || inMainContent != nil || !elementTypes.contains("any")
+      || textContains != nil || anyFieldContains != nil
     {
-      // Use findUIElements for filtered results
-      elements = try await accessibilityService.findUIElements(
-        role: role,
-        title: nil,  // No longer supported at tool level, rely on textContains
-        titleContains: nil,  // No longer supported at tool level, rely on textContains
-        value: value,
-        valueContains: valueContains,
-        description: nil,  // No longer supported at tool level, rely on textContains
-        descriptionContains: nil,  // No longer supported at tool level, rely on textContains
-        scope: .application(bundleId: bundleId),
-        recursive: true,
-        maxDepth: maxDepth,
-      )
-
-      // Apply additional filters if needed (if not handled by findUIElements)
-      elements = applyAdditionalFilters(
-        elements: elements,
-        role: role,
-        value: value,
-        valueContains: valueContains,
-        textContains: textContains,
-        anyFieldContains: anyFieldContains,
-        isInteractable: isInteractable,
-        isEnabled: isEnabled,
-        inMenus: inMenus,
-        inMainContent: inMainContent,
-        elementTypes: elementTypes,
-        includeHidden: includeHidden,
-        includeNonInteractable: includeNonInteractable,
-        limit: limit,
-      )
+      // Check if we can use AccessibilityService filtering (only for filters it supports)
+      let canUseAccessibilityServiceFilters = textContains == nil && anyFieldContains == nil
+      
+      if canUseAccessibilityServiceFilters {
+        // Use findUIElements for filtered results (only for filters supported by AccessibilityService)
+        elements = try await accessibilityService.findUIElements(
+          role: role,
+          title: nil,
+          titleContains: nil,
+          value: value,
+          valueContains: valueContains,
+          description: nil,
+          descriptionContains: nil,
+          scope: .application(bundleId: bundleId),
+          recursive: true,
+          maxDepth: maxDepth,
+        )
+      } else {
+        // Get the full application element first, then filter descendants
+        let appElement = try await accessibilityService.getApplicationUIElement(
+          bundleId: bundleId,
+          recursive: true,
+          maxDepth: maxDepth,
+        )
+        
+        // For textContains and anyFieldContains, we need to search descendants, not just the root element
+        elements = findMatchingDescendants(
+          in: appElement,
+          role: role,
+          value: value,
+          valueContains: valueContains,
+          textContains: textContains,
+          anyFieldContains: anyFieldContains,
+          isInteractable: isInteractable,
+          isEnabled: isEnabled,
+          inMenus: inMenus,
+          inMainContent: inMainContent,
+          elementTypes: elementTypes,
+          includeHidden: includeHidden,
+          maxDepth: maxDepth,
+          limit: limit,
+        )
+      }
     } else {
       // Get the full application element
       let appElement = try await accessibilityService.getApplicationUIElement(
@@ -896,6 +922,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     includeNonInteractable: Bool = true,
     limit: Int = 100,
   ) -> [UIElement] {
+    
     // Create filter criteria from the parameters
     let criteria = UIElement.FilterCriteria(
       role: role,
@@ -982,9 +1009,78 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
   /// Keeps containers if they have descendants that match the predicate,
   /// and skips unnecessary single-child container chains.
   private func filterWithHierarchyPreservation(_ elements: [UIElement], keepIf predicate: @escaping (UIElement) -> Bool = { $0.isInteractable }) -> [UIElement] {
-    return elements.compactMap { element in
+    let filteredElements = elements.compactMap { element in
       return processElementForHierarchyPreservation(element, keepIf: predicate)
     }
+    
+    // Post-process to flatten display structure while preserving paths
+    return flattenDisplayStructure(filteredElements)
+  }
+  
+  /// Post-processing step that reparents children to skip useless containers
+  /// while preserving their original element paths for resolution
+  private func flattenDisplayStructure(_ elements: [UIElement]) -> [UIElement] {
+    return elements.compactMap { element in
+      return flattenElementDisplayStructure(element)
+    }
+  }
+  
+  /// Flatten a single element's display structure by reparenting children of useless containers
+  private func flattenElementDisplayStructure(_ element: UIElement) -> UIElement? {
+    // First, recursively process children
+    let processedChildren = element.children.compactMap { child in
+      return flattenElementDisplayStructure(child)
+    }
+    
+    // Check if this element is a "useless" container that should be flattened
+    // A useless container is:
+    // 1. Non-interactable
+    // 2. Has exactly one child
+    // 3. That child has meaningful content
+    if !element.isInteractable && processedChildren.count == 1 {
+      let onlyChild = processedChildren[0]
+      
+      // If the child is interactable or has multiple children, reparent its children to skip this container
+      if onlyChild.isInteractable || onlyChild.children.count > 1 {
+        // Return the child but with this element's parent relationship
+        return UIElement(
+          path: onlyChild.path, // Keep the child's original path!
+          role: onlyChild.role,
+          title: onlyChild.title,
+          value: onlyChild.value,
+          elementDescription: onlyChild.elementDescription,
+          identifier: onlyChild.identifier,
+          frame: onlyChild.frame,
+          normalizedFrame: onlyChild.normalizedFrame,
+          viewportFrame: onlyChild.viewportFrame,
+          frameSource: onlyChild.frameSource,
+          parent: element.parent, // Use this element's parent to skip the container
+          children: onlyChild.children,
+          attributes: onlyChild.attributes,
+          actions: onlyChild.actions,
+          axElement: onlyChild.axElement
+        )
+      }
+    }
+    
+    // Normal case: return element with processed children
+    return UIElement(
+      path: element.path,
+      role: element.role,
+      title: element.title,
+      value: element.value,
+      elementDescription: element.elementDescription,
+      identifier: element.identifier,
+      frame: element.frame,
+      normalizedFrame: element.normalizedFrame,
+      viewportFrame: element.viewportFrame,
+      frameSource: element.frameSource,
+      parent: element.parent,
+      children: processedChildren,
+      attributes: element.attributes,
+      actions: element.actions,
+      axElement: element.axElement
+    )
   }
 
   /// Process a single element for hierarchy preservation and chain skipping
@@ -999,38 +1095,8 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
       return nil
     }
     
-    // Check if we can skip this element due to single-child chain skipping
-    if let flattenedChild = element.getFlattenedChild() {
-      // Recursively process the flattened children first
-      let processedChildren = flattenedChild.children.compactMap { child in
-        return processElementForHierarchyPreservation(child, keepIf: predicate)
-      }
-      
-      guard !processedChildren.isEmpty else {
-        return nil
-      }
-      
-      // Create a new element that represents the flattened structure
-      let skippedElement = UIElement(
-        path: element.path,
-        role: element.role,
-        title: element.title,
-        value: element.value,
-        elementDescription: element.elementDescription,
-        identifier: element.identifier,
-        frame: element.frame,
-        normalizedFrame: element.normalizedFrame,
-        viewportFrame: element.viewportFrame,
-        frameSource: element.frameSource,
-        parent: element.parent,
-        children: processedChildren,
-        attributes: element.attributes,
-        actions: element.actions,
-        axElement: element.axElement
-      )
-      
-      return skippedElement
-    }
+    // NOTE: Removed path-breaking tree flattening from here
+    // Tree flattening now happens in post-processing to preserve element paths
     
     // Normal case: keep the container but filter its children
     // Recursively process children first
