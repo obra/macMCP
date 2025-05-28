@@ -17,7 +17,7 @@ if command -v swift-format &> /dev/null; then
     echo "📏 Checking code formatting..."
     
     # Use swift-format lint to check for formatting issues
-    if swift-format lint --recursive MacMCP/Sources MacMCP/Tests MacMCP/Tools --strict; then
+    if swift-format lint --configuration .swift-format --recursive MacMCP/Sources MacMCP/Tests MacMCP/Tools --strict; then
         echo "✅ Code formatting is correct"
     else
         echo "❌ Formatting issues found"

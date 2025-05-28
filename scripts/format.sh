@@ -17,9 +17,9 @@ if ! command -v swift-format &> /dev/null; then
 fi
 
 # Format all Swift files
-find "$PROJECT_ROOT/MacMCP/Sources" -name "*.swift" -exec swift-format -i {} \;
-find "$PROJECT_ROOT/MacMCP/Tests" -name "*.swift" -exec swift-format -i {} \;
-find "$PROJECT_ROOT/MacMCP/Tools" -name "*.swift" -exec swift-format -i {} \;
+find "$PROJECT_ROOT/MacMCP/Sources" -name "*.swift" -exec swift-format --configuration "$PROJECT_ROOT/.swift-format" -i {} \;
+find "$PROJECT_ROOT/MacMCP/Tests" -name "*.swift" -exec swift-format --configuration "$PROJECT_ROOT/.swift-format" -i {} \;
+find "$PROJECT_ROOT/MacMCP/Tools" -name "*.swift" -exec swift-format --configuration "$PROJECT_ROOT/.swift-format" -i {} \;
 
 echo "✅ Swift code formatted successfully"
 
