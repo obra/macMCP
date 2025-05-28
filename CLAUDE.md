@@ -37,6 +37,15 @@ swift build -c release
 ../mcp-macos-wrapper.sh
 ```
 
+### Code Formatting and Linting
+```bash
+# Format all Swift code and run linting
+./scripts/format.sh
+
+# Check formatting and linting without making changes (for CI)
+./scripts/lint.sh
+```
+
 ### Testing
 ```bash
 # Run all tests (serialized execution)

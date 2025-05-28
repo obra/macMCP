@@ -7,12 +7,13 @@ excluded:
   - "**/.*.swift"
 
 disabled_rules:
-  - trailing_whitespace
-  - line_length
+  - trailing_whitespace  # Let swift-format handle this
+  - line_length          # Let swift-format handle this
   - function_body_length
   - type_body_length
   - file_length
   - todo
+  - vertical_whitespace  # Let swift-format handle spacing
 
 opt_in_rules:
   - force_unwrapping

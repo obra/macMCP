@@ -10,4 +10,3 @@
 --patternlet inline
 --swiftversion 6.1
 --exclude MacMCP/.build,MacMCP/swift-sdk
---header "ABOUTME: {file}\nABOUTME: Part of MacMCP allowing LLMs to interact with macOS applications."
