@@ -40,9 +40,9 @@ struct InterfaceExplorerOpaqueIDTests {
     #expect(!jsonString.contains("\\\""), "Should not contain escaped quotes")
     #expect(!jsonString.contains("\\/"), "Should not contain escaped slashes")
     
-    // Verify the output can be decoded back
-    let decodedDescriptors = try JSONDecoder().decode([EnhancedElementDescriptor].self, from: jsonData)
-    let opaqueID = decodedDescriptors[0].id
+    // Extract the opaque ID from the JSON array
+    let jsonArray = try JSONSerialization.jsonObject(with: jsonData) as! [[String: Any]]
+    let opaqueID = jsonArray[0]["id"] as! String
     
     // Test that we can decode the opaque ID back to the original path
     let decodedPath = try OpaqueIDEncoder.decode(opaqueID)

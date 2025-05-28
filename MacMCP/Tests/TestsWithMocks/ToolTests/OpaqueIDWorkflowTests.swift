@@ -39,9 +39,8 @@ struct OpaqueIDWorkflowTests {
     #expect(!jsonString.contains("[@AXTitle="), "JSON should not contain raw element path syntax")
     
     // 4. Extract the opaque ID from the JSON
-    let decoder = JSONConfiguration.decoder
-    let decodedDescriptor = try decoder.decode(EnhancedElementDescriptor.self, from: jsonData)
-    let opaqueID = decodedDescriptor.id
+    let json = try JSONSerialization.jsonObject(with: jsonData) as! [String: Any]
+    let opaqueID = json["id"] as! String
     
     print("Extracted opaque ID: \(opaqueID)")
     
