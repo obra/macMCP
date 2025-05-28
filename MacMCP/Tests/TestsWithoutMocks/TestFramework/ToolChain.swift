@@ -250,6 +250,9 @@ public final class ToolChain: @unchecked Sendable {
       filterObj["textContains"] = .string(criteria.description!)
     }
 
+    // Include main content (windows and their contents) - this is equivalent to --show-window-contents
+    filterObj["inMainContent"] = .bool(true)
+
     // Only add filter if we have filter criteria
     if !filterObj.isEmpty {
       params["filter"] = .object(filterObj)
@@ -272,7 +275,6 @@ public final class ToolChain: @unchecked Sendable {
       // Parse the JSON into UI elements
       let jsonData = jsonString.data(using: .utf8)!
       let json = try JSONSerialization.jsonObject(with: jsonData) as! [[String: Any]]
-
 
       // Create UI elements from JSON
       var elements: [UIElement] = []
@@ -786,20 +788,50 @@ public final class ToolChain: @unchecked Sendable {
     var isFocused = false
     var isSelected = false
 
-    // Parse state array
+    // Parse state and capabilities from either separate arrays or combined props string
+    var allProps: [String] = []
+    
+    // Check for separate state array (old format)
     if let stateArray = json["state"] as? [String] {
-      for state in stateArray {
-        switch state.lowercased() {
-        case "enabled": isEnabled = true
-        case "disabled": isEnabled = false
-        case "visible": isVisible = true
-        case "hidden": isVisible = false
-        case "focused": isFocused = true
-        case "unfocused": isFocused = false
-        case "selected": isSelected = true
-        case "unselected": isSelected = false
-        default: break  // Ignore other states
-        }
+      allProps.append(contentsOf: stateArray)
+    }
+    
+    // Check for separate capabilities array (old format)
+    if let capabilitiesArray = json["capabilities"] as? [String] {
+      allProps.append(contentsOf: capabilitiesArray)
+    }
+    
+    // Check for combined props string (new EnhancedElementDescriptor format)
+    if let propsString = json["props"] as? String {
+      let propsArray = propsString.components(separatedBy: ", ").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+      allProps.append(contentsOf: propsArray)
+    }
+    
+    // Process all props (state and capabilities together)
+    for prop in allProps {
+      switch prop.lowercased() {
+      // State properties
+      case "enabled": isEnabled = true
+      case "disabled": isEnabled = false
+      case "visible": isVisible = true
+      case "hidden": isVisible = false
+      case "focused": isFocused = true
+      case "unfocused": isFocused = false
+      case "selected": isSelected = true
+      case "unselected": isSelected = false
+      
+      // Capability properties
+      case "clickable": attributes["clickable"] = true
+      case "editable": attributes["editable"] = true
+      case "toggleable": attributes["toggleable"] = true
+      case "selectable": attributes["selectable"] = true
+      case "adjustable": attributes["adjustable"] = true
+      case "scrollable": attributes["scrollable"] = true
+      case "haschildren": attributes["hasChildren"] = true
+      case "hasmenu": attributes["hasMenu"] = true
+      case "hashelp": attributes["hasHelp"] = true
+      case "hastooltip": attributes["hasTooltip"] = true
+      default: break  // Ignore other properties
       }
     }
 
@@ -808,25 +840,6 @@ public final class ToolChain: @unchecked Sendable {
     attributes["visible"] = isVisible
     attributes["focused"] = isFocused
     attributes["selected"] = isSelected
-
-    // Parse capabilities array
-    if let capabilitiesArray = json["capabilities"] as? [String] {
-      for capability in capabilitiesArray {
-        switch capability.lowercased() {
-        case "clickable": attributes["clickable"] = true
-        case "editable": attributes["editable"] = true
-        case "toggleable": attributes["toggleable"] = true
-        case "selectable": attributes["selectable"] = true
-        case "adjustable": attributes["adjustable"] = true
-        case "scrollable": attributes["scrollable"] = true
-        case "haschildren": attributes["hasChildren"] = true
-        case "hasmenu": attributes["hasMenu"] = true
-        case "hashelp": attributes["hasHelp"] = true
-        case "hastooltip": attributes["hasTooltip"] = true
-        default: break  // Ignore other capabilities
-        }
-      }
-    }
 
     // Create and return the UI element
     return UIElement(
