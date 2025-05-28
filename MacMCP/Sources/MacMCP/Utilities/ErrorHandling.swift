@@ -41,16 +41,11 @@ public struct MacMCPErrorInfo: Swift.Error, LocalizedError, Sendable {
   public let underlyingError: (any Swift.Error)?
 
   /// Human-readable error description
-  public var errorDescription: String? {
-    message
-  }
+  public var errorDescription: String? { message }
 
   /// Human-readable failure reason
   public var failureReason: String? {
-    let contextString =
-      context
-      .map { "\($0.key): \($0.value)" }
-      .joined(separator: ", ")
+    let contextString = context.map { "\($0.key): \($0.value)" }.joined(separator: ", ")
 
     let baseReason = "[\(category.rawValue)] \(message)"
     return contextString.isEmpty ? baseReason : "\(baseReason) (\(contextString))"
@@ -86,14 +81,12 @@ public struct MacMCPErrorInfo: Swift.Error, LocalizedError, Sendable {
     case .network:
       "Network communication failed. Check your internet connection and firewall settings."
 
-    case .parsing:
-      "Failed to parse data. The format may be invalid or unexpected."
+    case .parsing: "Failed to parse data. The format may be invalid or unexpected."
 
     case .timeout:
       "The operation timed out. The system might be under heavy load or the operation may be too complex."
 
-    case .unknown:
-      "An unexpected error occurred. Please try again or restart the application."
+    case .unknown: "An unexpected error occurred. Please try again or restart the application."
     }
   }
 
@@ -121,14 +114,10 @@ public struct MacMCPErrorInfo: Swift.Error, LocalizedError, Sendable {
   /// Convert to an NSError
   public var asNSError: NSError {
     // Combine context and error information
-    var userInfo: [String: Any] = [
-      NSLocalizedDescriptionKey: message
-    ]
+    var userInfo: [String: Any] = [NSLocalizedDescriptionKey: message]
 
     // Add failure reason if available
-    if let reason = failureReason {
-      userInfo[NSLocalizedFailureReasonErrorKey] = reason
-    }
+    if let reason = failureReason { userInfo[NSLocalizedFailureReasonErrorKey] = reason }
 
     // Add recovery suggestion if available
     if let suggestion = recoverySuggestion {
@@ -139,14 +128,10 @@ public struct MacMCPErrorInfo: Swift.Error, LocalizedError, Sendable {
     userInfo["category"] = category.rawValue
 
     // Add context information
-    for (key, value) in context {
-      userInfo["context_\(key)"] = value
-    }
+    for (key, value) in context { userInfo["context_\(key)"] = value }
 
     // Add underlying error if available
-    if let underlyingError {
-      userInfo[NSUnderlyingErrorKey] = underlyingError
-    }
+    if let underlyingError { userInfo[NSUnderlyingErrorKey] = underlyingError }
 
     // Create a fully-formed domain with category
     let domain = "\(MacMCPErrorDomain).\(category.rawValue.lowercased())"
@@ -178,10 +163,10 @@ public func createPermissionError(
 
 /// Create a standard element error
 public func createElementError(
-  message: String,
-  context: [String: String] = [:],
-  underlyingError: Swift.Error? = nil,
-) -> MacMCPErrorInfo {
+  message: String, context: [String: String] = [:], underlyingError: Swift.Error? = nil,
+)
+  -> MacMCPErrorInfo
+{
   MacMCPErrorInfo(
     category: .element,
     code: MacMCPErrorCode.elementNotFound,
@@ -373,10 +358,10 @@ public func createApplicationNotRunningError(
 
 /// Create an operation timeout error
 public func createTimeoutError(
-  message: String,
-  context: [String: String] = [:],
-  underlyingError: Swift.Error? = nil,
-) -> MacMCPErrorInfo {
+  message: String, context: [String: String] = [:], underlyingError: Swift.Error? = nil,
+)
+  -> MacMCPErrorInfo
+{
   MacMCPErrorInfo(
     category: .timeout,
     code: MacMCPErrorCode.operationTimeout,
@@ -413,15 +398,10 @@ extension NSError {
     if domain.hasPrefix(MacMCPErrorDomain) {
       // Extract category from domain
       let domainComponents = domain.components(separatedBy: ".")
-      let categoryString =
-        domainComponents.count > 1
-        ? domainComponents[1]
-        : "unknown"
+      let categoryString = domainComponents.count > 1 ? domainComponents[1] : "unknown"
 
       // Get category
-      let category =
-        MacMCPErrorCategory(rawValue: categoryString.capitalized)
-        ?? .unknown
+      let category = MacMCPErrorCategory(rawValue: categoryString.capitalized) ?? .unknown
 
       // Extract context from userInfo
       var context: [String: String] = [:]
@@ -462,17 +442,13 @@ extension Swift.Error {
   /// Convert to MacMCPErrorInfo
   var asMacMCPError: MacMCPErrorInfo {
     // If this is already a MacMCPErrorInfo, return it
-    if let macMCPError = self as? MacMCPErrorInfo {
-      return macMCPError
-    }
+    if let macMCPError = self as? MacMCPErrorInfo { return macMCPError }
 
     // All Swift.Error can be converted to NSError
     let nsError = self as NSError
 
     // Try to convert via NSError
-    if let macMCPError = nsError.asMacMCPError {
-      return macMCPError
-    }
+    if let macMCPError = nsError.asMacMCPError { return macMCPError }
 
     // For other errors, create a new MacMCP error
     return MacMCPErrorInfo(
@@ -486,22 +462,16 @@ extension Swift.Error {
   /// Convert to MCP.MCPError for protocol communication
   var asMCPError: MCPError {
     // If this is already an MCPError, return it
-    if let mcpError = self as? MCPError {
-      return mcpError
-    }
+    if let mcpError = self as? MCPError { return mcpError }
 
     // If this is a MacMCPErrorInfo, convert it
-    if let macMCPError = self as? MacMCPErrorInfo {
-      return macMCPError.asMCPError
-    }
+    if let macMCPError = self as? MacMCPErrorInfo { return macMCPError.asMCPError }
 
     // All Swift.Error can be converted to NSError
     let nsError = self as NSError
 
     // Try to convert via NSError and MacMCPErrorInfo
-    if let macMCPError = nsError.asMacMCPError {
-      return macMCPError.asMCPError
-    }
+    if let macMCPError = nsError.asMacMCPError { return macMCPError.asMCPError }
 
     // For other errors, create an internal error
     return .internalError(nsError.localizedDescription)

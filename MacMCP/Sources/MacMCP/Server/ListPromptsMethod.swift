@@ -57,10 +57,7 @@ public enum ListPrompts: MCP.Method {
 
     /// Create a new prompt
     public init(
-      id: String,
-      name: String,
-      description: String,
-      inputSchema: Value? = nil,
+      id: String, name: String, description: String, inputSchema: Value? = nil,
       annotations: Value? = nil
     ) {
       self.id = id

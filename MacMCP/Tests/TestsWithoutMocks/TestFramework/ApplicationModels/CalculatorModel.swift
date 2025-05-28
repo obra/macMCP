@@ -42,47 +42,62 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
 
     /// Button mappings for macOS calculator with path-based identifiers
     public static let buttonMappings: [String: String] = [
-      "0": #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="0"]"#,
-      "1": #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="1"]"#,
-      "2": #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="2"]"#,
-      "3": #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="3"]"#,
-      "4": #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="4"]"#,
-      "5": #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="5"]"#,
-      "6": #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="6"]"#,
-      "7": #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="7"]"#,
-      "8": #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="8"]"#,
-      "9": #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="9"]"#,
-      "+": #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="Add"]"#,
-      "-": #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="Subtract"]"#,
-      "×": #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="Multiply"]"#,
-      "÷": #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="Divide"]"#,
-      "=": #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="Equals"]"#,
-      ".": #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="Decimal Point"]"#,
-      "%": #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="Percent"]"#,
-      "±": #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="Change Sign"]"#,
-      "C": #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="Clear"]"#,
-      "AC": #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="All Clear"]"#,
-      "Delete": #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="Clear"]"#,
+      "0":
+        #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="0"]"#,
+      "1":
+        #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="1"]"#,
+      "2":
+        #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="2"]"#,
+      "3":
+        #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="3"]"#,
+      "4":
+        #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="4"]"#,
+      "5":
+        #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="5"]"#,
+      "6":
+        #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="6"]"#,
+      "7":
+        #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="7"]"#,
+      "8":
+        #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="8"]"#,
+      "9":
+        #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="9"]"#,
+      "+":
+        #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="Add"]"#,
+      "-":
+        #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="Subtract"]"#,
+      "×":
+        #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="Multiply"]"#,
+      "÷":
+        #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="Divide"]"#,
+      "=":
+        #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="Equals"]"#,
+      ".":
+        #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="Decimal Point"]"#,
+      "%":
+        #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="Percent"]"#,
+      "±":
+        #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="Change Sign"]"#,
+      "C":
+        #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="Clear"]"#,
+      "AC":
+        #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="All Clear"]"#,
+      "Delete":
+        #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="Clear"]"#,
     ]
   }
 
   /// Create a new Calculator model
   /// - Parameter toolChain: ToolChain instance for interacting with the calculator
   public init(toolChain: ToolChain) {
-    super.init(
-      bundleId: "com.apple.calculator",
-      appName: "Calculator",
-      toolChain: toolChain,
-    )
+    super.init(bundleId: "com.apple.calculator", appName: "Calculator", toolChain: toolChain, )
   }
 
   /// Override to provide more robust window detection for Calculator
   /// - Returns: The main Calculator window, or nil if not found
   override public func getMainWindow() async throws -> UIElement? {
     // Try the parent implementation first
-    if let parentResult = try await super.getMainWindow() {
-      return parentResult
-    }
+    if let parentResult = try await super.getMainWindow() { return parentResult }
 
     // If not found, try other approaches
 
@@ -111,12 +126,11 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
   public func getDisplayElement() async throws -> UIElement? {
     // Get the main window first for reference
     let mainWindow = try await getMainWindow()
-    if mainWindow == nil {
-      return nil
-    }
+    if mainWindow == nil { return nil }
 
     // Try to find the display element using path-based identifier
-    let displayPath = #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXGroup/AXScrollArea[@AXDescription="Input"]/AXStaticText"#
+    let displayPath =
+      #"macos://ui/AXApplication[@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXGroup/AXScrollArea[@AXDescription="Input"]/AXStaticText"#
     let directCriteria = UIElementCriteria(path: displayPath)
 
     if let element = try await toolChain.findElement(
@@ -141,9 +155,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
       maxDepth: 20,
     ) {
       // Return the first child if available
-      if !scrollArea.children.isEmpty {
-        return scrollArea.children.first
-      }
+      if !scrollArea.children.isEmpty { return scrollArea.children.first }
 
       // Otherwise return the scroll area itself
       return scrollArea
@@ -162,9 +174,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
     )
 
     // If that doesn't work, try a broader search
-    let staticTextCriteria = UIElementCriteria(
-      role: "AXStaticText",
-    )
+    let staticTextCriteria = UIElementCriteria(role: "AXStaticText", )
 
     // First try with the scroll area
     if let scrollArea = try await toolChain.findElement(
@@ -184,9 +194,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
               .replacingOccurrences(of: "‎", with: "")  // Remove invisible character
 
             // If the value looks like a number, return it
-            if !cleanValue.isEmpty {
-              return cleanValue
-            }
+            if !cleanValue.isEmpty { return cleanValue }
           }
         }
       }
@@ -197,11 +205,12 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
 
         // Clean up the string - remove invisible characters and whitespace
         let cleanValue = stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
-          .replacingOccurrences(of: "‎", with: "")  // Remove invisible character
+          .replacingOccurrences(
+            of: "‎",
+            with: ""
+          )  // Remove invisible character
 
-        if !cleanValue.isEmpty {
-          return cleanValue
-        }
+        if !cleanValue.isEmpty { return cleanValue }
       }
     }
 
@@ -218,12 +227,13 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
       if let value = element.value {
         let stringValue = String(describing: value)
         let cleanValue = stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
-          .replacingOccurrences(of: "‎", with: "")
+          .replacingOccurrences(
+            of: "‎",
+            with: ""
+          )
 
         // Check if it looks like a number
-        if !cleanValue.isEmpty, Double(cleanValue) != nil || cleanValue == "0" {
-          return cleanValue
-        }
+        if !cleanValue.isEmpty, Double(cleanValue) != nil || cleanValue == "0" { return cleanValue }
       }
     }
 
@@ -240,19 +250,18 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
 
       // Clean up the string - remove invisible characters and whitespace
       let cleanValue = stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
-        .replacingOccurrences(of: "‎", with: "")  // Remove invisible character
+        .replacingOccurrences(
+          of: "‎",
+          with: ""
+        )  // Remove invisible character
 
       // Validate that it looks like a number (optional)
-      if !cleanValue.isEmpty, Double(cleanValue) != nil || cleanValue == "0" {
-        return cleanValue
-      }
+      if !cleanValue.isEmpty, Double(cleanValue) != nil || cleanValue == "0" { return cleanValue }
     }
 
     // Recursively check children
     for child in element.children {
-      if let value = findDisplayValueInElement(child) {
-        return value
-      }
+      if let value = findDisplayValueInElement(child) { return value }
     }
 
     return nil
@@ -263,9 +272,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
   /// - Returns: The button element, or nil if not found
   public func findButton(_ button: String) async throws -> UIElement? {
     // Get the exact id mapping for this button
-    guard let exactId = Button.buttonMappings[button] else {
-      return nil
-    }
+    guard let exactId = Button.buttonMappings[button] else { return nil }
 
     // APPROACH 1: Try direct description match (most reliable in practice)
     // This works because Calculator buttons consistently have descriptions like "1", "2", "+", etc.
@@ -284,10 +291,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
     }
 
     // APPROACH 2: Try exact ID match
-    let idCriteria = UIElementCriteria(
-      role: "AXButton",
-      path: exactId,
-    )
+    let idCriteria = UIElementCriteria(role: "AXButton", path: exactId, )
 
     if let element = try await toolChain.findElement(
       matching: idCriteria,
@@ -303,10 +307,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
       let parts = exactId.split(separator: ":")
       if parts.count > 1 {
         let partialId = String(parts[1])
-        let partialCriteria = UIElementCriteria(
-          role: "AXButton",
-          pathContains: partialId,
-        )
+        let partialCriteria = UIElementCriteria(role: "AXButton", pathContains: partialId, )
 
         if let element = try await toolChain.findElement(
           matching: partialCriteria,
@@ -351,15 +352,11 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
       }
 
       // Check exact path match
-      if element.path == exactId {
-        return element
-      }
+      if element.path == exactId { return element }
 
       // Check for the button name/value in any property
       if let title = element.title {
-        if title == button || title.localizedCaseInsensitiveContains(button) {
-          return element
-        }
+        if title == button || title.localizedCaseInsensitiveContains(button) { return element }
       }
 
       if let value = element.value {
@@ -377,10 +374,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
   /// - Returns: The keypad view element, or nil if not found
   private func findCalculatorKeypadView() async throws -> UIElement? {
     // Look for the group with identifier "CalculatorKeypadView"
-    let criteria = UIElementCriteria(
-      role: "AXGroup",
-      pathContains: "CalculatorKeypadView",
-    )
+    let criteria = UIElementCriteria(role: "AXGroup", pathContains: "CalculatorKeypadView", )
 
     return try await toolChain.findElement(
       matching: criteria,
@@ -410,11 +404,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
     let clearButtons = ["Delete", "AC", "C", "Clear", "AllClear"]
 
     for button in clearButtons {
-      do {
-        if try await pressButton(button) {
-          return true
-        }
-      } catch {
+      do { if try await pressButton(button) { return true } } catch {
         // Try the next button
         continue
       }
@@ -443,9 +433,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
         default: buttonId
         }
 
-      if try await !pressButton(mappedId) {
-        return false
-      }
+      if try await !pressButton(mappedId) { return false }
 
       // Brief pause between button presses
       try await Task.sleep(for: .milliseconds(100))
@@ -490,10 +478,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
     // Use the direct approach for clicking with path
     do {
       // Use toolChain.interactionService.clickElementByPath directly
-      try await toolChain.interactionService.clickElementByPath(
-        path: path,
-        appBundleId: bundleId,
-      )
+      try await toolChain.interactionService.clickElementByPath(path: path, appBundleId: bundleId, )
 
       // Give the UI time to update after the click
       try await Task.sleep(for: .milliseconds(300))
@@ -503,15 +488,11 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
       // Fallback to the handler approach if the direct approach fails
       // Create the parameters with explicit values for safety
       let params: [String: Value] = [
-        "action": .string("click"),
-        "id": .string(path),
-        "appBundleId": .string(bundleId),
+        "action": .string("click"), "id": .string(path), "appBundleId": .string(bundleId),
       ]
 
       // Verify params object isn't empty before calling
-      if params.isEmpty || params.count < 3 {
-        return false
-      }
+      if params.isEmpty || params.count < 3 { return false }
 
       do {
         let result = try await toolChain.uiInteractionTool.handler(params)
@@ -525,9 +506,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
         }
 
         return false
-      } catch {
-        return false
-      }
+      } catch { return false }
     }
   }
 
@@ -551,8 +530,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
 
     // Use the UIInteractionTool with coordinates to click via mouse
     let params: [String: Value] = [
-      "action": .string("click"),
-      "x": .double(Double(position.x)),
+      "action": .string("click"), "x": .double(Double(position.x)),
       "y": .double(Double(position.y)),
     ]
 
@@ -576,10 +554,9 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
     // If that didn't work, try direct approach with force termination
     if !appTerminated {
       // Terminate any existing calculator instances - use force if needed
-      for app in NSRunningApplication.runningApplications(withBundleIdentifier: bundleId) {
-        if !app.terminate() {
-          _ = app.forceTerminate()
-        }
+      for app in NSRunningApplication.runningApplications(withBundleIdentifier: bundleId)
+      where !app.terminate() {
+        _ = app.forceTerminate()
       }
 
       // Give the system time to fully close the app

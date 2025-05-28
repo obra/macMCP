@@ -21,29 +21,26 @@ struct AccessibilityInspector: ParsableCommand {
   )
 
   // Application targeting options
-  @Option(name: [.customLong("app-id")], help: "Application bundle identifier")
-  var appId: String?
+  @Option(name: [.customLong("app-id")], help: "Application bundle identifier") var appId: String?
 
-  @Option(name: [.customLong("pid")], help: "Application process ID")
-  var pid: Int?
+  @Option(name: [.customLong("pid")], help: "Application process ID") var pid: Int?
 
   // Tree traversal options
   @Option(name: [.customLong("max-depth")], help: "Maximum depth to traverse (default: 150)")
   var maxDepth: Int = 150
 
   // Output options
-  @Option(name: [.customLong("save")], help: "Save output to file")
-  var saveToFile: String?
+  @Option(name: [.customLong("save")], help: "Save output to file") var saveToFile: String?
 
   @Option(
     name: [.customLong("filter")], help: "Filter elements by property (format: property=value)")
   var filter: [String] = []
 
-  @Flag(name: [.customLong("hide-invisible")], help: "Hide invisible elements")
-  var hideInvisible: Bool = false
+  @Flag(name: [.customLong("hide-invisible")], help: "Hide invisible elements") var hideInvisible:
+    Bool = false
 
-  @Flag(name: [.customLong("hide-disabled")], help: "Hide disabled elements")
-  var hideDisabled: Bool = false
+  @Flag(name: [.customLong("hide-disabled")], help: "Hide disabled elements") var hideDisabled:
+    Bool = false
 
   @Flag(
     name: [.customLong("show-menus")],
@@ -53,20 +50,17 @@ struct AccessibilityInspector: ParsableCommand {
   @Flag(
     name: [.customLong("show-window-controls")],
     help: "Only show window control elements (close, minimize, zoom buttons, toolbars, etc.)",
-  )
-  var showWindowControls: Bool = false
+  ) var showWindowControls: Bool = false
 
   @Flag(
     name: [.customLong("show-window-contents")],
     help: "Only show window content elements (excluding menus and controls)",
-  )
-  var showWindowContents: Bool = false
+  ) var showWindowContents: Bool = false
 
   @Flag(
     name: [.customLong("verbose")],
     help: "Show even more detailed diagnostics (currently all data is shown by default)",
-  )
-  var verbose: Bool = false
+  ) var verbose: Bool = false
 
   func run() throws {
     logger.info("Starting Accessibility Tree Inspector")
@@ -112,12 +106,8 @@ struct AccessibilityInspector: ParsableCommand {
 
       // Add filters for invisible and disabled elements if requested
       var combinedFilters = filterDict
-      if hideInvisible {
-        combinedFilters["visible"] = "yes"
-      }
-      if hideDisabled {
-        combinedFilters["enabled"] = "yes"
-      }
+      if hideInvisible { combinedFilters["visible"] = "yes" }
+      if hideDisabled { combinedFilters["enabled"] = "yes" }
 
       // Handle UI component focus flags
       let viewTypeFlags = [showMenus, showWindowControls, showWindowContents]
@@ -192,12 +182,9 @@ enum InspectionError: Error {
     switch self {
     case .accessibilityPermissionDenied:
       "Accessibility permission denied. Please enable accessibility permissions in System Settings > Privacy & Security > Accessibility."
-    case .applicationNotFound:
-      "Application not found. Please verify the bundle ID or process ID."
-    case .timeout:
-      "Operation timed out. The application may be busy or not responding."
-    case .unexpectedError(let message):
-      "Unexpected error: \(message)"
+    case .applicationNotFound: "Application not found. Please verify the bundle ID or process ID."
+    case .timeout: "Operation timed out. The application may be busy or not responding."
+    case .unexpectedError(let message): "Unexpected error: \(message)"
     }
   }
 }

@@ -13,9 +13,7 @@ public class UIVerifier {
 
   /// Create a new UI verifier
   /// - Parameter toolChain: ToolChain instance
-  public init(toolChain: ToolChain) {
-    self.toolChain = toolChain
-  }
+  public init(toolChain: ToolChain) { self.toolChain = toolChain }
 
   /// Verify that an element matching criteria exists
   /// - Parameters:
@@ -36,10 +34,8 @@ public class UIVerifier {
     while Date().timeIntervalSince(startTime) < timeout {
       // Try to find the element
       if let element = try await toolChain.findElement(
-        matching: criteria,
-        scope: scope,
-        bundleId: bundleId,
-      ) {
+        matching: criteria, scope: scope, bundleId: bundleId, )
+      {
         return element
       }
 
@@ -51,9 +47,7 @@ public class UIVerifier {
     let _ = "Element matching \(criteria.debugDescription) not found within \(timeout) seconds"
     #expect(Bool(false))
     throw NSError(
-      domain: "UIVerifier",
-      code: 1000,
-      userInfo: [NSLocalizedDescriptionKey: "Element not found"],
+      domain: "UIVerifier", code: 1000, userInfo: [NSLocalizedDescriptionKey: "Element not found"],
     )
   }
 
@@ -74,11 +68,9 @@ public class UIVerifier {
 
     while Date().timeIntervalSince(startTime) < timeout {
       // Try to find the element
-      if (try await toolChain.findElement(
-        matching: criteria,
-        scope: scope,
-        bundleId: bundleId,
-      )) != nil {
+      if (try await toolChain.findElement(matching: criteria, scope: scope, bundleId: bundleId, ))
+        != nil
+      {
         // Element found - fail the test
         let _ = "Element matching \(criteria.debugDescription) was found, but should not exist"
         #expect(Bool(false))
@@ -115,24 +107,17 @@ public class UIVerifier {
     while Date().timeIntervalSince(startTime) < timeout {
       // Try to find the element
       if let element = try await toolChain.findElement(
-        matching: criteria,
-        scope: scope,
-        bundleId: bundleId,
-      ) {
+        matching: criteria, scope: scope, bundleId: bundleId, )
+      {
         // Check the property value
         let actualValue: String?
 
         switch property.lowercased() {
-        case "title":
-          actualValue = element.title
-        case "value":
-          actualValue = element.value
-        case "description":
-          actualValue = element.elementDescription
-        case "role":
-          actualValue = element.role
-        case "identifier":
-          actualValue = element.path
+        case "title": actualValue = element.title
+        case "value": actualValue = element.value
+        case "description": actualValue = element.elementDescription
+        case "role": actualValue = element.role
+        case "identifier": actualValue = element.path
         default:
           throw NSError(
             domain: "UIVerifier",
@@ -142,9 +127,7 @@ public class UIVerifier {
         }
 
         // If the property matches, return the element
-        if actualValue == expectedValue {
-          return element
-        }
+        if actualValue == expectedValue { return element }
       }
 
       // Pause before trying again
@@ -153,28 +136,21 @@ public class UIVerifier {
 
     // Property not matching within timeout - fail the test
     if let element = try await toolChain.findElement(
-      matching: criteria,
-      scope: scope,
-      bundleId: bundleId,
-    ) {
+      matching: criteria, scope: scope, bundleId: bundleId, )
+    {
       // Element found, but property doesn't match
       let actualValue: String? =
         switch property.lowercased() {
-        case "title":
-          element.title
-        case "value":
-          element.value
-        case "description":
-          element.elementDescription
-        case "role":
-          element.role
-        case "identifier":
-          element.path
-        default:
-          nil
+        case "title": element.title
+        case "value": element.value
+        case "description": element.elementDescription
+        case "role": element.role
+        case "identifier": element.path
+        default: nil
         }
 
-      let _ = "Element found, but \(property) value mismatch. Expected: \"\(expectedValue)\", Actual: \"\(actualValue ?? "nil")\""
+      let _ =
+        "Element found, but \(property) value mismatch. Expected: \"\(expectedValue)\", Actual: \"\(actualValue ?? "nil")\""
       #expect(Bool(false))
     } else {
       // Element not found
@@ -213,24 +189,17 @@ public class UIVerifier {
     while Date().timeIntervalSince(startTime) < timeout {
       // Try to find the element
       if let element = try await toolChain.findElement(
-        matching: criteria,
-        scope: scope,
-        bundleId: bundleId,
-      ) {
+        matching: criteria, scope: scope, bundleId: bundleId, )
+      {
         // Check the property value
         let actualValue: String?
 
         switch property.lowercased() {
-        case "title":
-          actualValue = element.title
-        case "value":
-          actualValue = element.value
-        case "description":
-          actualValue = element.elementDescription
-        case "role":
-          actualValue = element.role
-        case "identifier":
-          actualValue = element.path
+        case "title": actualValue = element.title
+        case "value": actualValue = element.value
+        case "description": actualValue = element.elementDescription
+        case "role": actualValue = element.role
+        case "identifier": actualValue = element.path
         default:
           throw NSError(
             domain: "UIVerifier",
@@ -240,9 +209,7 @@ public class UIVerifier {
         }
 
         // If the property contains the substring, return the element
-        if let actualValue, actualValue.contains(substring) {
-          return element
-        }
+        if let actualValue, actualValue.contains(substring) { return element }
       }
 
       // Pause before trying again
@@ -251,28 +218,21 @@ public class UIVerifier {
 
     // Property not containing substring within timeout - fail the test
     if let element = try await toolChain.findElement(
-      matching: criteria,
-      scope: scope,
-      bundleId: bundleId,
-    ) {
+      matching: criteria, scope: scope, bundleId: bundleId, )
+    {
       // Element found, but property doesn't contain substring
       let actualValue: String? =
         switch property.lowercased() {
-        case "title":
-          element.title
-        case "value":
-          element.value
-        case "description":
-          element.elementDescription
-        case "role":
-          element.role
-        case "identifier":
-          element.path
-        default:
-          nil
+        case "title": element.title
+        case "value": element.value
+        case "description": element.elementDescription
+        case "role": element.role
+        case "identifier": element.path
+        default: nil
         }
 
-      let _ = "Element found, but \(property) value doesn't contain \"\(substring)\". Actual: \"\(actualValue ?? "nil")\""
+      let _ =
+        "Element found, but \(property) value doesn't contain \"\(substring)\". Actual: \"\(actualValue ?? "nil")\""
       #expect(Bool(false))
     } else {
       // Element not found

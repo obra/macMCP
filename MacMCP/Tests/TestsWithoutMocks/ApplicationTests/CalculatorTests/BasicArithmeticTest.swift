@@ -13,8 +13,7 @@ import Testing
 // @_implementationOnly import TestsWithoutMocks
 
 /// Test case for MCP's ability to interact with the Calculator app
-@Suite(.serialized)
-struct BasicArithmeticTest {
+@Suite(.serialized) struct BasicArithmeticTest {
   // Calculator helper for testing
   private var calculatorHelper: CalculatorTestHelper!
   private var logger: Logger!
@@ -23,12 +22,11 @@ struct BasicArithmeticTest {
   // Shared setup method
   private mutating func setUp() async throws {
     // Set up standardized logging
-    (logger, logFileURL) = TestLogger.create(label: "mcp.test.calculator", testName: "BasicArithmeticTest")
+    (logger, logFileURL) = TestLogger.create(
+      label: "mcp.test.calculator", testName: "BasicArithmeticTest")
     TestLogger.configureEnvironment(logger: logger)
     let _ = TestLogger.createDiagnosticLog(testName: "BasicArithmeticTest", logger: logger)
-    
     logger.debug("Setting up BasicArithmeticTest")
-    
     // Get the shared calculator helper
     calculatorHelper = await CalculatorTestHelper.sharedHelper()
     logger.debug("Obtained shared calculator helper")
@@ -36,13 +34,10 @@ struct BasicArithmeticTest {
     // Ensure app is running and reset state
     logger.debug("Ensuring Calculator app is running")
     let _ = try await calculatorHelper.ensureAppIsRunning()
-    
     logger.debug("Resetting application state")
     await calculatorHelper.resetAppState()
-    
     logger.debug("Setup complete")
   }
-  
   // Shared teardown method
   private mutating func tearDown() async throws {
     logger.debug("Tearing down BasicArithmeticTest")
@@ -55,10 +50,8 @@ struct BasicArithmeticTest {
   }
 
   /// Test simple direct UI inspection of Calculator
-  @Test("UI Inspection of Calculator")
-  mutating func testUIInspection() async throws {
+  @Test("UI Inspection of Calculator") mutating func testUIInspection() async throws {
     try await setUp()
-    
     // Look for window elements
     logger.debug("Finding window elements")
     let windows = try await calculatorHelper.toolChain.findElements(
@@ -102,15 +95,12 @@ struct BasicArithmeticTest {
 
     // Verify the display shows "1"
     try await calculatorHelper.assertDisplayValue("1", message: "Display should show '1'")
-    
     try await tearDown()
   }
 
   /// Test sequential UI interactions like entering a series of button presses
-  @Test("Sequential UI Interactions")
-  mutating func testSequentialUIInteractions() async throws {
+  @Test("Sequential UI Interactions") mutating func testSequentialUIInteractions() async throws {
     try await setUp()
-    
     // Enter a sequence of button presses
     let sequenceSuccess = try await calculatorHelper.app.enterSequence("123")
     #expect(sequenceSuccess, "Should be able to enter a sequence of buttons")
@@ -121,15 +111,12 @@ struct BasicArithmeticTest {
     // Verify the result shows the correct sequence
     try await calculatorHelper.assertDisplayValue(
       "123", message: "Display should show the entered sequence '123'")
-      
     try await tearDown()
   }
 
   /// Test calculator operations using keyboard input
-  @Test("Keyboard Input Operations")
-  mutating func testKeyboardInput() async throws {
+  @Test("Keyboard Input Operations") mutating func testKeyboardInput() async throws {
     try await setUp()
-    
     // Use the keyboard interaction tool to type a simple calculation
     let typingSuccess = try await calculatorHelper.app.typeText("123+456=")
     #expect(typingSuccess, "Should be able to type text using keyboard")
@@ -191,7 +178,6 @@ struct BasicArithmeticTest {
     // Verify the result is 26 (5*4+6)
     try await calculatorHelper.assertDisplayValue(
       "26", message: "Display should show the result '26'")
-      
     try await tearDown()
   }
 }

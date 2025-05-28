@@ -77,9 +77,7 @@ public final class CalculatorModel {
   }
 
   /// Initialize with a tool chain
-  public init(toolChain: ToolChain) {
-    self.toolChain = toolChain
-  }
+  public init(toolChain: ToolChain) { self.toolChain = toolChain }
 
   /// Mock launch method
   public func launch() async throws -> Bool {
@@ -88,9 +86,7 @@ public final class CalculatorModel {
   }
 
   /// Mock isRunning method
-  public func isRunning() async throws -> Bool {
-    _isRunning
-  }
+  public func isRunning() async throws -> Bool { _isRunning }
 
   /// Mock terminate method
   public func terminate() async throws -> Bool {
@@ -99,39 +95,25 @@ public final class CalculatorModel {
   }
 
   /// Mock clear method
-  public func clear() async throws -> Bool {
-    true
-  }
+  public func clear() async throws -> Bool { true }
 
   /// Mock press button method
-  public func pressButton(_: String) async throws -> Bool {
-    true
-  }
+  public func pressButton(_: String) async throws -> Bool { true }
 
   /// Mock press button via accessibility
-  public func pressButtonViaAccessibility(_: String) async throws -> Bool {
-    true
-  }
+  public func pressButtonViaAccessibility(_: String) async throws -> Bool { true }
 
   /// Mock click button with mouse method
-  public func clickButtonWithMouse(_: String) async throws -> Bool {
-    true
-  }
+  public func clickButtonWithMouse(_: String) async throws -> Bool { true }
 
   /// Mock get main window method
-  public func getMainWindow() async throws -> UIElement? {
-    createMockCalculatorWindow()
-  }
+  public func getMainWindow() async throws -> UIElement? { createMockCalculatorWindow() }
 
   /// Mock get display element method
-  public func getDisplayElement() async throws -> UIElement? {
-    createMockDisplayElement()
-  }
+  public func getDisplayElement() async throws -> UIElement? { createMockDisplayElement() }
 
   /// Mock get display value method
-  public func getDisplayValue() async throws -> String? {
-    "0"
-  }
+  public func getDisplayValue() async throws -> String? { "0" }
 
   /// Mock find button method
   public func findButton(_ button: String) async throws -> UIElement? {
@@ -139,29 +121,19 @@ public final class CalculatorModel {
   }
 
   /// Mock enter sequence method
-  public func enterSequence(_: String) async throws -> Bool {
-    true
-  }
+  public func enterSequence(_: String) async throws -> Bool { true }
 
   /// Mock type digit method
-  public func typeDigit(_: String) async throws -> Bool {
-    true
-  }
+  public func typeDigit(_: String) async throws -> Bool { true }
 
   /// Mock type operator method
-  public func typeOperator(_: String) async throws -> Bool {
-    true
-  }
+  public func typeOperator(_: String) async throws -> Bool { true }
 
   /// Mock type text method
-  public func typeText(_: String) async throws -> Bool {
-    true
-  }
+  public func typeText(_: String) async throws -> Bool { true }
 
   /// Mock execute key sequence method
-  public func executeKeySequence(_: [[String: Value]]) async throws -> Bool {
-    true
-  }
+  public func executeKeySequence(_: [[String: Value]]) async throws -> Bool { true }
 
   // MARK: - Helper Methods
 

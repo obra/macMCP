@@ -42,7 +42,6 @@ public enum ListResources: MCP.Method {
   public struct Resource: Codable, Hashable, Sendable {
     /// Resource ID
     public let id: String
-    
     /// Resource URI
     public let uri: String
 
@@ -56,7 +55,9 @@ public enum ListResources: MCP.Method {
     public let metadata: [String: Value]?
 
     /// Create a new resource
-    public init(id: String, uri: String, name: String, type: String, metadata: [String: Value]? = nil) {
+    public init(
+      id: String, uri: String, name: String, type: String, metadata: [String: Value]? = nil
+    ) {
       self.id = id
       self.uri = uri
       self.name = name

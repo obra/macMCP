@@ -145,48 +145,30 @@ extension MacMCPErrorCategory {
   /// Get the base error code for this category
   public var baseErrorCode: Int {
     switch self {
-    case .permissions:
-      MacMCPErrorCode.permissionBase
-    case .accessibility:
-      MacMCPErrorCode.permissionBase  // Accessibility uses permission base
-    case .interaction:
-      MacMCPErrorCode.interactionBase
-    case .element:
-      MacMCPErrorCode.elementBase
-    case .screenshot:
-      MacMCPErrorCode.screenshotBase
-    case .application:
-      MacMCPErrorCode.applicationBase
-    case .applicationLaunch:
-      MacMCPErrorCode.applicationLaunchBase
-    case .applicationNotFound:
-      MacMCPErrorCode.applicationNotFoundBase
-    case .network:
-      MacMCPErrorCode.networkBase
-    case .parsing:
-      MacMCPErrorCode.parsingBase
-    case .timeout:
-      MacMCPErrorCode.timeoutBase
-    case .unknown:
-      MacMCPErrorCode.unknownBase
+    case .permissions: MacMCPErrorCode.permissionBase
+    case .accessibility: MacMCPErrorCode.permissionBase  // Accessibility uses permission base
+    case .interaction: MacMCPErrorCode.interactionBase
+    case .element: MacMCPErrorCode.elementBase
+    case .screenshot: MacMCPErrorCode.screenshotBase
+    case .application: MacMCPErrorCode.applicationBase
+    case .applicationLaunch: MacMCPErrorCode.applicationLaunchBase
+    case .applicationNotFound: MacMCPErrorCode.applicationNotFoundBase
+    case .network: MacMCPErrorCode.networkBase
+    case .parsing: MacMCPErrorCode.parsingBase
+    case .timeout: MacMCPErrorCode.timeoutBase
+    case .unknown: MacMCPErrorCode.unknownBase
     }
   }
 
   /// Map to a standard JSON-RPC error code
   public var jsonrpcErrorCode: Int {
     switch self {
-    case .permissions, .accessibility:
-      JSONRPCErrorCode.invalidRequest
-    case .element, .interaction:
-      JSONRPCErrorCode.invalidParams
-    case .parsing:
-      JSONRPCErrorCode.parseError
-    case .applicationNotFound:
-      JSONRPCErrorCode.invalidRequest
-    case .applicationLaunch:
-      JSONRPCErrorCode.invalidRequest
-    default:
-      JSONRPCErrorCode.internalError
+    case .permissions, .accessibility: JSONRPCErrorCode.invalidRequest
+    case .element, .interaction: JSONRPCErrorCode.invalidParams
+    case .parsing: JSONRPCErrorCode.parseError
+    case .applicationNotFound: JSONRPCErrorCode.invalidRequest
+    case .applicationLaunch: JSONRPCErrorCode.invalidRequest
+    default: JSONRPCErrorCode.internalError
     }
   }
 }
@@ -203,17 +185,14 @@ extension MCPError {
 
     // Use the appropriate error type based on category
     switch error.category {
-    case .parsing:
-      return .parseError(errorDetail)
+    case .parsing: return .parseError(errorDetail)
 
-    case .element, .interaction:
-      return .invalidParams(errorDetail)
+    case .element, .interaction: return .invalidParams(errorDetail)
 
     case .permissions, .accessibility, .applicationNotFound, .applicationLaunch:
       return .invalidRequest(errorDetail)
 
-    case .application, .screenshot, .network, .timeout, .unknown:
-      return .internalError(errorDetail)
+    case .application, .screenshot, .network, .timeout, .unknown: return .internalError(errorDetail)
     }
   }
 }

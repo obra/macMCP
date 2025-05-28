@@ -79,9 +79,7 @@ class MCPInspector: @unchecked Sendable {
     )
 
     // Verify we have either an app ID or PID
-    guard appId != nil || pid != nil else {
-      throw InspectionError.applicationNotFound
-    }
+    guard appId != nil || pid != nil else { throw InspectionError.applicationNotFound }
 
     // Start MCP server if needed
     try await startMCPIfNeeded()
@@ -95,9 +93,7 @@ class MCPInspector: @unchecked Sendable {
       guard let app = NSRunningApplication(processIdentifier: pid_t(pid)) else {
         throw InspectionError.applicationNotFound
       }
-      guard let appBundle = app.bundleIdentifier else {
-        throw InspectionError.applicationNotFound
-      }
+      guard let appBundle = app.bundleIdentifier else { throw InspectionError.applicationNotFound }
       bundleId = appBundle
     } else {
       throw InspectionError.applicationNotFound
@@ -110,15 +106,11 @@ class MCPInspector: @unchecked Sendable {
         print("Using server-side path resolution for: \(pathFilter)")
         do {
           return try await inspectElementByPath(
-            bundleId: bundleId,
-            path: pathFilter,
-            maxDepth: maxDepth,
-          )
+            bundleId: bundleId, path: pathFilter, maxDepth: maxDepth, )
         } catch {
           // If path-based inspection fails, fall back to normal app inspection
           print("Path-based inspection failed with error: \(error.localizedDescription)")
-          print("Falling back to standard application inspection")
-          // Continue with standard app inspection
+          print("Falling back to standard application inspection")  // Continue with standard app inspection
         }
       } else {
         // This is a UI element filter pattern, not a path
@@ -143,8 +135,7 @@ class MCPInspector: @unchecked Sendable {
     // Process the UI state
     do {
       // UI state is returned as a [Tool.Content] array with text content
-      guard let firstContent = uiState.content.first,
-        case .text(let jsonString) = firstContent
+      guard let firstContent = uiState.content.first, case .text(let jsonString) = firstContent
       else {
         throw InspectionError.unexpectedError(
           "Invalid response format from MCP: missing text content")
@@ -206,18 +197,12 @@ class MCPInspector: @unchecked Sendable {
   }
 
   /// Fetches UI state data from MCP InterfaceExplorerTool, enhanced with menu and window data
-  private func fetchUIStateData(bundleId: String, maxDepth: Int) async throws
-    -> CallTool.Result
-  {
-    guard let mcpClient else {
-      throw InspectionError.unexpectedError("MCP client not initialized")
-    }
+  private func fetchUIStateData(bundleId: String, maxDepth: Int) async throws -> CallTool.Result {
+    guard let mcpClient else { throw InspectionError.unexpectedError("MCP client not initialized") }
 
     // Create the request parameters for the InterfaceExplorerTool (replacing the older UIStateTool)
     let arguments: [String: Value] = [
-      "scope": .string("application"),
-      "bundleId": .string(bundleId),
-      "maxDepth": .int(maxDepth),
+      "scope": .string("application"), "bundleId": .string(bundleId), "maxDepth": .int(maxDepth),
       "includeHidden": .bool(true),  // Include all elements for completeness
     ]
 
@@ -251,38 +236,29 @@ class MCPInspector: @unchecked Sendable {
     -> MCPUIElementNode
   {
     print("Inspecting element by path: \(path) in application: \(bundleId)")
-    guard let mcpClient else {
-      throw InspectionError.unexpectedError("MCP client not initialized")
-    }
+    guard let mcpClient else { throw InspectionError.unexpectedError("MCP client not initialized") }
 
     // Start MCP server if needed
     try await startMCPIfNeeded()
 
     // Create the request parameters for the InterfaceExplorerTool with element path parameter
     let arguments: [String: Value] = [
-      "scope": .string("path"),
-      "bundleId": .string(bundleId),
-      "id": .string(path),  // Use the path parameter for path-based lookup
-      "maxDepth": .int(maxDepth),
-      "includeHidden": .bool(true),  // Include all elements for completeness
+      "scope": .string("path"), "bundleId": .string(bundleId), "id": .string(path),  // Use the path parameter for path-based lookup
+      "maxDepth": .int(maxDepth), "includeHidden": .bool(true),  // Include all elements for completeness
     ]
 
     // Send request to the MCP server
     do {
       print("Sending element path request to MCP: \(path)")
       let (content, isError) = try await mcpClient.callTool(
-        name: "macos_explore_ui",
-        arguments: arguments,
-      )
+        name: "macos_explore_ui", arguments: arguments, )
 
       if let isError, isError {
         throw InspectionError.unexpectedError("Error from MCP tool: \(content)")
       }
 
       // Process the response
-      guard let firstContent = content.first,
-        case .text(let jsonString) = firstContent
-      else {
+      guard let firstContent = content.first, case .text(let jsonString) = firstContent else {
         throw InspectionError.unexpectedError(
           "Invalid response format from MCP: missing text content")
       }
@@ -343,8 +319,7 @@ class MCPInspector: @unchecked Sendable {
       let matches = regex.matches(in: pattern, options: [], range: nsRange)
       for match in matches {
         // Extract attribute name and value
-        if match.numberOfRanges == 3,
-          let nameRange = Range(match.range(at: 1), in: pattern),
+        if match.numberOfRanges == 3, let nameRange = Range(match.range(at: 1), in: pattern),
           let valueRange = Range(match.range(at: 2), in: pattern)
         {
           let name = String(pattern[nameRange])
@@ -354,23 +329,18 @@ class MCPInspector: @unchecked Sendable {
       }
     }
 
-    guard let extractedRole = role else {
-      return nil
-    }
+    guard let extractedRole = role else { return nil }
 
     return (extractedRole, attributes)
   }
 
   /// Fetch UI state with specific filter criteria
   private func fetchFilteredUIStateData(
-    bundleId: String,
-    role: String,
-    attributes: [String: String],
-    maxDepth: Int,
-  ) async throws -> MCPUIElementNode {
-    guard let mcpClient else {
-      throw InspectionError.unexpectedError("MCP client not initialized")
-    }
+    bundleId: String, role: String, attributes: [String: String], maxDepth: Int,
+  )
+    async throws -> MCPUIElementNode
+  {
+    guard let mcpClient else { throw InspectionError.unexpectedError("MCP client not initialized") }
 
     // Start MCP server if needed
     try await startMCPIfNeeded()
@@ -394,9 +364,7 @@ class MCPInspector: @unchecked Sendable {
 
     // Create the request parameters
     let arguments: [String: Value] = [
-      "scope": .string("application"),
-      "bundleId": .string(bundleId),
-      "maxDepth": .int(maxDepth),
+      "scope": .string("application"), "bundleId": .string(bundleId), "maxDepth": .int(maxDepth),
       "includeHidden": .bool(true),
     ]
 
@@ -417,9 +385,7 @@ class MCPInspector: @unchecked Sendable {
     }
 
     // Process the response
-    guard let firstContent = content.first,
-      case .text(let jsonString) = firstContent
-    else {
+    guard let firstContent = content.first, case .text(let jsonString) = firstContent else {
       throw InspectionError.unexpectedError(
         "Invalid response format from MCP: missing text content")
     }
@@ -473,9 +439,7 @@ class MCPInspector: @unchecked Sendable {
     // Create a task to handle the async cleanup with @Sendable to avoid capture issues
     Task { @Sendable in
       // Disconnect the client if it exists
-      if let client {
-        await client.disconnect()
-      }
+      if let client { await client.disconnect() }
 
       // Signal semaphore when done
       semaphore.signal()
@@ -497,9 +461,7 @@ class MCPInspector: @unchecked Sendable {
     // Create a detached task for cleanup that doesn't reference self
     Task.detached {
       // Disconnect the client if it exists
-      if let client {
-        await client.disconnect()
-      }
+      if let client { await client.disconnect() }
 
       // Terminate the process if it exists
       proc?.terminate()
@@ -518,12 +480,9 @@ enum InspectionError: Swift.Error {
     switch self {
     case .accessibilityPermissionDenied:
       "Accessibility permission denied. Please enable accessibility permissions in System Settings > Privacy & Security > Accessibility."
-    case .applicationNotFound:
-      "Application not found. Please verify the bundle ID or process ID."
-    case .timeout:
-      "Operation timed out. The application may be busy or not responding."
-    case .unexpectedError(let message):
-      "Unexpected error: \(message)"
+    case .applicationNotFound: "Application not found. Please verify the bundle ID or process ID."
+    case .timeout: "Operation timed out. The application may be busy or not responding."
+    case .unexpectedError(let message): "Unexpected error: \(message)"
     }
   }
 }

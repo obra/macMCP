@@ -5,25 +5,19 @@ import Foundation
 
 /// Provides Keynote-specific guidance content for the OnboardingTool
 public struct KeynoteGuidance {
-  
   /// Provides Keynote guidance based on the specific topic requested
   /// - Parameter specific: Optional specific topic ("slides", "text", "images")
   /// - Returns: Markdown-formatted guidance string
   public static func guidance(specific: String?) -> String {
     switch specific {
-    case "slides":
-      return slidesGuidance
-    case "text":
-      return textGuidance
-    case "images":
-      return imagesGuidance
-    default:
-      return generalKeynoteGuidance
+    case "slides": return slidesGuidance
+    case "text": return textGuidance
+    case "images": return imagesGuidance
+    default: return generalKeynoteGuidance
     }
   }
-  
   // MARK: - Specific Guidance Content
-  
+
   private static let slidesGuidance = """
     # Working with Slides in Keynote
 
@@ -137,7 +131,6 @@ public struct KeynoteGuidance {
 
     Remember to periodically save your work using Command+S or File > Save.
     """
-  
   private static let textGuidance = """
     # Working with Text in Keynote
 
@@ -291,7 +284,6 @@ public struct KeynoteGuidance {
 
     Remember to click outside the text box when finished editing to commit changes.
     """
-  
   private static let imagesGuidance = """
     # Working with Images in Keynote
 
@@ -428,7 +420,6 @@ public struct KeynoteGuidance {
 
     Remember to save your work frequently with Command+S.
     """
-  
   private static let generalKeynoteGuidance = """
     # Working with Keynote
 

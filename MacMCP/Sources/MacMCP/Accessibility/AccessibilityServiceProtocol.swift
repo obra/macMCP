@@ -9,30 +9,18 @@ public protocol AccessibilityServiceProtocol: Sendable {
   /// This method allows calling code to utilize the actor isolation to maintain Sendability
   func run<T: Sendable>(_ operation: @Sendable () async throws -> T) async rethrows -> T
   /// Get the system-wide UI element structure
-  func getSystemUIElement(
-    recursive: Bool,
-    maxDepth: Int,
-  ) async throws -> UIElement
+  func getSystemUIElement(recursive: Bool, maxDepth: Int, ) async throws -> UIElement
 
   /// Get the UI element for a specific application
-  func getApplicationUIElement(
-    bundleId: String,
-    recursive: Bool,
-    maxDepth: Int,
-  ) async throws -> UIElement
+  func getApplicationUIElement(bundleId: String, recursive: Bool, maxDepth: Int, ) async throws
+    -> UIElement
 
   /// Get the UI element for the currently focused application
-  func getFocusedApplicationUIElement(
-    recursive: Bool,
-    maxDepth: Int,
-  ) async throws -> UIElement
+  func getFocusedApplicationUIElement(recursive: Bool, maxDepth: Int, ) async throws -> UIElement
 
   /// Get UI element at a specific screen position
-  func getUIElementAtPosition(
-    position: CGPoint,
-    recursive: Bool,
-    maxDepth: Int,
-  ) async throws -> UIElement?
+  func getUIElementAtPosition(position: CGPoint, recursive: Bool, maxDepth: Int, ) async throws
+    -> UIElement?
 
   /// Find UI elements matching criteria
   /// - Parameters:
@@ -68,62 +56,38 @@ public protocol AccessibilityServiceProtocol: Sendable {
   ) async throws -> [UIElement]
 
   /// Find a UI element by path
-  func findElementByPath(
-    path: String,
-  ) async throws -> UIElement?
+  func findElementByPath(path: String, ) async throws -> UIElement?
 
   /// Perform a specific accessibility action on an element
   /// - Parameters:
   ///   - action: The accessibility action to perform (e.g., "AXPress", "AXPick")
   ///   - elementPath: The element path
-  func performAction(
-    action: String,
-    onElementWithPath elementPath: String,
-  ) async throws
+  func performAction(action: String, onElementWithPath elementPath: String, ) async throws
 
   /// Move a window to a new position
-  func moveWindow(
-    withPath path: String,
-    to point: CGPoint,
-  ) async throws
+  func moveWindow(withPath path: String, to point: CGPoint, ) async throws
 
   /// Resize a window
-  func resizeWindow(
-    withPath path: String,
-    to size: CGSize,
-  ) async throws
+  func resizeWindow(withPath path: String, to size: CGSize, ) async throws
 
   /// Minimize a window
-  func minimizeWindow(
-    withPath path: String,
-  ) async throws
+  func minimizeWindow(withPath path: String, ) async throws
 
   /// Maximize (zoom) a window
-  func maximizeWindow(
-    withPath path: String,
-  ) async throws
+  func maximizeWindow(withPath path: String, ) async throws
 
   /// Close a window
-  func closeWindow(
-    withPath path: String,
-  ) async throws
+  func closeWindow(withPath path: String, ) async throws
 
   /// Activate (bring to front) a window
-  func activateWindow(
-    withPath path: String,
-  ) async throws
+  func activateWindow(withPath path: String, ) async throws
 
   /// Set the window order (front, back, above, below)
   func setWindowOrder(
-    withPath path: String,
-    orderMode: WindowOrderMode,
-    referenceWindowPath: String?,
-  ) async throws
+    withPath path: String, orderMode: WindowOrderMode, referenceWindowPath: String?, ) async throws
 
   /// Focus a window (give it keyboard focus)
-  func focusWindow(
-    withPath path: String,
-  ) async throws
+  func focusWindow(withPath path: String, ) async throws
 
   /// Navigate through menu using ElementPath URI and activate a menu item
   /// - Parameters:

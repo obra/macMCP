@@ -12,8 +12,7 @@ let logger = Logger(label: "com.fsck.mac-mcp.mcp-ax-inspector")
 
 /// A class to handle JSON fetching tasks in a way that can be used with a semaphore
 /// This solves the issue of capturing state in Task closures
-@available(macOS 12.0, *)
-final class JsonFetcher: @unchecked Sendable {
+@available(macOS 12.0, *) final class JsonFetcher: @unchecked Sendable {
   private let inspector: MCPInspector
   private let appId: String?
   private let inspectPath: String?
@@ -41,9 +40,7 @@ final class JsonFetcher: @unchecked Sendable {
     do {
       let result = try await getOriginalJsonOutput()
       onComplete(result)
-    } catch {
-      onError(error)
-    }
+    } catch { onError(error) }
   }
 
   /// Get the original JSON output directly from the MCP server
@@ -62,11 +59,8 @@ final class JsonFetcher: @unchecked Sendable {
     if let path = inspectPath, path.hasPrefix("macos://ui/") {
       // Path-based inspection
       arguments = [
-        "scope": .string("path"),
-        "bundleId": .string(bundleId),
-        "id": .string(path),
-        "maxDepth": .int(maxDepth),
-        "includeHidden": .bool(true),
+        "scope": .string("path"), "bundleId": .string(bundleId), "id": .string(path),
+        "maxDepth": .int(maxDepth), "includeHidden": .bool(true),
         // Add original path to ensure we keep it intact in the output
         "originalPath": .string(path),
       ]
@@ -74,9 +68,7 @@ final class JsonFetcher: @unchecked Sendable {
     } else {
       // Standard application inspection
       arguments = [
-        "scope": .string("application"),
-        "bundleId": .string(bundleId),
-        "maxDepth": .int(maxDepth),
+        "scope": .string("application"), "bundleId": .string(bundleId), "maxDepth": .int(maxDepth),
         "includeHidden": .bool(true),
       ]
       print("Fetching raw JSON for application: \(bundleId)")
@@ -84,9 +76,7 @@ final class JsonFetcher: @unchecked Sendable {
 
     // Call the MCP server
     let (content, isError) = try await client.callTool(
-      name: "macos_explore_ui",
-      arguments: arguments,
-    )
+      name: "macos_explore_ui", arguments: arguments, )
 
     if let isError, isError {
       throw InspectionError.unexpectedError("Error from MCP tool: \(content)")
@@ -125,8 +115,7 @@ final class JsonFetcher: @unchecked Sendable {
 
 /// A class to handle asynchronous inspection tasks in a way that can be used with a semaphore
 /// This solves the issue of capturing state in Task closures
-@available(macOS 12.0, *)
-final class AsyncInspectionTask: @unchecked Sendable {
+@available(macOS 12.0, *) final class AsyncInspectionTask: @unchecked Sendable {
   private let inspector: MCPInspector
   private let onComplete: (MCPUIElementNode, String) -> Void  // Added additional output parameter
   private let onError: (Swift.Error) -> Void
@@ -197,8 +186,7 @@ final class AsyncInspectionTask: @unchecked Sendable {
           do {
             // Get application menus
             let arguments: [String: Value] = [
-              "action": .string("getApplicationMenus"),
-              "bundleId": .string(appId),
+              "action": .string("getApplicationMenus"), "bundleId": .string(appId),
             ]
 
             print("Fetching menu structure for \(appId)...")
@@ -220,10 +208,8 @@ final class AsyncInspectionTask: @unchecked Sendable {
               additionalOutput += "\nFetching items for menu '\(menuName)'...\n"
 
               let menuItemsArgs: [String: Value] = [
-                "action": .string("getMenuItems"),
-                "bundleId": .string(appId),
-                "menuTitle": .string(menuName),
-                "includeSubmenus": .bool(true),
+                "action": .string("getMenuItems"), "bundleId": .string(appId),
+                "menuTitle": .string(menuName), "includeSubmenus": .bool(true),
               ]
 
               let (menuItemsContent, menuItemsError) = try await mcpClient.callTool(
@@ -257,8 +243,7 @@ final class AsyncInspectionTask: @unchecked Sendable {
           do {
             // Get application windows
             let arguments: [String: Value] = [
-              "action": .string("getApplicationWindows"),
-              "bundleId": .string(appId),
+              "action": .string("getApplicationWindows"), "bundleId": .string(appId),
               "includeMinimized": .bool(true),
             ]
 
@@ -281,8 +266,7 @@ final class AsyncInspectionTask: @unchecked Sendable {
               additionalOutput += "\nFetching details for window ID '\(windowIdValue)'...\n"
 
               let windowDetailsArgs: [String: Value] = [
-                "action": .string("getActiveWindow"),
-                "bundleId": .string(appId),
+                "action": .string("getActiveWindow"), "bundleId": .string(appId),
                 "windowId": .string(windowIdValue),
               ]
 
@@ -387,34 +371,31 @@ struct MCPAccessibilityInspector: ParsableCommand {
   )
 
   // Application targeting options
-  @Option(name: [.customLong("app-id")], help: "Application bundle identifier")
-  var appId: String?
+  @Option(name: [.customLong("app-id")], help: "Application bundle identifier") var appId: String?
 
   // We don't require PID anymore since app-id is required
-  @Option(name: [.customLong("pid")], help: "Application process ID (optional)")
-  var pid: Int?
+  @Option(name: [.customLong("pid")], help: "Application process ID (optional)") var pid: Int?
 
   // Tree traversal options
   @Option(name: [.customLong("max-depth")], help: "Maximum depth to traverse (default: 150)")
   var maxDepth: Int = 150
 
   // MCP server options
-  @Option(name: [.customLong("mcp-path")], help: "Path to MCP server executable")
-  var mcpPath: String?
+  @Option(name: [.customLong("mcp-path")], help: "Path to MCP server executable") var mcpPath:
+    String?
 
   // Output options
-  @Option(name: [.customLong("save")], help: "Save output to file")
-  var saveToFile: String?
+  @Option(name: [.customLong("save")], help: "Save output to file") var saveToFile: String?
 
   @Option(
     name: [.customLong("filter")], help: "Filter elements by property (format: property=value)")
   var filter: [String] = []
 
-  @Flag(name: [.customLong("hide-invisible")], help: "Hide invisible elements")
-  var hideInvisible: Bool = false
+  @Flag(name: [.customLong("hide-invisible")], help: "Hide invisible elements") var hideInvisible:
+    Bool = false
 
-  @Flag(name: [.customLong("hide-disabled")], help: "Hide disabled elements")
-  var hideDisabled: Bool = false
+  @Flag(name: [.customLong("hide-disabled")], help: "Hide disabled elements") var hideDisabled:
+    Bool = false
 
   @Flag(
     name: [.customLong("show-menus")],
@@ -424,20 +405,17 @@ struct MCPAccessibilityInspector: ParsableCommand {
   @Flag(
     name: [.customLong("show-window-controls")],
     help: "Only show window control elements (close, minimize, zoom buttons, toolbars, etc.)",
-  )
-  var showWindowControls: Bool = false
+  ) var showWindowControls: Bool = false
 
   @Flag(
     name: [.customLong("show-window-contents")],
     help: "Only show window content elements (excluding menus and controls)",
-  )
-  var showWindowContents: Bool = false
+  ) var showWindowContents: Bool = false
 
   @Flag(
     name: [.customLong("verbose")],
     help: "Show even more detailed diagnostics (currently all data is shown by default)",
-  )
-  var verbose: Bool = false
+  ) var verbose: Bool = false
 
   // Menu interaction options
   @Flag(
@@ -466,14 +444,12 @@ struct MCPAccessibilityInspector: ParsableCommand {
   @Option(
     name: [.customLong("path-filter")],
     help: "Filter elements by path pattern (e.g., \"AXButton[@AXDescription=1]\")",
-  )
-  var pathFilter: String?
+  ) var pathFilter: String?
 
   @Flag(
     name: [.customLong("interactive-paths")],
     help: "Highlight paths for interactive elements (buttons, links, etc.)",
-  )
-  var showInteractivePaths: Bool = false
+  ) var showInteractivePaths: Bool = false
 
   @Flag(
     name: [.customLong("hide-full-paths")],
@@ -484,8 +460,7 @@ struct MCPAccessibilityInspector: ParsableCommand {
     name: [.customLong("inspect-path")],
     help:
       "Directly inspect an element by its full path (e.g., \"macos://ui/AXApplication[@AXTitle=\\\"Calculator\\\"]/AXWindow/AXButton\")",
-  )
-  var inspectPath: String?
+  ) var inspectPath: String?
 
   // Raw output option
   @Flag(
@@ -556,10 +531,10 @@ struct MCPAccessibilityInspector: ParsableCommand {
       logger.info(
         "Beginning inspection",
         metadata: [
-          "appId": .string(appId ?? ""),
-          "pid": .stringConvertible(pid ?? 0),
+          "appId": .string(appId ?? ""), "pid": .stringConvertible(pid ?? 0),
           "mcpPath": .string(mcpPath ?? "default"),
-        ])
+        ]
+      )
 
       // Check if app ID is required but not provided
       if inspectPath != nil, appId == nil {
@@ -601,18 +576,14 @@ struct MCPAccessibilityInspector: ParsableCommand {
       )
 
       // Run the async task with @Sendable to prevent data race issues
-      Task { @Sendable in
-        await asyncTask.run()
-      }
+      Task { @Sendable in await asyncTask.run() }
 
       // Wait for the task to complete
       print("Waiting for MCP inspection to complete...")
       semaphore.wait()
 
       // Check for error
-      if let error = resultError {
-        throw error
-      }
+      if let error = resultError { throw error }
 
       // Process results
       guard let rootElement = resultRootElement else {
@@ -644,17 +615,13 @@ struct MCPAccessibilityInspector: ParsableCommand {
         )
 
         // Start the fetch task
-        Task {
-          await fetcher.fetch()
-        }
+        Task { await fetcher.fetch() }
 
         // Wait for the task to complete
         jsonSemaphore.wait()
 
         // Check for errors
-        if let error = jsonError {
-          throw error
-        }
+        if let error = jsonError { throw error }
 
         // Print the JSON result
         if let jsonOutput = jsonResult {
@@ -681,9 +648,7 @@ struct MCPAccessibilityInspector: ParsableCommand {
       let visualizer = MCPTreeVisualizer(options: visualizerOptions)
 
       // Add interactive elements filter if requested
-      if showInteractivePaths {
-        filterDict["component-type"] = "interactive"
-      }
+      if showInteractivePaths { filterDict["component-type"] = "interactive" }
 
       // Generate the visualization
       print("Generating visualization...")
@@ -710,9 +675,7 @@ struct MCPAccessibilityInspector: ParsableCommand {
         print(output)
 
         // Print additional info if available
-        if !additionalOutput.isEmpty {
-          print(additionalOutput)
-        }
+        if !additionalOutput.isEmpty { print(additionalOutput) }
       }
 
       logger.info("Inspection completed successfully")
@@ -746,9 +709,7 @@ struct MCPAccessibilityInspector: ParsableCommand {
     }
 
     // If the path is absolute, use it directly
-    if path.hasPrefix("/") {
-      return path
-    }
+    if path.hasPrefix("/") { return path }
 
     // If the path is relative, resolve it against the current directory
     let fileManager = FileManager.default
@@ -763,15 +724,14 @@ struct MCPAccessibilityInspector: ParsableCommand {
 
       // Try to find MacMCP in various locations
       let possibleLocations = [
-        "./MacMCP",
-        "./.build/debug/MacMCP",
-        "../.build/debug/MacMCP",
-        "/usr/local/bin/MacMCP",
+        "./MacMCP", "./.build/debug/MacMCP", "../.build/debug/MacMCP", "/usr/local/bin/MacMCP",
       ]
 
       for location in possibleLocations {
         let resolvedPath = URL(fileURLWithPath: fileManager.currentDirectoryPath)
-          .appendingPathComponent(location).path
+          .appendingPathComponent(
+            location
+          ).path
         if fileManager.fileExists(atPath: resolvedPath) {
           print("Found MCP executable at: \(resolvedPath)")
           return resolvedPath
@@ -792,28 +752,21 @@ struct MCPAccessibilityInspector: ParsableCommand {
 
   /// Get detailed menu information using MenuNavigationTool
   private func getMenuDetails(inspector: MCPInspector, bundleId: String) async throws -> String {
-    guard let mcpClient = inspector.mcpClient else {
-      return "Menu client not available\n"
-    }
+    guard let mcpClient = inspector.mcpClient else { return "Menu client not available\n" }
 
     var result = "Fetching menu structure for \(bundleId)...\n"
 
     // Create the request parameters for the MenuNavigationTool
     var arguments: [String: Value] = [
-      "action": .string("getApplicationMenus"),
-      "bundleId": .string(bundleId),
+      "action": .string("getApplicationMenus"), "bundleId": .string(bundleId),
     ]
 
     do {
       // First get all application menus
       let (content, isError) = try await mcpClient.callTool(
-        name: "macos_menu_navigation",
-        arguments: arguments,
-      )
+        name: "macos_menu_navigation", arguments: arguments, )
 
-      if let isError, isError {
-        return "Error fetching menu structure: \(content)\n"
-      }
+      if let isError, isError { return "Error fetching menu structure: \(content)\n" }
 
       // Convert menu content to string
       if let firstContent = content.first, case .text(let menuText) = firstContent {
@@ -828,8 +781,7 @@ struct MCPAccessibilityInspector: ParsableCommand {
 
         // Create parameters for getting menu items
         arguments = [
-          "action": .string("getMenuItems"),
-          "bundleId": .string(bundleId),
+          "action": .string("getMenuItems"), "bundleId": .string(bundleId),
           "menuTitle": .string(menuTitle),
           "includeSubmenus": .bool(true),
         ]
@@ -851,25 +803,20 @@ struct MCPAccessibilityInspector: ParsableCommand {
       }
 
       return result
-    } catch {
-      return "Error fetching menu details: \(error.localizedDescription)\n"
-    }
+    } catch { return "Error fetching menu details: \(error.localizedDescription)\n" }
   }
 
   /// Get detailed window information using WindowManagementTool
   private func getWindowDetails(inspector: MCPInspector, bundleId: String, windowId: String?)
     async throws -> String
   {
-    guard let mcpClient = inspector.mcpClient else {
-      return "Window client not available\n"
-    }
+    guard let mcpClient = inspector.mcpClient else { return "Window client not available\n" }
 
     var result = "Fetching window information for \(bundleId)...\n"
 
     // Create the request parameters for the WindowManagementTool
     var arguments: [String: Value] = [
-      "action": .string("getApplicationWindows"),
-      "bundleId": .string(bundleId),
+      "action": .string("getApplicationWindows"), "bundleId": .string(bundleId),
       "includeMinimized": .bool(true),
     ]
 
@@ -880,9 +827,7 @@ struct MCPAccessibilityInspector: ParsableCommand {
         arguments: arguments,
       )
 
-      if let isError, isError {
-        return "Error fetching window information: \(content)\n"
-      }
+      if let isError, isError { return "Error fetching window information: \(content)\n" }
 
       // Convert window content to string
       if let firstContent = content.first, case .text(let windowText) = firstContent {
@@ -897,8 +842,7 @@ struct MCPAccessibilityInspector: ParsableCommand {
 
         // Create parameters for getting window details
         arguments = [
-          "action": .string("getActiveWindow"),
-          "bundleId": .string(bundleId),
+          "action": .string("getActiveWindow"), "bundleId": .string(bundleId),
           "windowId": .string(windowId),
         ]
 
@@ -919,9 +863,7 @@ struct MCPAccessibilityInspector: ParsableCommand {
       }
 
       return result
-    } catch {
-      return "Error fetching window details: \(error.localizedDescription)\n"
-    }
+    } catch { return "Error fetching window details: \(error.localizedDescription)\n" }
   }
 }
 

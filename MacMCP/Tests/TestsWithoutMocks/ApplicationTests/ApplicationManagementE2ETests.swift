@@ -13,8 +13,7 @@ import Testing
 // @_implementationOnly import TestsWithoutMocks
 
 /// End-to-end tests for the ApplicationManagementTool
-@Suite(.serialized)
-struct ApplicationManagementE2ETests {
+@Suite(.serialized) struct ApplicationManagementE2ETests {
   // Test components
   private var toolChain: ToolChain!
 
@@ -48,24 +47,19 @@ struct ApplicationManagementE2ETests {
   /// Helper method to terminate an application
   private func terminateApplication(bundleId: String) async {
     let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId)
-    for app in runningApps {
-      _ = app.forceTerminate()
-    }
+    for app in runningApps { _ = app.forceTerminate() }
   }
 
   /// Test launching and terminating an application
-  @Test("Launch and Terminate")
-  mutating func testLaunchAndTerminate() async throws {
+  @Test("Launch and Terminate") mutating func testLaunchAndTerminate() async throws {
     try await setUp()
-    
     // Verify Calculator is not running at start
     let initialIsRunning = isApplicationRunning(calculatorBundleId)
     #expect(!initialIsRunning, "Calculator should not be running at test start")
 
     // Create launch parameters
     let launchParams: [String: Value] = [
-      "action": .string("launch"),
-      "bundleId": .string(calculatorBundleId),
+      "action": .string("launch"), "bundleId": .string(calculatorBundleId),
     ]
 
     // Launch Calculator
@@ -83,8 +77,7 @@ struct ApplicationManagementE2ETests {
 
     // Create terminate parameters
     let terminateParams: [String: Value] = [
-      "action": .string("terminate"),
-      "bundleId": .string(calculatorBundleId),
+      "action": .string("terminate"), "bundleId": .string(calculatorBundleId),
     ]
 
     // Terminate Calculator
@@ -99,19 +92,15 @@ struct ApplicationManagementE2ETests {
     // Check if app is still running
     let isStillRunning = isApplicationRunning(calculatorBundleId)
     #expect(!isStillRunning, "Calculator should not be running after termination")
-    
     try await tearDown()
   }
 
   /// Test getting running applications
-  @Test("Get Running Applications")
-  mutating func testGetRunningApplications() async throws {
+  @Test("Get Running Applications") mutating func testGetRunningApplications() async throws {
     try await setUp()
-    
     // Launch a test application
     let launchParams: [String: Value] = [
-      "action": .string("launch"),
-      "bundleId": .string(calculatorBundleId),
+      "action": .string("launch"), "bundleId": .string(calculatorBundleId),
     ]
 
     _ = try await toolChain.applicationManagementTool.handler(launchParams)
@@ -120,9 +109,7 @@ struct ApplicationManagementE2ETests {
     try await Task.sleep(for: .milliseconds(2000))
 
     // Create get running applications parameters
-    let getRunningParams: [String: Value] = [
-      "action": .string("getRunningApplications")
-    ]
+    let getRunningParams: [String: Value] = ["action": .string("getRunningApplications")]
 
     // Get running applications
     let result = try await toolChain.applicationManagementTool.handler(getRunningParams)
@@ -137,19 +124,15 @@ struct ApplicationManagementE2ETests {
     } else {
       #expect(Bool(false), "Result should be text content")
     }
-    
     try await tearDown()
   }
 
   /// Test checking if an application is running
-  @Test("Check if Application is Running")
-  mutating func testIsRunning() async throws {
+  @Test("Check if Application is Running") mutating func testIsRunning() async throws {
     try await setUp()
-    
     // Launch Calculator
     let launchParams: [String: Value] = [
-      "action": .string("launch"),
-      "bundleId": .string(calculatorBundleId),
+      "action": .string("launch"), "bundleId": .string(calculatorBundleId),
     ]
 
     _ = try await toolChain.applicationManagementTool.handler(launchParams)
@@ -159,8 +142,7 @@ struct ApplicationManagementE2ETests {
 
     // Check if Calculator is running
     let isRunningParams: [String: Value] = [
-      "action": .string("isRunning"),
-      "bundleId": .string(calculatorBundleId),
+      "action": .string("isRunning"), "bundleId": .string(calculatorBundleId),
     ]
 
     let calcResult = try await toolChain.applicationManagementTool.handler(isRunningParams)
@@ -172,14 +154,11 @@ struct ApplicationManagementE2ETests {
       let json = try toolChain.parseJsonResponse(calcResult[0])
       let isRunning = toolChain.getBoolValue(from: json, forKey: "isRunning")
       #expect(isRunning, "Calculator should be reported as running")
-    } catch {
-      #expect(Bool(false), "Failed to parse JSON response: \(error)")
-    }
+    } catch { #expect(Bool(false), "Failed to parse JSON response: \(error)") }
 
     // Check if a non-running application is reported correctly
     let notRunningParams: [String: Value] = [
-      "action": .string("isRunning"),
-      "bundleId": .string("com.nonexistent.app"),
+      "action": .string("isRunning"), "bundleId": .string("com.nonexistent.app"),
     ]
 
     let nonRunningResult = try await toolChain.applicationManagementTool.handler(notRunningParams)
@@ -191,24 +170,18 @@ struct ApplicationManagementE2ETests {
       let json = try toolChain.parseJsonResponse(nonRunningResult[0])
       let isRunning = toolChain.getBoolValue(from: json, forKey: "isRunning")
       #expect(!isRunning, "Non-existent app should be reported as not running")
-    } catch {
-      #expect(Bool(false), "Failed to parse JSON response: \(error)")
-    }
-    
+    } catch { #expect(Bool(false), "Failed to parse JSON response: \(error)") }
     try await tearDown()
   }
 
   /// Test hiding, unhiding and activating an application
-  @Test("Hide Unhide Activate")
-  mutating func testHideUnhideActivate() async throws {
+  @Test("Hide Unhide Activate") mutating func testHideUnhideActivate() async throws {
     try await setUp()
-    
     // First launch both test applications
 
     // Launch Calculator
     let launchCalcParams: [String: Value] = [
-      "action": .string("launch"),
-      "bundleId": .string(calculatorBundleId),
+      "action": .string("launch"), "bundleId": .string(calculatorBundleId),
     ]
 
     _ = try await toolChain.applicationManagementTool.handler(launchCalcParams)
@@ -218,8 +191,7 @@ struct ApplicationManagementE2ETests {
 
     // Launch TextEdit
     let launchTextEditParams: [String: Value] = [
-      "action": .string("launch"),
-      "bundleId": .string(textEditBundleId),
+      "action": .string("launch"), "bundleId": .string(textEditBundleId),
     ]
 
     _ = try await toolChain.applicationManagementTool.handler(launchTextEditParams)
@@ -230,8 +202,7 @@ struct ApplicationManagementE2ETests {
     // Hide Calculator - note that hiding can be unreliable in automated tests,
     // especially if the application doesn't have focus
     let hideParams: [String: Value] = [
-      "action": .string("hideApplication"),
-      "bundleId": .string(calculatorBundleId),
+      "action": .string("hideApplication"), "bundleId": .string(calculatorBundleId),
     ]
 
     let hideResult = try await toolChain.applicationManagementTool.handler(hideParams)
@@ -252,8 +223,7 @@ struct ApplicationManagementE2ETests {
 
     // Activate Calculator (should also unhide it)
     let activateParams: [String: Value] = [
-      "action": .string("activateApplication"),
-      "bundleId": .string(calculatorBundleId),
+      "action": .string("activateApplication"), "bundleId": .string(calculatorBundleId),
     ]
 
     let activateResult = try await toolChain.applicationManagementTool.handler(activateParams)
@@ -265,17 +235,13 @@ struct ApplicationManagementE2ETests {
       let json = try toolChain.parseJsonResponse(activateResult[0])
       let success = toolChain.getBoolValue(from: json, forKey: "success")
       #expect(success, "Activate operation should succeed")
-    } catch {
-      #expect(Bool(false), "Failed to parse JSON response: \(error)")
-    }
+    } catch { #expect(Bool(false), "Failed to parse JSON response: \(error)") }
 
     // Allow time for UI to update
     try await Task.sleep(for: .milliseconds(1000))
 
     // Get frontmost application
-    let frontmostParams: [String: Value] = [
-      "action": .string("getFrontmostApplication")
-    ]
+    let frontmostParams: [String: Value] = ["action": .string("getFrontmostApplication")]
 
     let frontmostResult = try await toolChain.applicationManagementTool.handler(frontmostParams)
 
@@ -289,21 +255,17 @@ struct ApplicationManagementE2ETests {
     } else {
       #expect(Bool(false), "Result should be text content")
     }
-    
     try await tearDown()
   }
 
   /// Test hiding other applications
-  @Test("Hide Other Applications")
-  mutating func testHideOtherApplications() async throws {
+  @Test("Hide Other Applications") mutating func testHideOtherApplications() async throws {
     try await setUp()
-    
     // First launch both test applications
 
     // Launch Calculator
     let launchCalcParams: [String: Value] = [
-      "action": .string("launch"),
-      "bundleId": .string(calculatorBundleId),
+      "action": .string("launch"), "bundleId": .string(calculatorBundleId),
     ]
 
     _ = try await toolChain.applicationManagementTool.handler(launchCalcParams)
@@ -313,8 +275,7 @@ struct ApplicationManagementE2ETests {
 
     // Launch TextEdit
     let launchTextEditParams: [String: Value] = [
-      "action": .string("launch"),
-      "bundleId": .string(textEditBundleId),
+      "action": .string("launch"), "bundleId": .string(textEditBundleId),
     ]
 
     _ = try await toolChain.applicationManagementTool.handler(launchTextEditParams)
@@ -324,8 +285,7 @@ struct ApplicationManagementE2ETests {
 
     // Hide other applications, keeping Calculator visible
     let hideOthersParams: [String: Value] = [
-      "action": .string("hideOtherApplications"),
-      "bundleId": .string(calculatorBundleId),
+      "action": .string("hideOtherApplications"), "bundleId": .string(calculatorBundleId),
     ]
 
     let hideOthersResult = try await toolChain.applicationManagementTool.handler(hideOthersParams)
@@ -337,17 +297,13 @@ struct ApplicationManagementE2ETests {
       let json = try toolChain.parseJsonResponse(hideOthersResult[0])
       let success = toolChain.getBoolValue(from: json, forKey: "success")
       #expect(success, "Hide others operation should succeed")
-    } catch {
-      #expect(Bool(false), "Failed to parse JSON response: \(error)")
-    }
+    } catch { #expect(Bool(false), "Failed to parse JSON response: \(error)") }
 
     // Allow time for UI to update
     try await Task.sleep(for: .milliseconds(1000))
 
     // Get frontmost application
-    let frontmostParams: [String: Value] = [
-      "action": .string("getFrontmostApplication")
-    ]
+    let frontmostParams: [String: Value] = ["action": .string("getFrontmostApplication")]
 
     let frontmostResult = try await toolChain.applicationManagementTool.handler(frontmostParams)
 
@@ -361,19 +317,15 @@ struct ApplicationManagementE2ETests {
     } else {
       #expect(Bool(false), "Result should be text content")
     }
-    
     try await tearDown()
   }
 
   /// Test force terminating an application
-  @Test("Force Terminate")
-  mutating func testForceTerminate() async throws {
+  @Test("Force Terminate") mutating func testForceTerminate() async throws {
     try await setUp()
-    
     // Launch Calculator
     let launchParams: [String: Value] = [
-      "action": .string("launch"),
-      "bundleId": .string(calculatorBundleId),
+      "action": .string("launch"), "bundleId": .string(calculatorBundleId),
     ]
 
     _ = try await toolChain.applicationManagementTool.handler(launchParams)
@@ -387,8 +339,7 @@ struct ApplicationManagementE2ETests {
 
     // Force terminate Calculator
     let forceTerminateParams: [String: Value] = [
-      "action": .string("forceTerminate"),
-      "bundleId": .string(calculatorBundleId),
+      "action": .string("forceTerminate"), "bundleId": .string(calculatorBundleId),
     ]
 
     let forceTerminateResult = try await toolChain.applicationManagementTool.handler(
@@ -401,9 +352,7 @@ struct ApplicationManagementE2ETests {
       let json = try toolChain.parseJsonResponse(forceTerminateResult[0])
       let success = toolChain.getBoolValue(from: json, forKey: "success")
       #expect(success, "Force terminate operation should succeed")
-    } catch {
-      #expect(Bool(false), "Failed to parse JSON response: \(error)")
-    }
+    } catch { #expect(Bool(false), "Failed to parse JSON response: \(error)") }
 
     // Wait for app to terminate
     try await Task.sleep(for: .milliseconds(1000))
@@ -411,7 +360,6 @@ struct ApplicationManagementE2ETests {
     // Verify Calculator is no longer running
     let isStillRunning = isApplicationRunning(calculatorBundleId)
     #expect(!isStillRunning, "Calculator should not be running after force termination")
-    
     try await tearDown()
   }
 

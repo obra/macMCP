@@ -136,9 +136,7 @@ class MCPUIElementNode {
     } else if let attrDict = jsonElement["attributes"] as? [String: String] {
       // Convert string-to-string dictionary to string-to-any
       var convertedDict: [String: Any] = [:]
-      for (key, value) in attrDict {
-        convertedDict[key] = value
-      }
+      for (key, value) in attrDict { convertedDict[key] = value }
       attributes = convertedDict
     } else {
       attributes = [:]
@@ -210,24 +208,18 @@ class MCPUIElementNode {
 
       // Ensure we separate with a slash unless parent path already ends with /
       let newPath: String =
-        if parentPath.hasSuffix("/") {
-          parentPath + segment
-        } else {
-          parentPath + "/" + segment
-        }
+        if parentPath.hasSuffix("/") { parentPath + segment } else { parentPath + "/" + segment }
 
-      fullPath = newPath
-      // print("PATH DEBUG - calculated path: \(newPath)")
+      fullPath = newPath  // print("PATH DEBUG - calculated path: \(newPath)")
     } else {
       // If we're at the root level (no parent) and we got a path from the server, use it
       if let pathFromServer = elementPath {
-        fullPath = pathFromServer
-        // print("PATH DEBUG - using server path as root: \(pathFromServer)")
+        fullPath = pathFromServer  // print("PATH DEBUG - using server path as root: \(pathFromServer)")
       } else {
         // We can't generate a valid fully qualified path
         // print("ERROR: Unable to generate a fully qualified path for element: \(role)")
         // Don't set any path - leaving it nil to indicate failure
-       // print("PATH DEBUG - FAILED to generate path")
+        // print("PATH DEBUG - FAILED to generate path")
       }
     }
   }
@@ -235,8 +227,7 @@ class MCPUIElementNode {
   /// Generate a path segment for this element
   func generatePathSegment() -> String {
     // Get the path provided by the MCP server directly if available
-    if let elementPath,
-      !elementPath.hasPrefix("macos://ui/"),  // It shouldn't be a full path already
+    if let elementPath, !elementPath.hasPrefix("macos://ui/"),  // It shouldn't be a full path already
       !elementPath.contains("/")
     {  // It shouldn't contain path separators
       return elementPath  // Return the server-provided segment as-is
@@ -270,9 +261,7 @@ class MCPUIElementNode {
     var pathBase = parentPath ?? "macos://ui/"
 
     // Don't add a separator if we're starting a new path (macos://ui/)
-    if !pathBase.hasSuffix("/"), pathBase != "macos://ui/" {
-      pathBase += "/"
-    }
+    if !pathBase.hasSuffix("/"), pathBase != "macos://ui/" { pathBase += "/" }
 
     // Create a path segment for this element
     var segment = role

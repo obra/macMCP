@@ -156,9 +156,7 @@ public enum FrameSource: String, Codable {
   /// Whether the element can be clicked or pressed
   public var isClickable: Bool {
     // Elements with AXPress action are definitely clickable
-    if actions.contains(AXAttribute.Action.press) {
-      return true
-    }
+    if actions.contains(AXAttribute.Action.press) { return true }
     return false
   }
 
@@ -192,9 +190,7 @@ public enum FrameSource: String, Codable {
     let hasVisibilityAttribute = (attributes["visible"] as? Bool) ?? true
 
     // Element explicitly marked as not visible
-    if !hasVisibilityAttribute {
-      return false
-    }
+    if !hasVisibilityAttribute { return false }
 
     // Check if element has zero or negative size - considered not visible
     let hasZeroSize = frame.size.width <= 0 || frame.size.height <= 0
@@ -223,19 +219,13 @@ public enum FrameSource: String, Codable {
   }
 
   /// Whether the element is enabled
-  public var isEnabled: Bool {
-    (attributes["enabled"] as? Bool) ?? true
-  }
+  public var isEnabled: Bool { (attributes["enabled"] as? Bool) ?? true }
 
   /// Whether the element is focused
-  public var isFocused: Bool {
-    (attributes["focused"] as? Bool) ?? false
-  }
+  public var isFocused: Bool { (attributes["focused"] as? Bool) ?? false }
 
   /// Whether the element is selected
-  public var isSelected: Bool {
-    (attributes["selected"] as? Bool) ?? false
-  }
+  public var isSelected: Bool { (attributes["selected"] as? Bool) ?? false }
 
   /// Initialize a UIElement from a path string
   /// - Parameters:
@@ -268,11 +258,14 @@ public enum FrameSource: String, Codable {
     var attributes: [String: Any] = [:]
     var attrNamesRef: CFArray?
     if AXUIElementCopyAttributeNames(axElement, &attrNamesRef) == .success,
-       let attrNames = attrNamesRef as? [String] {
+      let attrNames = attrNamesRef as? [String]
+    {
       for attrName in attrNames {
         var attrValueRef: CFTypeRef?
-        if AXUIElementCopyAttributeValue(axElement, attrName as CFString, &attrValueRef) == .success,
-           let value = attrValueRef {
+        if AXUIElementCopyAttributeValue(axElement, attrName as CFString, &attrValueRef)
+          == .success,
+          let value = attrValueRef
+        {
           // Try to convert value to something JSON-serializable
           if let str = value as? String {
             attributes[attrName] = str
@@ -313,9 +306,7 @@ public enum FrameSource: String, Codable {
     var titleRef: CFTypeRef?
     let titleStatus = AXUIElementCopyAttributeValue(
       axElement, AXAttribute.title as CFString, &titleRef)
-    if titleStatus == .success, let titleValue = titleRef as? String {
-      title = titleValue
-    }
+    if titleStatus == .success, let titleValue = titleRef as? String { title = titleValue }
 
     // Get the value if available
     var valueRef: CFTypeRef?
@@ -372,7 +363,8 @@ public enum FrameSource: String, Codable {
         axElement, AXAttribute.size as CFString, &sizeRef)
 
       if positionStatus == .success, let positionValue = positionRef as? CGPoint,
-        sizeStatus == .success, let sizeValue = sizeRef as? CGSize
+        sizeStatus == .success,
+        let sizeValue = sizeRef as? CGSize
       {
         frame = CGRect(origin: positionValue, size: sizeValue)
       }
@@ -463,41 +455,28 @@ public enum FrameSource: String, Codable {
   /// Create a dictionary representation of the element
   /// - Returns: A dictionary with the element's properties
   public func toJSON() throws -> [String: Any] {
-    var json: [String: Any] = [
-      "path": path,
-      "role": role,
-    ]
+    var json: [String: Any] = ["path": path, "role": role]
 
     // Add optional fields
-    if let title {
-      json["title"] = title
-    }
+    if let title { json["title"] = title }
 
-    if let value {
-      json["value"] = value
-    }
+    if let value { json["value"] = value }
 
-    if let elementDescription {
-      json["description"] = elementDescription
-    }
+    if let elementDescription { json["description"] = elementDescription }
 
     // Path is already included in the base properties
     // But we can try to regenerate it to get a more complete path if possible
     do {
       let generatedPath = try generatePath()
       // Use the generated path if it's different from the existing one
-      if generatedPath != path {
-        json["generatedPath"] = generatedPath
-      }
+      if generatedPath != path { json["generatedPath"] = generatedPath }
     } catch {
       // If path generation fails, we already have the basic path included
     }
 
     // Add frame information
     json["frame"] = [
-      "x": frame.origin.x,
-      "y": frame.origin.y,
-      "width": frame.size.width,
+      "x": frame.origin.x, "y": frame.origin.y, "width": frame.size.width,
       "height": frame.size.height,
       "source": frameSource.rawValue,
     ]
@@ -505,8 +484,7 @@ public enum FrameSource: String, Codable {
     // Add normalized frame if available
     if let normalizedFrame {
       json["normalizedFrame"] = [
-        "x": normalizedFrame.origin.x,
-        "y": normalizedFrame.origin.y,
+        "x": normalizedFrame.origin.x, "y": normalizedFrame.origin.y,
         "width": normalizedFrame.size.width,
         "height": normalizedFrame.size.height,
       ]
@@ -515,34 +493,23 @@ public enum FrameSource: String, Codable {
     // Add viewport frame if available
     if let viewportFrame {
       json["viewportFrame"] = [
-        "x": viewportFrame.origin.x,
-        "y": viewportFrame.origin.y,
-        "width": viewportFrame.size.width,
+        "x": viewportFrame.origin.x, "y": viewportFrame.origin.y, "width": viewportFrame.size.width,
         "height": viewportFrame.size.height,
       ]
     }
 
     // Add capability flags
     json["capabilities"] = [
-      "clickable": isClickable,
-      "editable": isEditable,
-      "toggleable": isToggleable,
+      "clickable": isClickable, "editable": isEditable, "toggleable": isToggleable,
       "selectable": isSelectable,
-      "adjustable": isAdjustable,
-      "visible": isVisible,
-      "enabled": isEnabled,
-      "focused": isFocused,
+      "adjustable": isAdjustable, "visible": isVisible, "enabled": isEnabled, "focused": isFocused,
       "selected": isSelected,
     ]
 
     // Add attributes and actions
-    if !attributes.isEmpty {
-      json["attributes"] = attributes
-    }
+    if !attributes.isEmpty { json["attributes"] = attributes }
 
-    if !actions.isEmpty {
-      json["actions"] = actions
-    }
+    if !actions.isEmpty { json["actions"] = actions }
 
     // Recursively add children
     if !children.isEmpty {
@@ -564,28 +531,18 @@ public enum FrameSource: String, Codable {
 
   // MARK: - NSObject overrides
 
-  override public var description: String {
-    "\(role): \(title ?? "<no title>") [\(path)]"
-  }
+  override public var description: String { "\(role): \(title ?? "<no title>") [\(path)]" }
 
   // MARK: - Hashable
 
-  public static func == (lhs: UIElement, rhs: UIElement) -> Bool {
-    lhs.path == rhs.path
-  }
-  
-  public static func != (lhs: UIElement, rhs: UIElement) -> Bool {
-    !(lhs == rhs)
-  }
-  
+  public static func == (lhs: UIElement, rhs: UIElement) -> Bool { lhs.path == rhs.path }
+  public static func != (lhs: UIElement, rhs: UIElement) -> Bool { !(lhs == rhs) }
   override public func isEqual(_ object: Any?) -> Bool {
     guard let other = object as? UIElement else { return false }
     return self == other
   }
 
-  override public var hash: Int {
-    path.hashValue
-  }
+  override public var hash: Int { path.hashValue }
 
   /// Create a copy of this UIElement
   /// - Returns: A new UIElement instance with the same properties
@@ -609,159 +566,90 @@ public enum FrameSource: String, Codable {
     )
     return elementCopy
   }
-  
   /// Get an array of state strings describing the current state of this element
   /// Only includes exceptional states to reduce verbosity (disabled, hidden, focused, selected)
   /// - Returns: Array of exceptional state strings
   public func getStateArray() -> [String] {
     var states: [String] = []
-    
     // Only include exceptional states (not normal/default states)
     // Don't show: enabled, visible, unfocused, unselected
-    if !isEnabled {
-      states.append("disabled")
-    }
-    
-    if !isVisible {
-      states.append("hidden")
-    }
-    
-    if isFocused {
-      states.append("focused")
-    }
-    
-    if isSelected {
-      states.append("selected")
-    }
-    
+    if !isEnabled { states.append("disabled") }
+    if !isVisible { states.append("hidden") }
+    if isFocused { states.append("focused") }
+    if isSelected { states.append("selected") }
     // Add other state mappings based on attributes
     if let expanded = attributes["expanded"] as? Bool {
       states.append(expanded ? "expanded" : "collapsed")
     }
-    
     if let readonly = attributes["readonly"] as? Bool {
       states.append(readonly ? "readonly" : "editable")
     }
-    
     if let required = attributes["required"] as? Bool {
       states.append(required ? "required" : "optional")
     }
-    
     return states
   }
-  
   /// Get an array of capability strings describing the element's interaction capabilities
   /// - Returns: Array of capability strings (e.g., "clickable", "editable", "scrollable", etc.)
   public func getCapabilitiesArray() -> [String] {
     var capabilities: [String] = []
-    
     // Add capability based on element properties
-    if isClickable {
-      capabilities.append("clickable")
-    }
-    
-    if isEditable {
-      capabilities.append("editable")
-    }
-    
-    if isToggleable {
-      capabilities.append("toggleable")
-    }
-    
-    if isSelectable {
-      capabilities.append("selectable")
-    }
-    
-    if isAdjustable {
-      capabilities.append("adjustable")
-    }
-    
+    if isClickable { capabilities.append("clickable") }
+    if isEditable { capabilities.append("editable") }
+    if isToggleable { capabilities.append("toggleable") }
+    if isSelectable { capabilities.append("selectable") }
+    if isAdjustable { capabilities.append("adjustable") }
     // Add additional capabilities based on role and actions
     if role == "AXScrollArea" || actions.contains(AXAttribute.Action.scrollToVisible) {
       capabilities.append("scrollable")
     }
-    
-    if !children.isEmpty {
-      capabilities.append("hasChildren")
-    }
-    
-    if actions.contains(AXAttribute.Action.showMenu) {
-      capabilities.append("hasMenu")
-    }
-    
-    if attributes["help"] != nil || attributes["helpText"] != nil {
-      capabilities.append("hasHelp")
-    }
-    
+    if !children.isEmpty { capabilities.append("hasChildren") }
+    if actions.contains(AXAttribute.Action.showMenu) { capabilities.append("hasMenu") }
+    if attributes["help"] != nil || attributes["helpText"] != nil { capabilities.append("hasHelp") }
     if attributes["tooltip"] != nil || attributes["toolTip"] != nil {
       capabilities.append("hasTooltip")
     }
-    
-    if role == AXAttribute.Role.link {
-      capabilities.append("navigable")
-    }
-    
-    if attributes["focusable"] as? Bool == true {
-      capabilities.append("focusable")
-    }
-    
+    if role == AXAttribute.Role.link { capabilities.append("navigable") }
+    if attributes["focusable"] as? Bool == true { capabilities.append("focusable") }
     return capabilities
   }
-  
   /// Get a filtered and cleaned dictionary of attributes
   /// - Returns: Dictionary of string attributes with all values converted to strings
   public func getFilteredAttributes() -> [String: String] {
     var result: [String: String] = [:]
-    for (key, value) in attributes {
-      result[key] = String(describing: value)
-    }
+    for (key, value) in attributes { result[key] = String(describing: value) }
     return result
   }
-  
   /// Filter criteria for searching UI elements
   public struct FilterCriteria {
     /// Filter by accessibility role (exact match)
     public let role: String?
-    
     /// Filter by title (exact match)
     public let title: String?
-    
     /// Filter by title containing this text (case-insensitive)
     public let titleContains: String?
-    
     /// Filter by value (exact match)
     public let value: String?
-    
     /// Filter by value containing this text (case-insensitive)
     public let valueContains: String?
-    
     /// Filter by description (exact match)
     public let description: String?
-    
     /// Filter by description containing this text (case-insensitive)
     public let descriptionContains: String?
-    
     /// Filter by text containing this string in any text field (title, description, value, identifier)
     public let textContains: String?
-    
     /// Filter for elements that can be acted upon (clickable, editable, etc.)
     public let isInteractable: Bool?
-    
     /// Filter by enabled state
     public let isEnabled: Bool?
-    
     /// Filter for elements in menu system
     public let inMenus: Bool?
-    
     /// Filter for elements in main content area (not menus)
     public let inMainContent: Bool?
-    
     /// Filter by element types (matches elements with these roles)
     public let elementTypes: [String]
-    
     /// Whether to include hidden elements in results
     public let includeHidden: Bool
-    
     /// Initialize filter criteria
     /// - Parameters:
     ///   - role: Filter by role (exact match)
@@ -810,16 +698,12 @@ public enum FrameSource: String, Codable {
       self.includeHidden = includeHidden
     }
   }
-  
   /// Check if this element matches the specified filter criteria
   /// - Parameter criteria: The filter criteria to check against
   /// - Returns: True if the element matches all criteria, false otherwise
   public func matchesFilter(criteria: FilterCriteria) -> Bool {
     // Skip AXMenuBar elements by default (unless specifically searching for them)
-    if role == "AXMenuBar" && criteria.role != "AXMenuBar" {
-      return false
-    }
-    
+    if role == "AXMenuBar" && criteria.role != "AXMenuBar" { return false }
     // Define type-to-role mappings
     let typeToRoles: [String: [String]] = [
       "button": [AXAttribute.Role.button, "AXButtonSubstitute", "AXButtton"],
@@ -827,72 +711,61 @@ public enum FrameSource: String, Codable {
       "radio": [AXAttribute.Role.radioButton, "AXRadioGroup"],
       "textfield": [AXAttribute.Role.textField, AXAttribute.Role.textArea, "AXSecureTextField"],
       "dropdown": [AXAttribute.Role.popUpButton, "AXComboBox", "AXPopover"],
-      "slider": ["AXSlider", "AXScrollBar"],
-      "link": [AXAttribute.Role.link],
-      "tab": ["AXTabGroup", "AXTab", "AXTabButton"],
-      "any": [],  // Special case - matches all
+      "slider": ["AXSlider", "AXScrollBar"], "link": [AXAttribute.Role.link],
+      "tab": ["AXTabGroup", "AXTab", "AXTabButton"], "any": [],  // Special case - matches all
     ]
-    
     // Collect all roles to match based on elementTypes
     var targetRoles = Set<String>()
-    
     if criteria.elementTypes.contains("any") {
       // If "any" is selected, we don't filter by role
-      targetRoles = [] // Empty set means no filtering
+      targetRoles = []  // Empty set means no filtering
     } else {
       // Otherwise, include roles for the specified types
       for type in criteria.elementTypes {
-        if let roles = typeToRoles[type] {
-          targetRoles.formUnion(roles)
-        }
+        if let roles = typeToRoles[type] { targetRoles.formUnion(roles) }
       }
     }
-    
     // Role filter - use contains match to handle roles like "AXTextArea First Text View"
     let roleMatches = criteria.role == nil || role.contains(criteria.role!)
-    
     // Element type filter
     let typeMatches = targetRoles.isEmpty || targetRoles.contains(role)
-    
     // Title filter
-    let titleMatches = 
-      (criteria.title == nil || title == criteria.title) &&
-      (criteria.titleContains == nil || (title?.localizedCaseInsensitiveContains(criteria.titleContains!) ?? false))
-    
+    let titleMatches =
+      (criteria.title == nil || title == criteria.title)
+      && (criteria.titleContains == nil
+        || (title?.localizedCaseInsensitiveContains(criteria.titleContains!) ?? false))
     // Value filter
-    let valueMatches = 
-      (criteria.value == nil || value == criteria.value) &&
-      (criteria.valueContains == nil || (value?.localizedCaseInsensitiveContains(criteria.valueContains!) ?? false))
-    
+    let valueMatches =
+      (criteria.value == nil || value == criteria.value)
+      && (criteria.valueContains == nil
+        || (value?.localizedCaseInsensitiveContains(criteria.valueContains!) ?? false))
     // Description filter
-    let descriptionMatches = 
-      (criteria.description == nil || elementDescription == criteria.description) &&
-      (criteria.descriptionContains == nil || (elementDescription?.localizedCaseInsensitiveContains(criteria.descriptionContains!) ?? false))
-    
+    let descriptionMatches =
+      (criteria.description == nil || elementDescription == criteria.description)
+      && (criteria.descriptionContains == nil
+        || (elementDescription?.localizedCaseInsensitiveContains(criteria.descriptionContains!)
+          ?? false))
     // Universal text search filter
     let textContainsMatches: Bool
     if let searchText = criteria.textContains {
-      
-      textContainsMatches = 
-        (title?.localizedCaseInsensitiveContains(searchText) == true) ||
-        (elementDescription?.localizedCaseInsensitiveContains(searchText) == true) ||
-        (value?.localizedCaseInsensitiveContains(searchText) == true) ||
-        (identifier?.localizedCaseInsensitiveContains(searchText) == true) ||
-        (role.localizedCaseInsensitiveContains(searchText) == true)
-      
+      textContainsMatches =
+        (title?.localizedCaseInsensitiveContains(searchText) == true)
+        || (elementDescription?.localizedCaseInsensitiveContains(searchText) == true)
+        || (value?.localizedCaseInsensitiveContains(searchText) == true)
+        || (identifier?.localizedCaseInsensitiveContains(searchText) == true)
+        || (role.localizedCaseInsensitiveContains(searchText) == true)
     } else {
       textContainsMatches = true
     }
-    
     // Interactable filter
     let interactableMatches: Bool
     if let shouldBeInteractable = criteria.isInteractable {
-      let elementIsInteractable = isClickable || isEditable || isToggleable || isSelectable || isAdjustable
+      let elementIsInteractable =
+        isClickable || isEditable || isToggleable || isSelectable || isAdjustable
       interactableMatches = elementIsInteractable == shouldBeInteractable
     } else {
       interactableMatches = true
     }
-    
     // Enabled state filter
     let enabledMatches: Bool
     if let shouldBeEnabled = criteria.isEnabled {
@@ -900,7 +773,6 @@ public enum FrameSource: String, Codable {
     } else {
       enabledMatches = true
     }
-    
     // Location context filter (menu vs main content)
     let locationMatches: Bool
     if let shouldBeInMenus = criteria.inMenus {
@@ -912,18 +784,15 @@ public enum FrameSource: String, Codable {
     } else {
       locationMatches = true
     }
-    
     // Visibility filter
     let visibilityMatches = criteria.includeHidden || isVisible
-    
     // Element matches if it passes all applicable filters
-    let finalResult = roleMatches && typeMatches && titleMatches && valueMatches && descriptionMatches && 
-           textContainsMatches && interactableMatches && enabledMatches && locationMatches && visibilityMatches
-    
-    
+    let finalResult =
+      roleMatches && typeMatches && titleMatches && valueMatches && descriptionMatches
+      && textContainsMatches
+      && interactableMatches && enabledMatches && locationMatches && visibilityMatches
     return finalResult
   }
-  
   /// Static method to filter a collection of elements by criteria
   /// - Parameters:
   ///   - elements: The elements to filter
@@ -931,47 +800,32 @@ public enum FrameSource: String, Codable {
   ///   - limit: Maximum number of elements to return (default 100)
   /// - Returns: Filtered elements (up to the limit)
   public static func filterElements(
-    elements: [UIElement],
-    criteria: FilterCriteria,
-    limit: Int = 100
+    elements: [UIElement], criteria: FilterCriteria, limit: Int = 100
   ) -> [UIElement] {
     var results: [UIElement] = []
-    
     // Process each element
     for element in elements {
       // Skip if we've reached the limit
-      if results.count >= limit {
-        break
-      }
-      
+      if results.count >= limit { break }
       // Check if element matches criteria
-      if element.matchesFilter(criteria: criteria) {
-        results.append(element)
-      }
+      if element.matchesFilter(criteria: criteria) { results.append(element) }
     }
     return results
   }
-  
   /// Find matching descendants in this element's hierarchy
   /// - Parameters:
   ///   - criteria: The filter criteria
   ///   - maxDepth: Maximum depth to search
   ///   - limit: Maximum number of elements to return
   /// - Returns: Matching descendant elements (up to the limit)
-  public func findMatchingDescendants(
-    criteria: FilterCriteria,
-    maxDepth: Int,
-    limit: Int = 100
-  ) -> [UIElement] {
+  public func findMatchingDescendants(criteria: FilterCriteria, maxDepth: Int, limit: Int = 100)
+    -> [UIElement]
+  {
     var results: [UIElement] = []
-    
     // Recursive function to search for matching elements
     func findElements(in element: UIElement, depth: Int = 0) {
       // Stop if we've reached the limit
-      if results.count >= limit {
-        return
-      }
-      
+      if results.count >= limit { return }
       // Check if this element matches
       if element.matchesFilter(criteria: criteria) {
         // We've already properly set up the parent relationship in constructor
@@ -980,29 +834,19 @@ public enum FrameSource: String, Codable {
           // If a non-root element is missing its parent, this is unusual
           // but we'll still include the element
         }
-        
         results.append(element)
       }
-      
       // Stop recursion if we're at max depth
-      if depth >= maxDepth {
-        return
-      }
-      
+      if depth >= maxDepth { return }
       // Process children
       for child in element.children {
         // Ensure the parent relationship is set
-        if child.parent == nil {
-          child.parent = element
-        }
-        
+        if child.parent == nil { child.parent = element }
         findElements(in: child, depth: depth + 1)
       }
     }
-    
     // Start the search from this element
     findElements(in: self)
-    
     return results
   }
 
@@ -1022,13 +866,9 @@ public enum FrameSource: String, Codable {
   public func hasDescendantsMatching(_ predicate: (UIElement) -> Bool) -> Bool {
     // Check direct children first
     for child in children {
-      if predicate(child) {
-        return true
-      }
+      if predicate(child) { return true }
       // Recursively check grandchildren
-      if child.hasDescendantsMatching(predicate) {
-        return true
-      }
+      if child.hasDescendantsMatching(predicate) { return true }
     }
     return false
   }
@@ -1039,21 +879,13 @@ public enum FrameSource: String, Codable {
   /// Returns nil if no meaningful level is found.
   public func getFlattenedChild() -> UIElement? {
     guard children.count == 1 else {
-      return nil // Only flatten single-child chains
+      return nil  // Only flatten single-child chains
     }
-    
     let onlyChild = children[0]
-    
     // If the child is interactable, don't skip it
-    if onlyChild.isInteractable {
-      return nil
-    }
-    
+    if onlyChild.isInteractable { return nil }
     // If the child has multiple children, stop here and use the child
-    if onlyChild.children.count != 1 {
-      return onlyChild
-    }
-    
+    if onlyChild.children.count != 1 { return onlyChild }
     // Recursively check if we can skip further
     if let grandchild = onlyChild.getFlattenedChild() {
       return grandchild
@@ -1112,21 +944,17 @@ public enum FrameSource: String, Codable {
   public func isInMenuContext() -> Bool {
     // Check if this element or any of its ancestors is menu-related
     var currentElement: UIElement? = self
-    
     while let element = currentElement {
       // Check if the current element is menu-related
-      if element.role.contains("Menu") || 
-         element.role == "AXMenuBar" || 
-         element.role == "AXMenuItem" ||
-         element.role == "AXMenuButton" ||
-         element.role == "AXMenuBarItem" {
+      if element.role.contains("Menu") || element.role == "AXMenuBar"
+        || element.role == "AXMenuItem"
+        || element.role == "AXMenuButton" || element.role == "AXMenuBarItem"
+      {
         return true
       }
-      
       // Move up the hierarchy
       currentElement = element.parent
     }
-    
     return false
   }
 
@@ -1177,16 +1005,14 @@ public enum FrameSource: String, Codable {
       // Add custom identifier if available (check all common identifier attribute formats)
       // Try multiple attribute variations to catch all possible identifier formats
       let identifierKeys = ["AXIdentifier", "identifier", "Identifier"]
-      
       for key in identifierKeys {
-          if let identifier = element.attributes[key] as? String, !identifier.isEmpty {
-              // Always consistently use "AXIdentifier" in the final path
-              attributes["AXIdentifier"] = identifier
-              // Diagnostic logging
-              break  // Stop after finding the first valid identifier
-          }
+        if let identifier = element.attributes[key] as? String, !identifier.isEmpty {
+          // Always consistently use "AXIdentifier" in the final path
+          attributes["AXIdentifier"] = identifier
+          // Diagnostic logging
+          break  // Stop after finding the first valid identifier
+        }
       }
-      
 
       // For generic containers with no identifying attributes, consider adding index for disambiguation
       if isGenericContainer, attributes.isEmpty, element.parent != nil {
@@ -1218,17 +1044,11 @@ public enum FrameSource: String, Codable {
 
       // Include boolean state attributes that help identify the element
       // Only include true values as false is the default
-      if element.attributes["enabled"] as? Bool == false {
-        attributes["AXEnabled"] = "false"
-      }
+      if element.attributes["enabled"] as? Bool == false { attributes["AXEnabled"] = "false" }
 
-      if element.attributes["focused"] as? Bool == true {
-        attributes["AXFocused"] = "true"
-      }
+      if element.attributes["focused"] as? Bool == true { attributes["AXFocused"] = "true" }
 
-      if element.attributes["selected"] as? Bool == true {
-        attributes["AXSelected"] = "true"
-      }
+      if element.attributes["selected"] as? Bool == true { attributes["AXSelected"] = "true" }
 
       // Create the path segment with normalized role
       let segment = PathSegment(role: normalizedRole, attributes: attributes)

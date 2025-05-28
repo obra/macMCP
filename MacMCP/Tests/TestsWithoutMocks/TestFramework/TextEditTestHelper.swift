@@ -13,8 +13,7 @@ import Testing
 extension UIElementCriteria: @unchecked Sendable {}
 
 /// Helper class for TextEdit testing, providing shared resources and convenience methods
-@MainActor
-final class TextEditTestHelper {
+@MainActor final class TextEditTestHelper {
   // MARK: - Properties
 
   /// The TextEdit app model
@@ -40,29 +39,25 @@ final class TextEditTestHelper {
     app = TextEditModel(toolChain: toolChain)
 
     // Create a temporary directory for test files
-    tempDirectory = URL(fileURLWithPath: NSTemporaryDirectory())
-      .appendingPathComponent("textedit_tests_\(UUID().uuidString)")
+    tempDirectory = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(
+      "textedit_tests_\(UUID().uuidString)"
+    )
 
     // Create the directory if it doesn't exist
     do {
       try FileManager.default.createDirectory(
-        at: tempDirectory,
-        withIntermediateDirectories: true,
-      )
+        at: tempDirectory, withIntermediateDirectories: true, )
     } catch {
       print("Warning: Failed to create temp directory: \(error)")
     }
   }
 
   /// Get or create a shared helper instance
-  @MainActor
-  static func shared() -> TextEditTestHelper {
+  @MainActor static func shared() -> TextEditTestHelper {
     lock.lock()
     defer { lock.unlock() }
 
-    if let instance = sharedInstance {
-      return instance
-    }
+    if let instance = sharedInstance { return instance }
 
     let newInstance = TextEditTestHelper()
     sharedInstance = newInstance
@@ -79,25 +74,20 @@ final class TextEditTestHelper {
   /// Ensure the TextEdit app is running and is the frontmost application
   func ensureAppIsRunning() async throws -> Bool {
     let wasRunning = try await app.isRunning()
-    
     if !wasRunning {
       // Launch the app
       let launched = try await app.launch()
-      if !launched {
-        return false
-      }
+      if !launched { return false }
       // Wait for app to launch fully
       try await Task.sleep(for: .milliseconds(2000))
     }
 
     // Ensure TextEdit is frontmost application regardless of whether we just launched it
-    if let textEditApp = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.TextEdit")
-      .first
-    {
+    if let textEditApp = NSRunningApplication.runningApplications(
+      withBundleIdentifier: "com.apple.TextEdit"
+    ).first {
       let activateSuccess = textEditApp.activate(options: [])
-      if !activateSuccess {
-        print("Warning: Failed to activate TextEdit as frontmost app")
-      }
+      if !activateSuccess { print("Warning: Failed to activate TextEdit as frontmost app") }
 
       // Wait for activation
       try await Task.sleep(for: .milliseconds(500))
@@ -154,9 +144,7 @@ final class TextEditTestHelper {
   // MARK: - Text Operations
 
   /// Type text into the TextEdit document
-  func typeText(_ text: String) async throws -> Bool {
-    try await app.typeText(text)
-  }
+  func typeText(_ text: String) async throws -> Bool { try await app.typeText(text) }
 
   /// Select text in the document
   func selectText(startPos: Int, length: Int) async throws -> Bool {
@@ -164,24 +152,16 @@ final class TextEditTestHelper {
   }
 
   /// Toggle bold formatting for selected text
-  func toggleBold() async throws -> Bool {
-    try await app.toggleBold()
-  }
+  func toggleBold() async throws -> Bool { try await app.toggleBold() }
 
   /// Toggle italic formatting for selected text
-  func toggleItalic() async throws -> Bool {
-    try await app.toggleItalic()
-  }
+  func toggleItalic() async throws -> Bool { try await app.toggleItalic() }
 
   /// Make text larger by using the Format menu
-  func makeTextLarger() async throws -> Bool {
-    try await app.makeTextLarger()
-  }
+  func makeTextLarger() async throws -> Bool { try await app.makeTextLarger() }
 
   /// Make text smaller by using the Format menu
-  func makeTextSmaller() async throws -> Bool {
-    try await app.makeTextSmaller()
-  }
+  func makeTextSmaller() async throws -> Bool { try await app.makeTextSmaller() }
 
   // MARK: - Document Operations
 
@@ -210,19 +190,17 @@ final class TextEditTestHelper {
   /// Close window and click "Delete" button on save dialog
   /// This is specifically for ElementPath testing where we need to handle
   /// the window close differently than the regular TextEditModel approach
-  @MainActor
-  func closeWindowAndDiscardChanges() async throws -> Bool {
+  @MainActor func closeWindowAndDiscardChanges() async throws -> Bool {
     // Use the internal accessibilityService from the app
     return try await closeWindowAndDiscardChanges(using: app.toolChain.accessibilityService)
   }
-  
   /// Close window and click "Delete" button on save dialog with a specific accessibilityService
   /// This is specifically for ElementPath testing where we need to handle
   /// the window close differently than the regular TextEditModel approach
-  @MainActor
-  func closeWindowAndDiscardChanges(
-    using accessibilityService: AccessibilityService,
-  ) async throws -> Bool {
+  @MainActor func closeWindowAndDiscardChanges(using accessibilityService: AccessibilityService, )
+    async throws
+    -> Bool
+  {
     // First try pressing Escape to dismiss any open menus or dialogs
     let systemEsc = AXUIElementCreateSystemWide()
     try? AccessibilityElement.performAction(systemEsc, action: "AXCancel")
@@ -248,28 +226,24 @@ final class TextEditTestHelper {
       )
 
       // Helper to find buttons in the dialog
-      @MainActor
-      func findButtonWithTitle(_ title: String, inElement element: AXUIElement) -> AXUIElement? {
-        if let children = try? AccessibilityElement
-          .getAttribute(element, attribute: "AXChildren") as? [AXUIElement]
+      @MainActor func findButtonWithTitle(_ title: String, inElement element: AXUIElement)
+        -> AXUIElement?
+      {
+        if let children = try? AccessibilityElement.getAttribute(element, attribute: "AXChildren")
+          as? [AXUIElement]
         {
           for child in children {
             if let role = try? AccessibilityElement.getAttribute(child, attribute: "AXRole")
               as? String,
               role == "AXButton",
-              let childTitle = try? AccessibilityElement.getAttribute(
-                child,
-                attribute: "AXTitle",
-              ) as? String,
-              childTitle == title
+              let childTitle = try? AccessibilityElement.getAttribute(child, attribute: "AXTitle", )
+                as? String, childTitle == title
             {
               return child
             }
 
             // Recursive search
-            if let button = findButtonWithTitle(title, inElement: child) {
-              return button
-            }
+            if let button = findButtonWithTitle(title, inElement: child) { return button }
           }
         }
         return nil
@@ -287,10 +261,9 @@ final class TextEditTestHelper {
   }
 
   /// Perform common text operation and verify result
-  func performTextOperation(
-    operation: () async throws -> Bool,
-    verificationText: String,
-  ) async throws -> Bool {
+  func performTextOperation(operation: () async throws -> Bool, verificationText: String, )
+    async throws -> Bool
+  {
     // Reset document state
     try await resetAppState()
 

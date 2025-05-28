@@ -41,9 +41,7 @@ if CommandLine.arguments.count <= 1 {
   logger.debug("Arguments: \(CommandLine.arguments)")
 
   // Create the server with debug logging
-  let server = MCPServer(
-    logger: logger,
-  )
+  let server = MCPServer(logger: logger, )
   logger.debug("Created MCPServer instance")
 
   // Create the transport
@@ -89,8 +87,7 @@ struct MacMCPCommand: ParsableCommand {
     version: "0.1.0",
   )
 
-  @Flag(name: .long, help: "Enable debug logging")
-  var debug = false
+  @Flag(name: .long, help: "Enable debug logging") var debug = false
 
   mutating func run() async throws {
     // Configure logging

@@ -20,10 +20,7 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
   /// - Parameters:
   ///   - accessibilityService: The accessibility service to use
   ///   - logger: Optional logger to use
-  public init(
-    accessibilityService: any AccessibilityServiceProtocol,
-    logger: Logger? = nil
-  ) {
+  public init(accessibilityService: any AccessibilityServiceProtocol, logger: Logger? = nil) {
     self.accessibilityService = accessibilityService
     self.logger = logger ?? Logger(label: "mcp.screenshot")
   }
@@ -38,9 +35,7 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
       throw NSError(
         domain: "com.macos.mcp.screenshot",
         code: 1001,
-        userInfo: [
-          NSLocalizedDescriptionKey: "Failed to get main screen"
-        ],
+        userInfo: [NSLocalizedDescriptionKey: "Failed to get main screen"],
       )
     }
 
@@ -65,9 +60,8 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
   {
     logger.debug(
       "Capturing area screenshot",
-      metadata: [
-        "x": "\(x)", "y": "\(y)", "width": "\(width)", "height": "\(height)",
-      ])
+      metadata: ["x": "\(x)", "y": "\(y)", "width": "\(width)", "height": "\(height)"]
+    )
 
     // Sanitize input values
     // Ensure width and height are positive
@@ -99,7 +93,8 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
         metadata: [
           "original": "(\(x), \(y), \(width), \(height))",
           "adjusted": "(\(sanitizedX), \(sanitizedY), \(sanitizedWidth), \(sanitizedHeight))",
-        ])
+        ]
+      )
     }
 
     let rect = CGRect(x: sanitizedX, y: sanitizedY, width: sanitizedWidth, height: sanitizedHeight)
@@ -122,24 +117,16 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
   /// - Parameter bundleId: The bundle ID of the application
   /// - Returns: Screenshot result
   public func captureWindow(bundleId: String) async throws -> ScreenshotResult {
-    logger.debug(
-      "Capturing window screenshot for app",
-      metadata: [
-        "bundleId": "\(bundleId)"
-      ])
+    logger.debug("Capturing window screenshot for app", metadata: ["bundleId": "\(bundleId)"])
 
     // Find the application by bundle ID
-    guard
-      let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId)
-        .first
+    guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId).first
     else {
       logger.debug("Application not running", metadata: ["bundleId": "\(bundleId)"])
       throw NSError(
         domain: "com.macos.mcp.screenshot",
         code: 1002,
-        userInfo: [
-          NSLocalizedDescriptionKey: "Application not running: \(bundleId)"
-        ],
+        userInfo: [NSLocalizedDescriptionKey: "Application not running: \(bundleId)"],
       )
     }
 
@@ -155,14 +142,11 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
 
     // If there are multiple windows, use the frontmost one
     guard let windowInfo = appWindows.first else {
-      logger.error(
-        "No windows found for application", metadata: ["bundleId": "\(bundleId)"])
+      logger.error("No windows found for application", metadata: ["bundleId": "\(bundleId)"])
       throw NSError(
         domain: "com.macos.mcp.screenshot",
         code: 1003,
-        userInfo: [
-          NSLocalizedDescriptionKey: "No windows found for application: \(bundleId)"
-        ],
+        userInfo: [NSLocalizedDescriptionKey: "No windows found for application: \(bundleId)"],
       )
     }
 
@@ -172,9 +156,7 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
       throw NSError(
         domain: "com.macos.mcp.screenshot",
         code: 1004,
-        userInfo: [
-          NSLocalizedDescriptionKey: "Invalid window info - no window ID"
-        ],
+        userInfo: [NSLocalizedDescriptionKey: "Invalid window info - no window ID"],
       )
     }
 
@@ -194,10 +176,7 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
   /// - Returns: Screenshot result
   public func captureElementByPath(elementPath: String) async throws -> ScreenshotResult {
     logger.debug(
-      "Capturing element screenshot by path",
-      metadata: [
-        "elementPath": "\(elementPath)"
-      ])
+      "Capturing element screenshot by path", metadata: ["elementPath": "\(elementPath)"])
 
     // Use the element ID to find the element
     do {
@@ -229,14 +208,11 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
             "frame":
               "(\(frame.origin.x), \(frame.origin.y), \(frame.size.width), \(frame.size.height))",
             "paddedFrame": "(\(paddedX), \(paddedY), \(paddedWidth), \(paddedHeight))",
-          ])
+          ]
+        )
 
         return try await captureArea(
-          x: paddedX,
-          y: paddedY,
-          width: paddedWidth,
-          height: paddedHeight,
-        )
+          x: paddedX, y: paddedY, width: paddedWidth, height: paddedHeight, )
       } else {
         logger.debug(
           "Element found but has invalid frame", metadata: ["elementPath": "\(elementPath)"])
@@ -252,10 +228,8 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
       // If there's a path resolution error, we get specific information
       logger.debug(
         "Path resolution error",
-        metadata: [
-          "elementPath": "\(elementPath)",
-          "error": "\(pathError.description)",
-        ])
+        metadata: ["elementPath": "\(elementPath)", "error": "\(pathError.description)"]
+      )
       throw NSError(
         domain: "com.macos.mcp.screenshot",
         code: 1005,
@@ -267,10 +241,8 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
       // For other errors
       logger.debug(
         "Error finding element by path",
-        metadata: [
-          "elementPath": "\(elementPath)",
-          "error": "\(error.localizedDescription)",
-        ])
+        metadata: ["elementPath": "\(elementPath)", "error": "\(error.localizedDescription)"]
+      )
       throw NSError(
         domain: "com.macos.mcp.screenshot",
         code: 1005,
@@ -304,38 +276,24 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
       throw NSError(
         domain: "com.macos.mcp.screenshot",
         code: 1000,
-        userInfo: [
-          NSLocalizedDescriptionKey: "Failed to convert image to PNG data"
-        ],
+        userInfo: [NSLocalizedDescriptionKey: "Failed to convert image to PNG data"],
       )
     }
 
     // Return the result with scale 1.0 for regular DPI
-    return ScreenshotResult(
-      data: pngData,
-      width: width,
-      height: height,
-      scale: 1.0,
-    )
+    return ScreenshotResult(data: pngData, width: width, height: height, scale: 1.0, )
   }
 
   /// Flip a rectangle for screen coordinates
   private func flipRectForScreen(_ rect: CGRect) -> CGRect {
-    guard let mainScreen = NSScreen.main else {
-      return rect
-    }
+    guard let mainScreen = NSScreen.main else { return rect }
 
     // macOS screen coordinates have (0,0) at bottom-left, but we expose (0,0) as top-left
     // So we need to flip the y-coordinate
     let screenHeight = mainScreen.frame.height
     let flippedY = screenHeight - (rect.origin.y + rect.height)
 
-    return CGRect(
-      x: rect.origin.x,
-      y: flippedY,
-      width: rect.width,
-      height: rect.height,
-    )
+    return CGRect(x: rect.origin.x, y: flippedY, width: rect.width, height: rect.height, )
   }
 }
 
@@ -357,9 +315,7 @@ extension CGImage? {
 extension NSImage {
   /// Convert an NSImage to PNG data
   func pngData() -> Data? {
-    guard let tiffData = tiffRepresentation,
-      let bitmap = NSBitmapImageRep(data: tiffData)
-    else {
+    guard let tiffData = tiffRepresentation, let bitmap = NSBitmapImageRep(data: tiffData) else {
       return nil
     }
 

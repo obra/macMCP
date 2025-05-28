@@ -12,8 +12,7 @@ import Testing
 // @_implementationOnly import TestsWithoutMocks
 
 /// Test case for MCP's ability to interact with the TextEdit app
-@Suite(.serialized)
-struct TextEditFormattingTest {
+@Suite(.serialized) struct TextEditFormattingTest {
   // Test helper for TextEdit interactions
   private var helper: TextEditTestHelper!
 
@@ -27,19 +26,14 @@ struct TextEditFormattingTest {
     #expect(appRunning)
     try await helper.resetAppState()
   }
-  
   // Shared teardown method
   private mutating func tearDown() async throws {
-    if helper != nil {
-     _ = try await helper.closeWindowAndDiscardChanges()
-    }
+    if helper != nil { _ = try await helper.closeWindowAndDiscardChanges() }
   }
 
   /// Test that we can type text in TextEdit using keyboard commands
-  @Test("Type Text in TextEdit")
-  mutating func testTypeText() async throws {
+  @Test("Type Text in TextEdit") mutating func testTypeText() async throws {
     try await setUp()
-    
     // Type text in TextEdit using keyboard commands
     let text = "Hello world"
     let typeSuccess = try await helper.typeText(text)
@@ -50,15 +44,12 @@ struct TextEditFormattingTest {
 
     // Verify text appears in the document
     try await helper.assertDocumentContainsText(text)
-    
     try await tearDown()
   }
 
   /// Test formatting text in TextEdit - bold, italic, newline, etc.
-  @Test("Text Formatting in TextEdit")
-  mutating func testTextFormatting() async throws {
+  @Test("Text Formatting in TextEdit") mutating func testTextFormatting() async throws {
     try await setUp()
-    
     // Type "Hello world" in TextEdit
     let text = "Hello world"
     let typeSuccess = try await helper.typeText(text)
@@ -80,15 +71,12 @@ struct TextEditFormattingTest {
 
     // Verify text still exists in the document
     try await helper.assertDocumentContainsText(text)
-    
     try await tearDown()
   }
 
   /// Test more advanced formatting and saving/reopening
-  @Test("Save and Reopen TextEdit Document")
-  mutating func testSaveAndReopen() async throws {
+  @Test("Save and Reopen TextEdit Document") mutating func testSaveAndReopen() async throws {
     try await setUp()
-    
     // Type "Formatting Test" in TextEdit
     let text = "Formatting Test"
     let typeSuccess = try await helper.typeText(text)
@@ -118,7 +106,8 @@ struct TextEditFormattingTest {
     #expect(documentText != nil)
 
     // Force terminate the app
-    for app in NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.TextEdit") {
+    for app in NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.TextEdit")
+    {
       _ = app.forceTerminate()
     }
 
@@ -141,7 +130,6 @@ struct TextEditFormattingTest {
 
     // Verify the reopened document contains the correct text
     try await helper.assertDocumentContainsText(text)
-    
     try await tearDown()
   }
 }

@@ -15,8 +15,7 @@ struct ApplicationInfo {
 }
 
 /// A focused test for application activation and management operations
-@Suite(.serialized)
-struct ApplicationActivationTest {
+@Suite(.serialized) struct ApplicationActivationTest {
   private var toolChain: ToolChain!
 
   // Shared setup method
@@ -30,21 +29,17 @@ struct ApplicationActivationTest {
     // Wait briefly to ensure cleanup is complete
     try await Task.sleep(for: .milliseconds(1000))
   }
-  
   // Shared teardown method
   private mutating func tearDown() async throws {
     // Clean up - terminate grapher if it's still running
     _ = try? await terminateApp(bundleId: "com.apple.grapher")
-    
     // Wait briefly to ensure cleanup is complete
     try await Task.sleep(for: .milliseconds(1000))
   }
 
   /// Basic test for application launch and activation flow
-  @Test("Basic App Activation")
-  mutating func testBasicAppActivation() async throws {
+  @Test("Basic App Activation") mutating func testBasicAppActivation() async throws {
     try await setUp()
-    
     // Launch grapher
     let launchSuccess = try await launchApp(bundleId: "com.apple.grapher")
     #expect(launchSuccess)
@@ -67,8 +62,7 @@ struct ApplicationActivationTest {
     let frontmostAfterSwitch = try await getFrontmostApp()
     #expect(
       frontmostAfterSwitch?.bundleId == "com.apple.finder",
-      "Finder should be frontmost after activation"
-    )
+      "Finder should be frontmost after activation")
 
     // Switch back to grapher
     let switchBackSuccess = try await activateApp(bundleId: "com.apple.grapher")
@@ -91,7 +85,6 @@ struct ApplicationActivationTest {
     // Terminate grapher
     let terminateSuccess = try await terminateApp(bundleId: "com.apple.grapher")
     #expect(terminateSuccess, "grapher should terminate successfully")
-    
     try await tearDown()
   }
 
@@ -100,9 +93,7 @@ struct ApplicationActivationTest {
   /// Launch an application by bundle identifier
   private func launchApp(bundleId: String) async throws -> Bool {
     let params: [String: Value] = [
-      "action": .string("launch"),
-      "bundleId": .string(bundleId),
-      "waitForLaunch": .bool(true),
+      "action": .string("launch"), "bundleId": .string(bundleId), "waitForLaunch": .bool(true),
     ]
 
     let result = try await toolChain.applicationManagementTool.handler(params)
@@ -118,8 +109,7 @@ struct ApplicationActivationTest {
   /// Activate an application by bundle identifier
   private func activateApp(bundleId: String) async throws -> Bool {
     let params: [String: Value] = [
-      "action": .string("activateApplication"),
-      "bundleId": .string(bundleId),
+      "action": .string("activateApplication"), "bundleId": .string(bundleId),
     ]
 
     let result = try await toolChain.applicationManagementTool.handler(params)
@@ -134,10 +124,7 @@ struct ApplicationActivationTest {
 
   /// Terminate an application by bundle identifier
   private func terminateApp(bundleId: String) async throws -> Bool {
-    let params: [String: Value] = [
-      "action": .string("terminate"),
-      "bundleId": .string(bundleId),
-    ]
+    let params: [String: Value] = ["action": .string("terminate"), "bundleId": .string(bundleId)]
 
     let result = try await toolChain.applicationManagementTool.handler(params)
 
@@ -151,9 +138,7 @@ struct ApplicationActivationTest {
 
   /// Get the frontmost application
   private func getFrontmostApp() async throws -> ApplicationInfo? {
-    let params: [String: Value] = [
-      "action": .string("getFrontmostApplication")
-    ]
+    let params: [String: Value] = ["action": .string("getFrontmostApplication")]
 
     let result = try await toolChain.applicationManagementTool.handler(params)
 
@@ -162,13 +147,9 @@ struct ApplicationActivationTest {
       // Extract application info from the JSON response
       if let data = text.data(using: .utf8),
         let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-        let bundleId = json["bundleId"] as? String,
-        let appName = json["applicationName"] as? String
+        let bundleId = json["bundleId"] as? String, let appName = json["applicationName"] as? String
       {
-        return ApplicationInfo(
-          bundleId: bundleId,
-          applicationName: appName
-        )
+        return ApplicationInfo(bundleId: bundleId, applicationName: appName)
       }
     }
 
@@ -179,8 +160,7 @@ struct ApplicationActivationTest {
   private func getWindowCount(bundleId: String) async throws -> Int {
     // Use window management tool to get the application windows
     let windowParams: [String: Value] = [
-      "action": .string("getApplicationWindows"),
-      "bundleId": .string(bundleId),
+      "action": .string("getApplicationWindows"), "bundleId": .string(bundleId),
       "includeMinimized": .bool(true),
     ]
 

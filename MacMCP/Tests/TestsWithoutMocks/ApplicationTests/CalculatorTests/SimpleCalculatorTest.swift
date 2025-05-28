@@ -13,8 +13,7 @@ import Testing
 // @_implementationOnly import TestsWithoutMocks
 
 /// A simpler approach to testing calculator functionality
-@Suite(.serialized)
-struct SimpleCalculatorTest {
+@Suite(.serialized) struct SimpleCalculatorTest {
   private var app: CalculatorModel!
   private var toolChain: ToolChain!
   private var calculatorRunning = false
@@ -24,12 +23,11 @@ struct SimpleCalculatorTest {
   // Shared setup method
   private mutating func setUp() async throws {
     // Set up standardized logging
-    (logger, logFileURL) = TestLogger.create(label: "mcp.test.calculator", testName: "SimpleCalculatorTest")
+    (logger, logFileURL) = TestLogger.create(
+      label: "mcp.test.calculator", testName: "SimpleCalculatorTest")
     TestLogger.configureEnvironment(logger: logger)
     let _ = TestLogger.createDiagnosticLog(testName: "SimpleCalculatorTest", logger: logger)
-    
     logger.debug("Setting up SimpleCalculatorTest")
-    
     // Initialize toolchain and app model
     toolChain = ToolChain()
     app = CalculatorModel(toolChain: toolChain)
@@ -38,9 +36,7 @@ struct SimpleCalculatorTest {
     let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleId)
     if !runningApps.isEmpty {
       logger.debug("Terminating existing Calculator instances")
-      for runningApp in runningApps {
-        _ = runningApp.terminate()
-      }
+      for runningApp in runningApps { _ = runningApp.terminate() }
       // Wait for termination to complete
       try await Task.sleep(for: .milliseconds(1000))
     }
@@ -54,12 +50,12 @@ struct SimpleCalculatorTest {
     try await Task.sleep(for: .milliseconds(2000))
 
     // Ensure Calculator is frontmost application
-    if let calcApp = NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleId).first {
+    if let calcApp = NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleId)
+      .first
+    {
       logger.debug("Activating Calculator as frontmost application")
       let activateSuccess = calcApp.activate(options: [])
-      if !activateSuccess {
-        logger.warning("Failed to activate Calculator as frontmost app")
-      }
+      if !activateSuccess { logger.warning("Failed to activate Calculator as frontmost app") }
 
       // Wait for activation
       try await Task.sleep(for: .milliseconds(500))
@@ -73,7 +69,6 @@ struct SimpleCalculatorTest {
     calculatorRunning = true
     logger.debug("Calculator setup complete")
   }
-  
   // Shared teardown method
   private mutating func tearDown() async throws {
     logger.debug("Tearing down SimpleCalculatorTest")
@@ -82,9 +77,7 @@ struct SimpleCalculatorTest {
       let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleId)
       if !runningApps.isEmpty {
         logger.debug("Terminating Calculator application")
-        for runningApp in runningApps {
-          _ = runningApp.terminate()
-        }
+        for runningApp in runningApps { _ = runningApp.terminate() }
         // Wait for termination to complete
         try await Task.sleep(for: .milliseconds(1000))
       }
@@ -93,8 +86,7 @@ struct SimpleCalculatorTest {
     logger.debug("Teardown complete")
   }
 
-  @Test("Test basic button press")
-  mutating func testBasicButtonPress() async throws {
+  @Test("Test basic button press") mutating func testBasicButtonPress() async throws {
     try await setUp()
 
     // Press the '5' button
@@ -116,14 +108,11 @@ struct SimpleCalculatorTest {
         displayValue == "5" || displayValue == "5." || displayValue.hasPrefix("5")
       #expect(isExpectedValue, "Display should show '5', got '\(displayValue)'")
     }
-    
     try await tearDown()
   }
 
-  @Test("Test basic addition")
-  mutating func testBasicAddition() async throws {
+  @Test("Test basic addition") mutating func testBasicAddition() async throws {
     try await setUp()
-    
     // Clear the calculator first to ensure clean state
     logger.debug("Clearing calculator state")
     _ = try await app.clear()
@@ -149,7 +138,6 @@ struct SimpleCalculatorTest {
         displayValue == "7" || displayValue == "7." || displayValue.hasPrefix("7")
       #expect(isExpectedValue, "Display should show '7', got '\(displayValue)'")
     }
-    
     try await tearDown()
   }
 }

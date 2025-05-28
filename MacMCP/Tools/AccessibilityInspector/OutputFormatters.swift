@@ -39,12 +39,8 @@ class JSONFormatter: OutputFormatter {
     do {
       let jsonData = try JSONSerialization.data(
         withJSONObject: jsonObject, options: [.prettyPrinted])
-      if let jsonString = String(data: jsonData, encoding: .utf8) {
-        return jsonString
-      }
-    } catch {
-      return "Error serializing to JSON: \(error.localizedDescription)"
-    }
+      if let jsonString = String(data: jsonData, encoding: .utf8) { return jsonString }
+    } catch { return "Error serializing to JSON: \(error.localizedDescription)" }
 
     return "{}"  // Default empty object if serialization fails
   }
@@ -53,29 +49,18 @@ class JSONFormatter: OutputFormatter {
   private func convertElementToJSON(_ element: UIElementNode, withFilters: [String: String])
     -> [String: Any]
   {
-    var result: [String: Any] = [
-      "index": element.index,
-      "role": element.role,
-    ]
+    var result: [String: Any] = ["index": element.index, "role": element.role]
 
     // Add basic properties if available
-    if let title = element.title {
-      result["title"] = title
-    }
+    if let title = element.title { result["title"] = title }
 
-    if let identifier = element.identifier {
-      result["identifier"] = identifier
-    }
+    if let identifier = element.identifier { result["identifier"] = identifier }
 
-    if let description = element.description {
-      result["description"] = description
-    }
+    if let description = element.description { result["description"] = description }
 
     if let frame = element.frame {
       result["frame"] = [
-        "x": Int(frame.origin.x),
-        "y": Int(frame.origin.y),
-        "width": Int(frame.size.width),
+        "x": Int(frame.origin.x), "y": Int(frame.origin.y), "width": Int(frame.size.width),
         "height": Int(frame.size.height),
       ]
     }
@@ -125,14 +110,10 @@ class JSONFormatter: OutputFormatter {
   /// Checks if a value is JSON-compatible
   private func isJSONCompatible(_ value: Any) -> Bool {
     switch value {
-    case is String, is NSNumber, is Bool, is NSNull:
-      true
-    case let array as [Any]:
-      array.allSatisfy { isJSONCompatible($0) }
-    case let dict as [String: Any]:
-      dict.values.allSatisfy { isJSONCompatible($0) }
-    default:
-      false
+    case is String, is NSNumber, is Bool, is NSNull: true
+    case let array as [Any]: array.allSatisfy { isJSONCompatible($0) }
+    case let dict as [String: Any]: dict.values.allSatisfy { isJSONCompatible($0) }
+    default: false
     }
   }
 
@@ -140,17 +121,12 @@ class JSONFormatter: OutputFormatter {
   private func filterElements(_ elements: [UIElementNode], withFilters: [String: String])
     -> [UIElementNode]
   {
-    guard !withFilters.isEmpty else {
-      return elements
-    }
+    guard !withFilters.isEmpty else { return elements }
 
     return elements.filter { element in
       for (key, value) in withFilters {
         switch key.lowercased() {
-        case "role":
-          if !element.role.lowercased().contains(value.lowercased()) {
-            return false
-          }
+        case "role": if !element.role.lowercased().contains(value.lowercased()) { return false }
         case "title":
           if let title = element.title, !title.lowercased().contains(value.lowercased()) {
             return false
@@ -168,15 +144,11 @@ class JSONFormatter: OutputFormatter {
         case "enabled":
           let isEnabled = element.isEnabled
           let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
-          if isEnabled != valueAsBool {
-            return false
-          }
+          if isEnabled != valueAsBool { return false }
         case "clickable":
           let isClickable = element.isClickable
           let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
-          if isClickable != valueAsBool {
-            return false
-          }
+          if isClickable != valueAsBool { return false }
         default:
           if let attrValue = element.attributes[key] {
             if let stringValue = attrValue as? String,
@@ -218,13 +190,9 @@ class XMLFormatter: OutputFormatter {
     output += " index=\"\(element.index)\""
     output += " role=\"\(escapeXML(element.role))\""
 
-    if let title = element.title {
-      output += " title=\"\(escapeXML(title))\""
-    }
+    if let title = element.title { output += " title=\"\(escapeXML(title))\"" }
 
-    if let identifier = element.identifier {
-      output += " identifier=\"\(escapeXML(identifier))\""
-    }
+    if let identifier = element.identifier { output += " identifier=\"\(escapeXML(identifier))\"" }
 
     output += ">\n"
 
@@ -301,37 +269,22 @@ class XMLFormatter: OutputFormatter {
 
   /// Escapes special characters for XML
   private func escapeXML(_ string: String) -> String {
-    string
-      .replacingOccurrences(of: "&", with: "&amp;")
-      .replacingOccurrences(of: "<", with: "&lt;")
-      .replacingOccurrences(of: ">", with: "&gt;")
-      .replacingOccurrences(of: "\"", with: "&quot;")
+    string.replacingOccurrences(of: "&", with: "&amp;").replacingOccurrences(of: "<", with: "&lt;")
+      .replacingOccurrences(of: ">", with: "&gt;").replacingOccurrences(of: "\"", with: "&quot;")
       .replacingOccurrences(of: "'", with: "&apos;")
   }
 
   /// Formats a value for XML output
   private func formatValueForXML(_ value: Any) -> String {
     switch value {
-    case let stringValue as String:
-      escapeXML(stringValue)
-    case let numberValue as NSNumber:
-      escapeXML(numberValue.stringValue)
-    case let boolValue as Bool:
-      escapeXML(boolValue ? "true" : "false")
+    case let stringValue as String: escapeXML(stringValue)
+    case let numberValue as NSNumber: escapeXML(numberValue.stringValue)
+    case let boolValue as Bool: escapeXML(boolValue ? "true" : "false")
     case let arrayValue as [Any]:
-      if arrayValue.isEmpty {
-        "[]"
-      } else {
-        "[Array with \(arrayValue.count) elements]"
-      }
+      if arrayValue.isEmpty { "[]" } else { "[Array with \(arrayValue.count) elements]" }
     case let dictValue as [String: Any]:
-      if dictValue.isEmpty {
-        "{}"
-      } else {
-        "{Dictionary with \(dictValue.count) entries}"
-      }
-    default:
-      "[Type: \(type(of: value))]"
+      if dictValue.isEmpty { "{}" } else { "{Dictionary with \(dictValue.count) entries}" }
+    default: "[Type: \(type(of: value))]"
     }
   }
 
@@ -339,17 +292,12 @@ class XMLFormatter: OutputFormatter {
   private func filterElements(_ elements: [UIElementNode], withFilters: [String: String])
     -> [UIElementNode]
   {
-    guard !withFilters.isEmpty else {
-      return elements
-    }
+    guard !withFilters.isEmpty else { return elements }
 
     return elements.filter { element in
       for (key, value) in withFilters {
         switch key.lowercased() {
-        case "role":
-          if !element.role.lowercased().contains(value.lowercased()) {
-            return false
-          }
+        case "role": if !element.role.lowercased().contains(value.lowercased()) { return false }
         case "title":
           if let title = element.title, !title.lowercased().contains(value.lowercased()) {
             return false
@@ -367,15 +315,11 @@ class XMLFormatter: OutputFormatter {
         case "enabled":
           let isEnabled = element.isEnabled
           let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
-          if isEnabled != valueAsBool {
-            return false
-          }
+          if isEnabled != valueAsBool { return false }
         case "clickable":
           let isClickable = element.isClickable
           let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
-          if isClickable != valueAsBool {
-            return false
-          }
+          if isClickable != valueAsBool { return false }
         default:
           if let attrValue = element.attributes[key] {
             if let stringValue = attrValue as? String,

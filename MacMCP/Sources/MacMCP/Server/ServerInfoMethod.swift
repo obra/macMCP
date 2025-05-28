@@ -50,9 +50,7 @@ public enum ServerInfo: MCP.Method {
     public let apiExplorer: Bool
 
     /// Create new capabilities
-    public init(apiExplorer: Bool) {
-      self.apiExplorer = apiExplorer
-    }
+    public init(apiExplorer: Bool) { self.apiExplorer = apiExplorer }
   }
 
   /// Server info details

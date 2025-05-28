@@ -8,8 +8,7 @@ import Testing
 
 // Test utilities are directly available in this module
 
-@Suite(.serialized)
-struct ClipboardManagementToolTests {
+@Suite(.serialized) struct ClipboardManagementToolTests {
   // System under test
   private var tool: ClipboardManagementTool!
 
@@ -23,20 +22,17 @@ struct ClipboardManagementToolTests {
 
   // MARK: - Tool Configuration Tests
 
-  @Test("Test tool name")
-  mutating func testToolName() async throws {
+  @Test("Test tool name") mutating func testToolName() async throws {
     try await setupTest()
     #expect(tool.name == ToolNames.clipboardManagement)
   }
 
-  @Test("Test tool description")
-  mutating func testToolDescription() async throws {
+  @Test("Test tool description") mutating func testToolDescription() async throws {
     try await setupTest()
     #expect(!tool.description.isEmpty, "Tool should have a description")
   }
 
-  @Test("Test input schema")
-  mutating func testInputSchema() async throws {
+  @Test("Test input schema") mutating func testInputSchema() async throws {
     try await setupTest()
     let schema = tool.inputSchema
 
@@ -58,14 +54,7 @@ struct ClipboardManagementToolTests {
 
     // Verify schema defines expected actions
     let expectedActions = [
-      "getInfo",
-      "getText",
-      "setText",
-      "getImage",
-      "setImage",
-      "getFiles",
-      "setFiles",
-      "clear",
+      "getInfo", "getText", "setText", "getImage", "setImage", "getFiles", "setFiles", "clear",
     ]
 
     for action in expectedActions {
@@ -75,8 +64,9 @@ struct ClipboardManagementToolTests {
 
   // MARK: - Action Validation Tests
 
-  @Test("Test execute with invalid action")
-  mutating func testExecuteWithInvalidAction() async throws {
+  @Test("Test execute with invalid action") mutating func testExecuteWithInvalidAction()
+    async throws
+  {
     try await setupTest()
     do {
       let input = ["action": "invalidAction"]
@@ -90,13 +80,12 @@ struct ClipboardManagementToolTests {
       } else {
         #expect(Bool(false), "Wrong error type thrown: \(error)")
       }
-    } catch {
-      #expect(Bool(false), "Unexpected error: \(error)")
-    }
+    } catch { #expect(Bool(false), "Unexpected error: \(error)") }
   }
 
-  @Test("Test execute with missing action")
-  mutating func testExecuteWithMissingAction() async throws {
+  @Test("Test execute with missing action") mutating func testExecuteWithMissingAction()
+    async throws
+  {
     try await setupTest()
     do {
       let input: [String: Any] = [:]
@@ -110,15 +99,12 @@ struct ClipboardManagementToolTests {
       } else {
         #expect(Bool(false), "Wrong error type thrown: \(error)")
       }
-    } catch {
-      #expect(Bool(false), "Unexpected error: \(error)")
-    }
+    } catch { #expect(Bool(false), "Unexpected error: \(error)") }
   }
 
   // MARK: - GetInfo Tests
 
-  @Test("Test getInfo")
-  mutating func testGetInfo() async throws {
+  @Test("Test getInfo") mutating func testGetInfo() async throws {
     try await setupTest()
     let input = ["action": "getInfo"]
 
@@ -127,10 +113,8 @@ struct ClipboardManagementToolTests {
 
     // Configure mock with 3 types
     await mockClipboardService.setInfoToReturn(
-      ClipboardContentInfo(
-        availableTypes: [.text, .image, .files],
-        isEmpty: false,
-      ))
+      ClipboardContentInfo(availableTypes: [.text, .image, .files], isEmpty: false, )
+    )
 
     // Execute
     let result = try await tool.execute(with: input, env: [:])
@@ -143,17 +127,13 @@ struct ClipboardManagementToolTests {
     let availableTypes = result["availableTypes"] as? [String]
     #expect(availableTypes != nil, "Result should contain availableTypes")
     #expect(availableTypes?.count == 3, "Should have 3 types: text, image, files")
-    #expect(
-      availableTypes?.contains("text") ?? false, "Available types should include 'text'")
-    #expect(
-      availableTypes?.contains("image") ?? false, "Available types should include 'image'")
-    #expect(
-      availableTypes?.contains("files") ?? false, "Available types should include 'files'")
+    #expect(availableTypes?.contains("text") ?? false, "Available types should include 'text'")
+    #expect(availableTypes?.contains("image") ?? false, "Available types should include 'image'")
+    #expect(availableTypes?.contains("files") ?? false, "Available types should include 'files'")
     #expect(result["isEmpty"] as? Bool == false, "isEmpty should be false")
   }
 
-  @Test("Test getInfo error")
-  mutating func testGetInfoError() async throws {
+  @Test("Test getInfo error") mutating func testGetInfoError() async throws {
     try await setupTest()
     let input = ["action": "getInfo"]
 
@@ -178,8 +158,7 @@ struct ClipboardManagementToolTests {
 
   // MARK: - GetText Tests
 
-  @Test("Test getText")
-  mutating func testGetText() async throws {
+  @Test("Test getText") mutating func testGetText() async throws {
     try await setupTest()
     let input = ["action": "getText"]
 
@@ -197,8 +176,7 @@ struct ClipboardManagementToolTests {
     #expect(result["text"] as? String == "Test clipboard text")
   }
 
-  @Test("Test getText error")
-  mutating func testGetTextError() async throws {
+  @Test("Test getText error") mutating func testGetTextError() async throws {
     try await setupTest()
     let input = ["action": "getText"]
 
@@ -217,8 +195,7 @@ struct ClipboardManagementToolTests {
 
   // MARK: - SetText Tests
 
-  @Test("Test setText")
-  mutating func testSetText() async throws {
+  @Test("Test setText") mutating func testSetText() async throws {
     try await setupTest()
     let input: [String: Any] = ["action": "setText", "text": "New clipboard text"]
 
@@ -235,8 +212,7 @@ struct ClipboardManagementToolTests {
     #expect(result["success"] as? Bool == true)
   }
 
-  @Test("Test setText missing text")
-  mutating func testSetTextMissingText() async throws {
+  @Test("Test setText missing text") mutating func testSetTextMissingText() async throws {
     try await setupTest()
     let input = ["action": "setText"]
 
@@ -250,18 +226,14 @@ struct ClipboardManagementToolTests {
         #expect(message?.contains("text") ?? false, "Error should mention 'text'")
         // Verify service was not called
         let setTextCallCount = await mockClipboardService.setTextCallCount
-        #expect(
-          setTextCallCount == 0, "Service should not be called when parameters are missing")
+        #expect(setTextCallCount == 0, "Service should not be called when parameters are missing")
       } else {
         #expect(Bool(false), "Wrong error type thrown: \(error)")
       }
-    } catch {
-      #expect(Bool(false), "Unexpected error: \(error)")
-    }
+    } catch { #expect(Bool(false), "Unexpected error: \(error)") }
   }
 
-  @Test("Test setText error")
-  mutating func testSetTextError() async throws {
+  @Test("Test setText error") mutating func testSetTextError() async throws {
     try await setupTest()
     let input: [String: Any] = ["action": "setText", "text": "Test text"]
 
@@ -280,8 +252,7 @@ struct ClipboardManagementToolTests {
 
   // MARK: - GetImage Tests
 
-  @Test("Test getImage")
-  mutating func testGetImage() async throws {
+  @Test("Test getImage") mutating func testGetImage() async throws {
     try await setupTest()
     let input = ["action": "getImage"]
 
@@ -300,8 +271,7 @@ struct ClipboardManagementToolTests {
     #expect(result["imageData"] as? String == base64Image)
   }
 
-  @Test("Test getImage error")
-  mutating func testGetImageError() async throws {
+  @Test("Test getImage error") mutating func testGetImageError() async throws {
     try await setupTest()
     let input = ["action": "getImage"]
 
@@ -320,8 +290,7 @@ struct ClipboardManagementToolTests {
 
   // MARK: - SetImage Tests
 
-  @Test("Test setImage")
-  mutating func testSetImage() async throws {
+  @Test("Test setImage") mutating func testSetImage() async throws {
     try await setupTest()
     let base64Image = "base64EncodedImageData"
     let input: [String: Any] = ["action": "setImage", "imageData": base64Image]
@@ -339,8 +308,8 @@ struct ClipboardManagementToolTests {
     #expect(result["success"] as? Bool == true)
   }
 
-  @Test("Test setImage missing imageData")
-  mutating func testSetImageMissingImageData() async throws {
+  @Test("Test setImage missing imageData") mutating func testSetImageMissingImageData() async throws
+  {
     try await setupTest()
     let input = ["action": "setImage"]
 
@@ -354,18 +323,14 @@ struct ClipboardManagementToolTests {
         #expect(message?.contains("imageData") ?? false, "Error should mention 'imageData'")
         // Verify service was not called
         let setImageCallCount = await mockClipboardService.setImageCallCount
-        #expect(
-          setImageCallCount == 0, "Service should not be called when parameters are missing")
+        #expect(setImageCallCount == 0, "Service should not be called when parameters are missing")
       } else {
         #expect(Bool(false), "Wrong error type thrown: \(error)")
       }
-    } catch {
-      #expect(Bool(false), "Unexpected error: \(error)")
-    }
+    } catch { #expect(Bool(false), "Unexpected error: \(error)") }
   }
 
-  @Test("Test setImage error")
-  mutating func testSetImageError() async throws {
+  @Test("Test setImage error") mutating func testSetImageError() async throws {
     try await setupTest()
     let input: [String: Any] = ["action": "setImage", "imageData": "testImageData"]
 
@@ -384,8 +349,7 @@ struct ClipboardManagementToolTests {
 
   // MARK: - GetFiles Tests
 
-  @Test("Test getFiles")
-  mutating func testGetFiles() async throws {
+  @Test("Test getFiles") mutating func testGetFiles() async throws {
     try await setupTest()
     let input = ["action": "getFiles"]
 
@@ -406,8 +370,7 @@ struct ClipboardManagementToolTests {
     #expect(resultPaths == filePaths)
   }
 
-  @Test("Test getFiles error")
-  mutating func testGetFilesError() async throws {
+  @Test("Test getFiles error") mutating func testGetFilesError() async throws {
     try await setupTest()
     let input = ["action": "getFiles"]
 
@@ -426,8 +389,7 @@ struct ClipboardManagementToolTests {
 
   // MARK: - SetFiles Tests
 
-  @Test("Test setFiles")
-  mutating func testSetFiles() async throws {
+  @Test("Test setFiles") mutating func testSetFiles() async throws {
     try await setupTest()
     let filePaths = ["/path/to/file1.txt", "/path/to/file2.txt"]
     let input: [String: Any] = ["action": "setFiles", "filePaths": filePaths]
@@ -445,8 +407,8 @@ struct ClipboardManagementToolTests {
     #expect(result["success"] as? Bool == true)
   }
 
-  @Test("Test setFiles missing filePaths")
-  mutating func testSetFilesMissingFilePaths() async throws {
+  @Test("Test setFiles missing filePaths") mutating func testSetFilesMissingFilePaths() async throws
+  {
     try await setupTest()
     let input = ["action": "setFiles"]
 
@@ -460,18 +422,14 @@ struct ClipboardManagementToolTests {
         #expect(message?.contains("filePaths") ?? false, "Error should mention 'filePaths'")
         // Verify service was not called
         let setFilesCallCount = await mockClipboardService.setFilesCallCount
-        #expect(
-          setFilesCallCount == 0, "Service should not be called when parameters are missing")
+        #expect(setFilesCallCount == 0, "Service should not be called when parameters are missing")
       } else {
         #expect(Bool(false), "Wrong error type thrown: \(error)")
       }
-    } catch {
-      #expect(Bool(false), "Unexpected error: \(error)")
-    }
+    } catch { #expect(Bool(false), "Unexpected error: \(error)") }
   }
 
-  @Test("Test setFiles empty array")
-  mutating func testSetFilesEmptyArray() async throws {
+  @Test("Test setFiles empty array") mutating func testSetFilesEmptyArray() async throws {
     try await setupTest()
     let input: [String: Any] = ["action": "setFiles", "filePaths": []]
 
@@ -492,13 +450,10 @@ struct ClipboardManagementToolTests {
       } else {
         #expect(Bool(false), "Wrong error type thrown: \(error)")
       }
-    } catch {
-      #expect(Bool(false), "Unexpected error: \(error)")
-    }
+    } catch { #expect(Bool(false), "Unexpected error: \(error)") }
   }
 
-  @Test("Test setFiles error")
-  mutating func testSetFilesError() async throws {
+  @Test("Test setFiles error") mutating func testSetFilesError() async throws {
     try await setupTest()
     let input: [String: Any] = ["action": "setFiles", "filePaths": ["/path/to/file.txt"]]
 
@@ -517,8 +472,7 @@ struct ClipboardManagementToolTests {
 
   // MARK: - Clear Tests
 
-  @Test("Test clear")
-  mutating func testClear() async throws {
+  @Test("Test clear") mutating func testClear() async throws {
     try await setupTest()
     let input = ["action": "clear"]
 
@@ -533,8 +487,7 @@ struct ClipboardManagementToolTests {
     #expect(result["success"] as? Bool == true)
   }
 
-  @Test("Test clear error")
-  mutating func testClearError() async throws {
+  @Test("Test clear error") mutating func testClearError() async throws {
     try await setupTest()
     let input = ["action": "clear"]
 

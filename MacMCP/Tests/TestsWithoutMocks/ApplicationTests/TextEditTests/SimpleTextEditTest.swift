@@ -12,13 +12,11 @@ import Testing
 // @_implementationOnly import TestsWithoutMocks
 
 /// Simple test cases for the TextEdit app using the TextEditTestHelper
-@Suite(.serialized)
-struct SimpleTextEditTest {
+@Suite(.serialized) struct SimpleTextEditTest {
   // Test helper for TextEdit interactions
   private var helper: TextEditTestHelper!
 
-  @Test("Test basic text typing")
-  mutating func testBasicTextTyping() async throws {
+  @Test("Test basic text typing") mutating func testBasicTextTyping() async throws {
     // Setup
     helper = await TextEditTestHelper.shared()
 
@@ -28,7 +26,6 @@ struct SimpleTextEditTest {
 
     // Reset app state for a clean test environment
     try await helper.resetAppState()
-    
     // Type some text
     let testText = "Hello, TextEdit!"
     let typingSuccess = try await helper.typeText(testText)
@@ -36,13 +33,11 @@ struct SimpleTextEditTest {
 
     // Verify text appears in the document
     try await helper.assertDocumentContainsText(testText)
-    
     // Cleanup
     _ = try await helper.closeWindowAndDiscardChanges()
   }
 
-  @Test("Test basic formatting")
-  mutating func testBasicFormatting() async throws {
+  @Test("Test basic formatting") mutating func testBasicFormatting() async throws {
     // Setup
     helper = await TextEditTestHelper.shared()
 
@@ -52,7 +47,6 @@ struct SimpleTextEditTest {
 
     // Reset app state for a clean test environment
     try await helper.resetAppState()
-    
     // Type some text and select it
     let testText = "Formatted Text"
     let typingSuccess = try await helper.typeText(testText)
@@ -71,13 +65,11 @@ struct SimpleTextEditTest {
       testText,
       message: "Document should still contain the text after formatting"
     )
-    
     // Cleanup
     _ = try await helper.closeWindowAndDiscardChanges()
   }
 
-  @Test("Test combined text operations")
-  mutating func testCombinedTextOperations() async throws {
+  @Test("Test combined text operations") mutating func testCombinedTextOperations() async throws {
     // Setup
     helper = await TextEditTestHelper.shared()
 
@@ -87,7 +79,6 @@ struct SimpleTextEditTest {
 
     // Reset app state for a clean test environment
     try await helper.resetAppState()
-    
     let testText = "Testing Operations"
 
     // Use the performTextOperation helper method to test a sequence of operations
@@ -106,7 +97,6 @@ struct SimpleTextEditTest {
     )
 
     #expect(success)
-    
     // Cleanup
     _ = try await helper.closeWindowAndDiscardChanges()
   }

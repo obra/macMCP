@@ -27,10 +27,7 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
   /// - Parameters:
   ///   - accessibilityService: The accessibility service to use
   ///   - logger: Optional logger to use
-  public init(
-    accessibilityService: any AccessibilityServiceProtocol,
-    logger: Logger? = nil
-  ) {
+  public init(accessibilityService: any AccessibilityServiceProtocol, logger: Logger? = nil) {
     self.accessibilityService = accessibilityService
     self.logger = logger ?? Logger(label: "mcp.interaction")
   }
@@ -40,10 +37,7 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
   /// - Note: Implemented as two rapid clicks with a short delay between them
   public func doubleClickAtPosition(position: CGPoint) async throws {
     logger.debug(
-      "Double-clicking at position",
-      metadata: [
-        "x": "\(position.x)", "y": "\(position.y)",
-      ])
+      "Double-clicking at position", metadata: ["x": "\(position.x)", "y": "\(position.y)"])
 
     // Perform two clicks in rapid succession to simulate a double-click
     try await clickAtPosition(position: position)
@@ -55,10 +49,7 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
   /// - Parameter position: The screen position to right-click
   public func rightClickAtPosition(position: CGPoint) async throws {
     logger.debug(
-      "Right-clicking at position",
-      metadata: [
-        "x": "\(position.x)", "y": "\(position.y)",
-      ])
+      "Right-clicking at position", metadata: ["x": "\(position.x)", "y": "\(position.y)"])
 
     // Get the element at the position (if any) using a separate task to avoid data races
     let elementAtPosition = await Task.detached {
@@ -71,9 +62,7 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
           recursive: false,
           maxDepth: 1,
         )
-      } catch {
-        return nil
-      }
+      } catch { return nil }
     }.value
 
     if let element = elementAtPosition {
@@ -90,11 +79,9 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
           logger.debug(
             "Accessibility right-click failed for position-based click, falling back to mouse simulation",
             metadata: ["error": "\(error.localizedDescription)"]
-          )
-          // Fall through to mouse simulation
+          )  // Fall through to mouse simulation
         }
       }
-      
       // Fallback to position-based right clicking
       try simulateMouseRightClick(at: position)
     } else {
@@ -104,11 +91,7 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
   }
 
   public func clickAtPosition(position: CGPoint) async throws {
-    logger.debug(
-      "Clicking at position",
-      metadata: [
-        "x": "\(position.x)", "y": "\(position.y)",
-      ])
+    logger.debug("Clicking at position", metadata: ["x": "\(position.x)", "y": "\(position.y)"])
 
     // Get the element at the position (if any) using a separate task to avoid data races
     // Create a detached task that doesn't capture 'self'
@@ -124,9 +107,7 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
           recursive: false,
           maxDepth: 1,
         )
-      } catch {
-        return nil
-      }
+      } catch { return nil }
     }.value
 
     if let element = elementAtPosition {
@@ -140,8 +121,7 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
           logger.debug(
             "AXPress failed for position-based click, falling back to mouse simulation",
             metadata: ["error": "\(error.localizedDescription)"]
-          )
-          // Fall through to mouse simulation
+          )  // Fall through to mouse simulation
         }
       }
 
@@ -160,26 +140,18 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
   public func pressKey(keyCode: Int, modifiers: CGEventFlags? = nil) async throws {
     logger.debug(
       "Pressing key",
-      metadata: [
-        "keyCode": "\(keyCode)",
-        "modifiers": modifiers != nil ? "\(modifiers!)" : "none",
-      ])
+      metadata: ["keyCode": "\(keyCode)", "modifiers": modifiers != nil ? "\(modifiers!)" : "none"]
+    )
 
     // Get the event source
     let eventSource = CGEventSource(stateID: .combinedSessionState)
 
     // Create key events
     let keyDownEvent = CGEvent(
-      keyboardEventSource: eventSource,
-      virtualKey: CGKeyCode(keyCode),
-      keyDown: true,
-    )
+      keyboardEventSource: eventSource, virtualKey: CGKeyCode(keyCode), keyDown: true, )
 
     let keyUpEvent = CGEvent(
-      keyboardEventSource: eventSource,
-      virtualKey: CGKeyCode(keyCode),
-      keyDown: false,
-    )
+      keyboardEventSource: eventSource, virtualKey: CGKeyCode(keyCode), keyDown: false, )
 
     guard let keyDownEvent, let keyUpEvent else {
       throw createError("Failed to create key events", code: 2003)
@@ -192,10 +164,8 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
 
       logger.debug(
         "Applied modifiers to key events",
-        metadata: [
-          "keyCode": "\(keyCode)",
-          "modifiers": "\(modifiers)",
-        ])
+        metadata: ["keyCode": "\(keyCode)", "modifiers": "\(modifiers)"]
+      )
     }
 
     // Post the events
@@ -210,10 +180,8 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
     let runningApps = NSWorkspace.shared.runningApplications
 
     // Find the application with the matching title
-    for app in runningApps {
-      if app.localizedName == title {
-        return AccessibilityElement.applicationElement(pid: app.processIdentifier)
-      }
+    for app in runningApps where app.localizedName == title {
+      return AccessibilityElement.applicationElement(pid: app.processIdentifier)
     }
 
     return nil
@@ -225,18 +193,14 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
   /// Clean old or excessive entries from the cache
   private func cleanCache() {
     // If the cache is relatively small, don't bother cleaning
-    if elementCache.count < cacheMaxSize / 2 {
-      return
-    }
+    if elementCache.count < cacheMaxSize / 2 { return }
 
     // Current time for age checks
     let now = Date()
 
     // First, remove any expired entries
-    for (id, (_, timestamp)) in elementCache {
-      if now.timeIntervalSince(timestamp) > cacheMaxAge {
-        elementCache.removeValue(forKey: id)
-      }
+    for (id, (_, timestamp)) in elementCache where now.timeIntervalSince(timestamp) > cacheMaxAge {
+      elementCache.removeValue(forKey: id)
     }
 
     // If still too many entries, remove oldest ones
@@ -244,15 +208,12 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
       let sortedEntries = elementCache.sorted { $0.value.1 < $1.value.1 }
       let entriesToRemove = sortedEntries.prefix(elementCache.count - cacheMaxSize / 2)
 
-      for (id, _) in entriesToRemove {
-        elementCache.removeValue(forKey: id)
-      }
+      for (id, _) in entriesToRemove { elementCache.removeValue(forKey: id) }
 
       logger.debug(
         "Cleaned \(entriesToRemove.count) old elements from cache",
-        metadata: [
-          "remainingCacheSize": "\(elementCache.count)"
-        ])
+        metadata: ["remainingCacheSize": "\(elementCache.count)"]
+      )
     }
   }
 
@@ -261,18 +222,9 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
   /// Check if an element is likely a container of interactive elements
   private func isContainer(_ element: UIElement) -> Bool {
     let containerRoles = [
-      AXAttribute.Role.group,
-      AXAttribute.Role.toolbar,
-      "AXTabGroup",
-      "AXSplitGroup",
+      AXAttribute.Role.group, AXAttribute.Role.toolbar, "AXTabGroup", "AXSplitGroup",
       "AXNavigationBar",
-      "AXDrawer",
-      "AXContentView",
-      "AXList",
-      "AXOutline",
-      "AXGrid",
-      "AXScrollArea",
-      "AXLayoutArea",
+      "AXDrawer", "AXContentView", "AXList", "AXOutline", "AXGrid", "AXScrollArea", "AXLayoutArea",
     ]
 
     return containerRoles.contains(element.role)
@@ -280,13 +232,7 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
 
   /// Check if an element is a menu-related element that should be deprioritized
   private func isMenuElement(_ element: UIElement) -> Bool {
-    let menuRoles = [
-      "AXMenu",
-      "AXMenuBar",
-      "AXMenuBarItem",
-      "AXMenuItem",
-      "AXMenuButton",
-    ]
+    let menuRoles = ["AXMenu", "AXMenuBar", "AXMenuBarItem", "AXMenuItem", "AXMenuButton"]
 
     return menuRoles.contains(element.role)
   }
@@ -294,19 +240,10 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
   /// Check if an element is likely interactive
   private func isInteractive(_ element: UIElement) -> Bool {
     let interactiveRoles = [
-      AXAttribute.Role.button,
-      AXAttribute.Role.popUpButton,
-      AXAttribute.Role.checkbox,
-      AXAttribute.Role.radioButton,
-      AXAttribute.Role.textField,
-      AXAttribute.Role.menu,
+      AXAttribute.Role.button, AXAttribute.Role.popUpButton, AXAttribute.Role.checkbox,
+      AXAttribute.Role.radioButton, AXAttribute.Role.textField, AXAttribute.Role.menu,
       AXAttribute.Role.menuItem,
-      AXAttribute.Role.link,
-      "AXSlider",
-      "AXStepper",
-      "AXSwitch",
-      "AXToggle",
-      "AXTabButton",
+      AXAttribute.Role.link, "AXSlider", "AXStepper", "AXSwitch", "AXToggle", "AXTabButton",
     ]
 
     return interactiveRoles.contains(element.role) || !element.actions.isEmpty
@@ -321,11 +258,11 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
     logger.debug(
       "Performing accessibility action",
       metadata: [
-        "action": "\(action)",
-        "actionsResult": "\(actionsResult.rawValue)",
+        "action": "\(action)", "actionsResult": "\(actionsResult.rawValue)",
         "actionsAvailable":
           "\(actionNames != nil ? (actionNames as? [String])?.joined(separator: ", ") ?? "nil" : "nil")",
-      ])
+      ]
+    )
 
     // Check if the action is supported by the element
     var actionSupported = false
@@ -338,9 +275,9 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
         logger.warning(
           "Action not supported by element",
           metadata: [
-            "action": "\(action)",
-            "availableActions": "\(actionsList.joined(separator: ", "))",
-          ])
+            "action": "\(action)", "availableActions": "\(actionsList.joined(separator: ", "))",
+          ]
+        )
       }
     } else {
       logger.warning("Failed to get actions list for element")
@@ -350,11 +287,7 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
     var role: CFTypeRef?
     let roleResult = AXUIElementCopyAttributeValue(element, "AXRole" as CFString, &role)
     if roleResult == .success {
-      logger.debug(
-        "Element role",
-        metadata: [
-          "role": "\(role as? String ?? "unknown")"
-        ])
+      logger.debug("Element role", metadata: ["role": "\(role as? String ?? "unknown")"])
     } else {
       logger.warning("Failed to get element role")
     }
@@ -365,19 +298,14 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
     if enabledResult == .success {
       let isEnabled = enabled as? Bool ?? false
 
-      if !isEnabled {
-        logger.warning("Element is disabled, action may fail")
-      }
+      if !isEnabled { logger.warning("Element is disabled, action may fail") }
     }
 
     // Set a longer timeout for the action
     let timeoutResult = AXUIElementSetMessagingTimeout(element, 1.0)  // 1 second timeout
     if timeoutResult != .success {
       logger.warning(
-        "Failed to set messaging timeout",
-        metadata: [
-          "error": "\(timeoutResult.rawValue)"
-        ])
+        "Failed to set messaging timeout", metadata: ["error": "\(timeoutResult.rawValue)"])
     }
 
     // Perform the action
@@ -389,16 +317,15 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
       logger.trace(
         "Accessibility action failed",
         metadata: [
-          "action": .string(action),
-          "error": .string("\(error.rawValue)"),
+          "action": .string(action), "error": .string("\(error.rawValue)"),
           "errorName": .string(getAXErrorName(error)),
           "actionSupported": .string("\(actionSupported)"),
-        ])
+        ]
+      )
 
       // Print specific advice based on error code
       switch error {
-      case .illegalArgument:
-        logger.trace("Illegal argument - The action name might be incorrect")
+      case .illegalArgument: logger.trace("Illegal argument - The action name might be incorrect")
       case .invalidUIElement:
         logger.trace("Invalid UI element - The element might no longer exist or be invalid")
       case .cannotComplete:
@@ -407,10 +334,8 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
         logger.trace("Action unsupported - The element does not support this action")
       case .notImplemented:
         logger.trace("Not implemented - The application has not implemented this action")
-      case .apiDisabled:
-        logger.trace("API disabled - Accessibility permissions might be missing")
-      default:
-        logger.trace("Unknown error code - Consult macOS Accessibility API documentation")
+      case .apiDisabled: logger.trace("API disabled - Accessibility permissions might be missing")
+      default: logger.trace("Unknown error code - Consult macOS Accessibility API documentation")
       }
 
       // If action not supported, try fallback to mouse click for button elements
@@ -418,32 +343,28 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
       // we should fail gracefully with a clear error message
       if !actionSupported {
         let availableActions: String =
-          if let actions = actionNames as? [String] {
-            actions.joined(separator: ", ")
-          } else {
+          if let actions = actionNames as? [String] { actions.joined(separator: ", ") } else {
             "none"
           }
 
         logger.warning(
           "Element does not support the requested action",
           metadata: [
-            "role": "\(role as? String ?? "unknown")",
-            "availableActions": "\(availableActions)",
-          ])
+            "role": "\(role as? String ?? "unknown")", "availableActions": "\(availableActions)",
+          ]
+        )
 
         logger.trace(
           "Element does not support AXPress action and no fallback is allowed",
           metadata: [
-            "role": .string(role as? String ?? "unknown"),
-            "actions": .string(availableActions),
-          ])
+            "role": .string(role as? String ?? "unknown"), "actions": .string(availableActions),
+          ]
+        )
       }
 
       // Create a specific error based on error code
       let context: [String: String] = [
-        "action": action,
-        "axErrorCode": "\(error.rawValue)",
-        "axErrorName": getAXErrorName(error),
+        "action": action, "axErrorCode": "\(error.rawValue)", "axErrorName": getAXErrorName(error),
         "actionSupported": "\(actionSupported)",
       ]
 
@@ -481,12 +402,9 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
   private func getActionNames(for element: AXUIElement) throws -> [String] {
     guard
       let actionNames = try AccessibilityElement.getAttribute(
-        element,
-        attribute: AXAttribute.actions,
-      ) as? [String]
-    else {
-      return []
-    }
+        element, attribute: AXAttribute.actions, )
+        as? [String]
+    else { return [] }
     return actionNames
   }
 
@@ -501,9 +419,7 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
         mouseCursorPosition: position,
         mouseButton: .left,
       )
-    else {
-      throw createError("Failed to create mouse down event", code: 1001)
-    }
+    else { throw createError("Failed to create mouse down event", code: 1001) }
 
     guard
       let mouseUp = CGEvent(
@@ -512,16 +428,14 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
         mouseCursorPosition: position,
         mouseButton: .left,
       )
-    else {
-      throw createError("Failed to create mouse up event", code: 1002)
-    }
+    else { throw createError("Failed to create mouse up event", code: 1002) }
 
     // Post the events
     mouseDown.post(tap: .cghidEventTap)
     // delay for 100ms
-    Thread.sleep(forTimeInterval: 0.5) // 100 milliseconds
+    Thread.sleep(forTimeInterval: 0.5)  // 100 milliseconds
     mouseUp.post(tap: .cghidEventTap)
-        Thread.sleep(forTimeInterval: 0.5) // 100 milliseconds
+    Thread.sleep(forTimeInterval: 0.5)  // 100 milliseconds
 
   }
 
@@ -536,9 +450,7 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
         mouseCursorPosition: position,
         mouseButton: .right,
       )
-    else {
-      throw createError("Failed to create right mouse down event", code: 1003)
-    }
+    else { throw createError("Failed to create right mouse down event", code: 1003) }
 
     guard
       let mouseUp = CGEvent(
@@ -547,9 +459,7 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
         mouseCursorPosition: position,
         mouseButton: .right,
       )
-    else {
-      throw createError("Failed to create right mouse up event", code: 1004)
-    }
+    else { throw createError("Failed to create right mouse up event", code: 1004) }
 
     // Post the events
     mouseDown.post(tap: .cghidEventTap)
@@ -568,9 +478,7 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
         mouseCursorPosition: start,
         mouseButton: .left,
       )
-    else {
-      throw createError("Failed to create mouse down event for drag", code: 1005)
-    }
+    else { throw createError("Failed to create mouse down event for drag", code: 1005) }
 
     // Create drag event to end position
     guard
@@ -580,9 +488,7 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
         mouseCursorPosition: end,
         mouseButton: .left,
       )
-    else {
-      throw createError("Failed to create mouse drag event", code: 1006)
-    }
+    else { throw createError("Failed to create mouse drag event", code: 1006) }
 
     // Create mouse up event at end position
     guard
@@ -592,9 +498,7 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
         mouseCursorPosition: end,
         mouseButton: .left,
       )
-    else {
-      throw createError("Failed to create mouse up event for drag", code: 1007)
-    }
+    else { throw createError("Failed to create mouse up event for drag", code: 1007) }
 
     // Post the events
     mouseDown.post(tap: .cghidEventTap)
@@ -615,9 +519,7 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
         wheel2: Int32(deltaX),
         wheel3: 0,
       )
-    else {
-      throw createError("Failed to create scroll wheel event", code: 1008)
-    }
+    else { throw createError("Failed to create scroll wheel event", code: 1008) }
 
     // Set the position for the scroll event
     scrollEvent.location = position
@@ -642,23 +544,13 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
     // Create key events
     guard
       let keyDown = CGEvent(
-        keyboardEventSource: eventSource,
-        virtualKey: CGKeyCode(keyCode),
-        keyDown: true,
-      )
-    else {
-      throw createError("Failed to create key down event", code: 1010)
-    }
+        keyboardEventSource: eventSource, virtualKey: CGKeyCode(keyCode), keyDown: true, )
+    else { throw createError("Failed to create key down event", code: 1010) }
 
     guard
       let keyUp = CGEvent(
-        keyboardEventSource: eventSource,
-        virtualKey: CGKeyCode(keyCode),
-        keyDown: false,
-      )
-    else {
-      throw createError("Failed to create key up event", code: 1011)
-    }
+        keyboardEventSource: eventSource, virtualKey: CGKeyCode(keyCode), keyDown: false, )
+    else { throw createError("Failed to create key up event", code: 1011) }
 
     // Apply modifiers
     keyDown.flags = modifiers
@@ -758,8 +650,7 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
     case 47, 63:  // / ?
       keyCode = 44
       if character == 63 { modifiers.insert(.maskShift) }
-    default:
-      throw createError("Unsupported character: \(character)", code: 1012)
+    default: throw createError("Unsupported character: \(character)", code: 1012)
     }
 
     return (keyCode, modifiers)
@@ -767,12 +658,8 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
 
   /// Create a standard error with a code
   private func createError(_ message: String, code: Int) -> Error {
-    createInteractionError(
-      message: message,
-      context: ["internalErrorCode": "\(code)"],
-    )
+    createInteractionError(message: message, context: ["internalErrorCode": "\(code)"], )
   }
-  
 }
 
 // MARK: - Path-based Element Interaction Methods Extension
@@ -785,11 +672,8 @@ extension UIInteractionService {
   public func clickElementByPath(path: String, appBundleId: String?) async throws {
     logger.debug(
       "Clicking element by path",
-      metadata: [
-        "path": "\(path)",
-        "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil",
-      ])
-    
+      metadata: ["path": "\(path)", "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil"]
+    )
 
     // Parse the path
     let elementPath = try ElementPath.parse(path)
@@ -798,7 +682,6 @@ extension UIInteractionService {
     let element = try await accessibilityService.run {
       try await elementPath.resolve(using: accessibilityService)
     }
-    
     // Perform the click using the AXUIElement directly
     try await clickElementDirectly(element)
   }
@@ -810,10 +693,8 @@ extension UIInteractionService {
   public func doubleClickElementByPath(path: String, appBundleId: String?) async throws {
     logger.debug(
       "Double-clicking element by path",
-      metadata: [
-        "path": "\(path)",
-        "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil",
-      ])
+      metadata: ["path": "\(path)", "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil"]
+    )
 
     // Parse the path
     let elementPath = try ElementPath.parse(path)
@@ -834,10 +715,8 @@ extension UIInteractionService {
   public func rightClickElementByPath(path: String, appBundleId: String?) async throws {
     logger.debug(
       "Right-clicking element by path",
-      metadata: [
-        "path": "\(path)",
-        "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil",
-      ])
+      metadata: ["path": "\(path)", "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil"]
+    )
 
     // Parse the path
     let elementPath = try ElementPath.parse(path)
@@ -860,10 +739,10 @@ extension UIInteractionService {
     logger.debug(
       "Typing text into element by path",
       metadata: [
-        "path": "\(path)",
-        "textLength": "\(text.count)",
+        "path": "\(path)", "textLength": "\(text.count)",
         "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil",
-      ])
+      ]
+    )
 
     // Parse the path
     let elementPath = try ElementPath.parse(path)
@@ -879,11 +758,7 @@ extension UIInteractionService {
 
     if role == AXAttribute.Role.textField || role == AXAttribute.Role.textArea {
       // For text fields, set the value directly
-      try AccessibilityElement.setAttribute(
-        element,
-        attribute: AXAttribute.value,
-        value: text,
-      )
+      try AccessibilityElement.setAttribute(element, attribute: AXAttribute.value, value: text, )
     } else {
       // For other elements, try to set focus and use key events
       let focusParams = AXUIElementSetMessagingTimeout(element, 1.0)
@@ -892,11 +767,7 @@ extension UIInteractionService {
       }
 
       // Set focus to the element
-      try AccessibilityElement.setAttribute(
-        element,
-        attribute: "AXFocused",
-        value: true,
-      )
+      try AccessibilityElement.setAttribute(element, attribute: "AXFocused", value: true, )
 
       // Give UI time to update focus
       try await Task.sleep(for: .milliseconds(100))
@@ -920,10 +791,10 @@ extension UIInteractionService {
     logger.debug(
       "Dragging element by path",
       metadata: [
-        "sourcePath": "\(sourcePath)",
-        "targetPath": "\(targetPath)",
+        "sourcePath": "\(sourcePath)", "targetPath": "\(targetPath)",
         "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil",
-      ])
+      ]
+    )
 
     // Parse the paths
     let sourceElementPath = try ElementPath.parse(sourcePath)
@@ -1000,19 +871,17 @@ extension UIInteractionService {
   ///   - amount: The amount to scroll (normalized 0-1)
   ///   - appBundleId: Optional bundle ID of the application containing the element
   public func scrollElementByPath(
-    path: String,
-    direction: ScrollDirection,
-    amount: Double,
-    appBundleId: String?,
-  ) async throws {
+    path: String, direction: ScrollDirection, amount: Double, appBundleId: String?,
+  )
+    async throws
+  {
     logger.debug(
       "Scrolling element by path",
       metadata: [
-        "path": "\(path)",
-        "direction": "\(direction)",
-        "amount": "\(amount)",
+        "path": "\(path)", "direction": "\(direction)", "amount": "\(amount)",
         "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil",
-      ])
+      ]
+    )
 
     // Parse the path
     let elementPath = try ElementPath.parse(path)
@@ -1028,14 +897,10 @@ extension UIInteractionService {
     // Map direction to scroll action
     let scrollAction =
       switch direction {
-      case .up:
-        "AXScrollUp"
-      case .down:
-        "AXScrollDown"
-      case .left:
-        "AXScrollLeft"
-      case .right:
-        "AXScrollRight"
+      case .up: "AXScrollUp"
+      case .down: "AXScrollDown"
+      case .left: "AXScrollLeft"
+      case .right: "AXScrollRight"
       }
 
     // Check if the element supports the specific scroll action
@@ -1110,10 +975,10 @@ extension UIInteractionService {
     logger.debug(
       "Performing accessibility action by path",
       metadata: [
-        "path": "\(path)",
-        "action": "\(action)",
+        "path": "\(path)", "action": "\(action)",
         "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil",
-      ])
+      ]
+    )
 
     // Parse the path
     let elementPath = try ElementPath.parse(path)
@@ -1156,9 +1021,9 @@ extension UIInteractionService {
         logger.warning(
           "AXPress failed for path-based element, will try mouse simulation fallback",
           metadata: [
-            "error": .string(error.localizedDescription),
-            "code": .string("\(nsError.code)"),
-          ])
+            "error": .string(error.localizedDescription), "code": .string("\(nsError.code)"),
+          ]
+        )
       }
     } else {
       logger.debug(
@@ -1191,17 +1056,11 @@ extension UIInteractionService {
     }
 
     // Calculate center point
-    let centerPoint = CGPoint(
-      x: position.x + size.width / 2,
-      y: position.y + size.height / 2,
-    )
+    let centerPoint = CGPoint(x: position.x + size.width / 2, y: position.y + size.height / 2, )
 
     logger.debug(
       "Using mouse simulation fallback for path-based element",
-      metadata: [
-        "x": .string("\(centerPoint.x)"),
-        "y": .string("\(centerPoint.y)"),
-      ],
+      metadata: ["x": .string("\(centerPoint.x)"), "y": .string("\(centerPoint.y)")],
     )
 
     do {
@@ -1214,15 +1073,14 @@ extension UIInteractionService {
       logger.trace(
         "Both AXPress and mouse simulation failed for path-based element",
         metadata: [
-          "error": .string(error.localizedDescription),
-          "domain": .string(nsError.domain),
+          "error": .string(error.localizedDescription), "domain": .string(nsError.domain),
           "code": .string("\(nsError.code)"),
-        ])
+        ]
+      )
 
       // Create a more informative error with context
       let context: [String: String] = [
-        "errorCode": "\(nsError.code)",
-        "errorDomain": nsError.domain,
+        "errorCode": "\(nsError.code)", "errorDomain": nsError.domain,
         "position": "{\(centerPoint.x), \(centerPoint.y)}",
         "size": "{\(size.width), \(size.height)}",
       ]
@@ -1277,17 +1135,11 @@ extension UIInteractionService {
     }
 
     // Calculate center point
-    let centerPoint = CGPoint(
-      x: position.x + size.width / 2,
-      y: position.y + size.height / 2,
-    )
+    let centerPoint = CGPoint(x: position.x + size.width / 2, y: position.y + size.height / 2, )
 
     logger.debug(
       "Element doesn't support AXDoubleClick or AXPress action, falling back to mouse simulation",
-      metadata: [
-        "x": .string("\(centerPoint.x)"),
-        "y": .string("\(centerPoint.y)"),
-      ],
+      metadata: ["x": .string("\(centerPoint.x)"), "y": .string("\(centerPoint.y)")],
     )
 
     // Simulate two mouse clicks in rapid succession
@@ -1331,17 +1183,11 @@ extension UIInteractionService {
     }
 
     // Calculate center point
-    let centerPoint = CGPoint(
-      x: position.x + size.width / 2,
-      y: position.y + size.height / 2,
-    )
+    let centerPoint = CGPoint(x: position.x + size.width / 2, y: position.y + size.height / 2, )
 
     logger.debug(
       "Element doesn't support AXShowMenu action, falling back to mouse simulation",
-      metadata: [
-        "x": .string("\(centerPoint.x)"),
-        "y": .string("\(centerPoint.y)"),
-      ],
+      metadata: ["x": .string("\(centerPoint.x)"), "y": .string("\(centerPoint.y)")],
     )
 
     try simulateMouseRightClick(at: centerPoint)

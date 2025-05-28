@@ -26,9 +26,7 @@ public struct ElementPathParser {
     let segmentStrings = pathWithoutPrefix.split(separator: "/")
 
     // Make sure we have at least one segment
-    guard !segmentStrings.isEmpty else {
-      throw ElementPathError.emptyPath
-    }
+    guard !segmentStrings.isEmpty else { throw ElementPathError.emptyPath }
 
     // Parse each segment
     var segments: [PathSegment] = []
@@ -57,12 +55,13 @@ public struct ElementPathParser {
     // First, extract the index if present (from the end)
     var workingString = segmentString
     var index: Int? = nil
-    
     // Check for valid integer index pattern only
     if let regex = try? NSRegularExpression(pattern: indexPattern) {
       let nsString = workingString as NSString
       let range = NSRange(location: 0, length: nsString.length)
-      if let match = regex.firstMatch(in: workingString, options: [], range: range), match.numberOfRanges >= 2 {
+      if let match = regex.firstMatch(in: workingString, options: [], range: range),
+        match.numberOfRanges >= 2
+      {
         let indexRange = Range(match.range(at: 1), in: workingString)!
         let indexString = String(workingString[indexRange])
         if let parsedIndex = Int(indexString) {
@@ -76,7 +75,7 @@ public struct ElementPathParser {
 
     // Check for obvious invalid index attempts that users might try
     // We only want to catch clearly mistaken index patterns, not hashes that are part of role names
-    
+
     // Pattern 1: Bare hash at the very end or before attributes (#)
     if workingString.hasSuffix("#") || workingString.contains("#[") {
       let bareHashPattern = "#(?=\\[|$)"
@@ -88,13 +87,14 @@ public struct ElementPathParser {
         }
       }
     }
-    
     // Pattern 2: Hash followed by obvious non-integer attempts (like #abc, #@!$) at the end
     let clearInvalidPattern = "#([a-z]+|[A-Z]+|[@!\\$%^&*()]+)(?=\\[|$)"
     if let clearInvalidRegex = try? NSRegularExpression(pattern: clearInvalidPattern) {
       let nsString = workingString as NSString
       let range = NSRange(location: 0, length: nsString.length)
-      if let match = clearInvalidRegex.firstMatch(in: workingString, options: [], range: range), match.numberOfRanges >= 2 {
+      if let match = clearInvalidRegex.firstMatch(in: workingString, options: [], range: range),
+        match.numberOfRanges >= 2
+      {
         let invalidIndexRange = Range(match.range(at: 1), in: workingString)!
         let invalidIndexString = String(workingString[invalidIndexRange])
         throw ElementPathError.invalidIndexSyntax("#\(invalidIndexString)", atSegment: segmentIndex)
@@ -103,33 +103,24 @@ public struct ElementPathParser {
 
     // Extract attributes and remove them from the working string
     var attributes: [String: String] = [:]
-    
     // Use NSRegularExpression to extract attributes with proper group capture
     if let regex = try? NSRegularExpression(pattern: attributePattern) {
       let nsString = workingString as NSString
       let range = NSRange(location: 0, length: nsString.length)
       let matches = regex.matches(in: workingString, options: [], range: range)
-      
       // Sort matches by location in reverse order to safely remove from string
       let sortedMatches = matches.sorted { $0.range.location > $1.range.location }
-      
-      for match in matches {
-        if match.numberOfRanges >= 3 {
-          let nameRange = Range(match.range(at: 1), in: workingString)!
-          let valueRange = Range(match.range(at: 2), in: workingString)!
-          
-          let name = String(workingString[nameRange])
-          var value = String(workingString[valueRange])
-          
-          // Unescape quotes in the value
-          value = value.replacingOccurrences(of: "\\\"", with: "\"")
-          
-          // Normalize the attribute name during parsing
-          let normalizedName = PathNormalizer.normalizeAttributeName(name)
-          attributes[normalizedName] = value
-        }
+      for match in matches where match.numberOfRanges >= 3 {
+        let nameRange = Range(match.range(at: 1), in: workingString)!
+        let valueRange = Range(match.range(at: 2), in: workingString)!
+        let name = String(workingString[nameRange])
+        var value = String(workingString[valueRange])
+        // Unescape quotes in the value
+        value = value.replacingOccurrences(of: "\\\"", with: "\"")
+        // Normalize the attribute name during parsing
+        let normalizedName = PathNormalizer.normalizeAttributeName(name)
+        attributes[normalizedName] = value
       }
-      
       // Remove all attribute patterns from the working string
       for match in sortedMatches {
         let fullMatchRange = Range(match.range(at: 0), in: workingString)!
@@ -139,10 +130,7 @@ public struct ElementPathParser {
 
     // Whatever remains should be the role name
     let role = workingString.trimmingCharacters(in: .whitespacesAndNewlines)
-    
-    guard !role.isEmpty else {
-      throw ElementPathError.invalidSegmentRole(segmentString)
-    }
+    guard !role.isEmpty else { throw ElementPathError.invalidSegmentRole(segmentString) }
 
     return PathSegment(role: role, attributes: attributes, index: index)
   }
@@ -150,9 +138,7 @@ public struct ElementPathParser {
   /// Check if a string is an element path
   /// - Parameter string: The string to check
   /// - Returns: True if the string is an element path
-  public static func isElementPath(_ string: String) -> Bool {
-    string.hasPrefix(pathPrefix)
-  }
+  public static func isElementPath(_ string: String) -> Bool { string.hasPrefix(pathPrefix) }
 
   /// Validate a path string and return warnings
   /// - Parameters:
@@ -160,10 +146,9 @@ public struct ElementPathParser {
   ///   - strict: Whether to use strict validation
   /// - Returns: Validation result with any warnings
   /// - Throws: ElementPathError for critical validation failures
-  public static func validatePath(
-    _ pathString: String,
-    strict: Bool = false,
-  ) throws -> (isValid: Bool, warnings: [ElementPathError]) {
+  public static func validatePath(_ pathString: String, strict: Bool = false, ) throws -> (
+    isValid: Bool, warnings: [ElementPathError]
+  ) {
     var warnings: [ElementPathError] = []
 
     // Check if the path starts with the expected prefix
@@ -178,9 +163,7 @@ public struct ElementPathParser {
     let segmentStrings = pathWithoutPrefix.split(separator: "/")
 
     // Make sure we have at least one segment
-    guard !segmentStrings.isEmpty else {
-      throw ElementPathError.emptyPath
-    }
+    guard !segmentStrings.isEmpty else { throw ElementPathError.emptyPath }
 
     // Check for path complexity
     if segmentStrings.count > 15, strict {
@@ -188,7 +171,8 @@ public struct ElementPathParser {
         ElementPathError.validationWarning(
           "Path has \(segmentStrings.count) segments, which might be excessive",
           suggestion: "Consider using a shorter path if possible",
-        ))
+        )
+      )
     }
 
     // Validate each segment
@@ -221,7 +205,8 @@ public struct ElementPathParser {
               "First segment role is '\(firstSegment.role)' rather than 'AXApplication' or 'AXSystemWide'",
               suggestion:
                 "Paths typically start with AXApplication for targeting specific applications",
-            ))
+            )
+          )
         }
 
         if firstSegment.role == "AXApplication" {
@@ -236,7 +221,8 @@ public struct ElementPathParser {
                 String(firstSegmentString),
                 suggestedAttribute: "bundleId or title",
                 atSegment: 0,
-              ))
+              )
+            )
           }
         }
       }
@@ -267,7 +253,8 @@ public struct ElementPathParser {
         ElementPathError.validationWarning(
           "Empty role in segment at index \(index)",
           suggestion: "Specify a valid accessibility role like 'AXButton', 'AXTextField', etc.",
-        ))
+        )
+      )
     }
 
     // Role should typically start with AX for standard elements
@@ -277,7 +264,8 @@ public struct ElementPathParser {
           "Role '\(segment.role)' doesn't have the standard 'AX' prefix",
           suggestion:
             "Consider using standard accessibility roles like 'AXButton', 'AXTextField', etc.",
-        ))
+        )
+      )
     }
 
     // Check for empty attributes or invalid formats
@@ -287,7 +275,8 @@ public struct ElementPathParser {
           ElementPathError.validationWarning(
             "Empty value for attribute '\(key)' in segment at index \(index)",
             suggestion: "Consider removing the empty attribute or providing a meaningful value",
-          ))
+          )
+        )
       }
 
       // Validate attribute name
@@ -296,7 +285,8 @@ public struct ElementPathParser {
           ElementPathError.validationWarning(
             "Empty attribute name in segment at index \(index)",
             suggestion: "Specify a valid attribute name",
-          ))
+          )
+        )
       }
     }
 
@@ -309,7 +299,8 @@ public struct ElementPathParser {
             segment.toString(),
             suggestedAttribute: "AXTitle or AXDescription",
             atSegment: index,
-          ))
+          )
+        )
 
       case "AXTextField", "AXTextArea":
         warnings.append(
@@ -317,7 +308,8 @@ public struct ElementPathParser {
             segment.toString(),
             suggestedAttribute: "AXPlaceholderValue or AXIdentifier",
             atSegment: index,
-          ))
+          )
+        )
 
       case "AXTable", "AXGrid", "AXList", "AXOutline":
         warnings.append(
@@ -325,10 +317,10 @@ public struct ElementPathParser {
             segment.toString(),
             suggestedAttribute: "AXIdentifier",
             atSegment: index,
-          ))
+          )
+        )
 
-      default:
-        break
+      default: break
       }
     }
 
@@ -365,7 +357,8 @@ public struct ElementPathParser {
                 details:
                   "Multiple consecutive '\(segment.role)' segments without index specification",
                 atSegment: i,
-              ))
+              )
+            )
           }
         } else {
           consecutiveSegments[segment.role] = 1
@@ -382,7 +375,8 @@ public struct ElementPathParser {
               details:
                 "Generic role '\(segment.role)' without attributes or index may match multiple elements",
               atSegment: i,
-            ))
+            )
+          )
         }
       } catch {
         // Skip segments that couldn't be parsed - they'll have errors thrown elsewhere
@@ -398,9 +392,7 @@ extension String {
   /// - Parameter pattern: The regular expression pattern
   /// - Returns: Array of ranges matching the pattern
   func ranges(of pattern: String) -> [Range<String.Index>] {
-    guard let regex = try? NSRegularExpression(pattern: pattern) else {
-      return []
-    }
+    guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
 
     let nsString = self as NSString
     let range = NSRange(location: 0, length: nsString.length)
@@ -417,7 +409,5 @@ extension String {
   /// Creates a new string by repeating this string a specified number of times
   /// - Parameter count: The number of times to repeat the string
   /// - Returns: A new string containing the original string repeated count times
-  func repeating(_ count: Int) -> String {
-    String(repeating: self, count: count)
-  }
+  func repeating(_ count: Int) -> String { String(repeating: self, count: count) }
 }

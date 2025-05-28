@@ -1,11 +1,11 @@
 // ABOUTME: InterfaceExplorerTool.swift
 // ABOUTME: Part of MacMCP allowing LLMs to interact with macOS applications.
 
+import CoreGraphics
 import Foundation
 import Logging
 import MCP
 import MacMCPUtilities
-import CoreGraphics
 
 private let elementDescriptorLogger = Logger(label: "mcp.tool.interface_explorer_descriptor")
 
@@ -16,34 +16,34 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
 
   /// Description of the tool
   public let description = """
-Explore and examine UI elements and their capabilities in macOS applications - essential for discovering elements to interact with.
+    Explore and examine UI elements and their capabilities in macOS applications - essential for discovering elements to interact with.
 
-IMPORTANT: This tool is critical for finding element IDs needed by UIInteractionTool and other tools. Always explore before interacting.
+    IMPORTANT: This tool is critical for finding element IDs needed by UIInteractionTool and other tools. Always explore before interacting.
 
-Available scope types:
-- application: Specific app by bundleId (when you know the target app)
-- system: All applications (very broad, use sparingly)
-- position: Element at screen coordinates (x, y required)
-- element: Specific element by ID (advanced usage)
-- element: Element by ID (for detailed exploration)
+    Available scope types:
+    - application: Specific app by bundleId (when you know the target app)
+    - system: All applications (very broad, use sparingly)
+    - position: Element at screen coordinates (x, y required)
+    - element: Specific element by ID (advanced usage)
+    - element: Element by ID (for detailed exploration)
 
-Common workflows:
-1. Initial exploration: Use 'application' scope with specific bundleId and maxDepth 15-20
-2. Find interactive elements: Use filter by role (AXButton, AXTextField, etc.)
-3. Search by content: Use textContains to search across all element fields
-4. Navigate hierarchy: Use 'element' scope to explore specific elements deeper
-5. Performance optimization: Reduce maxDepth for faster responses
+    Common workflows:
+    1. Initial exploration: Use 'application' scope with specific bundleId and maxDepth 15-20
+    2. Find interactive elements: Use filter by role (AXButton, AXTextField, etc.)
+    3. Search by content: Use textContains to search across all element fields
+    4. Navigate hierarchy: Use 'element' scope to explore specific elements deeper
+    5. Performance optimization: Reduce maxDepth for faster responses
 
-Filtering capabilities:
-- role: Element type (AXButton, AXTextField, AXWindow, etc.)
-- value/valueContains: Element values or partial matches  
-- textContains: Universal text search across all text fields (now includes role, identifier, title, description)
-- isInteractable: Filter for elements that can be acted upon (clickable, editable, etc.)
-- isEnabled: Filter by enabled/disabled state
-- inMenus/inMainContent: Location context filtering (menu system vs main content)
+    Filtering capabilities:
+    - role: Element type (AXButton, AXTextField, AXWindow, etc.)
+    - value/valueContains: Element values or partial matches  
+    - textContains: Universal text search across all text fields (now includes role, identifier, title, description)
+    - isInteractable: Filter for elements that can be acted upon (clickable, editable, etc.)
+    - isEnabled: Filter by enabled/disabled state
+    - inMenus/inMainContent: Location context filtering (menu system vs main content)
 
-Performance tips: Start with 'application' scope for specific apps, use filters to narrow results, adjust maxDepth based on needs.
-"""
+    Performance tips: Start with 'application' scope for specific apps, use filters to narrow results, adjust maxDepth based on needs.
+    """
 
   /// Input schema for the tool
   public private(set) var inputSchema: Value
@@ -56,9 +56,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
 
   /// Tool handler function that uses this instance's accessibility service
   public var handler: @Sendable ([String: Value]?) async throws -> [Tool.Content] {
-    { [self] params in
-      return try await self.processRequest(params)
-    }
+    { [self] params in return try await self.processRequest(params) }
   }
 
   /// The logger
@@ -68,10 +66,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
   /// - Parameters:
   ///   - accessibilityService: The accessibility service to use
   ///   - logger: Optional logger to use
-  public init(
-    accessibilityService: any AccessibilityServiceProtocol,
-    logger: Logger? = nil
-  ) {
+  public init(accessibilityService: any AccessibilityServiceProtocol, logger: Logger? = nil) {
     self.accessibilityService = accessibilityService
     self.logger = logger ?? Logger(label: "mcp.tool.interface_explorer")
 
@@ -98,22 +93,25 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
       "properties": .object([
         "scope": .object([
           "type": .string("string"),
-          "description": .string("Exploration scope: 'application' (specific app), 'system' (all apps), 'position' (coordinates), 'element' (specific element)"),
+          "description": .string(
+            "Exploration scope: 'application' (specific app), 'system' (all apps), 'position' (coordinates), 'element' (specific element)"
+          ),
           "enum": .array([
-            .string("system"),
-            .string("application"),
-            .string("position"),
-            .string("element"),
+            .string("system"), .string("application"), .string("position"), .string("element"),
             .string("element"),
           ]),
         ]),
         "bundleId": .object([
           "type": .string("string"),
-          "description": .string("Application bundle identifier (required for 'application' scope, e.g., 'com.apple.calculator')"),
+          "description": .string(
+            "Application bundle identifier (required for 'application' scope, e.g., 'com.apple.calculator')"
+          ),
         ]),
         "id": .object([
           "type": .string("string"),
-          "description": .string("Element ID (required for 'element' scope) for detailed element exploration"),
+          "description": .string(
+            "Element ID (required for 'element' scope) for detailed element exploration"
+          ),
         ]),
         "x": .object([
           "type": .array([.string("number"), .string("integer")]),
@@ -125,20 +123,24 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         ]),
         "maxDepth": .object([
           "type": .string("number"),
-          "description": .string("UI hierarchy depth: 10-15 for performance, 20+ for comprehensive exploration (default: 15)"),
-          "default": .double(15),
+          "description": .string(
+            "UI hierarchy depth: 10-15 for performance, 20+ for comprehensive exploration (default: 15)"
+          ), "default": .double(15),
         ]),
         "filter": .object([
           "type": .string("object"),
-          "description": .string("Filter elements by properties (role, title, value, description) with exact or partial matching"),
+          "description": .string(
+            "Filter elements by properties (role, title, value, description) with exact or partial matching"
+          ),
           "properties": .object([
             "role": .object([
               "type": .string("string"),
-              "description": .string("Filter by accessibility role (e.g., 'AXButton', 'AXTextField', 'AXWindow')"),
+              "description": .string(
+                "Filter by accessibility role (e.g., 'AXButton', 'AXTextField', 'AXWindow')"
+              ),
             ]),
             "value": .object([
-              "type": .string("string"),
-              "description": .string("Filter by exact value match"),
+              "type": .string("string"), "description": .string("Filter by exact value match"),
             ]),
             "valueContains": .object([
               "type": .string("string"),
@@ -146,19 +148,24 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
             ]),
             "textContains": .object([
               "type": .string("string"),
-              "description": .string("Filter by text containing this string in any text field (role, title, description, value, identifier)"),
+              "description": .string(
+                "Filter by text containing this string in any text field (role, title, description, value, identifier)"
+              ),
             ]),
             "anyFieldContains": .object([
               "type": .string("string"),
-              "description": .string("Search across all text fields simultaneously (title, description, value, identifier, role)"),
+              "description": .string(
+                "Search across all text fields simultaneously (title, description, value, identifier, role)"
+              ),
             ]),
             "isInteractable": .object([
               "type": .string("boolean"),
-              "description": .string("Filter for elements that can be acted upon (clickable, editable, etc.)"),
+              "description": .string(
+                "Filter for elements that can be acted upon (clickable, editable, etc.)"
+              ),
             ]),
             "isEnabled": .object([
-              "type": .string("boolean"),
-              "description": .string("Filter by enabled state"),
+              "type": .string("boolean"), "description": .string("Filter by enabled state"),
             ]),
             "inMenus": .object([
               "type": .string("boolean"),
@@ -172,99 +179,74 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         ]),
         "elementTypes": .object([
           "type": .string("array"),
-          "description": .string("Interactive element types to discover: button, textfield, dropdown, etc. (default: any)"),
+          "description": .string(
+            "Interactive element types to discover: button, textfield, dropdown, etc. (default: any)"
+          ),
           "items": .object([
             "type": .string("string"),
             "enum": .array([
-              .string("button"),
-              .string("checkbox"),
-              .string("radio"),
-              .string("textfield"),
-              .string("dropdown"),
-              .string("slider"),
-              .string("link"),
-              .string("tab"),
+              .string("button"), .string("checkbox"), .string("radio"), .string("textfield"),
+              .string("dropdown"), .string("slider"), .string("link"), .string("tab"),
               .string("any"),
             ]),
-          ]),
-          "default": .array([.string("any")]),
+          ]), "default": .array([.string("any")]),
         ]),
         "includeHidden": .object([
           "type": .string("boolean"),
-          "description": .string("Include hidden/invisible elements in results (default: false for cleaner output)"),
-          "default": .bool(false),
+          "description": .string(
+            "Include hidden/invisible elements in results (default: false for cleaner output)"
+          ), "default": .bool(false),
         ]),
         "includeDisabled": .object([
           "type": .string("boolean"),
-          "description": .string("Include disabled elements in results (default: false for cleaner output)"),
+          "description": .string(
+            "Include disabled elements in results (default: false for cleaner output)"),
           "default": .bool(false),
         ]),
         "includeNonInteractable": .object([
           "type": .string("boolean"),
-          "description": .string("Include non-interactable elements in results (default: false for cleaner output)"),
-          "default": .bool(false),
+          "description": .string(
+            "Include non-interactable elements in results (default: false for cleaner output)"
+          ), "default": .bool(false),
         ]),
         "showCoordinates": .object([
           "type": .string("boolean"),
-          "description": .string("Include position and size information in results (default: false for cleaner output)"),
-          "default": .bool(false),
+          "description": .string(
+            "Include position and size information in results (default: false for cleaner output)"
+          ), "default": .bool(false),
         ]),
         "limit": .object([
           "type": .string("integer"),
-          "description": .string("Maximum elements to return (default: 100, increase for comprehensive exploration)"),
-          "default": .int(100),
+          "description": .string(
+            "Maximum elements to return (default: 100, increase for comprehensive exploration)"
+          ), "default": .int(100),
         ]),
-      ]),
-      "required": .array([.string("scope")]),
-      "additionalProperties": .bool(false),
+      ]), "required": .array([.string("scope")]), "additionalProperties": .bool(false),
       "examples": .array([
+        .object(["scope": .string("application"), "bundleId": .string("com.apple.calculator")]),
         .object([
-          "scope": .string("application"),
-          "bundleId": .string("com.apple.calculator"),
-        ]),
-        .object([
-          "scope": .string("application"),
-          "bundleId": .string("com.apple.calculator"),
+          "scope": .string("application"), "bundleId": .string("com.apple.calculator"),
           "maxDepth": .int(20),
-          "filter": .object([
-            "role": .string("AXButton")
-          ]),
+          "filter": .object(["role": .string("AXButton")]),
         ]),
         .object([
-          "scope": .string("application"),
-          "bundleId": .string("com.apple.calculator"),
+          "scope": .string("application"), "bundleId": .string("com.apple.calculator"),
           "maxDepth": .int(15),
         ]),
         .object([
-          "scope": .string("application"),
-          "bundleId": .string("com.apple.textedit"),
-          "filter": .object([
-            "titleContains": .string("Save")
-          ]),
+          "scope": .string("application"), "bundleId": .string("com.apple.textedit"),
+          "filter": .object(["titleContains": .string("Save")]),
         ]),
         .object([
-          "scope": .string("application"),
-          "bundleId": .string("com.apple.calculator"),
-          "filter": .object([
-            "textContains": .string("5")
-          ]),
+          "scope": .string("application"), "bundleId": .string("com.apple.calculator"),
+          "filter": .object(["textContains": .string("5")]),
         ]),
         .object([
-          "scope": .string("application"),
-          "bundleId": .string("com.apple.calculator"),
-          "filter": .object([
-            "isInteractable": .bool(true)
-          ]),
-        ]),
+          "scope": .string("application"), "bundleId": .string("com.apple.calculator"),
+          "filter": .object(["isInteractable": .bool(true)]),
+        ]), .object(["scope": .string("position"), "x": .int(400), "y": .int(300)]),
         .object([
-          "scope": .string("position"),
-          "x": .int(400),
-          "y": .int(300),
-        ]),
-        .object([
-          "scope": .string("element"),
-          "id": .string("element-uuid-example"),
-          "maxDepth": .int(10),
+          "scope": .string("element"), "id": .string("element-uuid-example"), "maxDepth": .int(10),
         ]),
       ]),
     ])
@@ -274,9 +256,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
   /// - Parameter params: The request parameters
   /// - Returns: The tool result content
   private func processRequest(_ params: [String: Value]?) async throws -> [Tool.Content] {
-    guard let params else {
-      throw MCPError.invalidParams("Parameters are required")
-    }
+    guard let params else { throw MCPError.invalidParams("Parameters are required") }
 
     // Get the scope
     guard let scopeValue = params["scope"]?.stringValue else {
@@ -295,14 +275,10 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     var elementTypes: [String] = []
     if case .array(let types)? = params["elementTypes"] {
       for typeValue in types {
-        if let typeStr = typeValue.stringValue {
-          elementTypes.append(typeStr)
-        }
+        if let typeStr = typeValue.stringValue { elementTypes.append(typeStr) }
       }
     }
-    if elementTypes.isEmpty {
-      elementTypes = ["any"]
-    }
+    if elementTypes.isEmpty { elementTypes = ["any"] }
 
     // Extract filter criteria
     var role: String?
@@ -447,9 +423,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         elementTypes: elementTypes,
       )
 
-
-    default:
-      throw MCPError.invalidParams("Invalid scope: \(scopeValue)")
+    default: throw MCPError.invalidParams("Invalid scope: \(scopeValue)")
     }
   }
 
@@ -494,12 +468,14 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     )
 
     // Apply limit if needed
-    if elements.count > limit {
-      elements = Array(elements.prefix(limit))
-    }
+    if elements.count > limit { elements = Array(elements.prefix(limit)) }
 
     // Convert to enhanced element descriptors
-    let descriptors = convertToEnhancedDescriptors(elements: elements, maxDepth: maxDepth, showCoordinates: showCoordinates)
+    let descriptors = convertToEnhancedDescriptors(
+      elements: elements,
+      maxDepth: maxDepth,
+      showCoordinates: showCoordinates
+    )
 
     // Apply limit
     let limitedDescriptors = descriptors.prefix(limit)
@@ -553,12 +529,14 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     )
 
     // Apply limit if needed
-    if elements.count > limit {
-      elements = Array(elements.prefix(limit))
-    }
+    if elements.count > limit { elements = Array(elements.prefix(limit)) }
 
     // Convert to enhanced element descriptors
-    let descriptors = convertToEnhancedDescriptors(elements: elements, maxDepth: maxDepth, showCoordinates: showCoordinates)
+    let descriptors = convertToEnhancedDescriptors(
+      elements: elements,
+      maxDepth: maxDepth,
+      showCoordinates: showCoordinates
+    )
 
     // Apply limit
     let limitedDescriptors = descriptors.prefix(limit)
@@ -566,7 +544,6 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     // Return formatted response
     return try formatResponse(Array(limitedDescriptors))
   }
-
 
   /// Handle position scope
   private func handlePositionScope(
@@ -604,9 +581,10 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     var elements = [element]
 
     // Apply filters if needed
-    if role != nil || value != nil || valueContains != nil || textContains != nil || anyFieldContains != nil || isInteractable != nil
-      || isEnabled != nil || inMenus != nil || inMainContent != nil || !elementTypes.contains("any")
-      || !includeHidden
+    if role != nil || value != nil || valueContains != nil || textContains != nil
+      || anyFieldContains != nil
+      || isInteractable != nil || isEnabled != nil || inMenus != nil || inMainContent != nil
+      || !elementTypes.contains("any") || !includeHidden
     {
       elements = applyAdditionalFilters(
         elements: elements,
@@ -627,7 +605,11 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     }
 
     // Convert to enhanced element descriptors
-    let descriptors = convertToEnhancedDescriptors(elements: elements, maxDepth: maxDepth, showCoordinates: showCoordinates)
+    let descriptors = convertToEnhancedDescriptors(
+      elements: elements,
+      maxDepth: maxDepth,
+      showCoordinates: showCoordinates
+    )
 
     // Apply limit
     let limitedDescriptors = descriptors.prefix(limit)
@@ -664,16 +646,15 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
 
       // Convert to UIElement
       let element = try AccessibilityElement.convertToUIElement(
-        axElement,
-        recursive: true,
-        maxDepth: maxDepth,
-      )
+        axElement, recursive: true, maxDepth: maxDepth, )
 
       // If we're searching within this element, we need to apply filters to its children
       var resultElements: [UIElement] = []
 
-      if role != nil || value != nil || valueContains != nil || textContains != nil || anyFieldContains != nil || isInteractable != nil
-        || isEnabled != nil || inMenus != nil || inMainContent != nil || !elementTypes.contains("any")
+      if role != nil || value != nil || valueContains != nil || textContains != nil
+        || anyFieldContains != nil
+        || isInteractable != nil || isEnabled != nil || inMenus != nil || inMainContent != nil
+        || !elementTypes.contains("any")
       {
         // For filtering, we need to process the element and its descendants
         // Now search within this element for matching elements
@@ -698,19 +679,17 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         resultElements = [element]
 
         // Apply visibility, enabled, and interactability filters if specified
-        if !includeHidden {
-          resultElements = filterVisibleElements(resultElements)
-        }
-        if !includeDisabled {
-          resultElements = filterEnabledElements(resultElements)
-        }
-        if !includeNonInteractable {
-          resultElements = filterInteractableElements(resultElements)
-        }
+        if !includeHidden { resultElements = filterVisibleElements(resultElements) }
+        if !includeDisabled { resultElements = filterEnabledElements(resultElements) }
+        if !includeNonInteractable { resultElements = filterInteractableElements(resultElements) }
       }
 
       // Convert to enhanced element descriptors
-      let descriptors = convertToEnhancedDescriptors(elements: resultElements, maxDepth: maxDepth, showCoordinates: showCoordinates)
+      let descriptors = convertToEnhancedDescriptors(
+        elements: resultElements,
+        maxDepth: maxDepth,
+        showCoordinates: showCoordinates
+      )
 
       // Apply limit
       let limitedDescriptors = descriptors.prefix(limit)
@@ -760,13 +739,8 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
       elementTypes: elementTypes,
       includeHidden: includeHidden
     )
-    
     // Use the UIElement's findMatchingDescendants method
-    return element.findMatchingDescendants(
-      criteria: criteria,
-      maxDepth: maxDepth,
-      limit: limit
-    )
+    return element.findMatchingDescendants(criteria: criteria, maxDepth: maxDepth, limit: limit)
   }
 
   /// Apply additional filters not handled by the accessibility service
@@ -813,7 +787,6 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     includeNonInteractable: Bool = true,
     limit: Int = 100,
   ) -> [UIElement] {
-    
     // Create filter criteria from the parameters
     let criteria = UIElement.FilterCriteria(
       role: role,
@@ -831,32 +804,20 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
       elementTypes: elementTypes ?? ["any"],
       includeHidden: includeHidden
     )
-    
     // Use the static UIElement filterElements method
     var filteredElements = UIElement.filterElements(
-      elements: elements,
-      criteria: criteria,
-      limit: limit
-    )
-    
+      elements: elements, criteria: criteria, limit: limit)
     // Apply anyFieldContains filter if specified
     if let searchText = anyFieldContains, !searchText.isEmpty {
       filteredElements = filteredElements.filter { element in
         // Search across all string fields
         let searchFields = [
-          element.role,
-          element.title,
-          element.elementDescription,
-          element.value,
-          element.identifier
+          element.role, element.title, element.elementDescription, element.value,
+          element.identifier,
         ].compactMap { $0 }
-        
-        return searchFields.contains { field in
-          field.localizedCaseInsensitiveContains(searchText)
-        }
+        return searchFields.contains { field in field.localizedCaseInsensitiveContains(searchText) }
       }
     }
-    
     return filteredElements
   }
 
@@ -864,9 +825,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
   private func filterVisibleElements(_ elements: [UIElement]) -> [UIElement] {
     elements.filter { element in
       // If this element isn't visible, exclude it
-      if !element.isVisible {
-        return false
-      }
+      if !element.isVisible { return false }
 
       // Include visible elements
       return true
@@ -891,38 +850,33 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
 
   /// Filter to only include interactable elements
   private func filterInteractableElements(_ elements: [UIElement]) -> [UIElement] {
-    return filterWithHierarchyPreservation(elements) { element in
-      return element.isInteractable
-    }
+    return filterWithHierarchyPreservation(elements) { element in return element.isInteractable }
   }
 
   /// Smart hierarchy preservation with chain skipping.
   /// Keeps containers if they have descendants that match the predicate,
   /// and skips unnecessary single-child container chains.
-  private func filterWithHierarchyPreservation(_ elements: [UIElement], keepIf predicate: @escaping (UIElement) -> Bool = { $0.isInteractable }) -> [UIElement] {
+  private func filterWithHierarchyPreservation(
+    _ elements: [UIElement],
+    keepIf predicate: @escaping (UIElement) -> Bool = { $0.isInteractable }
+  ) -> [UIElement] {
     let filteredElements = elements.compactMap { element in
       return processElementForHierarchyPreservation(element, keepIf: predicate)
     }
-    
     // Post-process to flatten display structure while preserving paths
     return flattenDisplayStructure(filteredElements)
   }
-  
   /// Post-processing step that reparents children to skip useless containers
   /// while preserving their original element paths for resolution
   private func flattenDisplayStructure(_ elements: [UIElement]) -> [UIElement] {
-    return elements.compactMap { element in
-      return flattenElementDisplayStructure(element)
-    }
+    return elements.compactMap { element in return flattenElementDisplayStructure(element) }
   }
-  
   /// Flatten a single element's display structure by reparenting children of useless containers
   private func flattenElementDisplayStructure(_ element: UIElement) -> UIElement? {
     // First, recursively process children
     let processedChildren = element.children.compactMap { child in
       return flattenElementDisplayStructure(child)
     }
-    
     // Check if this element is a "useless" container that should be flattened
     // A useless container is:
     // 1. Non-interactable
@@ -930,12 +884,11 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     // 3. That child has meaningful content
     if !element.isInteractable && processedChildren.count == 1 {
       let onlyChild = processedChildren[0]
-      
       // If the child is interactable or has multiple children, reparent its children to skip this container
       if onlyChild.isInteractable || onlyChild.children.count > 1 {
         // Return the child but with this element's parent relationship
         return UIElement(
-          path: onlyChild.path, // Keep the child's original path!
+          path: onlyChild.path,  // Keep the child's original path!
           role: onlyChild.role,
           title: onlyChild.title,
           value: onlyChild.value,
@@ -945,7 +898,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
           normalizedFrame: onlyChild.normalizedFrame,
           viewportFrame: onlyChild.viewportFrame,
           frameSource: onlyChild.frameSource,
-          parent: element.parent, // Use this element's parent to skip the container
+          parent: element.parent,  // Use this element's parent to skip the container
           children: onlyChild.children,
           attributes: onlyChild.attributes,
           actions: onlyChild.actions,
@@ -953,7 +906,6 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
         )
       }
     }
-    
     // Normal case: return element with processed children
     return UIElement(
       path: element.path,
@@ -975,30 +927,23 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
   }
 
   /// Process a single element for hierarchy preservation and chain skipping
-  private func processElementForHierarchyPreservation(_ element: UIElement, keepIf predicate: @escaping (UIElement) -> Bool = { $0.isInteractable }) -> UIElement? {
+  private func processElementForHierarchyPreservation(
+    _ element: UIElement,
+    keepIf predicate: @escaping (UIElement) -> Bool = { $0.isInteractable }
+  ) -> UIElement? {
     // If the element matches the predicate, always keep it
-    if predicate(element) {
-      return element
-    }
-    
+    if predicate(element) { return element }
     // If the element has no descendants that match the predicate, remove it
-    if !element.hasDescendantsMatching(predicate) {
-      return nil
-    }
-    
+    if !element.hasDescendantsMatching(predicate) { return nil }
     // NOTE: Removed path-breaking tree flattening from here
     // Tree flattening now happens in post-processing to preserve element paths
-    
+
     // Normal case: keep the container but filter its children
     // Recursively process children first
     let processedChildren = element.children.compactMap { child in
       return processElementForHierarchyPreservation(child, keepIf: predicate)
     }
-    
-    guard !processedChildren.isEmpty else {
-      return nil
-    }
-    
+    guard !processedChildren.isEmpty else { return nil }
     let processedElement = UIElement(
       path: element.path,
       role: element.role,
@@ -1016,12 +961,13 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
       actions: element.actions,
       axElement: element.axElement
     )
-    
     return processedElement
   }
 
   /// Convert UI elements to enhanced element descriptors
-  private func convertToEnhancedDescriptors(elements: [UIElement], maxDepth: Int, showCoordinates: Bool)
+  private func convertToEnhancedDescriptors(
+    elements: [UIElement], maxDepth: Int, showCoordinates: Bool
+  )
     -> [EnhancedElementDescriptor]
   {
     elements.map { element in
@@ -1059,16 +1005,13 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
           let fullPath = try element.generatePath()
           elementDescriptorLogger.debug(
             "Replacing partial path with fully qualified path",
-            metadata: [
-              "old": .string(element.path),
-              "new": .string(fullPath),
-            ])
+            metadata: ["old": .string(element.path), "new": .string(fullPath)]
+          )
           element.path = fullPath
         } catch {
-          logger
-            .warning(
-              "Could not generate fully qualified path from partial path: \(error.localizedDescription)",
-            )
+          logger.warning(
+            "Could not generate fully qualified path from partial path: \(error.localizedDescription)",
+          )
         }
       } else {
         // Element already has a fully qualified path (likely from path filtering)
@@ -1085,7 +1028,11 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
       }
 
       // Use the EnhancedElementDescriptor from the Models directory
-      return EnhancedElementDescriptor.from(element: element, maxDepth: maxDepth, showCoordinates: showCoordinates)
+      return EnhancedElementDescriptor.from(
+        element: element,
+        maxDepth: maxDepth,
+        showCoordinates: showCoordinates
+      )
     }
   }
 
@@ -1104,10 +1051,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
       return [.text(jsonString)]
     } catch {
       logger.error(
-        "Error encoding response as JSON",
-        metadata: [
-          "error": "\(error.localizedDescription)"
-        ])
+        "Error encoding response as JSON", metadata: ["error": "\(error.localizedDescription)"])
       throw MCPError.internalError(
         "Failed to encode response as JSON: \(error.localizedDescription)")
     }

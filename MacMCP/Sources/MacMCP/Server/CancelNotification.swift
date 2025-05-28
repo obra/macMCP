@@ -14,8 +14,6 @@ public struct CancelNotification: MCP.Notification {
     public let id: String
 
     /// Create new parameters
-    public init(id: String) {
-      self.id = id
-    }
+    public init(id: String) { self.id = id }
   }
 }

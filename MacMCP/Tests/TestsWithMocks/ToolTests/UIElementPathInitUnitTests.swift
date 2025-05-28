@@ -10,11 +10,9 @@ import Testing
 
 /// These tests focus on specific aspects of UIElement's path-based initialization
 /// without relying on complex mocks of the entire UI hierarchy
-@Suite("UIElement Path Initialization Unit Tests")
-struct UIElementPathInitUnitTests {
+@Suite("UIElement Path Initialization Unit Tests") struct UIElementPathInitUnitTests {
   // Test the parsing functionality directly
-  @Test("Test ElementPath parsing")
-  func elementPathParsing() throws {
+  @Test("Test ElementPath parsing") func elementPathParsing() throws {
     // Simple path
     let simplePath = try ElementPath.parse("macos://ui/AXApplication/AXWindow")
     #expect(simplePath.segments.count == 2)
@@ -22,9 +20,9 @@ struct UIElementPathInitUnitTests {
     #expect(simplePath.segments[1].role == "AXWindow")
 
     // Path with attributes
-    let attributePath =
-      try ElementPath
-      .parse("macos://ui/AXApplication[@bundleId=\"com.test\"]/AXWindow[@AXTitle=\"Title\"]")
+    let attributePath = try ElementPath.parse(
+      "macos://ui/AXApplication[@bundleId=\"com.test\"]/AXWindow[@AXTitle=\"Title\"]"
+    )
     #expect(attributePath.segments.count == 2)
     #expect(attributePath.segments[0].attributes["bundleId"] == "com.test")
     #expect(attributePath.segments[1].attributes["AXTitle"] == "Title")
@@ -36,8 +34,7 @@ struct UIElementPathInitUnitTests {
   }
 
   // Test error cases for path parsing
-  @Test("Test ElementPath parsing errors")
-  func elementPathParsingErrors() throws {
+  @Test("Test ElementPath parsing errors") func elementPathParsingErrors() throws {
     // Invalid prefix
     do {
       _ = try ElementPath.parse("invalid://AXApplication")
@@ -47,8 +44,7 @@ struct UIElementPathInitUnitTests {
       case .invalidPathPrefix:
         // This is expected
         break
-      default:
-        #expect(Bool(false), "Expected invalidPathPrefix error but got: \(error)")
+      default: #expect(Bool(false), "Expected invalidPathPrefix error but got: \(error)")
       }
     }
 
@@ -61,15 +57,13 @@ struct UIElementPathInitUnitTests {
       case .emptyPath:
         // This is expected
         break
-      default:
-        #expect(Bool(false), "Expected emptyPath error but got: \(error)")
+      default: #expect(Bool(false), "Expected emptyPath error but got: \(error)")
       }
     }
   }
 
   // Test path segment creation and properties
-  @Test("Test PathSegment properties")
-  func pathSegmentProperties() {
+  @Test("Test PathSegment properties") func pathSegmentProperties() {
     // Simple segment
     let simpleSegment = PathSegment(role: "AXButton")
     #expect(simpleSegment.role == "AXButton")
@@ -88,8 +82,7 @@ struct UIElementPathInitUnitTests {
   }
 
   // Test string representation of path segments
-  @Test("Test PathSegment toString")
-  func pathSegmentToString() {
+  @Test("Test PathSegment toString") func pathSegmentToString() {
     // Simple segment
     let simpleSegment = PathSegment(role: "AXButton")
     #expect(simpleSegment.toString() == "AXButton")
@@ -116,26 +109,23 @@ struct UIElementPathInitUnitTests {
   }
 
   // Test string representation of full paths
-  @Test("Test ElementPath toString")
-  func elementPathToString() throws {
+  @Test("Test ElementPath toString") func elementPathToString() throws {
     // Simple path
     let simplePath = try ElementPath.parse("macos://ui/AXApplication/AXWindow")
     #expect(simplePath.toString() == "macos://ui/AXApplication/AXWindow")
 
     // Complex path
-    let complexPath =
-      try ElementPath
-      .parse("macos://ui/AXApplication[@bundleId=\"com.test\"]/AXWindow[@AXTitle=\"Title\"][1]")
+    let complexPath = try ElementPath.parse(
+      "macos://ui/AXApplication[@bundleId=\"com.test\"]/AXWindow[@AXTitle=\"Title\"][1]"
+    )
     #expect(
-      complexPath
-        .toString()
+      complexPath.toString()
         == "macos://ui/AXApplication[@bundleId=\"com.test\"]/AXWindow[@AXTitle=\"Title\"][1]",
     )
   }
 
   // Test appending segments to paths
-  @Test("Test appending segments to paths")
-  func testAppendingSegments() throws {
+  @Test("Test appending segments to paths") func testAppendingSegments() throws {
     // Start with a simple path
     let startPath = try ElementPath.parse("macos://ui/AXApplication")
 
@@ -153,8 +143,7 @@ struct UIElementPathInitUnitTests {
 
     // Append multiple segments
     let moreSegments = [
-      PathSegment(role: "AXGroup"),
-      PathSegment(role: "AXButton", attributes: ["AXTitle": "OK"]),
+      PathSegment(role: "AXGroup"), PathSegment(role: "AXButton", attributes: ["AXTitle": "OK"]),
     ]
 
     let fullPath = try startPath.appendingSegments(moreSegments)

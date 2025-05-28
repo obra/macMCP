@@ -5,25 +5,19 @@ import Foundation
 
 /// Provides exploration guidance content for the OnboardingTool
 public struct ExplorationGuidance {
-  
   /// Provides exploration guidance based on the specific topic requested
   /// - Parameter specific: Optional specific topic ("first_time", "targeted", "troubleshooting")
   /// - Returns: Markdown-formatted guidance string
   public static func guidance(specific: String?) -> String {
     switch specific {
-    case "first_time":
-      return firstTimeGuidance
-    case "targeted":
-      return targetedGuidance
-    case "troubleshooting":
-      return troubleshootingGuidance
-    default:
-      return generalExplorationGuidance
+    case "first_time": return firstTimeGuidance
+    case "targeted": return targetedGuidance
+    case "troubleshooting": return troubleshootingGuidance
+    default: return generalExplorationGuidance
     }
   }
-  
   // MARK: - Specific Guidance Content
-  
+
   private static let firstTimeGuidance = """
     # First-Time Application Exploration
 
@@ -62,7 +56,6 @@ public struct ExplorationGuidance {
 
     After your initial exploration, you can use more targeted explorations with filters.
     """
-  
   private static let targetedGuidance = """
     # Targeted UI Exploration
 
@@ -126,7 +119,6 @@ public struct ExplorationGuidance {
     4. **Progressive Refinement**: Start broad, then narrow down with more specific queries
     5. **Check Multiple Windows**: Some apps have important UI in separate windows or panels
     """
-  
   private static let troubleshootingGuidance = """
     # Troubleshooting UI Exploration Issues
 
@@ -175,7 +167,6 @@ public struct ExplorationGuidance {
 
     Remember that the UI state can change dynamically, so re-explore after significant interactions.
     """
-  
   private static let generalExplorationGuidance = """
     # UI Exploration Guidance
 

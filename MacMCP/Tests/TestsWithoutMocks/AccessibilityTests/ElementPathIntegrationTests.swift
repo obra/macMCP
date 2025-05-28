@@ -9,10 +9,10 @@ import Testing
 
 @testable @preconcurrency import MacMCP
 
-@Suite(.serialized)
-struct ElementPathIntegrationTests {
-  @Test("Calculate with title-based path resolution")
-  func calculatorTitlePathResolution() async throws {
+@Suite(.serialized) struct ElementPathIntegrationTests {
+  @Test("Calculate with title-based path resolution") func calculatorTitlePathResolution()
+    async throws
+  {
     // print("=== Starting title-based path resolution test ===")
 
     // This test uses the macOS Calculator app and path-based element access to perform a calculation
@@ -40,8 +40,7 @@ struct ElementPathIntegrationTests {
     // Get the application element directly - first get the running app's PID
     let runningApp = NSRunningApplication.runningApplications(
       withBundleIdentifier: calculator.bundleId
-    )
-    .first
+    ).first
     guard let runningApp else {
       #expect(Bool(false), "Could not find running Calculator app")
       try await calculator.terminate()
@@ -83,35 +82,26 @@ struct ElementPathIntegrationTests {
       guard
         AXUIElementCopyAttributeValue(element, "AXChildren" as CFString, &childrenRef) == .success,
         let children = childrenRef as? [AXUIElement]
-      else {
-        return nil
-      }
+      else { return nil }
 
       for child in children {
         var roleRef: CFTypeRef?
         guard AXUIElementCopyAttributeValue(child, "AXRole" as CFString, &roleRef) == .success,
           let role = roleRef as? String
-        else {
-          continue
-        }
+        else { continue }
 
         if role == "AXButton" {
           var descriptionRef: CFTypeRef?
           guard
             AXUIElementCopyAttributeValue(child, "AXDescription" as CFString, &descriptionRef)
               == .success,
-            let buttonDescription = descriptionRef as? String,
-            buttonDescription == description
-          else {
-            continue
-          }
+            let buttonDescription = descriptionRef as? String, buttonDescription == description
+          else { continue }
           return child
         }
 
         // Recursively search child elements
-        if let button = findButtonWithDescription(description, inElement: child) {
-          return button
-        }
+        if let button = findButtonWithDescription(description, inElement: child) { return button }
       }
 
       return nil
@@ -125,50 +115,37 @@ struct ElementPathIntegrationTests {
       guard
         AXUIElementCopyAttributeValue(element, "AXChildren" as CFString, &childrenRef) == .success,
         let children = childrenRef as? [AXUIElement]
-      else {
-        return nil
-      }
+      else { return nil }
 
       for child in children {
         var roleRef: CFTypeRef?
         guard AXUIElementCopyAttributeValue(child, "AXRole" as CFString, &roleRef) == .success,
           let role = roleRef as? String
-        else {
-          continue
-        }
+        else { continue }
 
         if role == "AXScrollArea" {
           var descriptionRef: CFTypeRef?
           guard
             AXUIElementCopyAttributeValue(child, "AXDescription" as CFString, &descriptionRef)
               == .success,
-            let areaDescription = descriptionRef as? String,
-            areaDescription == description
-          else {
-            continue
-          }
+            let areaDescription = descriptionRef as? String, areaDescription == description
+          else { continue }
 
           // Get the AXStaticText child of this scroll area
           var textChildrenRef: CFTypeRef?
           guard
             AXUIElementCopyAttributeValue(child, "AXChildren" as CFString, &textChildrenRef)
               == .success,
-            let textChildren = textChildrenRef as? [AXUIElement],
-            !textChildren.isEmpty
-          else {
-            continue
-          }
+            let textChildren = textChildrenRef as? [AXUIElement], !textChildren.isEmpty
+          else { continue }
 
           for textChild in textChildren {
             var textRoleRef: CFTypeRef?
             guard
               AXUIElementCopyAttributeValue(textChild, "AXRole" as CFString, &textRoleRef)
                 == .success,
-              let textRole = textRoleRef as? String,
-              textRole == "AXStaticText"
-            else {
-              continue
-            }
+              let textRole = textRoleRef as? String, textRole == "AXStaticText"
+            else { continue }
             return textChild
           }
 
@@ -270,17 +247,16 @@ struct ElementPathIntegrationTests {
     if let app = NSRunningApplication.runningApplications(
       withBundleIdentifier: "com.apple.calculator"
     ).first {
-      app.terminate()
-      // print("Calculator terminated via direct API call")
+      app.terminate()  // print("Calculator terminated via direct API call")
     }
 
     // Give time for the app to fully terminate
-    try await Task.sleep(nanoseconds: 1_000_000_000)
-    // print("=== Title-based path resolution test completed ===")
+    try await Task.sleep(nanoseconds: 1_000_000_000)  // print("=== Title-based path resolution test completed ===")
   }
 
-  @Test("Calculate with bundleId-based path resolution")
-  func calculatorBundleIdPathResolution() async throws {
+  @Test("Calculate with bundleId-based path resolution") func calculatorBundleIdPathResolution()
+    async throws
+  {
     // print("=== Starting bundleId-based path resolution test ===")
 
     // This test uses the macOS Calculator app and path-based element access to perform a calculation
@@ -303,8 +279,8 @@ struct ElementPathIntegrationTests {
 
     // Get the application element directly - first get the running app's PID
     guard
-      NSRunningApplication.runningApplications(withBundleIdentifier: calculator.bundleId)
-        .first != nil
+      NSRunningApplication.runningApplications(withBundleIdentifier: calculator.bundleId).first
+        != nil
     else {
       #expect(Bool(false), "Could not find running Calculator app")
       try await calculator.terminate()
@@ -340,35 +316,26 @@ struct ElementPathIntegrationTests {
       guard
         AXUIElementCopyAttributeValue(element, "AXChildren" as CFString, &childrenRef) == .success,
         let children = childrenRef as? [AXUIElement]
-      else {
-        return nil
-      }
+      else { return nil }
 
       for child in children {
         var roleRef: CFTypeRef?
         guard AXUIElementCopyAttributeValue(child, "AXRole" as CFString, &roleRef) == .success,
           let role = roleRef as? String
-        else {
-          continue
-        }
+        else { continue }
 
         if role == "AXButton" {
           var descriptionRef: CFTypeRef?
           guard
             AXUIElementCopyAttributeValue(child, "AXDescription" as CFString, &descriptionRef)
               == .success,
-            let buttonDescription = descriptionRef as? String,
-            buttonDescription == description
-          else {
-            continue
-          }
+            let buttonDescription = descriptionRef as? String, buttonDescription == description
+          else { continue }
           return child
         }
 
         // Recursively search child elements
-        if let button = findButtonWithDescription(description, inElement: child) {
-          return button
-        }
+        if let button = findButtonWithDescription(description, inElement: child) { return button }
       }
 
       return nil
@@ -381,50 +348,37 @@ struct ElementPathIntegrationTests {
       guard
         AXUIElementCopyAttributeValue(element, "AXChildren" as CFString, &childrenRef) == .success,
         let children = childrenRef as? [AXUIElement]
-      else {
-        return nil
-      }
+      else { return nil }
 
       for child in children {
         var roleRef: CFTypeRef?
         guard AXUIElementCopyAttributeValue(child, "AXRole" as CFString, &roleRef) == .success,
           let role = roleRef as? String
-        else {
-          continue
-        }
+        else { continue }
 
         if role == "AXScrollArea" {
           var descriptionRef: CFTypeRef?
           guard
             AXUIElementCopyAttributeValue(child, "AXDescription" as CFString, &descriptionRef)
               == .success,
-            let areaDescription = descriptionRef as? String,
-            areaDescription == description
-          else {
-            continue
-          }
+            let areaDescription = descriptionRef as? String, areaDescription == description
+          else { continue }
 
           // Get the AXStaticText child of this scroll area
           var textChildrenRef: CFTypeRef?
           guard
             AXUIElementCopyAttributeValue(child, "AXChildren" as CFString, &textChildrenRef)
               == .success,
-            let textChildren = textChildrenRef as? [AXUIElement],
-            !textChildren.isEmpty
-          else {
-            continue
-          }
+            let textChildren = textChildrenRef as? [AXUIElement], !textChildren.isEmpty
+          else { continue }
 
           for textChild in textChildren {
             var textRoleRef: CFTypeRef?
             guard
               AXUIElementCopyAttributeValue(textChild, "AXRole" as CFString, &textRoleRef)
                 == .success,
-              let textRole = textRoleRef as? String,
-              textRole == "AXStaticText"
-            else {
-              continue
-            }
+              let textRole = textRoleRef as? String, textRole == "AXStaticText"
+            else { continue }
             return textChild
           }
 
@@ -525,8 +479,7 @@ struct ElementPathIntegrationTests {
     if let app = NSRunningApplication.runningApplications(
       withBundleIdentifier: "com.apple.calculator"
     ).first {
-      app.terminate()
-      // print("Calculator terminated via direct API call")
+      app.terminate()  // print("Calculator terminated via direct API call")
     }
 
     // Give time for the app to fully terminate
@@ -534,8 +487,7 @@ struct ElementPathIntegrationTests {
     // print("=== BundleId-based path resolution test completed ===")
   }
 
-  @Test("Test fallback to focused application")
-  func fallbackToFocusedApp() async throws {
+  @Test("Test fallback to focused application") func fallbackToFocusedApp() async throws {
     // print("=== Starting focused app fallback test ===")
 
     // This test verifies that path resolution can fallback to the focused application
@@ -562,12 +514,11 @@ struct ElementPathIntegrationTests {
       if let app = NSRunningApplication.runningApplications(
         withBundleIdentifier: calculator.bundleId
       ).first {
-        app.activate()
-        // print("Activated Calculator app using new API")
+        app.activate()  // print("Activated Calculator app using new API")
       }
     #else
-      NSRunningApplication.runningApplications(withBundleIdentifier: calculator.bundleId)
-        .first?.activate()
+      NSRunningApplication.runningApplications(withBundleIdentifier: calculator.bundleId).first?
+        .activate()
     // print("Activated Calculator app using legacy API")
     #endif
 
@@ -614,35 +565,26 @@ struct ElementPathIntegrationTests {
       guard
         AXUIElementCopyAttributeValue(element, "AXChildren" as CFString, &childrenRef) == .success,
         let children = childrenRef as? [AXUIElement]
-      else {
-        return nil
-      }
+      else { return nil }
 
       for child in children {
         var roleRef: CFTypeRef?
         guard AXUIElementCopyAttributeValue(child, "AXRole" as CFString, &roleRef) == .success,
           let role = roleRef as? String
-        else {
-          continue
-        }
+        else { continue }
 
         if role == "AXButton" {
           var descriptionRef: CFTypeRef?
           guard
             AXUIElementCopyAttributeValue(child, "AXDescription" as CFString, &descriptionRef)
               == .success,
-            let buttonDescription = descriptionRef as? String,
-            buttonDescription == description
-          else {
-            continue
-          }
+            let buttonDescription = descriptionRef as? String, buttonDescription == description
+          else { continue }
           return child
         }
 
         // Recursively search child elements
-        if let button = findButtonWithDescription(description, inElement: child) {
-          return button
-        }
+        if let button = findButtonWithDescription(description, inElement: child) { return button }
       }
 
       return nil
@@ -667,13 +609,11 @@ struct ElementPathIntegrationTests {
     if let app = NSRunningApplication.runningApplications(
       withBundleIdentifier: "com.apple.calculator"
     ).first {
-      app.terminate()
-      // print("Calculator terminated via direct API call")
+      app.terminate()  // print("Calculator terminated via direct API call")
     }
 
     // Give time for the app to fully terminate
-    try await Task.sleep(nanoseconds: 1_000_000_000)
-    // print("=== Focused app fallback test completed ===")
+    try await Task.sleep(nanoseconds: 1_000_000_000)  // print("=== Focused app fallback test completed ===")
   }
 
   @Test("Test TextEdit path resolution with dynamic UI elements")
@@ -711,18 +651,16 @@ struct ElementPathIntegrationTests {
 
     // Now find the actual paths available
     // print("TextEdit UI hierarchy available:")
-    let appElement =
-      AccessibilityElement
-      .applicationElement(
-        pid:
-          NSRunningApplication
-          .runningApplications(withBundleIdentifier: "com.apple.TextEdit").first!.processIdentifier,
-      )
+    let appElement = AccessibilityElement.applicationElement(
+      pid: NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.TextEdit")
+        .first!
+        .processIdentifier,
+    )
 
     // Get window title to use in paths (it has a dynamic title like "Untitled 1")
     var windowTitle = "Untitled"
-    if let children = try? AccessibilityElement
-      .getAttribute(appElement, attribute: "AXChildren") as? [AXUIElement]
+    if let children = try? AccessibilityElement.getAttribute(appElement, attribute: "AXChildren")
+      as? [AXUIElement]
     {
       // print("TextEdit has \(children.count) top-level children")
       for child in children {
@@ -739,20 +677,16 @@ struct ElementPathIntegrationTests {
 
     // Create paths targeting real UI elements
     // Use index to get the first window, and also use title for the specific window
-    let baseWindowPath =
-      try ElementPath
-      .parse("macos://ui/AXApplication[@bundleId=\"com.apple.TextEdit\"]/AXWindow[0]")
-    let untitledWindowPath =
-      try ElementPath
-      .parse(
-        "macos://ui/AXApplication[@bundleId=\"com.apple.TextEdit\"]/AXWindow[@AXTitle=\"\(windowTitle)\"]"
-      )
+    let baseWindowPath = try ElementPath.parse(
+      "macos://ui/AXApplication[@bundleId=\"com.apple.TextEdit\"]/AXWindow[0]"
+    )
+    let untitledWindowPath = try ElementPath.parse(
+      "macos://ui/AXApplication[@bundleId=\"com.apple.TextEdit\"]/AXWindow[@AXTitle=\"\(windowTitle)\"]"
+    )
     // Since there's only one text area in the ScrollArea, we can just target it directly
-    let textAreaPath =
-      try ElementPath
-      .parse(
-        "macos://ui/AXApplication[@bundleId=\"com.apple.TextEdit\"]/AXWindow[0]/AXScrollArea/AXTextArea"
-      )
+    let textAreaPath = try ElementPath.parse(
+      "macos://ui/AXApplication[@bundleId=\"com.apple.TextEdit\"]/AXWindow[0]/AXScrollArea/AXTextArea"
+    )
 
     // print("TextEdit resolving window elements")
 
@@ -770,8 +704,8 @@ struct ElementPathIntegrationTests {
     let idStatus2 = AXUIElementCopyAttributeValue(
       untitledWindowElement, "AXIdentifier" as CFString, &idRef2)
 
-    if idStatus1 == .success, let id1 = idRef1 as? String,
-      idStatus2 == .success, let id2 = idRef2 as? String
+    if idStatus1 == .success, let id1 = idRef1 as? String, idStatus2 == .success,
+      let id2 = idRef2 as? String
     {
       // Verify that both paths resolve to the same menu bar
       #expect(id1 == id2)
@@ -804,11 +738,9 @@ struct ElementPathIntegrationTests {
 
     // Simulate menu operation to modify the document
     // print("TextEdit accessing Format menu")
-    let menuPath =
-      try ElementPath
-      .parse(
-        "macos://ui/AXApplication[@bundleId=\"com.apple.TextEdit\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"Format\"]",
-      )
+    let menuPath = try ElementPath.parse(
+      "macos://ui/AXApplication[@bundleId=\"com.apple.TextEdit\"]/AXMenuBar/AXMenuBarItem[@AXTitle=\"Format\"]",
+    )
     let menuElement = try? await menuPath.resolve(using: accessibilityService)
     // print("TextEdit Format menu resolved")
 
@@ -839,19 +771,16 @@ struct ElementPathIntegrationTests {
     if let app = NSRunningApplication.runningApplications(
       withBundleIdentifier: "com.apple.TextEdit"
     ).first {
-      app.terminate()
-      // print("TextEdit terminated")
+      app.terminate()  // print("TextEdit terminated")
     } else {
       // print("TextEdit app not found for termination")
     }
 
     // Give time for the app to fully terminate
-    try await Task.sleep(nanoseconds: 1_000_000_000)
-    // print("=== TextEdit test completed ===")
+    try await Task.sleep(nanoseconds: 1_000_000_000)  // print("=== TextEdit test completed ===")
   }
 
-  @Test("Test resolution of ambiguous elements")
-  func ambiguousElementResolution() async throws {
+  @Test("Test resolution of ambiguous elements") func ambiguousElementResolution() async throws {
     // print("=== Starting ambiguous elements test ===")
 
     // This test verifies that ambiguous elements can be resolved with additional attributes or index
@@ -872,11 +801,9 @@ struct ElementPathIntegrationTests {
     try await Task.sleep(nanoseconds: 1_000_000_000)
 
     // Create an ambiguous path that matches multiple elements (multiple buttons)
-    let ambiguousPath =
-      try ElementPath
-      .parse(
-        "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton",
-      )
+    let ambiguousPath = try ElementPath.parse(
+      "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton",
+    )
 
     // Attempt to resolve the ambiguous path - this should fail or return multiple elements
     // print("Testing ambiguous path resolution")
@@ -893,20 +820,15 @@ struct ElementPathIntegrationTests {
       case .resolutionFailed(_, _, let candidates, _) where candidates.count > 1:
         // Success - we correctly identified the ambiguity through diagnostic information
         print("Successfully identified ambiguous match with \(candidates.count) candidates")
-      default:
-        #expect(Bool(false), "Expected ambiguous match error but got: \(error)")
+      default: #expect(Bool(false), "Expected ambiguous match error but got: \(error)")
       }
-    } catch {
-      #expect(Bool(false), "Unexpected error: \(error)")
-    }
+    } catch { #expect(Bool(false), "Unexpected error: \(error)") }
 
     // Now create a more specific path that will disambiguate
     // print("Testing path disambiguation with index")
-    let indexPath =
-      try ElementPath
-      .parse(
-        "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[0][@AXDescription=\"1\"]",
-      )
+    let indexPath = try ElementPath.parse(
+      "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[0][@AXDescription=\"1\"]",
+    )
 
     // This should succeed
     let buttonWithIndex = try await indexPath.resolve(using: accessibilityService)
@@ -916,17 +838,14 @@ struct ElementPathIntegrationTests {
     let roleStatus = AXUIElementCopyAttributeValue(buttonWithIndex, "AXRole" as CFString, &roleRef)
 
     if roleStatus == .success, let role = roleRef as? String {
-      #expect(role == "AXButton")
-      // print("Successfully resolved ambiguous path with index: \(role)")
+      #expect(role == "AXButton")  // print("Successfully resolved ambiguous path with index: \(role)")
     }
 
     // Now try disambiguation with specific attributes
     // print("Testing path disambiguation with attribute")
-    let attributePath =
-      try ElementPath
-      .parse(
-        "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]",
-      )
+    let attributePath = try ElementPath.parse(
+      "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]",
+    )
 
     // This should succeed and find button 1
     let button1 = try await attributePath.resolve(using: accessibilityService)
@@ -936,8 +855,7 @@ struct ElementPathIntegrationTests {
     let descStatus = AXUIElementCopyAttributeValue(button1, "AXDescription" as CFString, &descRef)
 
     if descStatus == .success, let desc = descRef as? String {
-      #expect(desc == "1")
-      // print("Successfully resolved ambiguous path with attribute: \(desc)")
+      #expect(desc == "1")  // print("Successfully resolved ambiguous path with attribute: \(desc)")
     }
 
     // Clean up - close calculator
@@ -948,17 +866,14 @@ struct ElementPathIntegrationTests {
     if let app = NSRunningApplication.runningApplications(
       withBundleIdentifier: "com.apple.calculator"
     ).first {
-      app.terminate()
-      // print("Calculator terminated via direct API call")
+      app.terminate()  // print("Calculator terminated via direct API call")
     }
 
     // Give time for the app to fully terminate
-    try await Task.sleep(nanoseconds: 1_000_000_000)
-    // print("=== Ambiguous elements test completed ===")
+    try await Task.sleep(nanoseconds: 1_000_000_000)  // print("=== Ambiguous elements test completed ===")
   }
 
-  @Test("Test path resolution with diagnostics")
-  func pathResolution() async throws {
+  @Test("Test path resolution with diagnostics") func pathResolution() async throws {
     // print("=== Starting path resolution diagnostics test ===")
 
     // This test verifies the path resolution functionality and error diagnostics
@@ -980,11 +895,9 @@ struct ElementPathIntegrationTests {
 
     // Create a valid path to test resolution success
     // print("Testing valid path resolution")
-    let validPath =
-      try ElementPath
-      .parse(
-        "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]",
-      )
+    let validPath = try ElementPath.parse(
+      "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]",
+    )
 
     // Use the regular resolution API
     do {
@@ -995,8 +908,7 @@ struct ElementPathIntegrationTests {
       let roleStatus = AXUIElementCopyAttributeValue(element, "AXRole" as CFString, &roleRef)
 
       if roleStatus == .success, let role = roleRef as? String {
-        #expect(role == "AXButton")
-        // print("Successfully resolved valid path to: \(role)")
+        #expect(role == "AXButton")  // print("Successfully resolved valid path to: \(role)")
       }
     } catch {
       // The test may fail depending on the element tree at runtime,
@@ -1006,11 +918,9 @@ struct ElementPathIntegrationTests {
 
     // Now test an invalid path to verify error information
     // print("Testing invalid path resolution")
-    let invalidPath =
-      try ElementPath
-      .parse(
-        "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXNonExistentElement",
-      )
+    let invalidPath = try ElementPath.parse(
+      "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXNonExistentElement",
+    )
 
     // This should fail with a descriptive error
     do {
@@ -1047,17 +957,15 @@ struct ElementPathIntegrationTests {
     if let app = NSRunningApplication.runningApplications(
       withBundleIdentifier: "com.apple.calculator"
     ).first {
-      app.terminate()
-      // print("Calculator terminated via direct API call")
+      app.terminate()  // print("Calculator terminated via direct API call")
     }
 
     // Give time for the app to fully terminate
-    try await Task.sleep(nanoseconds: 1_000_000_000)
-    // print("=== Path resolution test completed ===")
+    try await Task.sleep(nanoseconds: 1_000_000_000)  // print("=== Path resolution test completed ===")
   }
 
-  @Test("Test path resolution performance benchmarks")
-  func pathResolutionPerformance() async throws {
+  @Test("Test path resolution performance benchmarks") func pathResolutionPerformance() async throws
+  {
     // print("=== Starting performance benchmark test ===")
 
     // This test measures path resolution performance with real applications
@@ -1079,29 +987,21 @@ struct ElementPathIntegrationTests {
 
     // Create paths of varying complexity for performance testing
     // print("Setting up performance test paths")
-    let simplePath =
-      try ElementPath
-      .parse(
-        "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]"
-      )
-    let moderatePath =
-      try ElementPath
-      .parse(
-        "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup",
-      )
-    let complexPath =
-      try ElementPath
-      .parse(
-        "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]",
-      )
+    let simplePath = try ElementPath.parse(
+      "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]"
+    )
+    let moderatePath = try ElementPath.parse(
+      "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup",
+    )
+    let complexPath = try ElementPath.parse(
+      "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow[@AXTitle=\"Calculator\"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription=\"1\"]",
+    )
 
     // Measure simple path resolution time
     // print("Measuring simple path performance")
     // Time measurement is disabled but kept in comments for future debugging
     // let simpleStartTime = Date()
-    for _ in 0..<10 {
-      _ = try? await simplePath.resolve(using: accessibilityService)
-    }
+    for _ in 0..<10 { _ = try? await simplePath.resolve(using: accessibilityService) }
     // Calculating elapsed time for debugging purposes (uncomment if needed)
     // let simpleElapsedTime = Date().timeIntervalSince(simpleStartTime) / 10.0
     // print("Simple path resolution average time: \(simpleElapsedTime) seconds")
@@ -1110,9 +1010,7 @@ struct ElementPathIntegrationTests {
     // print("Measuring moderate path performance")
     // Time measurement is disabled but kept in comments for future debugging
     // let moderateStartTime = Date()
-    for _ in 0..<10 {
-      _ = try? await moderatePath.resolve(using: accessibilityService)
-    }
+    for _ in 0..<10 { _ = try? await moderatePath.resolve(using: accessibilityService) }
     // Calculating elapsed time for debugging purposes (uncomment if needed)
     // let moderateElapsedTime = Date().timeIntervalSince(moderateStartTime) / 10.0
     // print("Moderate path resolution average time: \(moderateElapsedTime) seconds")
@@ -1121,9 +1019,7 @@ struct ElementPathIntegrationTests {
     // print("Measuring complex path performance")
     // Time measurement is disabled but kept in comments for future debugging
     // let complexStartTime = Date()
-    for _ in 0..<10 {
-      _ = try? await complexPath.resolve(using: accessibilityService)
-    }
+    for _ in 0..<10 { _ = try? await complexPath.resolve(using: accessibilityService) }
     // Calculating elapsed time for debugging purposes (uncomment if needed)
     // let complexElapsedTime = Date().timeIntervalSince(complexStartTime) / 10.0
     // print("Complex path resolution average time: \(complexElapsedTime) seconds")
@@ -1135,9 +1031,7 @@ struct ElementPathIntegrationTests {
     // print("Measuring standard resolution vs diagnostics")
     // Time measurement is disabled but kept in comments for future debugging
     // let standardStartTime = Date()
-    for _ in 0..<5 {
-      _ = try? await complexPath.resolve(using: accessibilityService)
-    }
+    for _ in 0..<5 { _ = try? await complexPath.resolve(using: accessibilityService) }
     // Calculating elapsed time for debugging purposes (uncomment if needed)
     // let standardElapsedTime = Date().timeIntervalSince(standardStartTime) / 5.0
 
@@ -1162,13 +1056,11 @@ struct ElementPathIntegrationTests {
     if let app = NSRunningApplication.runningApplications(
       withBundleIdentifier: "com.apple.calculator"
     ).first {
-      app.terminate()
-      // print("Calculator terminated via direct API call")
+      app.terminate()  // print("Calculator terminated via direct API call")
     }
 
     // Give time for the app to fully terminate
-    try await Task.sleep(nanoseconds: 1_000_000_000)
-    // print("=== Performance benchmark test completed ===")
+    try await Task.sleep(nanoseconds: 1_000_000_000)  // print("=== Performance benchmark test completed ===")
   }
 }
 
@@ -1183,8 +1075,7 @@ private class CalculatorApp {
 
   func launch() async throws {
     // Check if the app is already running
-    let runningApps = NSRunningApplication.runningApplications(
-      withBundleIdentifier: bundleId)
+    let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId)
 
     if let app = runningApps.first, app.isTerminated == false {
       // App is already running, just activate it
@@ -1210,8 +1101,7 @@ private class CalculatorApp {
 
   func terminate() async throws {
     // Find the running app
-    let runningApps = NSRunningApplication.runningApplications(
-      withBundleIdentifier: bundleId)
+    let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId)
 
     if let app = runningApps.first, app.isTerminated == false {
       // Terminate the app

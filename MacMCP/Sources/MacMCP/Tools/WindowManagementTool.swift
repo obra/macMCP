@@ -12,35 +12,35 @@ public struct WindowManagementTool: @unchecked Sendable {
 
   /// Description of the tool
   public let description = """
-Comprehensive window management for macOS applications with positioning, sizing, and state control.
+    Comprehensive window management for macOS applications with positioning, sizing, and state control.
 
-IMPORTANT: Window coordinates use screen coordinates with (0,0) at top-left corner.
+    IMPORTANT: Window coordinates use screen coordinates with (0,0) at top-left corner.
 
-Available actions:
-- getApplicationWindows: List all windows for an application
-- getActiveWindow: Get the currently active window
-- getFocusedElement: Get the currently focused UI element
-- moveWindow: Move a window to new coordinates
-- resizeWindow: Change window dimensions
-- minimizeWindow: Minimize a window to dock
-- maximizeWindow: Maximize/zoom a window
-- closeWindow: Close a window
-- activateWindow: Bring window to front and focus
-- setWindowOrder: Change window layering order
-- focusWindow: Give keyboard focus to window
+    Available actions:
+    - getApplicationWindows: List all windows for an application
+    - getActiveWindow: Get the currently active window
+    - getFocusedElement: Get the currently focused UI element
+    - moveWindow: Move a window to new coordinates
+    - resizeWindow: Change window dimensions
+    - minimizeWindow: Minimize a window to dock
+    - maximizeWindow: Maximize/zoom a window
+    - closeWindow: Close a window
+    - activateWindow: Bring window to front and focus
+    - setWindowOrder: Change window layering order
+    - focusWindow: Give keyboard focus to window
 
-Window identification:
-- bundleId: Application bundle identifier (e.g., "com.apple.calculator")
-- windowId: Specific window identifier from getApplicationWindows
+    Window identification:
+    - bundleId: Application bundle identifier (e.g., "com.apple.calculator")
+    - windowId: Specific window identifier from getApplicationWindows
 
-Common workflows:
-1. List windows: getApplicationWindows → get windowId
-2. Position window: moveWindow with x, y coordinates
-3. Size window: resizeWindow with width, height
-4. Focus management: activateWindow → focusWindow
+    Common workflows:
+    1. List windows: getApplicationWindows → get windowId
+    2. Position window: moveWindow with x, y coordinates
+    3. Size window: resizeWindow with width, height
+    4. Focus management: activateWindow → focusWindow
 
-Coordinate system: Screen pixels, (0,0) = top-left, positive values go right/down.
-"""
+    Coordinate system: Screen pixels, (0,0) = top-left, positive values go right/down.
+    """
 
   /// Input schema for the tool
   public private(set) var inputSchema: Value
@@ -56,9 +56,7 @@ Coordinate system: Screen pixels, (0,0) = top-left, positive values go right/dow
 
   /// Tool handler function that uses this instance's accessibility service
   public var handler: @Sendable ([String: Value]?) async throws -> [Tool.Content] {
-    { [self] params in
-      return try await self.processRequest(params)
-    }
+    { [self] params in return try await self.processRequest(params) }
   }
 
   /// Available window management actions
@@ -101,10 +99,7 @@ Coordinate system: Screen pixels, (0,0) = top-left, positive values go right/dow
   /// - Parameters:
   ///   - accessibilityService: The accessibility service to use
   ///   - logger: Optional logger to use
-  public init(
-    accessibilityService: any AccessibilityServiceProtocol,
-    logger: Logger? = nil
-  ) {
+  public init(accessibilityService: any AccessibilityServiceProtocol, logger: Logger? = nil) {
     self.accessibilityService = accessibilityService
     self.logger = logger ?? Logger(label: "mcp.tool.window_management")
 
@@ -131,33 +126,34 @@ Coordinate system: Screen pixels, (0,0) = top-left, positive values go right/dow
       "properties": .object([
         "action": .object([
           "type": .string("string"),
-          "description": .string("Window management operation: get info, move/resize, minimize/maximize, focus control"),
+          "description": .string(
+            "Window management operation: get info, move/resize, minimize/maximize, focus control"
+          ),
           "enum": .array([
-            .string("getApplicationWindows"),
-            .string("getActiveWindow"),
+            .string("getApplicationWindows"), .string("getActiveWindow"),
             .string("getFocusedElement"),
-            .string("moveWindow"),
-            .string("resizeWindow"),
-            .string("minimizeWindow"),
-            .string("maximizeWindow"),
-            .string("closeWindow"),
-            .string("activateWindow"),
-            .string("setWindowOrder"),
-            .string("focusWindow"),
+            .string("moveWindow"), .string("resizeWindow"), .string("minimizeWindow"),
+            .string("maximizeWindow"), .string("closeWindow"), .string("activateWindow"),
+            .string("setWindowOrder"), .string("focusWindow"),
           ]),
         ]),
         "bundleId": .object([
           "type": .string("string"),
-          "description": .string("Application bundle identifier (required for getApplicationWindows, e.g., 'com.apple.calculator')"),
+          "description": .string(
+            "Application bundle identifier (required for getApplicationWindows, e.g., 'com.apple.calculator')"
+          ),
         ]),
         "windowId": .object([
           "type": .string("string"),
-          "description": .string("Specific window identifier from getApplicationWindows (required for window-specific actions)"),
+          "description": .string(
+            "Specific window identifier from getApplicationWindows (required for window-specific actions)"
+          ),
         ]),
         "includeMinimized": .object([
           "type": .string("boolean"),
-          "description": .string("Include minimized windows in getApplicationWindows results (default: true)"),
-          "default": .bool(true),
+          "description": .string(
+            "Include minimized windows in getApplicationWindows results (default: true)"
+          ), "default": .bool(true),
         ]),
         "x": .object([
           "type": .string("number"),
@@ -177,48 +173,31 @@ Coordinate system: Screen pixels, (0,0) = top-left, positive values go right/dow
         ]),
         "orderMode": .object([
           "type": .string("string"),
-          "description": .string("Window layering: 'front'=topmost, 'back'=bottom, 'above'/'below'=relative to reference"),
-          "enum": .array([
-            .string("front"),
-            .string("back"),
-            .string("above"),
-            .string("below"),
-          ]),
+          "description": .string(
+            "Window layering: 'front'=topmost, 'back'=bottom, 'above'/'below'=relative to reference"
+          ),
+          "enum": .array([.string("front"), .string("back"), .string("above"), .string("below")]),
         ]),
         "referenceWindowId": .object([
           "type": .string("string"),
           "description": .string("Reference window ID for 'above'/'below' orderMode operations"),
         ]),
-      ]),
-      "required": .array([.string("action")]),
-      "additionalProperties": .bool(false),
+      ]), "required": .array([.string("action")]), "additionalProperties": .bool(false),
       "examples": .array([
         .object([
-          "action": .string("getApplicationWindows"),
-          "bundleId": .string("com.apple.calculator"),
+          "action": .string("getApplicationWindows"), "bundleId": .string("com.apple.calculator"),
         ]),
         .object([
-          "action": .string("moveWindow"),
-          "windowId": .string("window_123"),
-          "x": .int(100),
+          "action": .string("moveWindow"), "windowId": .string("window_123"), "x": .int(100),
           "y": .int(200),
         ]),
         .object([
-          "action": .string("resizeWindow"),
-          "windowId": .string("window_123"),
-          "width": .int(800),
+          "action": .string("resizeWindow"), "windowId": .string("window_123"), "width": .int(800),
           "height": .int(600),
-        ]),
+        ]), .object(["action": .string("activateWindow"), "windowId": .string("window_123")]),
+        .object(["action": .string("getActiveWindow")]),
         .object([
-          "action": .string("activateWindow"),
-          "windowId": .string("window_123"),
-        ]),
-        .object([
-          "action": .string("getActiveWindow"),
-        ]),
-        .object([
-          "action": .string("setWindowOrder"),
-          "windowId": .string("window_123"),
+          "action": .string("setWindowOrder"), "windowId": .string("window_123"),
           "orderMode": .string("front"),
         ]),
       ]),
@@ -229,9 +208,7 @@ Coordinate system: Screen pixels, (0,0) = top-left, positive values go right/dow
   /// - Parameter params: The request parameters
   /// - Returns: The tool result content
   private func processRequest(_ params: [String: Value]?) async throws -> [Tool.Content] {
-    guard let params else {
-      throw MCPError.invalidParams("Parameters are required")
-    }
+    guard let params else { throw MCPError.invalidParams("Parameters are required") }
 
     // Get the action
     guard let actionString = params["action"]?.stringValue,
@@ -247,35 +224,25 @@ Coordinate system: Screen pixels, (0,0) = top-left, positive values go right/dow
     case .getApplicationWindows:
       return try await handleGetApplicationWindows(params, includeMinimized: includeMinimized)
 
-    case .getActiveWindow:
-      return try await handleGetActiveWindow()
+    case .getActiveWindow: return try await handleGetActiveWindow()
 
-    case .getFocusedElement:
-      return try await handleGetFocusedElement()
+    case .getFocusedElement: return try await handleGetFocusedElement()
 
-    case .moveWindow:
-      return try await handleMoveWindow(params)
+    case .moveWindow: return try await handleMoveWindow(params)
 
-    case .resizeWindow:
-      return try await handleResizeWindow(params)
+    case .resizeWindow: return try await handleResizeWindow(params)
 
-    case .minimizeWindow:
-      return try await handleMinimizeWindow(params)
+    case .minimizeWindow: return try await handleMinimizeWindow(params)
 
-    case .maximizeWindow:
-      return try await handleMaximizeWindow(params)
+    case .maximizeWindow: return try await handleMaximizeWindow(params)
 
-    case .closeWindow:
-      return try await handleCloseWindow(params)
+    case .closeWindow: return try await handleCloseWindow(params)
 
-    case .activateWindow:
-      return try await handleActivateWindow(params)
+    case .activateWindow: return try await handleActivateWindow(params)
 
-    case .setWindowOrder:
-      return try await handleSetWindowOrder(params)
+    case .setWindowOrder: return try await handleSetWindowOrder(params)
 
-    case .focusWindow:
-      return try await handleFocusWindow(params)
+    case .focusWindow: return try await handleFocusWindow(params)
     }
   }
 
@@ -284,10 +251,10 @@ Coordinate system: Screen pixels, (0,0) = top-left, positive values go right/dow
   ///   - params: The request parameters
   ///   - includeMinimized: Whether to include minimized windows
   /// - Returns: The tool result
-  private func handleGetApplicationWindows(
-    _ params: [String: Value],
-    includeMinimized: Bool,
-  ) async throws -> [Tool.Content] {
+  private func handleGetApplicationWindows(_ params: [String: Value], includeMinimized: Bool, )
+    async throws -> [Tool
+    .Content]
+  {
     // Validate bundle ID
     guard let bundleId = params["bundleId"]?.stringValue else {
       throw MCPError.invalidParams("bundleId is required for getApplicationWindows")
@@ -304,14 +271,10 @@ Coordinate system: Screen pixels, (0,0) = top-left, positive values go right/dow
     var windows: [WindowDescriptor] = []
 
     // Look for window elements in the children
-    for child in appElement.children {
-      if child.role == AXAttribute.Role.window {
-        if let window = WindowDescriptor.from(element: child) {
-          // Filter minimized windows if needed
-          if includeMinimized || !window.isMinimized {
-            windows.append(window)
-          }
-        }
+    for child in appElement.children where child.role == AXAttribute.Role.window {
+      if let window = WindowDescriptor.from(element: child) {
+        // Filter minimized windows if needed
+        if includeMinimized || !window.isMinimized { windows.append(window) }
       }
     }
 
@@ -331,13 +294,11 @@ Coordinate system: Screen pixels, (0,0) = top-left, positive values go right/dow
     // Look for the main/focused window
     var mainWindow: WindowDescriptor?
 
-    for child in focusedApp.children {
-      if child.role == AXAttribute.Role.window {
-        if let window = WindowDescriptor.from(element: child) {
-          if window.isMain {
-            mainWindow = window
-            break
-          }
+    for child in focusedApp.children where child.role == AXAttribute.Role.window {
+      if let window = WindowDescriptor.from(element: child) {
+        if window.isMain {
+          mainWindow = window
+          break
         }
       }
     }
@@ -384,7 +345,9 @@ Coordinate system: Screen pixels, (0,0) = top-left, positive values go right/dow
     ).filter { ($0.attributes["focused"] as? Bool) == true }
 
     // Convert the focused element(s) to descriptors with verbosity reduction
-    let descriptors = elements.map { EnhancedElementDescriptor.from(element: $0, maxDepth: 1, showCoordinates: false) }
+    let descriptors = elements.map {
+      EnhancedElementDescriptor.from(element: $0, maxDepth: 1, showCoordinates: false)
+    }
 
     // Return the element descriptors
     return try formatResponse(descriptors)
@@ -414,10 +377,7 @@ Coordinate system: Screen pixels, (0,0) = top-left, positive values go right/dow
     }
 
     do {
-      try await accessibilityService.moveWindow(
-        withPath: windowId,
-        to: CGPoint(x: x, y: y),
-      )
+      try await accessibilityService.moveWindow(withPath: windowId, to: CGPoint(x: x, y: y), )
 
       return [
         .text(
@@ -431,11 +391,10 @@ Coordinate system: Screen pixels, (0,0) = top-left, positive values go right/dow
                   "y": \(y)
               }
           }
-          """)
+          """
+        )
       ]
-    } catch {
-      throw MCPError.internalError("Failed to move window: \(error.localizedDescription)")
-    }
+    } catch { throw MCPError.internalError("Failed to move window: \(error.localizedDescription)") }
   }
 
   /// Handle the resizeWindow action
@@ -463,9 +422,7 @@ Coordinate system: Screen pixels, (0,0) = top-left, positive values go right/dow
 
     do {
       try await accessibilityService.resizeWindow(
-        withPath: windowId,
-        to: CGSize(width: width, height: height),
-      )
+        withPath: windowId, to: CGSize(width: width, height: height), )
 
       return [
         .text(
@@ -479,7 +436,8 @@ Coordinate system: Screen pixels, (0,0) = top-left, positive values go right/dow
                   "height": \(height)
               }
           }
-          """)
+          """
+        )
       ]
     } catch {
       throw MCPError.internalError("Failed to resize window: \(error.localizedDescription)")
@@ -505,7 +463,8 @@ Coordinate system: Screen pixels, (0,0) = top-left, positive values go right/dow
               "action": "minimizeWindow",
               "windowId": "\(windowId)"
           }
-          """)
+          """
+        )
       ]
     } catch {
       throw MCPError.internalError("Failed to minimize window: \(error.localizedDescription)")
@@ -531,7 +490,8 @@ Coordinate system: Screen pixels, (0,0) = top-left, positive values go right/dow
               "action": "maximizeWindow",
               "windowId": "\(windowId)"
           }
-          """)
+          """
+        )
       ]
     } catch {
       throw MCPError.internalError("Failed to maximize window: \(error.localizedDescription)")
@@ -557,7 +517,8 @@ Coordinate system: Screen pixels, (0,0) = top-left, positive values go right/dow
               "action": "closeWindow",
               "windowId": "\(windowId)"
           }
-          """)
+          """
+        )
       ]
     } catch {
       throw MCPError.internalError("Failed to close window: \(error.localizedDescription)")
@@ -583,7 +544,8 @@ Coordinate system: Screen pixels, (0,0) = top-left, positive values go right/dow
               "action": "activateWindow",
               "windowId": "\(windowId)"
           }
-          """)
+          """
+        )
       ]
     } catch {
       throw MCPError.internalError("Failed to activate window: \(error.localizedDescription)")
@@ -601,10 +563,9 @@ Coordinate system: Screen pixels, (0,0) = top-left, positive values go right/dow
     guard let orderModeString = params["orderMode"]?.stringValue,
       let orderMode = WindowOrderMode(rawValue: orderModeString)
     else {
-      throw
-        MCPError
-        .invalidParams(
-          "Valid orderMode is required for setWindowOrder action (front, back, above, below)")
+      throw MCPError.invalidParams(
+        "Valid orderMode is required for setWindowOrder action (front, back, above, below)"
+      )
     }
 
     // Reference window ID is required for above/below ordering
@@ -638,7 +599,8 @@ Coordinate system: Screen pixels, (0,0) = top-left, positive values go right/dow
               "windowId": "\(windowId)",
               "orderMode": "\(orderMode.rawValue)"\(referenceInfo)
           }
-          """)
+          """
+        )
       ]
     } catch {
       throw MCPError.internalError("Failed to set window order: \(error.localizedDescription)")
@@ -664,7 +626,8 @@ Coordinate system: Screen pixels, (0,0) = top-left, positive values go right/dow
               "action": "focusWindow",
               "windowId": "\(windowId)"
           }
-          """)
+          """
+        )
       ]
     } catch {
       throw MCPError.internalError("Failed to focus window: \(error.localizedDescription)")
@@ -686,10 +649,7 @@ Coordinate system: Screen pixels, (0,0) = top-left, positive values go right/dow
       return [.text(jsonString)]
     } catch {
       logger.error(
-        "Error encoding response as JSON",
-        metadata: [
-          "error": "\(error.localizedDescription)"
-        ])
+        "Error encoding response as JSON", metadata: ["error": "\(error.localizedDescription)"])
       throw MCPError.internalError(
         "Failed to encode response as JSON: \(error.localizedDescription)")
     }

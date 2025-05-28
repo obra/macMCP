@@ -16,10 +16,8 @@ public enum AccessibilityPermissions {
       switch self {
       case .permissionDenied:
         "Accessibility permission denied. The app requires accessibility permissions to function."
-      case .promptFailed:
-        "Failed to prompt for accessibility permissions."
-      case .timeout:
-        "Timed out waiting for accessibility permissions."
+      case .promptFailed: "Failed to prompt for accessibility permissions."
+      case .timeout: "Timed out waiting for accessibility permissions."
       }
     }
 
@@ -66,9 +64,7 @@ public enum AccessibilityPermissions {
   /// - Throws: AccessibilityPermissions.Error if permission cannot be obtained
   public static func requestAccessibilityPermissions(timeout: TimeInterval = 30.0) async throws {
     // If we already have permission, just return
-    if isAccessibilityEnabled() {
-      return
-    }
+    if isAccessibilityEnabled() { return }
 
     // Prompt the user for accessibility permissions
     // Create options with the prompt key
@@ -83,9 +79,7 @@ public enum AccessibilityPermissions {
       let startTime = Date()
       while !isAccessibilityEnabled() {
         // Check if we've exceeded the timeout
-        if Date().timeIntervalSince(startTime) > timeout {
-          throw Error.timeout
-        }
+        if Date().timeIntervalSince(startTime) > timeout { throw Error.timeout }
 
         // Sleep briefly to avoid spinning
         try await Task.sleep(for: .milliseconds(250))
@@ -93,8 +87,6 @@ public enum AccessibilityPermissions {
     }
 
     // Final check to make sure we have permission
-    if !isAccessibilityEnabled() {
-      throw Error.permissionDenied
-    }
+    if !isAccessibilityEnabled() { throw Error.permissionDenied }
   }
 }

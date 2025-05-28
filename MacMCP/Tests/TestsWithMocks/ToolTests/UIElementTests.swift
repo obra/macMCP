@@ -6,10 +6,8 @@ import Testing
 
 @testable import MacMCP
 
-@Suite("UIElement Tests")
-struct UIElementTests {
-  @Test("UIElement initialization and properties")
-  func uIElementInitialization() {
+@Suite("UIElement Tests") struct UIElementTests {
+  @Test("UIElement initialization and properties") func uIElementInitialization() {
     let element = UIElement(
       path: "macos://ui/AXButton[@AXTitle=\"Test Button\"]",
       role: "button",
@@ -19,10 +17,7 @@ struct UIElementTests {
       frame: CGRect(x: 10, y: 20, width: 100, height: 50),
       parent: nil,
       children: [],
-      attributes: [
-        "enabled": true,
-        "focused": false,
-      ],
+      attributes: ["enabled": true, "focused": false],
       actions: ["press", "show menu"],
     )
 
@@ -45,8 +40,7 @@ struct UIElementTests {
     #expect(element.actions.contains("show menu"))
   }
 
-  @Test("UIElement child relationships")
-  func uIElementChildren() {
+  @Test("UIElement child relationships") func uIElementChildren() {
     let child1 = UIElement(
       path: "macos://ui/AXText[@AXTitle=\"Child 1\"]",
       role: "text",
@@ -74,8 +68,7 @@ struct UIElementTests {
     #expect(parent.children[1].path == "macos://ui/AXImage[@AXTitle=\"Child 2\"]")
   }
 
-  @Test("UIElement to JSON conversion")
-  func uIElementToJSON() throws {
+  @Test("UIElement to JSON conversion") func uIElementToJSON() throws {
     let element = UIElement(
       path: "macos://ui/AXButton[@AXTitle=\"Test Button\"]",
       role: "button",
@@ -83,10 +76,7 @@ struct UIElementTests {
       value: "test value",
       elementDescription: "A test button element",
       frame: CGRect(x: 10, y: 20, width: 100, height: 50),
-      attributes: [
-        "enabled": true,
-        "focused": false,
-      ],
+      attributes: ["enabled": true, "focused": false],
       actions: ["press"],
     )
 
@@ -122,8 +112,7 @@ struct UIElementTests {
     }
   }
 
-  @Test("UIElement to MCP Value conversion")
-  func uIElementToValue() throws {
+  @Test("UIElement to MCP Value conversion") func uIElementToValue() throws {
     let element = UIElement(
       path: "macos://ui/AXButton[@AXTitle=\"Test Button\"]",
       role: "button",
@@ -149,8 +138,7 @@ struct UIElementTests {
     #expect(frame?["height"] as? Double == 50)
   }
 
-  @Test("Simple UIElement path generation")
-  func simplePathGeneration() throws {
+  @Test("Simple UIElement path generation") func simplePathGeneration() throws {
     let element = UIElement(
       path: "macos://ui/AXButton[@AXTitle=\"Test Button\"]",
       role: "AXButton",
@@ -169,8 +157,7 @@ struct UIElementTests {
     #expect(path.contains("[@AXDescription=\"A test button\"]"))
   }
 
-  @Test("UIElement path generation with parent hierarchy")
-  func pathGenerationWithParents() throws {
+  @Test("UIElement path generation with parent hierarchy") func pathGenerationWithParents() throws {
     // Create a window element
     let window = UIElement(
       path: "macos://ui/AXWindow[@AXTitle=\"Test Window\"]",
@@ -230,10 +217,7 @@ struct UIElementTests {
       elementDescription: "Search field",
       frame: CGRect(x: 10, y: 20, width: 100, height: 30),
       attributes: [
-        "enabled": true,
-        "focused": true,
-        "required": true,
-        "placeholder": "Enter search terms",
+        "enabled": true, "focused": true, "required": true, "placeholder": "Enter search terms",
         "identifier": "searchField",
       ],
     )
@@ -273,8 +257,7 @@ struct UIElementTests {
     #expect(!path.contains("[@AXDescription="))
   }
 
-  @Test("Menu element path generation compatibility")
-  func menuElementPathGeneration() throws {
+  @Test("Menu element path generation compatibility") func menuElementPathGeneration() throws {
     // Create a menu bar item
     let menuBarItem = UIElement(
       path: "macos://ui/AXMenuBarItem[@AXTitle=\"File\"]",

@@ -8,10 +8,8 @@ import Testing
 
 @testable import MacMCP
 
-@Suite("Error Handling Tests")
-struct ErrorHandlingTests {
-  @Test("Accessibility permission errors")
-  func accessibilityPermissionErrors() async {
+@Suite("Error Handling Tests") struct ErrorHandlingTests {
+  @Test("Accessibility permission errors") func accessibilityPermissionErrors() async {
     let permissionError = AccessibilityPermissions.Error.permissionDenied
 
     // Check error description
@@ -26,23 +24,18 @@ struct ErrorHandlingTests {
     )
   }
 
-  @Test("Detailed error messages")
-  func detailedErrorMessages() async {
+  @Test("Detailed error messages") func detailedErrorMessages() async {
     // Test different error types
     let errors: [MCPError] = [
-      .parseError("Invalid JSON format"),
-      .invalidRequest("Unknown method"),
-      .methodNotFound("Method not available"),
-      .invalidParams("Missing required parameter"),
+      .parseError("Invalid JSON format"), .invalidRequest("Unknown method"),
+      .methodNotFound("Method not available"), .invalidParams("Missing required parameter"),
       .internalError("Unexpected condition"),
       .serverError(code: -32000, message: "Custom server error"),
       .connectionClosed,
       .transportError(
         NSError(
-          domain: "test",
-          code: 123,
-          userInfo: [NSLocalizedDescriptionKey: "Connection timeout"],
-        )),
+          domain: "test", code: 123, userInfo: [NSLocalizedDescriptionKey: "Connection timeout"], )
+      ),
     ]
 
     // Check that each error has a meaningful description and code
@@ -53,18 +46,18 @@ struct ErrorHandlingTests {
     }
   }
 
-  @Test("UIInteractionTool parameter validation")
-  func uIInteractionToolParameterValidation() async throws {
+  @Test("UIInteractionTool parameter validation") func uIInteractionToolParameterValidation()
+    async throws
+  {
     // Create a real tool instance with real services
     let logger = Logger(label: "test.error-handling")
     let accessibilityService = AccessibilityService(logger: logger)
     let applicationService = ApplicationService(logger: logger)
     let interactionService = UIInteractionService(
-      accessibilityService: accessibilityService,
-      logger: logger,
-    )
+      accessibilityService: accessibilityService, logger: logger, )
 
-    let changeDetectionService = UIChangeDetectionService(accessibilityService: accessibilityService)
+    let changeDetectionService = UIChangeDetectionService(
+      accessibilityService: accessibilityService)
     let tool = UIInteractionTool(
       interactionService: interactionService,
       accessibilityService: accessibilityService,
@@ -75,8 +68,7 @@ struct ErrorHandlingTests {
 
     // Test invalid parameter combinations that should result in errors
     let testCases: [(name: String, params: [String: Value]?)] = [
-      ("Missing params", nil),
-      ("Missing action", [:]),
+      ("Missing params", nil), ("Missing action", [:]),
       ("Invalid action", ["action": .string("invalid_action")]),
       ("Click missing targets", ["action": .string("click")]),
       ("Scroll missing element path", ["action": .string("scroll")]),
@@ -84,17 +76,14 @@ struct ErrorHandlingTests {
         "Scroll missing direction",
         [
           "action": .string("scroll"),
-          "id": .string(
-            "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow"),
+          "id": .string("macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow"),
         ]
-      ),
-      ("Drag missing source path", ["action": .string("drag")]),
+      ), ("Drag missing source path", ["action": .string("drag")]),
       (
         "Drag missing target path",
         [
           "action": .string("drag"),
-          "id": .string(
-            "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow"),
+          "id": .string("macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow"),
         ]
       ),
     ]

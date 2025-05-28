@@ -11,19 +11,15 @@ public protocol TestScenario {
   /// Prepare the environment for the test
   /// This typically includes launching applications and verifying initial state
   func setup() async throws
-  
   /// Run the test scenario
   /// This is where the main test assertions are performed
   func run() async throws
-  
   /// Clean up after the test
   /// This typically includes terminating applications and resetting state
   func teardown() async throws
-  
   /// Get the name of the test scenario
   /// - Returns: The name of the test scenario
   var name: String { get }
-  
   /// Get the description of the test scenario
   /// - Returns: A detailed description of what the test verifies
   var description: String { get }
@@ -32,15 +28,9 @@ public protocol TestScenario {
 /// Extension providing default implementations and convenience methods
 extension TestScenario {
   /// Default implementation for name which uses the type name
-  public var name: String {
-    String(describing: type(of: self))
-  }
-  
+  public var name: String { String(describing: type(of: self)) }
   /// Default implementation for description
-  public var description: String {
-    "Test scenario for \(name)"
-  }
-  
+  public var description: String { "Test scenario for \(name)" }
   /// Helper method to wait for a condition with timeout
   /// - Parameters:
   ///   - timeout: Maximum time to wait in seconds
@@ -48,22 +38,17 @@ extension TestScenario {
   ///   - condition: The condition to wait for
   /// - Throws: Error if timeout is reached
   public func waitFor(
-    timeout: TimeInterval,
-    description: String,
-    condition: @escaping () async throws -> Bool
-  ) async throws {
+    timeout: TimeInterval, description: String, condition: @escaping () async throws -> Bool
+  )
+    async throws
+  {
     let startTime = Date()
-    
     while Date().timeIntervalSince(startTime) < timeout {
       // Check if the condition is met
-      if try await condition() {
-        return
-      }
-      
+      if try await condition() { return }
       // Wait a bit before trying again
       try await Task.sleep(for: .milliseconds(100))
     }
-    
     // Timeout reached
     throw NSError(
       domain: "TestScenario",
@@ -71,7 +56,6 @@ extension TestScenario {
       userInfo: [NSLocalizedDescriptionKey: "Timeout waiting for condition: \(description)"]
     )
   }
-  
   /// Helper method to expect a UI element matching criteria
   /// - Parameters:
   ///   - criteria: Criteria to match against UI elements
@@ -92,7 +76,6 @@ extension TestScenario {
       userInfo: [NSLocalizedDescriptionKey: "Not yet implemented: \(#function)"]
     )
   }
-  
   /// Helper method to expect a condition to become true
   /// - Parameters:
   ///   - condition: The condition to check
@@ -104,9 +87,7 @@ extension TestScenario {
     timeout: TimeInterval = 5.0,
     message: String
   ) async throws {
-    try await waitFor(timeout: timeout, description: message) {
-      try await condition()
-    }
+    try await waitFor(timeout: timeout, description: message) { try await condition() }
   }
 }
 
@@ -115,17 +96,12 @@ extension TestScenario {
 public struct ScenarioTestRunner {
   /// The test scenario to run
   private let scenario: TestScenario
-  
   /// Initialize with a specific scenario
-  public init(scenario: TestScenario) {
-    self.scenario = scenario
-  }
-  
+  public init(scenario: TestScenario) { self.scenario = scenario }
   /// Run the test scenario
   public func runScenario() async throws {
     // Run setup
     try await scenario.setup()
-    
     do {
       // Run the scenario
       try await scenario.run()
@@ -134,7 +110,6 @@ public struct ScenarioTestRunner {
       try? await scenario.teardown()
       throw error
     }
-    
     // Run teardown
     try await scenario.teardown()
   }

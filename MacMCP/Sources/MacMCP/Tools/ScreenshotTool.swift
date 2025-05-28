@@ -12,24 +12,24 @@ public struct ScreenshotTool {
 
   /// Description of the tool
   public let description = """
-Capture screenshots of macOS screen, windows, or UI elements for visual inspection and analysis.
+    Capture screenshots of macOS screen, windows, or UI elements for visual inspection and analysis.
 
-IMPORTANT: For element screenshots, use InterfaceExplorerTool first to discover element IDs.
+    IMPORTANT: For element screenshots, use InterfaceExplorerTool first to discover element IDs.
 
-Region types and requirements:
-- full: Capture entire screen (no additional parameters)
-- area: Capture specific coordinates (requires x, y, width, height)
-- window: Capture application window (requires bundleId)
-- element: Capture UI element (requires id from InterfaceExplorerTool)
+    Region types and requirements:
+    - full: Capture entire screen (no additional parameters)
+    - area: Capture specific coordinates (requires x, y, width, height)
+    - window: Capture application window (requires bundleId)
+    - element: Capture UI element (requires id from InterfaceExplorerTool)
 
-Common use cases:
-- Debugging UI layout issues
-- Documenting current application state
-- Capturing specific UI elements for analysis
-- Visual verification during testing
+    Common use cases:
+    - Debugging UI layout issues
+    - Documenting current application state
+    - Capturing specific UI elements for analysis
+    - Visual verification during testing
 
-Coordinate system: Screen coordinates start at (0,0) in top-left corner.
-"""
+    Coordinate system: Screen coordinates start at (0,0) in top-left corner.
+    """
 
   /// Input schema for the tool
   public var inputSchema: Value
@@ -47,10 +47,7 @@ Coordinate system: Screen coordinates start at (0,0) in top-left corner.
   /// - Parameters:
   ///   - screenshotService: The screenshot service to use (optional, created on demand if nil)
   ///   - logger: Optional logger to use
-  public init(
-    screenshotService: (any ScreenshotServiceProtocol)? = nil,
-    logger: Logger? = nil
-  ) {
+  public init(screenshotService: (any ScreenshotServiceProtocol)? = nil, logger: Logger? = nil) {
     // If no service provided, it will be created lazily in the handler
     self.screenshotService = screenshotService ?? MockScreenshotService()
     self.logger = logger ?? Logger(label: "mcp.tool.screenshot")
@@ -91,21 +88,22 @@ Coordinate system: Screen coordinates start at (0,0) in top-left corner.
       "properties": .object([
         "region": .object([
           "type": .string("string"),
-          "description": .string("Screenshot region type: 'full' for entire screen, 'area' for coordinates, 'window' for app window, 'element' for UI element"),
-          "enum": .array([
-            .string("full"),
-            .string("area"),
-            .string("window"),
-            .string("element"),
-          ]),
+          "description": .string(
+            "Screenshot region type: 'full' for entire screen, 'area' for coordinates, 'window' for app window, 'element' for UI element"
+          ),
+          "enum": .array([.string("full"), .string("area"), .string("window"), .string("element")]),
         ]),
         "x": .object([
           "type": .string("number"),
-          "description": .string("X coordinate in screen pixels (required for 'area' region, top-left origin)"),
+          "description": .string(
+            "X coordinate in screen pixels (required for 'area' region, top-left origin)"
+          ),
         ]),
         "y": .object([
           "type": .string("number"),
-          "description": .string("Y coordinate in screen pixels (required for 'area' region, top-left origin)"),
+          "description": .string(
+            "Y coordinate in screen pixels (required for 'area' region, top-left origin)"
+          ),
         ]),
         "width": .object([
           "type": .string("number"),
@@ -117,34 +115,23 @@ Coordinate system: Screen coordinates start at (0,0) in top-left corner.
         ]),
         "bundleId": .object([
           "type": .string("string"),
-          "description": .string("Application bundle identifier (required for 'window' region) - e.g., 'com.apple.calculator'"),
+          "description": .string(
+            "Application bundle identifier (required for 'window' region) - e.g., 'com.apple.calculator'"
+          ),
         ]),
         "id": .object([
           "type": .string("string"),
-          "description": .string("UI element ID from InterfaceExplorerTool (required for 'element' region)"),
+          "description": .string(
+            "UI element ID from InterfaceExplorerTool (required for 'element' region)"),
         ]),
-      ]),
-      "required": .array([.string("region")]),
-      "additionalProperties": .bool(false),
+      ]), "required": .array([.string("region")]), "additionalProperties": .bool(false),
       "examples": .array([
+        .object(["region": .string("full")]),
         .object([
-          "region": .string("full"),
-        ]),
-        .object([
-          "region": .string("area"),
-          "x": .int(100),
-          "y": .int(200),
-          "width": .int(400),
+          "region": .string("area"), "x": .int(100), "y": .int(200), "width": .int(400),
           "height": .int(300),
-        ]),
-        .object([
-          "region": .string("window"),
-          "bundleId": .string("com.apple.calculator"),
-        ]),
-        .object([
-          "region": .string("element"),
-          "id": .string("element-uuid-example"),
-        ]),
+        ]), .object(["region": .string("window"), "bundleId": .string("com.apple.calculator")]),
+        .object(["region": .string("element"), "id": .string("element-uuid-example")]),
       ]),
     ])
   }
@@ -154,8 +141,7 @@ Coordinate system: Screen coordinates start at (0,0) in top-left corner.
     // Create services - we do this in the handler to avoid initialization issues
     // and to make sure we're running in the right context
     let accessibilityService = AccessibilityService(
-      logger: Logger(label: "mcp.tool.screenshot.accessibility"),
-    )
+      logger: Logger(label: "mcp.tool.screenshot.accessibility"), )
     let screenshotService = ScreenshotService(
       accessibilityService: accessibilityService,
       logger: Logger(label: "mcp.tool.screenshot"),
@@ -178,20 +164,15 @@ Coordinate system: Screen coordinates start at (0,0) in top-left corner.
   /// 6. Result is returned as base64-encoded PNG with metadata
   private func processRequest(_ params: [String: Value]?) async throws -> [Tool.Content] {
     guard let params else {
-      throw createScreenshotError(
-        message: "Parameters are required",
-        context: ["toolName": name],
-      ).asMCPError
+      throw createScreenshotError(message: "Parameters are required", context: ["toolName": name], )
+        .asMCPError
     }
 
     // Get the region
     guard let regionValue = params["region"]?.stringValue else {
       throw createScreenshotError(
         message: "Region is required",
-        context: [
-          "toolName": name,
-          "providedParams": "\(params.keys.joined(separator: ", "))",
-        ],
+        context: ["toolName": name, "providedParams": "\(params.keys.joined(separator: ", "))"],
       ).asMCPError
     }
 
@@ -204,17 +185,14 @@ Coordinate system: Screen coordinates start at (0,0) in top-left corner.
 
     case "area":
       // Extract required coordinates
-      guard
-        let x = params["x"]?.intValue,
-        let y = params["y"]?.intValue,
+      guard let x = params["x"]?.intValue, let y = params["y"]?.intValue,
         let width = params["width"]?.intValue,
         let height = params["height"]?.intValue
       else {
         throw createScreenshotError(
           message: "Area screenshots require x, y, width, and height parameters",
           context: [
-            "toolName": name,
-            "region": regionValue,
+            "toolName": name, "region": regionValue,
             "providedParams": "\(params.keys.joined(separator: ", "))",
             "x": params["x"]?.intValue != nil ? "\(params["x"]!.intValue!)" : "missing",
             "y": params["y"]?.intValue != nil ? "\(params["y"]!.intValue!)" : "missing",
@@ -225,12 +203,7 @@ Coordinate system: Screen coordinates start at (0,0) in top-left corner.
         ).asMCPError
       }
 
-      result = try await screenshotService.captureArea(
-        x: x,
-        y: y,
-        width: width,
-        height: height,
-      )
+      result = try await screenshotService.captureArea(x: x, y: y, width: width, height: height, )
 
     case "window":
       // Extract required bundle ID
@@ -238,16 +211,13 @@ Coordinate system: Screen coordinates start at (0,0) in top-left corner.
         throw createScreenshotError(
           message: "Window screenshots require a bundleId parameter",
           context: [
-            "toolName": name,
-            "region": regionValue,
+            "toolName": name, "region": regionValue,
             "providedParams": "\(params.keys.joined(separator: ", "))",
           ],
         ).asMCPError
       }
 
-      result = try await screenshotService.captureWindow(
-        bundleId: bundleId,
-      )
+      result = try await screenshotService.captureWindow(bundleId: bundleId, )
 
     case "element":
       // Extract required element ID
@@ -255,23 +225,19 @@ Coordinate system: Screen coordinates start at (0,0) in top-left corner.
         throw createScreenshotError(
           message: "Element screenshots require an id parameter",
           context: [
-            "toolName": name,
-            "region": regionValue,
+            "toolName": name, "region": regionValue,
             "providedParams": "\(params.keys.joined(separator: ", "))",
           ],
         ).asMCPError
       }
 
-      result = try await screenshotService.captureElementByPath(
-        elementPath: elementId,
-      )
+      result = try await screenshotService.captureElementByPath(elementPath: elementId, )
 
     default:
       throw createScreenshotError(
         message: "Invalid region: \(regionValue). Must be one of: full, area, window, element",
         context: [
-          "toolName": name,
-          "providedRegion": regionValue,
+          "toolName": name, "providedRegion": regionValue,
           "validRegions": "full, area, window, element",
         ],
       ).asMCPError
@@ -282,8 +248,7 @@ Coordinate system: Screen coordinates start at (0,0) in top-left corner.
 
     // Create a metadata object with dimensions
     let metadata: [String: String] = [
-      "width": "\(result.width)",
-      "height": "\(result.height)",
+      "width": "\(result.width)", "height": "\(result.height)",
       "scale": String(format: "%.2f", result.scale),
       "region": regionValue,
     ]

@@ -8,8 +8,7 @@ import Testing
 
 @testable import MacMCP
 
-@Suite(.serialized)
-struct KeyboardInteractionToolTests {
+@Suite(.serialized) struct KeyboardInteractionToolTests {
   // Test components
   private var accessibilityService: AccessibilityService!
   private var interactionService: UIInteractionServiceStub!
@@ -26,7 +25,8 @@ struct KeyboardInteractionToolTests {
 
     // Create the tool
     let mockAccessibilityService = MockAccessibilityService()
-    let changeDetectionService = UIChangeDetectionService(accessibilityService: mockAccessibilityService)
+    let changeDetectionService = UIChangeDetectionService(
+      accessibilityService: mockAccessibilityService)
     keyboardInteractionTool = KeyboardInteractionTool(
       interactionService: interactionService,
       accessibilityService: mockAccessibilityService,
@@ -35,9 +35,8 @@ struct KeyboardInteractionToolTests {
 
     // Set up keyboard event monitor
     keyboardEventMonitor = KeyboardEventMonitor()
-    
     // Use a local handler that doesn't capture self
-    let handler: (CapturedKeyEvent) -> Void = { _ in 
+    let handler: (CapturedKeyEvent) -> Void = { _ in
       // We're not actually doing anything with the events in the test
       // Just using the monitor to set up the environment
     }
@@ -57,16 +56,11 @@ struct KeyboardInteractionToolTests {
 
   // MARK: - Type Text Tests
 
-  @Test("Test type text")
-  mutating func testTypeText() async throws {
+  @Test("Test type text") mutating func testTypeText() async throws {
     try await setupTest()
-    
     // Prepare test data
     let text = "Hello"
-    let params: [String: Value] = [
-      "action": .string("type_text"),
-      "text": .string(text),
-    ]
+    let params: [String: Value] = ["action": .string("type_text"), "text": .string(text)]
 
     // Execute the tool
     _ = try await keyboardInteractionTool.handler(params)
@@ -78,20 +72,16 @@ struct KeyboardInteractionToolTests {
     let interactionStub = interactionService!
     #expect(
       interactionStub.keyPressCount == text.count, "Should have pressed one key for each character")
-      
     try await cleanupTest()
   }
 
-  @Test("Test type text special characters")
-  mutating func testTypeTextSpecialCharacters() async throws {
+  @Test("Test type text special characters") mutating func testTypeTextSpecialCharacters()
+    async throws
+  {
     try await setupTest()
-    
     // Prepare test data with special characters
     let text = "Hello, World!"
-    let params: [String: Value] = [
-      "action": .string("type_text"),
-      "text": .string(text),
-    ]
+    let params: [String: Value] = ["action": .string("type_text"), "text": .string(text)]
 
     // Execute the tool
     _ = try await keyboardInteractionTool.handler(params)
@@ -105,24 +95,17 @@ struct KeyboardInteractionToolTests {
       interactionStub.keyPressCount == text.count, "Should have pressed one key for each character")
 
     // Check for modifiers on special characters
-    #expect(
-      interactionStub.usedModifiers, "Should have used modifiers for special characters")
-      
+    #expect(interactionStub.usedModifiers, "Should have used modifiers for special characters")
     try await cleanupTest()
   }
 
   // MARK: - Key Sequence Tests
 
-  @Test("Test key sequence simple tap")
-  mutating func testKeySequenceSimpleTap() async throws {
+  @Test("Test key sequence simple tap") mutating func testKeySequenceSimpleTap() async throws {
     try await setupTest()
-    
     // Test a simple key tap
     let params: [String: Value] = [
-      "action": .string("key_sequence"),
-      "sequence": .array([
-        .object(["tap": .string("a")])
-      ]),
+      "action": .string("key_sequence"), "sequence": .array([.object(["tap": .string("a")])]),
     ]
 
     // Execute the tool
@@ -132,22 +115,18 @@ struct KeyboardInteractionToolTests {
     let interactionStub = interactionService!
     #expect(interactionStub.keyPressCount == 1, "Should have pressed one key")
     #expect(!interactionStub.usedModifiers, "Should not have used modifiers")
-    
     try await cleanupTest()
   }
 
-  @Test("Test key sequence with modifiers")
-  mutating func testKeySequenceWithModifiers() async throws {
+  @Test("Test key sequence with modifiers") mutating func testKeySequenceWithModifiers()
+    async throws
+  {
     try await setupTest()
-    
     // Test a key tap with modifiers
     let params: [String: Value] = [
       "action": .string("key_sequence"),
       "sequence": .array([
-        .object([
-          "tap": .string("s"),
-          "modifiers": .array([.string("command")]),
-        ])
+        .object(["tap": .string("s"), "modifiers": .array([.string("command")])])
       ]),
     ]
 
@@ -158,20 +137,17 @@ struct KeyboardInteractionToolTests {
     let interactionStub = interactionService!
     #expect(interactionStub.keyPressCount == 1, "Should have pressed one key")
     #expect(interactionStub.usedModifiers, "Should have used modifiers")
-    
     try await cleanupTest()
   }
 
-  @Test("Test key sequence press release")
-  mutating func testKeySequencePressRelease() async throws {
+  @Test("Test key sequence press release") mutating func testKeySequencePressRelease() async throws
+  {
     try await setupTest()
-    
     // Test separate press and release events
     let params: [String: Value] = [
       "action": .string("key_sequence"),
       "sequence": .array([
-        .object(["press": .string("down")]),
-        .object(["delay": .double(0.1)]),
+        .object(["press": .string("down")]), .object(["delay": .double(0.1)]),
         .object(["release": .string("down")]),
       ]),
     ]
@@ -182,22 +158,17 @@ struct KeyboardInteractionToolTests {
     // For this test, we're more interested in the fact that it completes without errors
     // since actual key events are handled by the CGEvent system directly
     #expect(Bool(true), "Key sequence with press/release completed successfully")
-    
     try await cleanupTest()
   }
 
-  @Test("Test complex key sequence")
-  mutating func testComplexKeySequence() async throws {
+  @Test("Test complex key sequence") mutating func testComplexKeySequence() async throws {
     try await setupTest()
-    
     // Test a complex key sequence
     let params: [String: Value] = [
       "action": .string("key_sequence"),
       "sequence": .array([
-        .object(["press": .string("command")]),
-        .object(["tap": .string("tab")]),
-        .object(["delay": .double(0.1)]),
-        .object(["tap": .string("tab")]),
+        .object(["press": .string("command")]), .object(["tap": .string("tab")]),
+        .object(["delay": .double(0.1)]), .object(["tap": .string("tab")]),
         .object(["release": .string("command")]),
       ]),
     ]
@@ -207,7 +178,6 @@ struct KeyboardInteractionToolTests {
 
     // For complex sequences, we're more interested in the fact that it completes without errors
     #expect(Bool(true), "Complex key sequence completed successfully")
-    
     try await cleanupTest()
   }
 }
@@ -357,9 +327,7 @@ class UIInteractionServiceStub: UIInteractionServiceProtocol {
 
   func pressKey(keyCode _: Int, modifiers: CGEventFlags?) async throws {
     keyPressCount += 1
-    if let modifiers, !modifiers.isEmpty {
-      usedModifiers = true
-    }
+    if let modifiers, !modifiers.isEmpty { usedModifiers = true }
   }
 
   func dragElementByPath(sourcePath _: String, targetPath _: String, appBundleId _: String?)
@@ -369,11 +337,10 @@ class UIInteractionServiceStub: UIInteractionServiceProtocol {
   }
 
   func scrollElementByPath(
-    path _: String,
-    direction _: ScrollDirection,
-    amount _: Double,
-    appBundleId _: String?,
-  ) async throws {
+    path _: String, direction _: ScrollDirection, amount _: Double, appBundleId _: String?,
+  )
+    async throws
+  {
     // No-op for testing
   }
 

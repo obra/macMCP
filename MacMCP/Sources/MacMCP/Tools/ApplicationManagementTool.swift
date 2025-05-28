@@ -12,28 +12,28 @@ public struct ApplicationManagementTool: @unchecked Sendable {
 
   /// Description of what the tool does
   public let description = """
-Manage macOS applications with comprehensive launch, termination, and monitoring capabilities.
+    Manage macOS applications with comprehensive launch, termination, and monitoring capabilities.
 
-IMPORTANT: Use bundleId for precise application identification when possible.
+    IMPORTANT: Use bundleId for precise application identification when possible.
 
-Available actions:
-- launch: Start an application by name or bundle ID
-- terminate: Gracefully quit an application 
-- forceTerminate: Force quit an unresponsive application
-- isRunning: Check if an application is currently running
-- getRunningApplications: List all currently running applications
-- activateApplication: Bring an application to the foreground
-- hideApplication: Hide an application
-- unhideApplication: Unhide a previously hidden application
-- hideOtherApplications: Hide all applications except the current one
-- getFrontmostApplication: Get the currently active application
+    Available actions:
+    - launch: Start an application by name or bundle ID
+    - terminate: Gracefully quit an application 
+    - forceTerminate: Force quit an unresponsive application
+    - isRunning: Check if an application is currently running
+    - getRunningApplications: List all currently running applications
+    - activateApplication: Bring an application to the foreground
+    - hideApplication: Hide an application
+    - unhideApplication: Unhide a previously hidden application
+    - hideOtherApplications: Hide all applications except the current one
+    - getFrontmostApplication: Get the currently active application
 
-App identification methods:
-- applicationName: Human-readable name (e.g., "Calculator", "Safari")
-- bundleId: Unique identifier (e.g., "com.apple.calculator", "com.apple.Safari")
+    App identification methods:
+    - applicationName: Human-readable name (e.g., "Calculator", "Safari")
+    - bundleId: Unique identifier (e.g., "com.apple.calculator", "com.apple.Safari")
 
-Security note: Some actions may require user permission or accessibility access.
-"""
+    Security note: Some actions may require user permission or accessibility access.
+    """
 
   /// Input schema for the tool
   public private(set) var inputSchema: Value
@@ -92,43 +92,46 @@ Security note: Some actions may require user permission or accessibility access.
       "properties": .object([
         "action": .object([
           "type": .string("string"),
-          "description": .string("Application management action: launch/terminate apps, check status, control visibility"),
+          "description": .string(
+            "Application management action: launch/terminate apps, check status, control visibility"
+          ),
           "enum": .array([
-            .string("launch"),
-            .string("terminate"),
-            .string("forceTerminate"),
+            .string("launch"), .string("terminate"), .string("forceTerminate"),
             .string("isRunning"),
-            .string("getRunningApplications"),
-            .string("activateApplication"),
+            .string("getRunningApplications"), .string("activateApplication"),
             .string("hideApplication"),
-            .string("unhideApplication"),
-            .string("hideOtherApplications"),
+            .string("unhideApplication"), .string("hideOtherApplications"),
             .string("getFrontmostApplication"),
           ]),
         ]),
         "applicationName": .object([
           "type": .string("string"),
-          "description": .string("Human-readable application name (e.g., 'Calculator', 'Safari', 'TextEdit')"),
+          "description": .string(
+            "Human-readable application name (e.g., 'Calculator', 'Safari', 'TextEdit')"
+          ),
         ]),
         "bundleId": .object([
           "type": .string("string"),
-          "description": .string("Application bundle identifier for precise targeting (e.g., 'com.apple.calculator', 'com.apple.Safari')"),
+          "description": .string(
+            "Application bundle identifier for precise targeting (e.g., 'com.apple.calculator', 'com.apple.Safari')"
+          ),
         ]),
         "arguments": .object([
           "type": .string("array"),
-          "description": .string("Command-line arguments to pass when launching application (optional)"),
-          "items": .object([
-            "type": .string("string")
-          ]),
+          "description": .string(
+            "Command-line arguments to pass when launching application (optional)"),
+          "items": .object(["type": .string("string")]),
         ]),
         "hideOthers": .object([
           "type": .string("boolean"),
-          "description": .string("Hide other applications when launching (use sparingly, default: false)"),
+          "description": .string(
+            "Hide other applications when launching (use sparingly, default: false)"),
           "default": .bool(false),
         ]),
         "waitForLaunch": .object([
           "type": .string("boolean"),
-          "description": .string("Wait for application to fully launch before returning (default: true)"),
+          "description": .string(
+            "Wait for application to fully launch before returning (default: true)"),
           "default": .bool(true),
         ]),
         "launchTimeout": .object([
@@ -141,32 +144,15 @@ Security note: Some actions may require user permission or accessibility access.
           "description": .string("Maximum seconds to wait for graceful termination (default: 10)"),
           "default": .double(10.0),
         ]),
-      ]),
-      "required": .array([.string("action")]),
-      "additionalProperties": .bool(false),
+      ]), "required": .array([.string("action")]), "additionalProperties": .bool(false),
       "examples": .array([
+        .object(["action": .string("launch"), "applicationName": .string("Calculator")]),
+        .object(["action": .string("launch"), "bundleId": .string("com.apple.calculator")]),
+        .object(["action": .string("terminate"), "bundleId": .string("com.apple.calculator")]),
+        .object(["action": .string("isRunning"), "applicationName": .string("Safari")]),
+        .object(["action": .string("getRunningApplications")]),
         .object([
-          "action": .string("launch"),
-          "applicationName": .string("Calculator"),
-        ]),
-        .object([
-          "action": .string("launch"),
-          "bundleId": .string("com.apple.calculator"),
-        ]),
-        .object([
-          "action": .string("terminate"),
-          "bundleId": .string("com.apple.calculator"),
-        ]),
-        .object([
-          "action": .string("isRunning"),
-          "applicationName": .string("Safari"),
-        ]),
-        .object([
-          "action": .string("getRunningApplications"),
-        ]),
-        .object([
-          "action": .string("activateApplication"),
-          "bundleId": .string("com.apple.TextEdit"),
+          "action": .string("activateApplication"), "bundleId": .string("com.apple.TextEdit"),
         ]),
       ]),
     ])
@@ -175,9 +161,7 @@ Security note: Some actions may require user permission or accessibility access.
   /// Tool handler function
   public var handler: @Sendable ([String: Value]?) async throws -> [Tool.Content] {
     { [applicationService, logger] params in
-      guard let params else {
-        throw MCPError.invalidParams("Parameters are required")
-      }
+      guard let params else { throw MCPError.invalidParams("Parameters are required") }
 
       // Get the action
       guard let actionString = params["action"]?.stringValue,
@@ -266,10 +250,7 @@ Security note: Some actions may require user permission or accessibility access.
     logger: Logger,
   ) async throws -> [Tool.Content] {
     logger.debug(
-      "Handling launch action",
-      metadata: [
-        "params": "\(params.keys.joined(separator: ", "))"
-      ])
+      "Handling launch action", metadata: ["params": "\(params.keys.joined(separator: ", "))"])
 
     // Extract application identifier (name or bundle ID)
     let applicationName = params["applicationName"]?.stringValue
@@ -305,14 +286,11 @@ Security note: Some actions may require user permission or accessibility access.
               "bundleId": "\(result.bundleId)",
               "applicationName": "\(result.applicationName)"
           }
-          """)
+          """
+        )
       ]
     } catch {
-      logger.error(
-        "Launch failed",
-        metadata: [
-          "error": "\(error.localizedDescription)"
-        ])
+      logger.error("Launch failed", metadata: ["error": "\(error.localizedDescription)"])
       throw MCPError.internalError("Failed to launch application: \(error.localizedDescription)")
     }
   }
@@ -324,10 +302,7 @@ Security note: Some actions may require user permission or accessibility access.
     logger: Logger,
   ) async throws -> [Tool.Content] {
     logger.debug(
-      "Handling terminate action",
-      metadata: [
-        "params": "\(params.keys.joined(separator: ", "))"
-      ])
+      "Handling terminate action", metadata: ["params": "\(params.keys.joined(separator: ", "))"])
 
     // Validate bundle ID
     guard let bundleId = params["bundleId"]?.stringValue else {
@@ -351,14 +326,11 @@ Security note: Some actions may require user permission or accessibility access.
               "success": \(terminated),
               "bundleId": "\(bundleId)"
           }
-          """)
+          """
+        )
       ]
     } catch {
-      logger.error(
-        "Terminate failed",
-        metadata: [
-          "error": "\(error.localizedDescription)"
-        ])
+      logger.error("Terminate failed", metadata: ["error": "\(error.localizedDescription)"])
       throw MCPError.internalError("Failed to terminate application: \(error.localizedDescription)")
     }
   }
@@ -371,9 +343,7 @@ Security note: Some actions may require user permission or accessibility access.
   ) async throws -> [Tool.Content] {
     logger.debug(
       "Handling force terminate action",
-      metadata: [
-        "params": "\(params.keys.joined(separator: ", "))"
-      ])
+      metadata: ["params": "\(params.keys.joined(separator: ", "))"])
 
     // Validate bundle ID
     guard let bundleId = params["bundleId"]?.stringValue else {
@@ -381,9 +351,7 @@ Security note: Some actions may require user permission or accessibility access.
     }
 
     do {
-      let terminated = try await applicationService.forceTerminateApplication(
-        bundleId: bundleId,
-      )
+      let terminated = try await applicationService.forceTerminateApplication(bundleId: bundleId, )
 
       // Format the result as JSON
       return [
@@ -393,14 +361,11 @@ Security note: Some actions may require user permission or accessibility access.
               "success": \(terminated),
               "bundleId": "\(bundleId)"
           }
-          """)
+          """
+        )
       ]
     } catch {
-      logger.error(
-        "Force terminate failed",
-        metadata: [
-          "error": "\(error.localizedDescription)"
-        ])
+      logger.error("Force terminate failed", metadata: ["error": "\(error.localizedDescription)"])
       throw MCPError.internalError(
         "Failed to force terminate application: \(error.localizedDescription)")
     }
@@ -413,10 +378,7 @@ Security note: Some actions may require user permission or accessibility access.
     logger: Logger,
   ) async throws -> [Tool.Content] {
     logger.debug(
-      "Handling isRunning action",
-      metadata: [
-        "params": "\(params.keys.joined(separator: ", "))"
-      ])
+      "Handling isRunning action", metadata: ["params": "\(params.keys.joined(separator: ", "))"])
 
     // Validate bundle ID
     guard let bundleId = params["bundleId"]?.stringValue else {
@@ -424,9 +386,7 @@ Security note: Some actions may require user permission or accessibility access.
     }
 
     do {
-      let isRunning = try await applicationService.isApplicationRunning(
-        bundleId: bundleId,
-      )
+      let isRunning = try await applicationService.isApplicationRunning(bundleId: bundleId, )
 
       // Format the result as JSON
       return [
@@ -437,14 +397,11 @@ Security note: Some actions may require user permission or accessibility access.
               "bundleId": "\(bundleId)",
               "isRunning": \(isRunning)
           }
-          """)
+          """
+        )
       ]
     } catch {
-      logger.error(
-        "isRunning check failed",
-        metadata: [
-          "error": "\(error.localizedDescription)"
-        ])
+      logger.error("isRunning check failed", metadata: ["error": "\(error.localizedDescription)"])
       throw MCPError.internalError(
         "Failed to check if application is running: \(error.localizedDescription)")
     }
@@ -452,9 +409,10 @@ Security note: Some actions may require user permission or accessibility access.
 
   /// Handle getRunningApplications action
   private static func handleGetRunningApplications(
-    applicationService: ApplicationServiceProtocol,
-    logger: Logger,
-  ) async throws -> [Tool.Content] {
+    applicationService: ApplicationServiceProtocol, logger: Logger,
+  )
+    async throws -> [Tool.Content]
+  {
     logger.debug("Handling getRunningApplications action")
 
     do {
@@ -469,7 +427,8 @@ Security note: Some actions may require user permission or accessibility access.
               "bundleId": "\(bundleId)",
               "applicationName": "\(name)"
           }
-          """)
+          """
+        )
       }
 
       // Format the result as JSON array
@@ -482,14 +441,12 @@ Security note: Some actions may require user permission or accessibility access.
                   \(appArray.joined(separator: ",\n        "))
               ]
           }
-          """)
+          """
+        )
       ]
     } catch {
       logger.error(
-        "getRunningApplications failed",
-        metadata: [
-          "error": "\(error.localizedDescription)"
-        ])
+        "getRunningApplications failed", metadata: ["error": "\(error.localizedDescription)"])
       throw MCPError.internalError(
         "Failed to get running applications: \(error.localizedDescription)")
     }
@@ -503,9 +460,8 @@ Security note: Some actions may require user permission or accessibility access.
   ) async throws -> [Tool.Content] {
     logger.debug(
       "Handling activateApplication action",
-      metadata: [
-        "params": "\(params.keys.joined(separator: ", "))"
-      ])
+      metadata: ["params": "\(params.keys.joined(separator: ", "))"]
+    )
 
     // Validate bundle ID
     guard let bundleId = params["bundleId"]?.stringValue else {
@@ -513,9 +469,7 @@ Security note: Some actions may require user permission or accessibility access.
     }
 
     do {
-      let activated = try await applicationService.activateApplication(
-        bundleId: bundleId,
-      )
+      let activated = try await applicationService.activateApplication(bundleId: bundleId, )
 
       // Format the result as JSON
       return [
@@ -525,14 +479,12 @@ Security note: Some actions may require user permission or accessibility access.
               "success": \(activated),
               "bundleId": "\(bundleId)"
           }
-          """)
+          """
+        )
       ]
     } catch {
       logger.error(
-        "activateApplication failed",
-        metadata: [
-          "error": "\(error.localizedDescription)"
-        ])
+        "activateApplication failed", metadata: ["error": "\(error.localizedDescription)"])
       throw MCPError.internalError("Failed to activate application: \(error.localizedDescription)")
     }
   }
@@ -545,9 +497,7 @@ Security note: Some actions may require user permission or accessibility access.
   ) async throws -> [Tool.Content] {
     logger.debug(
       "Handling hideApplication action",
-      metadata: [
-        "params": "\(params.keys.joined(separator: ", "))"
-      ])
+      metadata: ["params": "\(params.keys.joined(separator: ", "))"])
 
     // Validate bundle ID
     guard let bundleId = params["bundleId"]?.stringValue else {
@@ -555,9 +505,7 @@ Security note: Some actions may require user permission or accessibility access.
     }
 
     do {
-      let hidden = try await applicationService.hideApplication(
-        bundleId: bundleId,
-      )
+      let hidden = try await applicationService.hideApplication(bundleId: bundleId, )
 
       // Format the result as JSON
       return [
@@ -567,14 +515,11 @@ Security note: Some actions may require user permission or accessibility access.
               "success": \(hidden),
               "bundleId": "\(bundleId)"
           }
-          """)
+          """
+        )
       ]
     } catch {
-      logger.error(
-        "hideApplication failed",
-        metadata: [
-          "error": "\(error.localizedDescription)"
-        ])
+      logger.error("hideApplication failed", metadata: ["error": "\(error.localizedDescription)"])
       throw MCPError.internalError("Failed to hide application: \(error.localizedDescription)")
     }
   }
@@ -587,9 +532,8 @@ Security note: Some actions may require user permission or accessibility access.
   ) async throws -> [Tool.Content] {
     logger.debug(
       "Handling unhideApplication action",
-      metadata: [
-        "params": "\(params.keys.joined(separator: ", "))"
-      ])
+      metadata: ["params": "\(params.keys.joined(separator: ", "))"]
+    )
 
     // Validate bundle ID
     guard let bundleId = params["bundleId"]?.stringValue else {
@@ -597,9 +541,7 @@ Security note: Some actions may require user permission or accessibility access.
     }
 
     do {
-      let unhidden = try await applicationService.unhideApplication(
-        bundleId: bundleId,
-      )
+      let unhidden = try await applicationService.unhideApplication(bundleId: bundleId, )
 
       // Format the result as JSON
       return [
@@ -609,14 +551,11 @@ Security note: Some actions may require user permission or accessibility access.
               "success": \(unhidden),
               "bundleId": "\(bundleId)"
           }
-          """)
+          """
+        )
       ]
     } catch {
-      logger.error(
-        "unhideApplication failed",
-        metadata: [
-          "error": "\(error.localizedDescription)"
-        ])
+      logger.error("unhideApplication failed", metadata: ["error": "\(error.localizedDescription)"])
       throw MCPError.internalError("Failed to unhide application: \(error.localizedDescription)")
     }
   }
@@ -629,17 +568,14 @@ Security note: Some actions may require user permission or accessibility access.
   ) async throws -> [Tool.Content] {
     logger.debug(
       "Handling hideOtherApplications action",
-      metadata: [
-        "params": "\(params.keys.joined(separator: ", "))"
-      ])
+      metadata: ["params": "\(params.keys.joined(separator: ", "))"]
+    )
 
     // Extract optional bundle ID
     let bundleId = params["bundleId"]?.stringValue
 
     do {
-      let _ = try await applicationService.hideOtherApplications(
-        exceptBundleIdentifier: bundleId,
-      )
+      let _ = try await applicationService.hideOtherApplications(exceptBundleIdentifier: bundleId, )
 
       // Format the result as JSON
       let exceptInfo =
@@ -655,14 +591,12 @@ Security note: Some actions may require user permission or accessibility access.
           {
               "success": true\(exceptInfo)
           }
-          """)
+          """
+        )
       ]
     } catch {
       logger.error(
-        "hideOtherApplications failed",
-        metadata: [
-          "error": "\(error.localizedDescription)"
-        ])
+        "hideOtherApplications failed", metadata: ["error": "\(error.localizedDescription)"])
       throw MCPError.internalError(
         "Failed to hide other applications: \(error.localizedDescription)")
     }
@@ -670,9 +604,10 @@ Security note: Some actions may require user permission or accessibility access.
 
   /// Handle getFrontmostApplication action
   private static func handleGetFrontmostApplication(
-    applicationService: ApplicationServiceProtocol,
-    logger: Logger,
-  ) async throws -> [Tool.Content] {
+    applicationService: ApplicationServiceProtocol, logger: Logger,
+  )
+    async throws -> [Tool.Content]
+  {
     logger.debug("Handling getFrontmostApplication action")
 
     do {
@@ -689,7 +624,8 @@ Security note: Some actions may require user permission or accessibility access.
                 "isActive": \(frontmost.isActive),
                 "isFinishedLaunching": \(frontmost.isFinishedLaunching)
             }
-            """)
+            """
+          )
         ]
       } else {
         // No frontmost application
@@ -700,15 +636,13 @@ Security note: Some actions may require user permission or accessibility access.
                 "success": true,
                 "hasFrontmostApplication": false
             }
-            """)
+            """
+          )
         ]
       }
     } catch {
       logger.error(
-        "getFrontmostApplication failed",
-        metadata: [
-          "error": "\(error.localizedDescription)"
-        ])
+        "getFrontmostApplication failed", metadata: ["error": "\(error.localizedDescription)"])
       throw MCPError.internalError(
         "Failed to get frontmost application: \(error.localizedDescription)")
     }
@@ -716,13 +650,11 @@ Security note: Some actions may require user permission or accessibility access.
 
   /// Escape a string for JSON
   private static func escapeJsonString(_ string: String) -> String {
-    var escaped =
-      string
-      .replacingOccurrences(of: "\\", with: "\\\\")
-      .replacingOccurrences(of: "\"", with: "\\\"")
-      .replacingOccurrences(of: "\n", with: "\\n")
-      .replacingOccurrences(of: "\r", with: "\\r")
-      .replacingOccurrences(of: "\t", with: "\\t")
+    var escaped = string.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(
+      of: "\"", with: "\\\""
+    )
+    .replacingOccurrences(of: "\n", with: "\\n").replacingOccurrences(of: "\r", with: "\\r")
+    .replacingOccurrences(of: "\t", with: "\\t")
 
     // Handle non-printable characters
     for i in 0..<32 {

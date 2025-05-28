@@ -5,27 +5,20 @@ import Foundation
 
 /// Provides interaction guidance content for the OnboardingTool
 public struct InteractionGuidance {
-  
   /// Provides interaction guidance based on the specific topic requested
   /// - Parameter specific: Optional specific topic ("clicking", "typing", "dragging", "scrolling")
   /// - Returns: Markdown-formatted guidance string
   public static func guidance(specific: String?) -> String {
     switch specific {
-    case "clicking":
-      return clickingGuidance
-    case "typing":
-      return typingGuidance
-    case "dragging":
-      return draggingGuidance
-    case "scrolling":
-      return scrollingGuidance
-    default:
-      return generalInteractionGuidance
+    case "clicking": return clickingGuidance
+    case "typing": return typingGuidance
+    case "dragging": return draggingGuidance
+    case "scrolling": return scrollingGuidance
+    default: return generalInteractionGuidance
     }
   }
-  
   // MARK: - Specific Guidance Content
-  
+
   private static let clickingGuidance = """
     # Guidance for Clicking UI Elements
 
@@ -100,7 +93,6 @@ public struct InteractionGuidance {
 
     Remember to verify that your click had the intended effect by re-exploring the UI after the interaction.
     """
-  
   private static let typingGuidance = """
     # Guidance for Typing and Text Input
 
@@ -188,7 +180,6 @@ public struct InteractionGuidance {
     3. For complex text formatting, consider using menu commands rather than direct typing
     4. Remember that different applications handle text input differently
     """
-  
   private static let draggingGuidance = """
     # Guidance for Drag Operations
 
@@ -264,7 +255,6 @@ public struct InteractionGuidance {
 
     Remember to verify the result after dragging by re-exploring the UI to confirm the change occurred as expected.
     """
-  
   private static let scrollingGuidance = """
     # Guidance for Scrolling Operations
 
@@ -341,7 +331,6 @@ public struct InteractionGuidance {
 
     Remember to explore the interface after scrolling to see the newly visible elements, as they may not have been included in previous exploration results.
     """
-  
   private static let generalInteractionGuidance = """
     # UI Interaction Guidance
 

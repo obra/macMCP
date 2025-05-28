@@ -39,7 +39,6 @@ public protocol ClipboardServiceProtocol: Sendable {
   /// Clears the clipboard content
   /// - Throws: MacMCPError if clipboard access fails
   func clearClipboard() async throws
-  
   /// Gets information about the current clipboard content
   /// - Returns: ClipboardContentInfo with available types and empty status
   /// - Throws: MacMCPError if clipboard access fails
@@ -50,9 +49,7 @@ public protocol ClipboardServiceProtocol: Sendable {
 public struct ClipboardContentType: RawRepresentable, Hashable, Sendable, Encodable {
   public let rawValue: String
 
-  public init(rawValue: String) {
-    self.rawValue = rawValue
-  }
+  public init(rawValue: String) { self.rawValue = rawValue }
 
   /// Text content type
   public static let text = ClipboardContentType(rawValue: "text")

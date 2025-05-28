@@ -15,6 +15,8 @@ disabled_rules:
   - todo
   - vertical_whitespace  # Let swift-format handle spacing
   - opening_brace        # Let swift-format handle brace placement
+  - indentation_width    # Let swift-format handle indentation
+  - trailing_comma       # Let swift-format handle trailing commas
 
 opt_in_rules:
   - force_unwrapping
@@ -48,8 +50,7 @@ identifier_name:
     - j
     - ax
 
-# Ensure SwiftFormat and SwiftLint agree on trailing commas
-trailing_comma:
-  mandatory_comma: true
+# Let swift-format handle trailing commas (multiElementCollectionTrailingCommas: true)
+# trailing_comma rule disabled to avoid conflicts
 
 reporter: "xcode"

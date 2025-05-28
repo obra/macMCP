@@ -28,10 +28,7 @@ extension AccessibilityService {
   /// - Parameters:
   ///   - path: Window element path
   ///   - point: Target position
-  public func moveWindow(
-    withPath path: String,
-    to point: CGPoint,
-  ) async throws {
+  public func moveWindow(withPath path: String, to point: CGPoint, ) async throws {
     let windowElement = try await findWindowElement(withPath: path)
 
     // Create a position value using AXValueCreate (like SwiftShift)
@@ -46,20 +43,16 @@ extension AccessibilityService {
 
     // Set the position attribute
     let error = AXUIElementSetAttributeValue(
-      windowElement,
-      kAXPositionAttribute as CFString,
-      pointValue,
-    )
+      windowElement, kAXPositionAttribute as CFString, pointValue, )
 
     // Check for errors
     if error != .success {
       logger.error(
         "Failed to move window",
         metadata: [
-          "path": .string(path),
-          "point": .string("\(point)"),
-          "error": .string("\(error)"),
-        ])
+          "path": .string(path), "point": .string("\(point)"), "error": .string("\(error)"),
+        ]
+      )
       throw NSError(
         domain: "com.macos.mcp.accessibility",
         code: MacMCPErrorCode.accessibilityError,
@@ -72,10 +65,7 @@ extension AccessibilityService {
   /// - Parameters:
   ///   - path: Window element path
   ///   - size: Target size
-  public func resizeWindow(
-    withPath path: String,
-    to size: CGSize,
-  ) async throws {
+  public func resizeWindow(withPath path: String, to size: CGSize, ) async throws {
     let windowElement = try await findWindowElement(withPath: path)
 
     // Create a size value using AXValueCreate (like SwiftShift)
@@ -90,20 +80,14 @@ extension AccessibilityService {
 
     // Set the size attribute
     let error = AXUIElementSetAttributeValue(
-      windowElement,
-      kAXSizeAttribute as CFString,
-      sizeValue,
-    )
+      windowElement, kAXSizeAttribute as CFString, sizeValue, )
 
     // Check for errors
     if error != .success {
       logger.error(
         "Failed to resize window",
-        metadata: [
-          "path": .string(path),
-          "size": .string("\(size)"),
-          "error": .string("\(error)"),
-        ])
+        metadata: ["path": .string(path), "size": .string("\(size)"), "error": .string("\(error)")]
+      )
       throw NSError(
         domain: "com.macos.mcp.accessibility",
         code: MacMCPErrorCode.accessibilityError,
@@ -114,26 +98,18 @@ extension AccessibilityService {
 
   /// Minimize a window
   /// - Parameter path: Window element path
-  public func minimizeWindow(
-    withPath path: String,
-  ) async throws {
+  public func minimizeWindow(withPath path: String, ) async throws {
     let windowElement = try await findWindowElement(withPath: path)
 
     // Perform the minimize action
     let error = AXUIElementSetAttributeValue(
-      windowElement,
-      kAXMinimizedAttribute as CFString,
-      true as CFTypeRef,
-    )
+      windowElement, kAXMinimizedAttribute as CFString, true as CFTypeRef, )
 
     // Check for errors
     if error != .success {
       logger.error(
         "Failed to minimize window",
-        metadata: [
-          "path": .string(path),
-          "error": .string("\(error)"),
-        ])
+        metadata: ["path": .string(path), "error": .string("\(error)")])
       throw NSError(
         domain: "com.macos.mcp.accessibility",
         code: MacMCPErrorCode.accessibilityError,
@@ -144,9 +120,7 @@ extension AccessibilityService {
 
   /// Maximize (zoom) a window
   /// - Parameter path: Window element path
-  public func maximizeWindow(
-    withPath path: String,
-  ) async throws {
+  public func maximizeWindow(withPath path: String, ) async throws {
     let windowElement = try await findWindowElement(withPath: path)
 
     // Look up the AXPress action on the zoom button
@@ -164,10 +138,8 @@ extension AccessibilityService {
       if pressError != .success {
         logger.error(
           "Failed to press zoom button",
-          metadata: [
-            "path": .string(path),
-            "error": .string("\(pressError)"),
-          ])
+          metadata: ["path": .string(path), "error": .string("\(pressError)")]
+        )
         throw NSError(
           domain: "com.macos.mcp.accessibility",
           code: MacMCPErrorCode.accessibilityError,
@@ -180,10 +152,8 @@ extension AccessibilityService {
       if pressError != .success {
         logger.error(
           "Failed to zoom window",
-          metadata: [
-            "path": .string(path),
-            "error": .string("\(pressError)"),
-          ])
+          metadata: ["path": .string(path), "error": .string("\(pressError)")]
+        )
         throw NSError(
           domain: "com.macos.mcp.accessibility",
           code: MacMCPErrorCode.accessibilityError,
@@ -195,9 +165,7 @@ extension AccessibilityService {
 
   /// Close a window
   /// - Parameter path: Window element path
-  public func closeWindow(
-    withPath path: String,
-  ) async throws {
+  public func closeWindow(withPath path: String, ) async throws {
     let windowElement = try await findWindowElement(withPath: path)
 
     // Look up the AXPress action on the close button
@@ -215,10 +183,8 @@ extension AccessibilityService {
       if pressError != .success {
         logger.error(
           "Failed to press close button",
-          metadata: [
-            "path": .string(path),
-            "error": .string("\(pressError)"),
-          ])
+          metadata: ["path": .string(path), "error": .string("\(pressError)")]
+        )
         throw NSError(
           domain: "com.macos.mcp.accessibility",
           code: MacMCPErrorCode.accessibilityError,
@@ -228,10 +194,8 @@ extension AccessibilityService {
     } else {
       logger.error(
         "Failed to get close button",
-        metadata: [
-          "path": .string(path),
-          "error": .string("\(closeButtonError)"),
-        ])
+        metadata: ["path": .string(path), "error": .string("\(closeButtonError)")]
+      )
       throw NSError(
         domain: "com.macos.mcp.accessibility",
         code: MacMCPErrorCode.accessibilityError,
@@ -242,18 +206,13 @@ extension AccessibilityService {
 
   /// Activate (bring to front) a window
   /// - Parameter path: Window element path
-  public func activateWindow(
-    withPath path: String,
-  ) async throws {
+  public func activateWindow(withPath path: String, ) async throws {
     let windowElement = try await findWindowElement(withPath: path)
 
     // Get the application element that contains this window
     var appElement: CFTypeRef?
     let appError = AXUIElementCopyAttributeValue(
-      windowElement,
-      kAXParentAttribute as CFString,
-      &appElement,
-    )
+      windowElement, kAXParentAttribute as CFString, &appElement, )
 
     if appError == .success, appElement != nil {
       // Activate the application first
@@ -270,10 +229,8 @@ extension AccessibilityService {
     if raiseError != .success {
       logger.error(
         "Failed to raise window",
-        metadata: [
-          "path": .string(path),
-          "error": .string("\(raiseError)"),
-        ])
+        metadata: ["path": .string(path), "error": .string("\(raiseError)")]
+      )
       throw NSError(
         domain: "com.macos.mcp.accessibility",
         code: MacMCPErrorCode.accessibilityError,
@@ -288,10 +245,10 @@ extension AccessibilityService {
   ///   - orderMode: Order mode (front, back, above, below)
   ///   - referenceWindowPath: Reference window path for relative positioning
   public func setWindowOrder(
-    withPath path: String,
-    orderMode: WindowOrderMode,
-    referenceWindowPath: String?,
-  ) async throws {
+    withPath path: String, orderMode: WindowOrderMode, referenceWindowPath: String?,
+  )
+    async throws
+  {
     let windowElement = try await findWindowElement(withPath: path)
 
     // Handle the reference window if provided
@@ -308,10 +265,8 @@ extension AccessibilityService {
       if error != .success {
         logger.error(
           "Failed to bring window to front",
-          metadata: [
-            "path": .string(path),
-            "error": .string("\(error)"),
-          ])
+          metadata: ["path": .string(path), "error": .string("\(error)")]
+        )
         throw NSError(
           domain: "com.macos.mcp.accessibility",
           code: MacMCPErrorCode.accessibilityError,
@@ -327,10 +282,8 @@ extension AccessibilityService {
       if error != .success {
         logger.error(
           "Failed to send window to back",
-          metadata: [
-            "path": .string(path),
-            "error": .string("\(error)"),
-          ])
+          metadata: ["path": .string(path), "error": .string("\(error)")]
+        )
         throw NSError(
           domain: "com.macos.mcp.accessibility",
           code: MacMCPErrorCode.accessibilityError,
@@ -342,10 +295,7 @@ extension AccessibilityService {
       // Place window above reference window
       if referenceElement == nil {
         logger.error(
-          "Reference window required for above ordering",
-          metadata: [
-            "path": .string(path)
-          ])
+          "Reference window required for above ordering", metadata: ["path": .string(path)])
         throw NSError(
           domain: "com.macos.mcp.accessibility",
           code: MacMCPErrorCode.invalidActionParams,
@@ -362,10 +312,10 @@ extension AccessibilityService {
         logger.error(
           "Failed to place window above reference",
           metadata: [
-            "path": .string(path),
-            "refPath": referenceWindowPath.map { .string($0) } ?? "nil",
+            "path": .string(path), "refPath": referenceWindowPath.map { .string($0) } ?? "nil",
             "error": .string("\(error)"),
-          ])
+          ]
+        )
         throw NSError(
           domain: "com.macos.mcp.accessibility",
           code: MacMCPErrorCode.accessibilityError,
@@ -377,10 +327,7 @@ extension AccessibilityService {
       // Place window below reference window
       if referenceElement == nil {
         logger.error(
-          "Reference window required for below ordering",
-          metadata: [
-            "path": .string(path)
-          ])
+          "Reference window required for below ordering", metadata: ["path": .string(path)])
         throw NSError(
           domain: "com.macos.mcp.accessibility",
           code: MacMCPErrorCode.invalidActionParams,
@@ -399,11 +346,10 @@ extension AccessibilityService {
         logger.error(
           "Failed to place window below reference",
           metadata: [
-            "path": .string(path),
-            "refPath": referenceWindowPath.map { .string($0) } ?? "nil",
-            "lowerError": .string("\(lowerError)"),
-            "raiseError": .string("\(raiseError)"),
-          ])
+            "path": .string(path), "refPath": referenceWindowPath.map { .string($0) } ?? "nil",
+            "lowerError": .string("\(lowerError)"), "raiseError": .string("\(raiseError)"),
+          ]
+        )
         throw NSError(
           domain: "com.macos.mcp.accessibility",
           code: MacMCPErrorCode.accessibilityError,
@@ -418,9 +364,7 @@ extension AccessibilityService {
 
   /// Focus a window (give it keyboard focus)
   /// - Parameter path: Window element path
-  public func focusWindow(
-    withPath path: String,
-  ) async throws {
+  public func focusWindow(withPath path: String, ) async throws {
     // Activate the window first
     try await activateWindow(withPath: path)
 
@@ -428,19 +372,12 @@ extension AccessibilityService {
 
     // Set the focused attribute
     let error = AXUIElementSetAttributeValue(
-      windowElement,
-      kAXMainAttribute as CFString,
-      true as CFTypeRef,
-    )
+      windowElement, kAXMainAttribute as CFString, true as CFTypeRef, )
 
     // Check for errors
     if error != .success {
       logger.error(
-        "Failed to focus window",
-        metadata: [
-          "path": .string(path),
-          "error": .string("\(error)"),
-        ])
+        "Failed to focus window", metadata: ["path": .string(path), "error": .string("\(error)")])
       throw NSError(
         domain: "com.macos.mcp.accessibility",
         code: MacMCPErrorCode.accessibilityError,

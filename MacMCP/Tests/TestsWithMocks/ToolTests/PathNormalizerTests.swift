@@ -7,10 +7,8 @@ import Testing
 @testable import MacMCP
 @testable import MacMCPUtilities
 
-@Suite("PathNormalizer Tests")
-struct PathNormalizerTests {
-  @Test("Normalize attribute names")
-  func normalizeAttributeNames() {
+@Suite("PathNormalizer Tests") struct PathNormalizerTests {
+  @Test("Normalize attribute names") func normalizeAttributeNames() {
     // Test standard mappings
     #expect(PathNormalizer.normalizeAttributeName("title") == "AXTitle")
     #expect(PathNormalizer.normalizeAttributeName("description") == "AXDescription")
@@ -28,8 +26,7 @@ struct PathNormalizerTests {
     #expect(PathNormalizer.normalizeAttributeName("visible") == "AXVisible")
   }
 
-  @Test("Escape attribute values")
-  func escapeAttributeValues() {
+  @Test("Escape attribute values") func escapeAttributeValues() {
     // Test quote escaping
     #expect(
       PathNormalizer.escapeAttributeValue("Value with \"quotes\"") == "Value with \\\"quotes\\\"")
@@ -46,14 +43,12 @@ struct PathNormalizerTests {
 
     // Test combined escaping
     #expect(
-      PathNormalizer
-        .escapeAttributeValue("\"Value\"\nwith\\everything")
+      PathNormalizer.escapeAttributeValue("\"Value\"\nwith\\everything")
         == "\\\"Value\\\"\\nwith\\\\everything",
     )
   }
 
-  @Test("Unescape attribute values")
-  func unescapeAttributeValues() {
+  @Test("Unescape attribute values") func unescapeAttributeValues() {
     // Test quote unescaping
     #expect(
       PathNormalizer.unescapeAttributeValue("Value with \\\"quotes\\\"") == "Value with \"quotes\"")
@@ -72,21 +67,16 @@ struct PathNormalizerTests {
 
     // Test combined unescaping
     #expect(
-      PathNormalizer
-        .unescapeAttributeValue("\\\"Value\\\"\\nwith\\\\everything")
+      PathNormalizer.unescapeAttributeValue("\\\"Value\\\"\\nwith\\\\everything")
         == "\"Value\"\nwith\\everything",
     )
   }
 
-  @Test("Round-trip escaping and unescaping")
-  func roundTripEscaping() {
+  @Test("Round-trip escaping and unescaping") func roundTripEscaping() {
     let testCases = [
-      "Simple string",
-      "String with \"quotes\"",
-      "String with \\ backslash",
+      "Simple string", "String with \"quotes\"", "String with \\ backslash",
       "String with \n newline",
-      "String with \t tab",
-      "Complex string \"with\"\n\\everything\t\r",
+      "String with \t tab", "Complex string \"with\"\n\\everything\t\r",
     ]
 
     for testCase in testCases {
@@ -96,8 +86,7 @@ struct PathNormalizerTests {
     }
   }
 
-  @Test("Normalize path string")
-  func testNormalizePathString() {
+  @Test("Normalize path string") func testNormalizePathString() {
     // Test basic normalization
     let path1 = "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXDescription=\"OK\"]"
     let normalized1 = PathNormalizer.normalizePathString(path1)
@@ -130,8 +119,7 @@ struct PathNormalizerTests {
   }
 
   // Test the generateNormalizedPath function with a mock element hierarchy
-  @Test("Generate normalized path for UIElement")
-  func testGenerateNormalizedPath() {
+  @Test("Generate normalized path for UIElement") func testGenerateNormalizedPath() {
     // Create a sample element hierarchy
     let buttonElement = UIElement(
       path:

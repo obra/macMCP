@@ -25,9 +25,7 @@ class TreeVisualizer {
   private let elementPrinter = ElementPrinter()
   private let options: Options
 
-  init(options: Options = Options()) {
-    self.options = options
-  }
+  init(options: Options = Options()) { self.options = options }
 
   /// Visualizes the accessibility tree starting from a root element
   /// - Parameters:
@@ -45,9 +43,7 @@ class TreeVisualizer {
     )
 
     // If root has children, add a visual separator
-    if !rootElement.children.isEmpty {
-      output += "   │\n"
-    }
+    if !rootElement.children.isEmpty { output += "   │\n" }
 
     // Recursively visualize the children
     visualizeChildren(
@@ -99,8 +95,7 @@ class TreeVisualizer {
       if !child.children.isEmpty {
         output +=
           prefix + (isLastChild ? "   " : "   " + TreeSymbols.vertical) + "   "
-          + TreeSymbols
-          .vertical + "\n"
+          + TreeSymbols.vertical + "\n"
       }
 
       // Recursively visualize grandchildren
@@ -135,18 +130,15 @@ class TreeVisualizer {
           let keyLower = key.lowercased()
 
           // Skip enabled/visible filters for application elements
-          if keyLower == "enabled" || keyLower == "visible" {
-            continue
-          }
+          if keyLower == "enabled" || keyLower == "visible" { continue }
 
           // Handle component type filters
           if keyLower == "component-type" {
-            if !isElementOfComponentType(element, type: value.lowercased()) {
-              return false
-            }
+            if !isElementOfComponentType(element, type: value.lowercased()) { return false }
           } else if keyLower == "component-types" {
-            let types = value.lowercased().split(separator: ",")
-              .map { String($0.trimmingCharacters(in: .whitespaces)) }
+            let types = value.lowercased().split(separator: ",").map {
+              String($0.trimmingCharacters(in: .whitespaces))
+            }
             var matchesAny = false
             for componentType in types {
               if isElementOfComponentType(element, type: componentType) {
@@ -154,9 +146,7 @@ class TreeVisualizer {
                 break
               }
             }
-            if !matchesAny {
-              return false
-            }
+            if !matchesAny { return false }
           }
           // Handle all other filters
           else if !applyStandardFilter(element, key: keyLower, value: value) {
@@ -173,18 +163,15 @@ class TreeVisualizer {
           let keyLower = key.lowercased()
 
           // Skip enabled filters for window elements
-          if keyLower == "enabled" {
-            continue
-          }
+          if keyLower == "enabled" { continue }
 
           // Handle component type filters
           if keyLower == "component-type" {
-            if !isElementOfComponentType(element, type: value.lowercased()) {
-              return false
-            }
+            if !isElementOfComponentType(element, type: value.lowercased()) { return false }
           } else if keyLower == "component-types" {
-            let types = value.lowercased().split(separator: ",")
-              .map { String($0.trimmingCharacters(in: .whitespaces)) }
+            let types = value.lowercased().split(separator: ",").map {
+              String($0.trimmingCharacters(in: .whitespaces))
+            }
             var matchesAny = false
             for componentType in types {
               if isElementOfComponentType(element, type: componentType) {
@@ -192,9 +179,7 @@ class TreeVisualizer {
                 break
               }
             }
-            if !matchesAny {
-              return false
-            }
+            if !matchesAny { return false }
           }
           // Handle all other filters
           else if !applyStandardFilter(element, key: keyLower, value: value) {
@@ -210,12 +195,11 @@ class TreeVisualizer {
 
         // Handle component type filters
         if keyLower == "component-type" {
-          if !isElementOfComponentType(element, type: value.lowercased()) {
-            return false
-          }
+          if !isElementOfComponentType(element, type: value.lowercased()) { return false }
         } else if keyLower == "component-types" {
-          let types = value.lowercased().split(separator: ",")
-            .map { String($0.trimmingCharacters(in: .whitespaces)) }
+          let types = value.lowercased().split(separator: ",").map {
+            String($0.trimmingCharacters(in: .whitespaces))
+          }
           var matchesAny = false
           for componentType in types {
             if isElementOfComponentType(element, type: componentType) {
@@ -223,9 +207,7 @@ class TreeVisualizer {
               break
             }
           }
-          if !matchesAny {
-            return false
-          }
+          if !matchesAny { return false }
         }
         // Handle all other filters
         else if !applyStandardFilter(element, key: keyLower, value: value) {
@@ -240,17 +222,12 @@ class TreeVisualizer {
   /// Helper function to apply a standard filter (non-component type)
   private func applyStandardFilter(_ element: UIElementNode, key: String, value: String) -> Bool {
     switch key {
-    case "role":
-      return element.role.lowercased().contains(value.lowercased())
+    case "role": return element.role.lowercased().contains(value.lowercased())
     case "subrole":
-      if let subrole = element.subrole {
-        return subrole.lowercased().contains(value.lowercased())
-      }
+      if let subrole = element.subrole { return subrole.lowercased().contains(value.lowercased()) }
       return false
     case "title":
-      if let title = element.title {
-        return title.lowercased().contains(value.lowercased())
-      }
+      if let title = element.title { return title.lowercased().contains(value.lowercased()) }
       return false
     case "id", "identifier":
       if let identifier = element.identifier {
@@ -312,34 +289,25 @@ class TreeVisualizer {
       // Check if element is a window control
       let controlRoles = ["AXToolbar", "AXButton", "AXSlider", "AXScrollBar"]
       let controlSubroles = [
-        "AXCloseButton",
-        "AXMinimizeButton",
-        "AXZoomButton",
-        "AXToolbarButton",
+        "AXCloseButton", "AXMinimizeButton", "AXZoomButton", "AXToolbarButton",
         "AXFullScreenButton",
       ]
 
       // Check if it's a control by role
       if controlRoles.contains(element.role) {
         // Accept certain roles regardless of position (like toolbars)
-        if ["AXToolbar"].contains(element.role) {
-          return true
-        }
+        if ["AXToolbar"].contains(element.role) { return true }
 
         // For other controls, check if they're in the window chrome area
         // This is a heuristic - window controls are usually at the top of the window
-        if let frame = element.frame, frame.origin.y < 50 {
-          return true
-        }
+        if let frame = element.frame, frame.origin.y < 50 { return true }
 
         // Otherwise, it's not a window control
         return false
       }
 
       // Check if it's a control by subrole
-      if let subrole = element.subrole, controlSubroles.contains(subrole) {
-        return true
-      }
+      if let subrole = element.subrole, controlSubroles.contains(subrole) { return true }
 
       // Not a window control
       return false
@@ -349,38 +317,26 @@ class TreeVisualizer {
       let menuRoles = ["AXMenuBar", "AXMenu", "AXMenuItem", "AXMenuBarItem"]
       let controlRoles = ["AXToolbar"]
       let controlSubroles = [
-        "AXCloseButton",
-        "AXMinimizeButton",
-        "AXZoomButton",
-        "AXToolbarButton",
+        "AXCloseButton", "AXMinimizeButton", "AXZoomButton", "AXToolbarButton",
         "AXFullScreenButton",
       ]
 
       // Exclude menu elements
-      if menuRoles.contains(element.role) {
-        return false
-      }
+      if menuRoles.contains(element.role) { return false }
 
       // Exclude control elements by role
-      if controlRoles.contains(element.role) {
-        return false
-      }
+      if controlRoles.contains(element.role) { return false }
 
       // Exclude control elements by subrole
-      if let subrole = element.subrole, controlSubroles.contains(subrole) {
-        return false
-      }
+      if let subrole = element.subrole, controlSubroles.contains(subrole) { return false }
 
       // Exclude buttons in the window chrome area
-      if element.role == "AXButton", let frame = element.frame, frame.origin.y < 50 {
-        return false
-      }
+      if element.role == "AXButton", let frame = element.frame, frame.origin.y < 50 { return false }
 
       // Include everything else
       return true
 
-    default:
-      return false
+    default: return false
     }
   }
 

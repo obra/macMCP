@@ -23,19 +23,10 @@ class ElementPrinter {
 
   /// Maps element roles to terminal colors
   private static let roleColors: [String: TerminalColor] = [
-    "AXApplication": .boldGreen,
-    "AXWindow": .boldBlue,
-    "AXButton": .green,
-    "AXCheckBox": .green,
-    "AXRadioButton": .green,
-    "AXMenuItem": .cyan,
-    "AXMenu": .cyan,
-    "AXMenuBar": .cyan,
+    "AXApplication": .boldGreen, "AXWindow": .boldBlue, "AXButton": .green, "AXCheckBox": .green,
+    "AXRadioButton": .green, "AXMenuItem": .cyan, "AXMenu": .cyan, "AXMenuBar": .cyan,
     "AXTextField": .yellow,
-    "AXTextArea": .yellow,
-    "AXGroup": .magenta,
-    "AXImage": .white,
-    "AXList": .blue,
+    "AXTextArea": .yellow, "AXGroup": .magenta, "AXImage": .white, "AXList": .blue,
     "AXTable": .blue,
   ]
 
@@ -58,9 +49,7 @@ class ElementPrinter {
     }
 
     // SECTION 1: Basic identification and geometry
-    if let identifier = element.identifier {
-      output += "   Identifier: \(identifier)\n"
-    }
+    if let identifier = element.identifier { output += "   Identifier: \(identifier)\n" }
 
     if let frame = element.frame {
       output +=
@@ -82,33 +71,23 @@ class ElementPrinter {
     stateTokens.append(element.selected ? "Selected" : "Unselected")
 
     // Optional state
-    if let expanded = element.expanded {
-      stateTokens.append(expanded ? "Expanded" : "Collapsed")
-    }
+    if let expanded = element.expanded { stateTokens.append(expanded ? "Expanded" : "Collapsed") }
 
-    if let required = element.required {
-      stateTokens.append(required ? "Required" : "Optional")
-    }
+    if let required = element.required { stateTokens.append(required ? "Required" : "Optional") }
 
     output += "   State: " + stateTokens.joined(separator: ", ") + "\n"
 
     // SECTION 3: Role details
     output += "   Role: \(element.role)"
-    if let roleDescription = element.role_description {
-      output += " (\(roleDescription))"
-    }
+    if let roleDescription = element.role_description { output += " (\(roleDescription))" }
     output += "\n"
 
-    if let subrole = element.subrole {
-      output += "   Subrole: \(subrole)\n"
-    }
+    if let subrole = element.subrole { output += "   Subrole: \(subrole)\n" }
 
     // SECTION 4: Content/value information
     if let value = element.value {
       let valueString = formatValue(value)
-      if !valueString.isEmpty {
-        output += "   Value: \(valueString)\n"
-      }
+      if !valueString.isEmpty { output += "   Value: \(valueString)\n" }
     }
 
     if let valueDescription = element.valueDescription, !valueDescription.isEmpty {
@@ -119,26 +98,16 @@ class ElementPrinter {
       output += "   Placeholder: \(placeholder)\n"
     }
 
-    if let label = element.label, !label.isEmpty {
-      output += "   Label: \(label)\n"
-    }
+    if let label = element.label, !label.isEmpty { output += "   Label: \(label)\n" }
 
-    if let help = element.help, !help.isEmpty {
-      output += "   Help: \(help)\n"
-    }
+    if let help = element.help, !help.isEmpty { output += "   Help: \(help)\n" }
 
     // SECTION 5: Relationships as compact list
     var relationshipTokens = [String]()
     relationshipTokens.append("Children: \(element.childrenCount)")
-    if element.hasParent {
-      relationshipTokens.append("Has Parent")
-    }
-    if element.hasWindow {
-      relationshipTokens.append("Has Window")
-    }
-    if element.hasTopLevelUIElement {
-      relationshipTokens.append("Has Top UI Element")
-    }
+    if element.hasParent { relationshipTokens.append("Has Parent") }
+    if element.hasWindow { relationshipTokens.append("Has Window") }
+    if element.hasTopLevelUIElement { relationshipTokens.append("Has Top UI Element") }
 
     output += "   Relationships: " + relationshipTokens.joined(separator: ", ") + "\n"
 
@@ -158,12 +127,13 @@ class ElementPrinter {
 
     // Create a set of attribute keys to exclude (since they're shown above)
     let excludedAttributes = Set([
-      "AXRole", "AXRoleDescription", "AXSubrole",
-      "AXTitle", "AXDescription", "AXValue", "AXValueDescription",
-      "AXHelp", "AXLabel", "AXPlaceholderValue",
-      "AXEnabled", "AXFocused", "AXSelected", "AXExpanded", "AXRequired",
-      "AXParent", "AXWindow", "AXTopLevelUIElement", "AXChildren",
-      "AXPosition", "AXSize", "AXFrame", "AXIdentifier",
+      "AXRole", "AXRoleDescription", "AXSubrole", "AXTitle", "AXDescription", "AXValue",
+      "AXValueDescription",
+      "AXHelp", "AXLabel", "AXPlaceholderValue", "AXEnabled", "AXFocused", "AXSelected",
+      "AXExpanded",
+      "AXRequired", "AXParent", "AXWindow", "AXTopLevelUIElement", "AXChildren", "AXPosition",
+      "AXSize",
+      "AXFrame", "AXIdentifier",
     ])
 
     // Filter and display the remaining attributes
@@ -180,9 +150,7 @@ class ElementPrinter {
       }
     }
 
-    if !displayedAttributes {
-      output += "      No additional attributes\n"
-    }
+    if !displayedAttributes { output += "      No additional attributes\n" }
 
     return output
   }
@@ -200,9 +168,7 @@ class ElementPrinter {
     for key in sortedKeys {
       if let value = element.attributes[key] {
         let valueString = formatValue(value)
-        if !valueString.isEmpty {
-          output += "      \(key): \(valueString)\n"
-        }
+        if !valueString.isEmpty { output += "      \(key): \(valueString)\n" }
       }
     }
 
@@ -214,10 +180,8 @@ class ElementPrinter {
   /// - Returns: A string representation of the value
   private func formatValue(_ value: Any) -> String {
     switch value {
-    case let stringValue as String:
-      return stringValue
-    case let numberValue as NSNumber:
-      return numberValue.stringValue
+    case let stringValue as String: return stringValue
+    case let numberValue as NSNumber: return numberValue.stringValue
     case let arrayValue as [Any]:
       if arrayValue.isEmpty {
         return "[]"
@@ -238,18 +202,15 @@ class ElementPrinter {
       rectValue.getValue(&rect)
       return
         "(x:\(Int(rect.origin.x)), y:\(Int(rect.origin.y)), w:\(Int(rect.size.width)), h:\(Int(rect.size.height)))"
-    case let boolValue as Bool:
-      return boolValue ? "Yes" : "No"
-    case is AXUIElement:
-      return "[Element reference]"
+    case let boolValue as Bool: return boolValue ? "Yes" : "No"
+    case is AXUIElement: return "[Element reference]"
     case let dictValue as [String: Any]:
       if dictValue.isEmpty {
         return "{}"
       } else {
         return "{Dictionary with \(dictValue.count) entries}"
       }
-    case let urlValue as URL:
-      return urlValue.absoluteString
+    case let urlValue as URL: return urlValue.absoluteString
     case let dateValue as Date:
       let formatter = DateFormatter()
       formatter.dateStyle = .medium
@@ -258,10 +219,8 @@ class ElementPrinter {
     case let colorValue as NSColor:
       return
         "Color(r:\(Int(colorValue.redComponent * 255)), g:\(Int(colorValue.greenComponent * 255)), b:\(Int(colorValue.blueComponent * 255)))"
-    case let error as NSError:
-      return "Error: \(error.localizedDescription)"
-    case let unknown:
-      return "[Type: \(type(of: unknown))]"
+    case let error as NSError: return "Error: \(error.localizedDescription)"
+    case let unknown: return "[Type: \(type(of: unknown))]"
     }
   }
 }

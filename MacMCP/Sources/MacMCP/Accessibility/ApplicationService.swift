@@ -21,9 +21,7 @@ struct ApplicationInfo: Equatable {
   var processId: Int32?
 
   /// Whether the application is running
-  var isRunning: Bool {
-    processId != nil
-  }
+  var isRunning: Bool { processId != nil }
 
   /// Create from a running application
   init(from runningApp: NSRunningApplication) {
@@ -79,22 +77,14 @@ public actor ApplicationService: ApplicationServiceProtocol {
 
   /// Known system applications and their bundle IDs
   private let knownSystemApps: [String: String] = [
-    "calculator": "com.apple.calculator",
-    "safari": "com.apple.safari",
-    "mail": "com.apple.mail",
-    "messages": "com.apple.messagesformacos",
-    "notes": "com.apple.notes",
+    "calculator": "com.apple.calculator", "safari": "com.apple.safari", "mail": "com.apple.mail",
+    "messages": "com.apple.messagesformacos", "notes": "com.apple.notes",
     "calendar": "com.apple.iCal",
-    "reminders": "com.apple.reminders",
-    "maps": "com.apple.maps",
-    "photos": "com.apple.photos",
-    "music": "com.apple.music",
-    "terminal": "com.apple.terminal",
-    "finder": "com.apple.finder",
+    "reminders": "com.apple.reminders", "maps": "com.apple.maps", "photos": "com.apple.photos",
+    "music": "com.apple.music", "terminal": "com.apple.terminal", "finder": "com.apple.finder",
     "system preferences": "com.apple.systempreferences",
     "system settings": "com.apple.systempreferences",
-    "textedit": "com.apple.TextEdit",
-    "preview": "com.apple.Preview",
+    "textedit": "com.apple.TextEdit", "preview": "com.apple.Preview",
   ]
 
   /// Initialize with a logger
@@ -105,9 +95,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
     // Initial cache population will happen on first use
 
     // Start task to configure application observers
-    Task {
-      await configureApplicationObservers()
-    }
+    Task { await configureApplicationObservers() }
   }
 
   /// Refresh the application cache
@@ -120,7 +108,8 @@ public actor ApplicationService: ApplicationServiceProtocol {
         metadata: [
           "cacheAge": "\(now.timeIntervalSince(lastCacheRefresh))",
           "cacheEntries": "\(appCache.count)",
-        ])
+        ]
+      )
       return
     }
 
@@ -132,9 +121,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
     // Process running applications
     for app in runningApps where app.activationPolicy == .regular {
       // Skip if the bundle ID is missing or empty
-      guard let bundleId = app.bundleIdentifier, !bundleId.isEmpty else {
-        continue
-      }
+      guard let bundleId = app.bundleIdentifier, !bundleId.isEmpty else { continue }
 
       let appInfo = ApplicationInfo(from: app)
 
@@ -142,9 +129,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
       appCache[bundleId] = appInfo
 
       // Update the name cache (with lowercase name for case-insensitive lookup)
-      if let name = app.localizedName, !name.isEmpty {
-        nameToAppCache[name.lowercased()] = appInfo
-      }
+      if let name = app.localizedName, !name.isEmpty { nameToAppCache[name.lowercased()] = appInfo }
     }
 
     // Now find applications in the filesystem that aren't running
@@ -156,19 +141,17 @@ public actor ApplicationService: ApplicationServiceProtocol {
     logger.debug(
       "Application cache refreshed",
       metadata: [
-        "runningApps": "\(runningApps.count)",
-        "cachedApps": "\(appCache.count)",
+        "runningApps": "\(runningApps.count)", "cachedApps": "\(appCache.count)",
         "cachedNames": "\(nameToAppCache.count)",
-      ])
+      ]
+    )
   }
 
   /// Find installed applications that aren't currently running
   private func findInstalledApplications() async {
     // Common paths to search for applications
     var searchPaths = [
-      "/Applications",
-      "/System/Applications",
-      "/System/Library/CoreServices",
+      "/Applications", "/System/Applications", "/System/Library/CoreServices",
       "/Applications/Utilities",
     ]
 
@@ -181,9 +164,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
       let dirURL = URL(fileURLWithPath: path)
 
       // Skip if the directory doesn't exist
-      guard FileManager.default.fileExists(atPath: path) else {
-        continue
-      }
+      guard FileManager.default.fileExists(atPath: path) else { continue }
 
       // Get all .app bundles in this directory
       do {
@@ -199,18 +180,12 @@ public actor ApplicationService: ApplicationServiceProtocol {
         // Process each app bundle
         for appURL in appFiles {
           // Try to get the bundle
-          guard let bundle = Bundle(url: appURL) else {
-            continue
-          }
+          guard let bundle = Bundle(url: appURL) else { continue }
 
           // Try to get the bundle ID and name
-          guard let bundleId = bundle.bundleIdentifier,
-            !bundleId.isEmpty,
-            let name = bundle.infoDictionary?["CFBundleName"] as? String,
-            !name.isEmpty
-          else {
-            continue
-          }
+          guard let bundleId = bundle.bundleIdentifier, !bundleId.isEmpty,
+            let name = bundle.infoDictionary?["CFBundleName"] as? String, !name.isEmpty
+          else { continue }
 
           // Only add to the cache if not already present (running apps take precedence)
           if appCache[bundleId] == nil {
@@ -222,10 +197,8 @@ public actor ApplicationService: ApplicationServiceProtocol {
       } catch {
         logger.warning(
           "Failed to read directory",
-          metadata: [
-            "path": "\(path)",
-            "error": "\(error.localizedDescription)",
-          ])
+          metadata: ["path": "\(path)", "error": "\(error.localizedDescription)"]
+        )
       }
     }
   }
@@ -238,20 +211,14 @@ public actor ApplicationService: ApplicationServiceProtocol {
     await refreshCache()
 
     // Check exact match first
-    if let appInfo = appCache[bundleId] {
-      return appInfo
-    }
+    if let appInfo = appCache[bundleId] { return appInfo }
 
     // If no exact match, try a case-insensitive search
     let lowerBundleID = bundleId.lowercased()
-    for (id, info) in appCache where id.lowercased() == lowerBundleID {
-      return info
-    }
+    for (id, info) in appCache where id.lowercased() == lowerBundleID { return info }
 
     // If still not found, try partial match
-    for (id, info) in appCache where id.lowercased().contains(lowerBundleID) {
-      return info
-    }
+    for (id, info) in appCache where id.lowercased().contains(lowerBundleID) { return info }
 
     return nil
   }
@@ -270,9 +237,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
     }
 
     // Check for exact match in name cache
-    if let appInfo = nameToAppCache[lowerName] {
-      return appInfo
-    }
+    if let appInfo = nameToAppCache[lowerName] { return appInfo }
 
     // Check for prefix match
     for (cacheName, appInfo) in nameToAppCache where cacheName.hasPrefix(lowerName) {
@@ -302,9 +267,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
   /// - Parameter app: The running application to update in the cache
   private func updateCacheForRunningApp(_ app: NSRunningApplication) {
     // Skip if the bundle ID is missing or empty
-    guard let bundleId = app.bundleIdentifier, !bundleId.isEmpty else {
-      return
-    }
+    guard let bundleId = app.bundleIdentifier, !bundleId.isEmpty else { return }
 
     let appInfo = ApplicationInfo(from: app)
 
@@ -312,9 +275,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
     appCache[bundleId] = appInfo
 
     // Update the name cache (with lowercase name for case-insensitive lookup)
-    if let name = app.localizedName, !name.isEmpty {
-      nameToAppCache[name.lowercased()] = appInfo
-    }
+    if let name = app.localizedName, !name.isEmpty { nameToAppCache[name.lowercased()] = appInfo }
   }
 
   /// Validate an application before launch
@@ -323,25 +284,21 @@ public actor ApplicationService: ApplicationServiceProtocol {
   ///   - url: Optional known URL for the application
   /// - Returns: ApplicationInfo with validated application details
   /// - Throws: MacMCPErrorInfo if the application validation fails
-  func validateApplication(bundleId: String, url: URL? = nil) async throws
-    -> ApplicationInfo
-  {
+  func validateApplication(bundleId: String, url: URL? = nil) async throws -> ApplicationInfo {
     logger.debug(
       "Validating application",
-      metadata: [
-        "bundleId": "\(bundleId)",
-        "providedURL": "\(url?.path ?? "none")",
-      ])
+      metadata: ["bundleId": "\(bundleId)", "providedURL": "\(url?.path ?? "none")"]
+    )
 
     // First check if the application is already running
     if let appInfo = await findApplicationByBundleID(bundleId), appInfo.isRunning {
       logger.debug(
         "Application is already running",
         metadata: [
-          "bundleId": "\(bundleId)",
-          "applicationName": "\(appInfo.name)",
+          "bundleId": "\(bundleId)", "applicationName": "\(appInfo.name)",
           "processId": "\(appInfo.processId ?? 0)",
-        ])
+        ]
+      )
 
       return appInfo
     }
@@ -352,17 +309,12 @@ public actor ApplicationService: ApplicationServiceProtocol {
       if !FileManager.default.fileExists(atPath: url.path) {
         logger.error(
           "Application URL does not exist",
-          metadata: [
-            "bundleId": "\(bundleId)",
-            "url": "\(url.path)",
-          ])
+          metadata: ["bundleId": "\(bundleId)", "url": "\(url.path)"]
+        )
 
         throw createApplicationNotFoundError(
           message: "Application at path '\(url.path)' does not exist",
-          context: [
-            "bundleId": bundleId,
-            "applicationPath": url.path,
-          ],
+          context: ["bundleId": bundleId, "applicationPath": url.path],
         )
       }
 
@@ -370,17 +322,12 @@ public actor ApplicationService: ApplicationServiceProtocol {
       if url.pathExtension.lowercased() != "app" {
         logger.error(
           "URL is not an application bundle",
-          metadata: [
-            "bundleId": "\(bundleId)",
-            "url": "\(url.path)",
-          ])
+          metadata: ["bundleId": "\(bundleId)", "url": "\(url.path)"]
+        )
 
         throw createApplicationNotFoundError(
           message: "Path '\(url.path)' is not a valid application bundle (.app)",
-          context: [
-            "bundleId": bundleId,
-            "applicationPath": url.path,
-          ],
+          context: ["bundleId": bundleId, "applicationPath": url.path],
         )
       }
 
@@ -388,17 +335,12 @@ public actor ApplicationService: ApplicationServiceProtocol {
       guard let bundle = Bundle(url: url) else {
         logger.error(
           "Failed to load application bundle",
-          metadata: [
-            "bundleId": "\(bundleId)",
-            "url": "\(url.path)",
-          ])
+          metadata: ["bundleId": "\(bundleId)", "url": "\(url.path)"]
+        )
 
         throw createApplicationNotFoundError(
           message: "Failed to load application bundle at '\(url.path)'",
-          context: [
-            "bundleId": bundleId,
-            "applicationPath": url.path,
-          ],
+          context: ["bundleId": bundleId, "applicationPath": url.path],
         )
       }
 
@@ -414,10 +356,10 @@ public actor ApplicationService: ApplicationServiceProtocol {
           logger.warning(
             "Bundle identifier mismatch",
             metadata: [
-              "providedBundleId": "\(bundleId)",
-              "actualBundleId": "\(bundleId)",
+              "providedBundleId": "\(bundleId)", "actualBundleId": "\(bundleId)",
               "url": "\(url.path)",
-            ])
+            ]
+          )
 
           // Allow it to continue, but log the warning
         }
@@ -441,19 +383,15 @@ public actor ApplicationService: ApplicationServiceProtocol {
       if !FileManager.default.fileExists(atPath: appInfo.url.path) {
         logger.warning(
           "Cached application path no longer exists",
-          metadata: [
-            "bundleId": "\(bundleId)",
-            "url": "\(appInfo.url.path)",
-          ])
+          metadata: ["bundleId": "\(bundleId)", "url": "\(appInfo.url.path)"]
+        )
 
         // Remove from cache and try one more lookup
         appCache.removeValue(forKey: bundleId)
 
         // Force a cache refresh
         lastCacheRefresh = .distantPast
-        if let newAppInfo = await findApplicationByBundleID(bundleId) {
-          return newAppInfo
-        }
+        if let newAppInfo = await findApplicationByBundleID(bundleId) { return newAppInfo }
 
         // Fall through to the not found error
       } else {
@@ -470,18 +408,11 @@ public actor ApplicationService: ApplicationServiceProtocol {
       return appInfo
     }
 
-    logger.error(
-      "Application not found",
-      metadata: [
-        "bundleId": "\(bundleId)"
-      ])
+    logger.error("Application not found", metadata: ["bundleId": "\(bundleId)"])
 
     throw createApplicationNotFoundError(
       message: "Application with bundle identifier '\(bundleId)' not found",
-      context: [
-        "bundleId": bundleId,
-        "searchMethods": "Cache, NSWorkspace, File System",
-      ],
+      context: ["bundleId": bundleId, "searchMethods": "Cache, NSWorkspace, File System"],
     )
   }
 
@@ -493,17 +424,17 @@ public actor ApplicationService: ApplicationServiceProtocol {
   /// - Returns: A boolean indicating whether the application was successfully opened
   /// - Throws: MacMCPErrorInfo if the application could not be opened
   public func openApplication(
-    bundleId: String,
-    arguments: [String]? = nil,
-    hideOthers: Bool? = nil,
-  ) async throws -> Bool {
+    bundleId: String, arguments: [String]? = nil, hideOthers: Bool? = nil,
+  ) async throws
+    -> Bool
+  {
     logger.debug(
       "Opening application",
       metadata: [
-        "bundleId": "\(bundleId)",
-        "arguments": "\(arguments ?? [])",
+        "bundleId": "\(bundleId)", "arguments": "\(arguments ?? [])",
         "hideOthers": "\(hideOthers ?? false)",
-      ])
+      ]
+    )
 
     // Validate the application first
     let appInfo = try await validateApplication(bundleId: bundleId)
@@ -513,10 +444,10 @@ public actor ApplicationService: ApplicationServiceProtocol {
       logger.debug(
         "Application is already running, activating",
         metadata: [
-          "bundleId": "\(bundleId)",
-          "applicationName": "\(appInfo.name)",
+          "bundleId": "\(bundleId)", "applicationName": "\(appInfo.name)",
           "processId": "\(appInfo.processId ?? 0)",
-        ])
+        ]
+      )
 
       // Activate the running application
       return try await activateApplication(bundleId: bundleId)
@@ -538,16 +469,18 @@ public actor ApplicationService: ApplicationServiceProtocol {
   /// - Returns: True if the application appears to be properly initialized
   /// - Throws: MacMCPErrorInfo if the application fails to initialize properly
   private func verifyApplicationLaunch(
-    _ application: NSRunningApplication,
-    timeout: TimeInterval = 5,
-  ) async throws -> Bool {
+    _ application: NSRunningApplication, timeout: TimeInterval = 5,
+  ) async throws
+    -> Bool
+  {
     logger.debug(
       "Verifying application launch",
       metadata: [
         "bundleId": "\(application.bundleIdentifier ?? "unknown")",
         "applicationName": "\(application.localizedName ?? "Unknown")",
         "processIdentifier": "\(application.processIdentifier)",
-      ])
+      ]
+    )
 
     // Check if the application has finished launching
     if !application.isFinishedLaunching {
@@ -570,16 +503,15 @@ public actor ApplicationService: ApplicationServiceProtocol {
         logger.error(
           "Application failed to finish launching within timeout",
           metadata: [
-            "bundleId": "\(application.bundleIdentifier ?? "unknown")",
-            "timeout": "\(timeout)",
-          ])
+            "bundleId": "\(application.bundleIdentifier ?? "unknown")", "timeout": "\(timeout)",
+          ]
+        )
 
         throw createApplicationLaunchError(
           message: "Application timed out while launching",
           context: [
             "bundleId": application.bundleIdentifier ?? "unknown",
-            "applicationName": application.localizedName ?? "Unknown",
-            "timeout": "\(timeout)",
+            "applicationName": application.localizedName ?? "Unknown", "timeout": "\(timeout)",
           ],
         )
       }
@@ -612,9 +544,9 @@ public actor ApplicationService: ApplicationServiceProtocol {
         "Application is not responding to accessibility queries",
         metadata: [
           "bundleId": "\(application.bundleIdentifier ?? "unknown")",
-          "applicationName": "\(application.localizedName ?? "Unknown")",
-          "timeout": "\(timeout)",
-        ])
+          "applicationName": "\(application.localizedName ?? "Unknown")", "timeout": "\(timeout)",
+        ]
+      )
 
       // Don't fail verification completely, just log the warning
     }
@@ -625,8 +557,8 @@ public actor ApplicationService: ApplicationServiceProtocol {
 
     while !hasWindows, Date().timeIntervalSince(windowCheckStartTime) < timeout {
       // Try to find windows
-      if let children = try? AccessibilityElement
-        .getAttribute(appElement, attribute: "AXChildren") as? [AXUIElement]
+      if let children = try? AccessibilityElement.getAttribute(appElement, attribute: "AXChildren")
+        as? [AXUIElement]
       {
         for child in children {
           if let role = try? AccessibilityElement.getAttribute(child, attribute: "AXRole")
@@ -645,9 +577,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
         }
       }
 
-      if hasWindows {
-        break
-      }
+      if hasWindows { break }
 
       // Sleep briefly to avoid spinning
       try await Task.sleep(for: .milliseconds(200))
@@ -658,9 +588,9 @@ public actor ApplicationService: ApplicationServiceProtocol {
         "No visible windows detected for application",
         metadata: [
           "bundleId": "\(application.bundleIdentifier ?? "unknown")",
-          "applicationName": "\(application.localizedName ?? "Unknown")",
-          "timeout": "\(timeout)",
-        ])
+          "applicationName": "\(application.localizedName ?? "Unknown")", "timeout": "\(timeout)",
+        ]
+      )
 
       // Don't fail - some apps are legitimately windowless or windows may not be immediately visible to
       // accessibility APIs
@@ -692,9 +622,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
     let configuration = NSWorkspace.OpenConfiguration()
 
     // Set app launch arguments if provided
-    if let arguments {
-      configuration.arguments = arguments
-    }
+    if let arguments { configuration.arguments = arguments }
 
     // Set creation options
     configuration.createsNewApplicationInstance = false  // Only create a new instance if needed
@@ -708,9 +636,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
       )
 
       // If successful and hideOthers is true, hide other applications
-      if hideOthers == true {
-        NSWorkspace.shared.hideOtherApplications()
-      }
+      if hideOthers == true { NSWorkspace.shared.hideOtherApplications() }
 
       // Update the cache with the running application
       updateCacheForRunningApp(runningApplication)
@@ -721,7 +647,8 @@ public actor ApplicationService: ApplicationServiceProtocol {
           "bundleId": "\(bundleId)",
           "applicationName": "\(runningApplication.localizedName ?? "Unknown")",
           "processIdentifier": "\(runningApplication.processIdentifier)",
-        ])
+        ]
+      )
 
       // Verify the application is properly initialized
       let verified = try await verifyApplicationLaunch(
@@ -732,26 +659,23 @@ public actor ApplicationService: ApplicationServiceProtocol {
         metadata: [
           "bundleId": "\(bundleId)",
           "applicationName": "\(runningApplication.localizedName ?? "Unknown")",
-          "processIdentifier": "\(runningApplication.processIdentifier)",
-          "verified": "\(verified)",
-        ])
+          "processIdentifier": "\(runningApplication.processIdentifier)", "verified": "\(verified)",
+        ]
+      )
 
       return true
     } catch {
       logger.error(
         "Failed to open application",
         metadata: [
-          "bundleId": "\(bundleId)",
-          "url": "\(url.path)",
-          "error": "\(error.localizedDescription)",
-        ])
+          "bundleId": "\(bundleId)", "url": "\(url.path)", "error": "\(error.localizedDescription)",
+        ]
+      )
 
       throw createApplicationLaunchError(
         message: "Failed to open application with bundle identifier: \(bundleId)",
         context: [
-          "bundleId": bundleId,
-          "applicationPath": url.path,
-          "error": error.localizedDescription,
+          "bundleId": bundleId, "applicationPath": url.path, "error": error.localizedDescription,
         ],
       )
     }
@@ -762,21 +686,13 @@ public actor ApplicationService: ApplicationServiceProtocol {
   /// - Returns: ApplicationInfo with validated application details
   /// - Throws: MacMCPErrorInfo if the application cannot be found
   func validateApplicationByName(_ name: String) async throws -> ApplicationInfo {
-    logger.debug(
-      "Validating application by name",
-      metadata: [
-        "name": "\(name)"
-      ])
+    logger.debug("Validating application by name", metadata: ["name": "\(name)"])
 
     // First check if there's a known system app with this name
     let lowerName = name.lowercased()
     if let bundleId = knownSystemApps[lowerName] {
       logger.debug(
-        "Found known system app",
-        metadata: [
-          "name": "\(name)",
-          "bundleId": "\(bundleId)",
-        ])
+        "Found known system app", metadata: ["name": "\(name)", "bundleId": "\(bundleId)"])
 
       // Try to validate by bundle ID
       return try await validateApplication(bundleId: bundleId)
@@ -788,10 +704,8 @@ public actor ApplicationService: ApplicationServiceProtocol {
       if !FileManager.default.fileExists(atPath: appInfo.url.path) {
         logger.warning(
           "Cached application path no longer exists",
-          metadata: [
-            "name": "\(name)",
-            "url": "\(appInfo.url.path)",
-          ])
+          metadata: ["name": "\(name)", "url": "\(appInfo.url.path)"]
+        )
 
         // Clear from name cache
         nameToAppCache.removeValue(forKey: lowerName)
@@ -800,9 +714,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
         lastCacheRefresh = .distantPast
 
         // Try again with a refreshed cache
-        if let refreshedAppInfo = await findApplicationByName(name) {
-          return refreshedAppInfo
-        }
+        if let refreshedAppInfo = await findApplicationByName(name) { return refreshedAppInfo }
 
         // Continue to fallback methods if not found
       } else {
@@ -819,10 +731,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
 
       // Create app info and run full validation on the URL
       let appInfo = ApplicationInfo(url: url)
-      return try await validateApplication(
-        bundleId: appInfo.bundleId,
-        url: url,
-      )
+      return try await validateApplication(bundleId: appInfo.bundleId, url: url, )
     }
 
     // Search in the Applications directory
@@ -834,9 +743,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
         at: appDir,
         includingPropertiesForKeys: nil,
         options: [.skipsHiddenFiles],
-      ).filter { url in
-        url.pathExtension.lowercased() == "app"
-      }
+      ).filter { url in url.pathExtension.lowercased() == "app" }
 
       // Look for exact, prefix, and substring matches in order of preference
       foundMatch = appFiles.first { url in
@@ -861,25 +768,18 @@ public actor ApplicationService: ApplicationServiceProtocol {
       if let matchURL = foundMatch {
         // Create app info and run full validation on the URL
         let appInfo = ApplicationInfo(url: matchURL)
-        return try await validateApplication(
-          bundleId: appInfo.bundleId,
-          url: matchURL,
-        )
+        return try await validateApplication(bundleId: appInfo.bundleId, url: matchURL, )
       }
     } catch {
       logger.warning(
         "Failed to search Applications directory",
-        metadata: [
-          "error": "\(error.localizedDescription)"
-        ])
-      // Continue to try other methods
+        metadata: ["error": "\(error.localizedDescription)"]
+      )  // Continue to try other methods
     }
 
     // Try system directories as well
     for systemPath in [
-      "/System/Applications",
-      "/System/Library/CoreServices",
-      "/Applications/Utilities",
+      "/System/Applications", "/System/Library/CoreServices", "/Applications/Utilities",
     ] {
       do {
         let systemAppDir = URL(fileURLWithPath: systemPath)
@@ -887,9 +787,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
           at: systemAppDir,
           includingPropertiesForKeys: nil,
           options: [.skipsHiddenFiles],
-        ).filter { url in
-          url.pathExtension.lowercased() == "app"
-        }
+        ).filter { url in url.pathExtension.lowercased() == "app" }
 
         // Look for matches in order of preference
         foundMatch = systemAppFiles.first { url in
@@ -914,10 +812,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
         if let matchURL = foundMatch {
           // Create app info and run full validation
           let appInfo = ApplicationInfo(url: matchURL)
-          return try await validateApplication(
-            bundleId: appInfo.bundleId,
-            url: matchURL,
-          )
+          return try await validateApplication(bundleId: appInfo.bundleId, url: matchURL, )
         }
       } catch {
         // Just continue to the next directory
@@ -925,11 +820,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
     }
 
     // If we get here, we failed to find the application
-    logger.error(
-      "Application not found by name",
-      metadata: [
-        "name": "\(name)"
-      ])
+    logger.error("Application not found by name", metadata: ["name": "\(name)"])
 
     throw createApplicationNotFoundError(
       message: "Application with name '\(name)' not found",
@@ -947,18 +838,17 @@ public actor ApplicationService: ApplicationServiceProtocol {
   ///   - hideOthers: Whether to hide other applications when opening this one
   /// - Returns: A boolean indicating whether the application was successfully opened
   /// - Throws: MacMCPErrorInfo if the application could not be opened
-  public func openApplication(
-    name: String,
-    arguments: [String]? = nil,
-    hideOthers: Bool? = nil,
-  ) async throws -> Bool {
+  public func openApplication(name: String, arguments: [String]? = nil, hideOthers: Bool? = nil, )
+    async throws
+    -> Bool
+  {
     logger.debug(
       "Opening application by name",
       metadata: [
-        "name": "\(name)",
-        "arguments": "\(arguments ?? [])",
+        "name": "\(name)", "arguments": "\(arguments ?? [])",
         "hideOthers": "\(hideOthers ?? false)",
-      ])
+      ]
+    )
 
     // Validate the application first
     let appInfo = try await validateApplicationByName(name)
@@ -968,11 +858,10 @@ public actor ApplicationService: ApplicationServiceProtocol {
       logger.debug(
         "Application is already running, activating",
         metadata: [
-          "name": "\(name)",
-          "actualName": "\(appInfo.name)",
-          "bundleId": "\(appInfo.bundleId)",
+          "name": "\(name)", "actualName": "\(appInfo.name)", "bundleId": "\(appInfo.bundleId)",
           "processId": "\(appInfo.processId ?? 0)",
-        ])
+        ]
+      )
 
       // If it has a bundle ID, activate it
       if !appInfo.bundleId.isEmpty {
@@ -994,11 +883,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
   /// - Returns: A boolean indicating whether the application was successfully activated
   /// - Throws: MacMCPErrorInfo if the application could not be activated
   public func activateApplication(bundleId: String) async throws -> Bool {
-    logger.debug(
-      "Activating application",
-      metadata: [
-        "bundleId": "\(bundleId)"
-      ])
+    logger.debug("Activating application", metadata: ["bundleId": "\(bundleId)"])
 
     // Check the cache for a running app with this bundle ID
     if let appInfo = await findApplicationByBundleID(bundleId), appInfo.isRunning,
@@ -1012,20 +897,18 @@ public actor ApplicationService: ApplicationServiceProtocol {
           logger.debug(
             "Application activated successfully from cache",
             metadata: [
-              "bundleId": "\(bundleId)",
-              "applicationName": "\(appInfo.name)",
+              "bundleId": "\(bundleId)", "applicationName": "\(appInfo.name)",
               "processIdentifier": "\(pid)",
-            ])
+            ]
+          )
           return true
         }
 
         // If activation failed, continue to try other methods
         logger.warning(
           "Failed to activate application from cache",
-          metadata: [
-            "bundleId": "\(bundleId)",
-            "processIdentifier": "\(pid)",
-          ])
+          metadata: ["bundleId": "\(bundleId)", "processIdentifier": "\(pid)"]
+        )
       }
     }
 
@@ -1049,14 +932,11 @@ public actor ApplicationService: ApplicationServiceProtocol {
             "bundleId": "\(bundleId)",
             "applicationName": "\(application.localizedName ?? "Unknown")",
             "processIdentifier": "\(application.processIdentifier)",
-          ])
+          ]
+        )
         return true
       } else {
-        logger.error(
-          "Failed to activate application",
-          metadata: [
-            "bundleId": "\(bundleId)"
-          ])
+        logger.error("Failed to activate application", metadata: ["bundleId": "\(bundleId)"])
 
         throw createApplicationError(
           message: "Failed to activate application with bundle identifier: \(bundleId)",
@@ -1069,25 +949,15 @@ public actor ApplicationService: ApplicationServiceProtocol {
     if let appInfo = await findApplicationByBundleID(bundleId) {
       logger.debug(
         "Application is not running, attempting to launch",
-        metadata: [
-          "bundleId": "\(bundleId)",
-          "applicationName": "\(appInfo.name)",
-        ])
+        metadata: ["bundleId": "\(bundleId)", "applicationName": "\(appInfo.name)"]
+      )
 
       return try await launchApplication(
-        url: appInfo.url,
-        bundleId: bundleId,
-        arguments: nil,
-        hideOthers: nil,
-      )
+        url: appInfo.url, bundleId: bundleId, arguments: nil, hideOthers: nil, )
     }
 
     // Not found in cache or running applications
-    logger.error(
-      "No running application found to activate",
-      metadata: [
-        "bundleId": "\(bundleId)"
-      ])
+    logger.error("No running application found to activate", metadata: ["bundleId": "\(bundleId)"])
 
     throw createApplicationNotFoundError(
       message: "No running application found with bundle identifier: \(bundleId)",
@@ -1125,11 +995,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
       }
     }
 
-    logger.debug(
-      "Found running applications",
-      metadata: [
-        "count": "\(runningApps.count)"
-      ])
+    logger.debug("Found running applications", metadata: ["count": "\(runningApps.count)"])
 
     return runningApps
   }
@@ -1137,9 +1003,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
   /// Set up application state change notification observers
   private func configureApplicationObservers() {
     // Skip if already configured
-    guard !observersConfigured else {
-      return
-    }
+    guard !observersConfigured else { return }
 
     logger.debug("Configuring application state observers")
 
@@ -1155,26 +1019,17 @@ public actor ApplicationService: ApplicationServiceProtocol {
       guard
         let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey]
           as? NSRunningApplication,
-        let bundleId = app.bundleIdentifier,
-        !bundleId.isEmpty
-      else {
-        return
-      }
+        let bundleId = app.bundleIdentifier, !bundleId.isEmpty
+      else { return }
 
       // Create a copy of app data to pass to the actor
       let appData = (
-        bundleId: bundleId,
-        name: app.localizedName ?? "",
-        processId: app.processIdentifier,
-        isActive: app.isActive,
-        isFinishedLaunching: app.isFinishedLaunching,
-        url: app.bundleURL,
+        bundleId: bundleId, name: app.localizedName ?? "", processId: app.processIdentifier,
+        isActive: app.isActive, isFinishedLaunching: app.isFinishedLaunching, url: app.bundleURL,
       )
 
       // Call the actor method from a detached task
-      Task.detached {
-        await self.handleApplicationLaunch(appData)
-      }
+      Task.detached { await self.handleApplicationLaunch(appData) }
     }
 
     // Observe application termination notifications
@@ -1189,26 +1044,17 @@ public actor ApplicationService: ApplicationServiceProtocol {
       guard
         let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey]
           as? NSRunningApplication,
-        let bundleId = app.bundleIdentifier,
-        !bundleId.isEmpty
-      else {
-        return
-      }
+        let bundleId = app.bundleIdentifier, !bundleId.isEmpty
+      else { return }
 
       // Create a copy of app data to pass to the actor
       let appData = (
-        bundleId: bundleId,
-        name: app.localizedName ?? "",
-        processId: app.processIdentifier,
-        isActive: app.isActive,
-        isFinishedLaunching: app.isFinishedLaunching,
-        url: app.bundleURL,
+        bundleId: bundleId, name: app.localizedName ?? "", processId: app.processIdentifier,
+        isActive: app.isActive, isFinishedLaunching: app.isFinishedLaunching, url: app.bundleURL,
       )
 
       // Call the actor method from a detached task
-      Task.detached {
-        await self.handleApplicationTermination(appData)
-      }
+      Task.detached { await self.handleApplicationTermination(appData) }
     }
 
     // Observe application activation notifications
@@ -1223,39 +1069,26 @@ public actor ApplicationService: ApplicationServiceProtocol {
       guard
         let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey]
           as? NSRunningApplication,
-        let bundleId = app.bundleIdentifier,
-        !bundleId.isEmpty
-      else {
-        return
-      }
+        let bundleId = app.bundleIdentifier, !bundleId.isEmpty
+      else { return }
 
       // Create a copy of app data to pass to the actor
       let appData = (
-        bundleId: bundleId,
-        name: app.localizedName ?? "",
-        processId: app.processIdentifier,
-        isActive: app.isActive,
-        isFinishedLaunching: app.isFinishedLaunching,
-        url: app.bundleURL,
+        bundleId: bundleId, name: app.localizedName ?? "", processId: app.processIdentifier,
+        isActive: app.isActive, isFinishedLaunching: app.isFinishedLaunching, url: app.bundleURL,
       )
 
       // Call the actor method from a detached task for activation
-      Task.detached {
-        await self.handleApplicationActivation(appData)
-      }
+      Task.detached { await self.handleApplicationActivation(appData) }
 
       // When a new app is activated, the previous app is deactivated
       // Find the previously active app and send a deactivation notification
-      Task.detached {
-        await self.handlePreviousApplicationDeactivation(exceptApp: bundleId)
-      }
+      Task.detached { await self.handlePreviousApplicationDeactivation(exceptApp: bundleId) }
     }
 
     // Observe application hiding notifications
     notificationCenter.addObserver(
-      forName: NSWorkspace.didHideApplicationNotification,
-      object: nil,
-      queue: .main,
+      forName: NSWorkspace.didHideApplicationNotification, object: nil, queue: .main,
     ) { [weak self] notification in
       guard let self else { return }
 
@@ -1263,26 +1096,17 @@ public actor ApplicationService: ApplicationServiceProtocol {
       guard
         let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey]
           as? NSRunningApplication,
-        let bundleId = app.bundleIdentifier,
-        !bundleId.isEmpty
-      else {
-        return
-      }
+        let bundleId = app.bundleIdentifier, !bundleId.isEmpty
+      else { return }
 
       // Create a copy of app data to pass to the actor
       let appData = (
-        bundleId: bundleId,
-        name: app.localizedName ?? "",
-        processId: app.processIdentifier,
-        isActive: app.isActive,
-        isFinishedLaunching: app.isFinishedLaunching,
-        url: app.bundleURL,
+        bundleId: bundleId, name: app.localizedName ?? "", processId: app.processIdentifier,
+        isActive: app.isActive, isFinishedLaunching: app.isFinishedLaunching, url: app.bundleURL,
       )
 
       // Call the actor method from a detached task
-      Task.detached {
-        await self.handleApplicationHiding(appData)
-      }
+      Task.detached { await self.handleApplicationHiding(appData) }
     }
 
     // Observe application unhiding notifications
@@ -1297,26 +1121,17 @@ public actor ApplicationService: ApplicationServiceProtocol {
       guard
         let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey]
           as? NSRunningApplication,
-        let bundleId = app.bundleIdentifier,
-        !bundleId.isEmpty
-      else {
-        return
-      }
+        let bundleId = app.bundleIdentifier, !bundleId.isEmpty
+      else { return }
 
       // Create a copy of app data to pass to the actor
       let appData = (
-        bundleId: bundleId,
-        name: app.localizedName ?? "",
-        processId: app.processIdentifier,
-        isActive: app.isActive,
-        isFinishedLaunching: app.isFinishedLaunching,
-        url: app.bundleURL,
+        bundleId: bundleId, name: app.localizedName ?? "", processId: app.processIdentifier,
+        isActive: app.isActive, isFinishedLaunching: app.isFinishedLaunching, url: app.bundleURL,
       )
 
       // Call the actor method from a detached task
-      Task.detached {
-        await self.handleApplicationUnhiding(appData)
-      }
+      Task.detached { await self.handleApplicationUnhiding(appData) }
     }
 
     observersConfigured = true
@@ -1327,21 +1142,17 @@ public actor ApplicationService: ApplicationServiceProtocol {
   /// - Parameter appData: Tuple containing application data extracted from the notification
   private func handleApplicationLaunch(
     _ appData: (
-      bundleId: String,
-      name: String,
-      processId: Int32,
-      isActive: Bool,
-      isFinishedLaunching: Bool,
+      bundleId: String, name: String, processId: Int32, isActive: Bool, isFinishedLaunching: Bool,
       url: URL?
     )
   ) {
     logger.debug(
       "Handling application launch",
       metadata: [
-        "bundleId": "\(appData.bundleId)",
-        "name": "\(appData.name)",
+        "bundleId": "\(appData.bundleId)", "name": "\(appData.name)",
         "processId": "\(appData.processId)",
-      ])
+      ]
+    )
 
     // Find the actual running application to get real data
     let runningApplications = NSWorkspace.shared.runningApplications
@@ -1369,38 +1180,27 @@ public actor ApplicationService: ApplicationServiceProtocol {
     )
 
     // Create state change notification
-    let stateChange = ApplicationStateChange(
-      type: .launched,
-      application: stateInfo,
-    )
+    let stateChange = ApplicationStateChange(type: .launched, application: stateInfo, )
 
     // Notify all observers
-    Task {
-      for (_, handler) in applicationObservers {
-        await handler(stateChange)
-      }
-    }
+    Task { for (_, handler) in applicationObservers { await handler(stateChange) } }
   }
 
   /// Handle application termination event
   /// - Parameter appData: Tuple containing application data extracted from the notification
   private func handleApplicationTermination(
     _ appData: (
-      bundleId: String,
-      name: String,
-      processId: Int32,
-      isActive: Bool,
-      isFinishedLaunching: Bool,
+      bundleId: String, name: String, processId: Int32, isActive: Bool, isFinishedLaunching: Bool,
       url: URL?
     )
   ) {
     logger.debug(
       "Handling application termination",
       metadata: [
-        "bundleId": "\(appData.bundleId)",
-        "name": "\(appData.name)",
+        "bundleId": "\(appData.bundleId)", "name": "\(appData.name)",
         "processId": "\(appData.processId)",
-      ])
+      ]
+    )
 
     // Get existing application info from cache if available
     if var existingAppInfo = appCache[appData.bundleId] {
@@ -1421,38 +1221,27 @@ public actor ApplicationService: ApplicationServiceProtocol {
     )
 
     // Create state change notification
-    let stateChange = ApplicationStateChange(
-      type: .terminated,
-      application: stateInfo,
-    )
+    let stateChange = ApplicationStateChange(type: .terminated, application: stateInfo, )
 
     // Notify all observers
-    Task {
-      for (_, handler) in applicationObservers {
-        await handler(stateChange)
-      }
-    }
+    Task { for (_, handler) in applicationObservers { await handler(stateChange) } }
   }
 
   /// Handle application activation event
   /// - Parameter appData: Tuple containing application data extracted from the notification
   private func handleApplicationActivation(
     _ appData: (
-      bundleId: String,
-      name: String,
-      processId: Int32,
-      isActive: Bool,
-      isFinishedLaunching: Bool,
+      bundleId: String, name: String, processId: Int32, isActive: Bool, isFinishedLaunching: Bool,
       url: URL?
     )
   ) {
     logger.debug(
       "Handling application activation",
       metadata: [
-        "bundleId": "\(appData.bundleId)",
-        "name": "\(appData.name)",
+        "bundleId": "\(appData.bundleId)", "name": "\(appData.name)",
         "processId": "\(appData.processId)",
-      ])
+      ]
+    )
 
     // Find the actual running application to get real data
     let runningApplications = NSWorkspace.shared.runningApplications
@@ -1480,38 +1269,27 @@ public actor ApplicationService: ApplicationServiceProtocol {
     )
 
     // Create state change notification
-    let stateChange = ApplicationStateChange(
-      type: .activated,
-      application: stateInfo,
-    )
+    let stateChange = ApplicationStateChange(type: .activated, application: stateInfo, )
 
     // Notify all observers
-    Task {
-      for (_, handler) in applicationObservers {
-        await handler(stateChange)
-      }
-    }
+    Task { for (_, handler) in applicationObservers { await handler(stateChange) } }
   }
 
   /// Handle application hiding event
   /// - Parameter appData: Tuple containing application data extracted from the notification
   private func handleApplicationHiding(
     _ appData: (
-      bundleId: String,
-      name: String,
-      processId: Int32,
-      isActive: Bool,
-      isFinishedLaunching: Bool,
+      bundleId: String, name: String, processId: Int32, isActive: Bool, isFinishedLaunching: Bool,
       url: URL?
     )
   ) {
     logger.debug(
       "Handling application hiding",
       metadata: [
-        "bundleId": "\(appData.bundleId)",
-        "name": "\(appData.name)",
+        "bundleId": "\(appData.bundleId)", "name": "\(appData.name)",
         "processId": "\(appData.processId)",
-      ])
+      ]
+    )
 
     // Find the actual running application to get real data
     let runningApplications = NSWorkspace.shared.runningApplications
@@ -1539,38 +1317,27 @@ public actor ApplicationService: ApplicationServiceProtocol {
     )
 
     // Create state change notification
-    let stateChange = ApplicationStateChange(
-      type: .hidden,
-      application: stateInfo,
-    )
+    let stateChange = ApplicationStateChange(type: .hidden, application: stateInfo, )
 
     // Notify all observers
-    Task {
-      for (_, handler) in applicationObservers {
-        await handler(stateChange)
-      }
-    }
+    Task { for (_, handler) in applicationObservers { await handler(stateChange) } }
   }
 
   /// Handle application unhiding event
   /// - Parameter appData: Tuple containing application data extracted from the notification
   private func handleApplicationUnhiding(
     _ appData: (
-      bundleId: String,
-      name: String,
-      processId: Int32,
-      isActive: Bool,
-      isFinishedLaunching: Bool,
+      bundleId: String, name: String, processId: Int32, isActive: Bool, isFinishedLaunching: Bool,
       url: URL?
     )
   ) {
     logger.debug(
       "Handling application unhiding",
       metadata: [
-        "bundleId": "\(appData.bundleId)",
-        "name": "\(appData.name)",
+        "bundleId": "\(appData.bundleId)", "name": "\(appData.name)",
         "processId": "\(appData.processId)",
-      ])
+      ]
+    )
 
     // Find the actual running application to get real data
     let runningApplications = NSWorkspace.shared.runningApplications
@@ -1598,38 +1365,27 @@ public actor ApplicationService: ApplicationServiceProtocol {
     )
 
     // Create state change notification
-    let stateChange = ApplicationStateChange(
-      type: .unhidden,
-      application: stateInfo,
-    )
+    let stateChange = ApplicationStateChange(type: .unhidden, application: stateInfo, )
 
     // Notify all observers
-    Task {
-      for (_, handler) in applicationObservers {
-        await handler(stateChange)
-      }
-    }
+    Task { for (_, handler) in applicationObservers { await handler(stateChange) } }
   }
 
   /// Handle application deactivation event
   /// - Parameter appData: Tuple containing application data extracted from the notification
   private func handleApplicationDeactivation(
     _ appData: (
-      bundleId: String,
-      name: String,
-      processId: Int32,
-      isActive: Bool,
-      isFinishedLaunching: Bool,
+      bundleId: String, name: String, processId: Int32, isActive: Bool, isFinishedLaunching: Bool,
       url: URL?
     )
   ) {
     logger.debug(
       "Handling application deactivation",
       metadata: [
-        "bundleId": "\(appData.bundleId)",
-        "name": "\(appData.name)",
+        "bundleId": "\(appData.bundleId)", "name": "\(appData.name)",
         "processId": "\(appData.processId)",
-      ])
+      ]
+    )
 
     // Find the actual running application to get real data
     let runningApplications = NSWorkspace.shared.runningApplications
@@ -1657,17 +1413,10 @@ public actor ApplicationService: ApplicationServiceProtocol {
     )
 
     // Create state change notification
-    let stateChange = ApplicationStateChange(
-      type: .deactivated,
-      application: stateInfo,
-    )
+    let stateChange = ApplicationStateChange(type: .deactivated, application: stateInfo, )
 
     // Notify all observers
-    Task {
-      for (_, handler) in applicationObservers {
-        await handler(stateChange)
-      }
-    }
+    Task { for (_, handler) in applicationObservers { await handler(stateChange) } }
   }
 
   /// Find the previously active application and send deactivation notification
@@ -1681,10 +1430,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
     // Look for applications that are no longer active but might have been
     for app in runningApps where app.activationPolicy == .regular {
       // Skip the app that was just activated
-      guard let bundleId = app.bundleIdentifier,
-        !bundleId.isEmpty,
-        bundleId != exceptApp
-      else {
+      guard let bundleId = app.bundleIdentifier, !bundleId.isEmpty, bundleId != exceptApp else {
         continue
       }
 
@@ -1692,19 +1438,14 @@ public actor ApplicationService: ApplicationServiceProtocol {
       if !app.isActive {
         logger.debug(
           "Found previously active application",
-          metadata: [
-            "bundleId": "\(bundleId)",
-            "name": "\(app.localizedName ?? "")",
-          ])
+          metadata: ["bundleId": "\(bundleId)", "name": "\(app.localizedName ?? "")"]
+        )
 
         // Create app data tuple to pass to the deactivation handler
         let appData = (
-          bundleId: bundleId,
-          name: app.localizedName ?? "",
-          processId: app.processIdentifier,
+          bundleId: bundleId, name: app.localizedName ?? "", processId: app.processIdentifier,
           isActive: false,  // It's now inactive
-          isFinishedLaunching: app.isFinishedLaunching,
-          url: app.bundleURL,
+          isFinishedLaunching: app.isFinishedLaunching, url: app.bundleURL,
         )
 
         // Handle the deactivation
@@ -1721,8 +1462,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
   /// - Returns: A unique identifier for this observation that can be used to stop it
   /// - Throws: MacMCPErrorInfo if the observation could not be started
   public func startObservingApplications(
-    notificationHandler: @escaping @Sendable (ApplicationStateChange) async
-      -> Void,
+    notificationHandler: @escaping @Sendable (ApplicationStateChange) async -> Void,
   ) async throws -> String {
     // Configure observers if needed
     configureApplicationObservers()
@@ -1735,10 +1475,8 @@ public actor ApplicationService: ApplicationServiceProtocol {
 
     logger.debug(
       "Started observing application state changes",
-      metadata: [
-        "observerId": "\(observerId)",
-        "activeObservers": "\(applicationObservers.count)",
-      ])
+      metadata: ["observerId": "\(observerId)", "activeObservers": "\(applicationObservers.count)"]
+    )
 
     return observerId
   }
@@ -1752,15 +1490,11 @@ public actor ApplicationService: ApplicationServiceProtocol {
       logger.debug(
         "Stopped observing application state changes",
         metadata: [
-          "observerId": "\(observerId)",
-          "activeObservers": "\(applicationObservers.count)",
-        ])
+          "observerId": "\(observerId)", "activeObservers": "\(applicationObservers.count)",
+        ]
+      )
     } else {
-      logger.warning(
-        "Observer not found",
-        metadata: [
-          "observerId": "\(observerId)"
-        ])
+      logger.warning("Observer not found", metadata: ["observerId": "\(observerId)"])
 
       throw NSError(
         domain: "com.macos.mcp.applicationService",
@@ -1776,13 +1510,10 @@ public actor ApplicationService: ApplicationServiceProtocol {
   /// - Throws: MacMCPErrorInfo if the check fails
   public func isApplicationRunning(bundleId: String) async throws -> Bool {
     // Check if it's in our cache
-    if let appInfo = await findApplicationByBundleID(bundleId) {
-      return appInfo.isRunning
-    }
+    if let appInfo = await findApplicationByBundleID(bundleId) { return appInfo.isRunning }
 
     // Check directly with NSRunningApplication as a fallback
-    let runningApps = NSRunningApplication.runningApplications(
-      withBundleIdentifier: bundleId)
+    let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId)
     return !runningApps.isEmpty
   }
 
@@ -1795,9 +1526,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
     if let appInfo = await findApplicationByBundleID(bundleId) {
       if appInfo.isRunning {
         // Find the application in the system to get the most up-to-date information
-        if let pid = appInfo.processId,
-          let app = NSRunningApplication(processIdentifier: pid)
-        {
+        if let pid = appInfo.processId, let app = NSRunningApplication(processIdentifier: pid) {
           // Return detailed information
           return ApplicationStateInfo(
             bundleId: bundleId,
@@ -1813,8 +1542,7 @@ public actor ApplicationService: ApplicationServiceProtocol {
     }
 
     // Check directly with NSRunningApplication as a fallback
-    let runningApps = NSRunningApplication.runningApplications(
-      withBundleIdentifier: bundleId)
+    let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId)
     if let app = runningApps.first {
       // Update our cache
       updateCacheForRunningApp(app)

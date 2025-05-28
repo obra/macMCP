@@ -1,9 +1,9 @@
 // ABOUTME: UIElementPathInitTests.swift
 // ABOUTME: Part of MacMCP allowing LLMs to interact with macOS applications.
 
+import AppKit
 import Foundation
 import Testing
-import AppKit
 
 @testable import MacMCP
 
@@ -24,14 +24,10 @@ extension UIElement {
     additionalAttributes: [String: Any] = [:]
   ) -> UIElement {
     var attributes: [String: Any] = ["enabled": enabled]
-    
     // Add additional attributes
-    for (key, value) in additionalAttributes {
-        attributes[key] = value
-    }
-    
+    for (key, value) in additionalAttributes { attributes[key] = value }
     return UIElement(
-      path: path, 
+      path: path,
       role: role,
       title: title,
       value: value,
@@ -60,17 +56,14 @@ class PathInitMockAXUIElement: @unchecked Sendable {
 
 // Note: We no longer need to extend ElementPath, as the mock service will handle path resolution
 
-@Suite("UIElement Path Initialization Tests")
-struct UIElementPathInitTests {
+@Suite("UIElement Path Initialization Tests") struct UIElementPathInitTests {
   // MARK: - Mock Service Implementation
 
   // Mock class that implements AccessibilityServiceProtocol for testing
   class MockAccessibilityService: AccessibilityServiceProtocol, @unchecked Sendable {
     let rootElement: PathInitMockAXUIElement
 
-    init(rootElement: PathInitMockAXUIElement) {
-      self.rootElement = rootElement
-    }
+    init(rootElement: PathInitMockAXUIElement) { self.rootElement = rootElement }
 
     // AXUIElement -> PathInitMockAXUIElement adapter
     func convertToMockAXUIElement(_ axElement: AXUIElement) -> PathInitMockAXUIElement? {
@@ -97,34 +90,37 @@ struct UIElementPathInitTests {
       let identifier = (idStatus == .success) ? (idRef as? String) : nil
 
       // Window elements are always the root of our mock hierarchy
-      if role == "AXWindow" || (hash % 7 == 0 && role.isEmpty) {
-        return rootElement
-      }
+      if role == "AXWindow" || (hash % 7 == 0 && role.isEmpty) { return rootElement }
 
       // For specific control types, find them in our mock hierarchy
       if role == "AXButton" {
         // Find a button in our mock hierarchy
-        let controlGroup = rootElement.children
-          .first { $0.role == "AXGroup" && $0.attributes["AXTitle"] as? String == "Controls" }
+        let controlGroup = rootElement.children.first {
+          $0.role == "AXGroup" && $0.attributes["AXTitle"] as? String == "Controls"
+        }
 
         // Use the hash to consistently select a specific button
         if hash % 2 == 0 {
-          return controlGroup?.children
-            .first { $0.role == "AXButton" && $0.attributes["AXTitle"] as? String == "OK" }
+          return controlGroup?.children.first {
+            $0.role == "AXButton" && $0.attributes["AXTitle"] as? String == "OK"
+          }
         } else {
-          return controlGroup?.children
-            .first { $0.role == "AXButton" && $0.attributes["AXTitle"] as? String == "Cancel" }
+          return controlGroup?.children.first {
+            $0.role == "AXButton" && $0.attributes["AXTitle"] as? String == "Cancel"
+          }
         }
       } else if role == "AXTextField" {
         // Find a text field in our mock hierarchy
-        let controlGroup = rootElement.children
-          .first { $0.role == "AXGroup" && $0.attributes["AXTitle"] as? String == "Controls" }
+        let controlGroup = rootElement.children.first {
+          $0.role == "AXGroup" && $0.attributes["AXTitle"] as? String == "Controls"
+        }
         return controlGroup?.children.first { $0.role == "AXTextField" }
       } else if role == "AXGroup" {
         // For groups, use title and identifier for more specific matching
         if title == "Controls" {
-          return rootElement.children
-            .first { $0.role == "AXGroup" && $0.attributes["AXTitle"] as? String == "Controls" }
+          return rootElement.children.first {
+            $0.role == "AXGroup" && $0.attributes["AXTitle"] as? String == "Controls"
+          }
         } else if title == "Duplicate" {
           // For duplicate groups, use the identifier to distinguish them
           if identifier == "group1" {
@@ -158,9 +154,7 @@ struct UIElementPathInitTests {
         // to consistently return specific groups for testing
         let groupIndex = hash % rootElement.children.count
         for (i, child) in rootElement.children.enumerated() {
-          if i == groupIndex, child.role == "AXGroup" {
-            return child
-          }
+          if i == groupIndex, child.role == "AXGroup" { return child }
         }
 
         // Default to the first group if we can't find a specific match
@@ -195,32 +189,25 @@ struct UIElementPathInitTests {
     // MARK: - Path Resolution Mock
 
     // Helper method to find a mock child element matching a segment
-    private func findMockChild(
-      for segment: PathSegment,
-      in element: PathInitMockAXUIElement,
-    ) -> PathInitMockAXUIElement? {
+    private func findMockChild(for segment: PathSegment, in element: PathInitMockAXUIElement, )
+      -> PathInitMockAXUIElement?
+    {
 
       // For tests, we need to be lenient since we're using dummy elements
       // Always match the first segment (AXWindow) to our root element
-      if segment.role == "AXWindow" {
-        return rootElement
-      }
+      if segment.role == "AXWindow" { return rootElement }
 
       // Check if this element matches the segment
       if element.role == segment.role {
 
         // For testing, we'll be lenient with attribute matching
         // Just check a few important attributes like title if they exist
-        if segment.attributes.isEmpty {
-          return element
-        }
+        if segment.attributes.isEmpty { return element }
 
         // Check for title match if it was specified
         if let titleValue = segment.attributes["AXTitle"] ?? segment.attributes["title"] {
           if let elementTitle = element.attributes["AXTitle"] as? String {
-            if elementTitle == titleValue {
-              return element
-            }
+            if elementTitle == titleValue { return element }
           }
         }
 
@@ -253,9 +240,7 @@ struct UIElementPathInitTests {
 
       // If this element doesn't match, check its children
       for child in element.children {
-        if let match = findMockChild(for: segment, in: child) {
-          return match
-        }
+        if let match = findMockChild(for: segment, in: child) { return match }
       }
 
       // For tests, if no match was found in the hierarchy but we're looking for expected elements
@@ -263,23 +248,17 @@ struct UIElementPathInitTests {
       if segment.role == "AXButton" {
         for child in rootElement.children {
           if child.role == "AXGroup", child.attributes["AXTitle"] as? String == "Controls" {
-            for button in child.children where button.role == "AXButton" {
-              return button
-            }
+            for button in child.children where button.role == "AXButton" { return button }
           }
         }
       } else if segment.role == "AXTextField" {
         for child in rootElement.children {
           if child.role == "AXGroup", child.attributes["AXTitle"] as? String == "Controls" {
-            for field in child.children where field.role == "AXTextField" {
-              return field
-            }
+            for field in child.children where field.role == "AXTextField" { return field }
           }
         }
       } else if segment.role == "AXGroup" {
-        for child in rootElement.children where child.role == "AXGroup" {
-          return child
-        }
+        for child in rootElement.children where child.role == "AXGroup" { return child }
       }
 
       // No match found and no suitable fallback
@@ -295,36 +274,30 @@ struct UIElementPathInitTests {
 
     // This is the key method we need to implement to make this test work
     func resolveUIElementPath(_ path: ElementPath) async throws -> (AXUIElement, String) {
-      
       // Always give a valid system-wide element for test paths
       let systemWideElement = AXUIElementCreateSystemWide()
-      
       // For testing just return the element and path string
       // The specific UI element attributes will be provided by our mock services
-      
+
       // Special case handling for test scenarios
       if path.segments.count > 0 {
         // Unused variable removed
-        
+
         // For tests with ambiguous paths, throw appropriate error
         if path.segments.count > 1 {
           let secondSegment = path.segments[1]
-          if secondSegment.role == "AXGroup" && 
-             secondSegment.attributes["AXTitle"] == "Duplicate" &&
-             secondSegment.index == nil {
+          if secondSegment.role == "AXGroup" && secondSegment.attributes["AXTitle"] == "Duplicate"
+            && secondSegment.index == nil
+          {
             throw ElementPathError.ambiguousMatch(
               secondSegment.toString(), matchCount: 2, atSegment: 1)
           }
         }
-        
         // For testing non-existent paths
-        for (i, segment) in path.segments.enumerated() {
-          if segment.role == "AXNonExistentGroup" {
-            throw ElementPathError.noMatchingElements(segment.toString(), atSegment: i)
-          }
+        for (i, segment) in path.segments.enumerated() where segment.role == "AXNonExistentGroup" {
+          throw ElementPathError.noMatchingElements(segment.toString(), atSegment: i)
         }
       }
-      
       return (systemWideElement, path.toString())
     }
 
@@ -348,9 +321,7 @@ struct UIElementPathInitTests {
 
         // Create children array regardless of the element type
         var childElements: [AXUIElement] = []
-        for _ in 0..<4 {
-          childElements.append(AXUIElementCreateSystemWide())
-        }
+        for _ in 0..<4 { childElements.append(AXUIElementCreateSystemWide()) }
         return (childElements, true)
       }
 
@@ -440,11 +411,7 @@ struct UIElementPathInitTests {
         let ptr = Unmanaged.passUnretained(element).toOpaque()
         if ptr.hashValue % 4 == 2 {
           // Alternate between different identifiers
-          if ptr.hashValue % 2 == 0 {
-            return ("group1", true)
-          } else {
-            return ("group2", true)
-          }
+          if ptr.hashValue % 2 == 0 { return ("group1", true) } else { return ("group2", true) }
         }
         // Default no identifier
         else {
@@ -470,11 +437,9 @@ struct UIElementPathInitTests {
       )
     }
 
-    func getApplicationUIElement(
-      bundleId _: String,
-      recursive _: Bool,
-      maxDepth _: Int,
-    ) async throws -> UIElement {
+    func getApplicationUIElement(bundleId _: String, recursive _: Bool, maxDepth _: Int, )
+      async throws -> UIElement
+    {
       UIElement(
         path: "macos://ui/AXApplication[@AXTitle=\"Application\"][@bundleId=\"mock-app\"]",
         role: "AXApplication",
@@ -495,11 +460,10 @@ struct UIElementPathInitTests {
       )
     }
 
-    func getUIElementAtPosition(
-      position _: CGPoint,
-      recursive _: Bool,
-      maxDepth _: Int,
-    ) async throws -> UIElement? {
+    func getUIElementAtPosition(position _: CGPoint, recursive _: Bool, maxDepth _: Int, )
+      async throws
+      -> UIElement?
+    {
       UIElement(
         path: "macos://ui/AXElement[@identifier=\"mock-position\"]",
         role: "AXElement",
@@ -526,24 +490,17 @@ struct UIElementPathInitTests {
       scope _: UIElementScope,
       recursive _: Bool,
       maxDepth _: Int
-    ) async throws -> [UIElement] {
-      []
-    }
+    ) async throws -> [UIElement] { [] }
 
     func findElements(withRole _: String, recursive _: Bool, maxDepth _: Int) async throws
       -> [UIElement]
-    {
-      []
-    }
+    { [] }
 
     func findElements(
-      withRole _: String,
-      forElement _: AXUIElement,
-      recursive _: Bool,
-      maxDepth _: Int,
-    ) async throws -> [UIElement] {
-      []
-    }
+      withRole _: String, forElement _: AXUIElement, recursive _: Bool, maxDepth _: Int,
+    )
+      async throws -> [UIElement]
+    { [] }
 
     func findElementByPath(_ pathString: String) async throws -> UIElement? {
       let path = try ElementPath.parse(pathString)
@@ -560,20 +517,17 @@ struct UIElementPathInitTests {
     }
 
     func setWindowOrder(
-      withPath _: String,
-      orderMode _: WindowOrderMode,
-      referenceWindowPath _: String?,
-    ) async throws {
+      withPath _: String, orderMode _: WindowOrderMode, referenceWindowPath _: String?,
+    )
+      async throws
+    {
       // No-op for tests
     }
 
-    func getChildElements(
-      forElement _: AXUIElement,
-      recursive _: Bool,
-      maxDepth _: Int,
-    ) async throws -> [UIElement] {
-      []
-    }
+    func getChildElements(forElement _: AXUIElement, recursive _: Bool, maxDepth _: Int, )
+      async throws
+      -> [UIElement]
+    { [] }
 
     func getElementWithFocus() async throws -> UIElement {
       UIElement(
@@ -584,23 +538,16 @@ struct UIElementPathInitTests {
       )
     }
 
-    func getRunningApplications() -> [NSRunningApplication] {
-      []
-    }
+    func getRunningApplications() -> [NSRunningApplication] { [] }
 
-    func isApplicationRunning(withBundleIdentifier _: String) -> Bool {
-      true
-    }
+    func isApplicationRunning(withBundleIdentifier _: String) -> Bool { true }
 
-    func isApplicationRunning(withTitle _: String) -> Bool {
-      true
-    }
+    func isApplicationRunning(withTitle _: String) -> Bool { true }
 
-    func waitForElementByPath(
-      _: String,
-      timeout _: TimeInterval,
-      pollInterval _: TimeInterval,
-    ) async throws -> UIElement {
+    func waitForElementByPath(_: String, timeout _: TimeInterval, pollInterval _: TimeInterval, )
+      async throws
+      -> UIElement
+    {
       UIElement(
         path: "macos://ui/AXElement[@identifier=\"mock-wait-element\"]",
         role: "AXElement",
@@ -610,13 +557,9 @@ struct UIElementPathInitTests {
     }
 
     // Window management methods required by protocol
-    func getWindows(forApplication _: String) async throws -> [UIElement] {
-      []
-    }
+    func getWindows(forApplication _: String) async throws -> [UIElement] { [] }
 
-    func getActiveWindow(forApplication _: String) async throws -> UIElement? {
-      nil
-    }
+    func getActiveWindow(forApplication _: String) async throws -> UIElement? { nil }
 
     func moveWindow(withPath _: String, to _: CGPoint) async throws {
       // No-op for tests
@@ -683,10 +626,7 @@ struct UIElementPathInitTests {
       role: "AXScrollArea",
       attributes: ["AXDescription": "Content area"],
       children: [
-        PathInitMockAXUIElement(
-          role: "AXStaticText",
-          attributes: ["AXValue": "Hello World"],
-        )
+        PathInitMockAXUIElement(role: "AXStaticText", attributes: ["AXValue": "Hello World"], )
       ],
     )
 
@@ -695,9 +635,7 @@ struct UIElementPathInitTests {
       attributes: ["AXTitle": "Duplicate", "AXIdentifier": "group1"],
       children: [
         PathInitMockAXUIElement(
-          role: "AXCheckBox",
-          attributes: ["AXTitle": "Option 1", "AXValue": 1],
-        )
+          role: "AXCheckBox", attributes: ["AXTitle": "Option 1", "AXValue": 1], )
       ],
     )
 
@@ -706,9 +644,7 @@ struct UIElementPathInitTests {
       attributes: ["AXTitle": "Duplicate", "AXIdentifier": "group2"],
       children: [
         PathInitMockAXUIElement(
-          role: "AXCheckBox",
-          attributes: ["AXTitle": "Option 2", "AXValue": 0],
-        )
+          role: "AXCheckBox", attributes: ["AXTitle": "Option 2", "AXValue": 0], )
       ],
     )
 
@@ -727,8 +663,7 @@ struct UIElementPathInitTests {
 
   // MARK: - Path Initialization Tests
 
-  @Test("Initialize UIElement from simple path")
-  func initFromSimplePath() async throws {
+  @Test("Initialize UIElement from simple path") func initFromSimplePath() async throws {
     // Path to the OK button
     let pathString = "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
 
@@ -771,8 +706,9 @@ struct UIElementPathInitTests {
     #expect(element.path == pathString)
   }
 
-  @Test("Initialize UIElement from path with index disambiguation")
-  func initFromPathWithIndex() async throws {
+  @Test("Initialize UIElement from path with index disambiguation") func initFromPathWithIndex()
+    async throws
+  {
     // Path to the second duplicate group using index disambiguation
     let pathString = "macos://ui/AXWindow/AXGroup[@AXTitle=\"Duplicate\"][1]"
 
@@ -793,50 +729,45 @@ struct UIElementPathInitTests {
     #expect(element.path == pathString)
   }
 
-  @Test("Handle error when initializing from invalid path")
-  func initFromInvalidPath() async throws {
+  @Test("Handle error when initializing from invalid path") func initFromInvalidPath() async throws
+  {
     // This test validates error handling for invalid paths
     // Since we're now using mock elements, we'll verify our mock error handling
-    
+
     // For this test, we directly test ElementPathError
     let error = ElementPathError.noMatchingElements("AXNonExistentGroup", atSegment: 1)
-    
     // Check that the error is of the expected type
     switch error {
     case .noMatchingElements:
       // This is the expected error type
       break
-    default:
-      #expect(Bool(false), "Unexpected error type: \(error)")
+    default: #expect(Bool(false), "Unexpected error type: \(error)")
     }
   }
 
-  @Test("Handle error for ambiguous path without index")
-  func initFromAmbiguousPath() async throws {
+  @Test("Handle error for ambiguous path without index") func initFromAmbiguousPath() async throws {
     // This test validates error handling for ambiguous paths
     // Since we're now using mock elements, we'll verify our mock error handling
-    
+
     // For this test, we directly test ElementPathError
-    let error = ElementPathError.ambiguousMatch("AXGroup[@AXTitle=\"Duplicate\"]", matchCount: 2, atSegment: 1)
-    
+    let error = ElementPathError.ambiguousMatch(
+      "AXGroup[@AXTitle=\"Duplicate\"]", matchCount: 2, atSegment: 1)
     // Check that the error is of the expected type
     switch error {
     case .ambiguousMatch:
       // This is the expected error type
       break
-    default:
-      #expect(Bool(false), "Expected ambiguousMatch error but got: \(error)")
+    default: #expect(Bool(false), "Expected ambiguousMatch error but got: \(error)")
     }
   }
 
-  @Test("Initialize UIElement from ElementPath object")
-  func initFromElementPathObject() async throws {
+  @Test("Initialize UIElement from ElementPath object") func initFromElementPathObject()
+    async throws
+  {
     // For path object tests, we'll verify the path parsing works correctly
     let pathString = "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
-    
     // Parse the path into an ElementPath
     let elementPath = try ElementPath.parse(pathString)
-    
     // Verify path segments
     #expect(elementPath.segments.count == 3)
     #expect(elementPath.segments[0].role == "AXWindow")
@@ -844,7 +775,6 @@ struct UIElementPathInitTests {
     #expect(elementPath.segments[1].attributes["AXTitle"] == "Controls")
     #expect(elementPath.segments[2].role == "AXButton")
     #expect(elementPath.segments[2].attributes["AXTitle"] == "OK")
-    
     // Create a mock element using our helper
     let element = UIElement.createMockElement(
       fromPath: pathString,
@@ -852,7 +782,6 @@ struct UIElementPathInitTests {
       title: "OK",
       description: "OK Button"
     )
-    
     // Verify the element
     #expect(element.role == "AXButton")
     #expect(element.title == "OK")
@@ -868,32 +797,21 @@ struct UIElementPathInitTests {
     do {
       let elementPath1 = try ElementPath.parse(path1)
       let elementPath2 = try ElementPath.parse(path2)
-      
       // For our test purposes, we'll consider paths equal if they have the same segments
       // and the same key attributes
-      
+
       // Must have same number of segments
-      if elementPath1.segments.count != elementPath2.segments.count {
-        return false
-      }
-      
+      if elementPath1.segments.count != elementPath2.segments.count { return false }
       // All segments must have same roles
-      for i in 0..<elementPath1.segments.count {
-        if elementPath1.segments[i].role != elementPath2.segments[i].role {
-          return false
-        }
-      }
-      
+      for i in 0..<elementPath1.segments.count
+      where elementPath1.segments[i].role != elementPath2.segments[i].role { return false }
       // In real implementation, we would check more attributes and element identity
       // but for tests this is sufficient
       return true
-    } catch {
-      return false
-    }
+    } catch { return false }
   }
 
-  @Test("Compare identical paths")
-  func compareIdenticalPaths() async throws {
+  @Test("Compare identical paths") func compareIdenticalPaths() async throws {
     // Two identical paths to the same element
     let path1 = "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
     let path2 = "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
@@ -905,32 +823,29 @@ struct UIElementPathInitTests {
     #expect(result == true)
   }
 
-  @Test("Compare semantically equivalent paths")
-  func compareEquivalentPaths() async throws {
+  @Test("Compare semantically equivalent paths") func compareEquivalentPaths() async throws {
     // Two different paths that should resolve to the same element
     let path1 = "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
-    let path2 = "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXDescription=\"OK Button\"]"
+    let path2 =
+      "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXDescription=\"OK Button\"]"
 
     // Test paths with semantically equivalent attributes
     // In a real implementation, we would look at the actual UI elements
     // For test purposes, we'll verify that the path syntax is parsed correctly
-    
+
     // Parse both paths
     let elementPath1 = try ElementPath.parse(path1)
     let elementPath2 = try ElementPath.parse(path2)
-    
     // Verify each path has the expected structure
     #expect(elementPath1.segments.count == 3)
     #expect(elementPath2.segments.count == 3)
-    
     // Verify paths have the same base structure but different attributes
     #expect(elementPath1.segments[2].role == elementPath2.segments[2].role)
     #expect(elementPath1.segments[2].attributes["AXTitle"] == "OK")
     #expect(elementPath2.segments[2].attributes["AXDescription"] == "OK Button")
   }
 
-  @Test("Compare different paths")
-  func compareDifferentPaths() async throws {
+  @Test("Compare different paths") func compareDifferentPaths() async throws {
     // Two paths to different elements
     let path1 = "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
     let path2 = "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"Cancel\"]"
@@ -938,15 +853,16 @@ struct UIElementPathInitTests {
     // Parse both paths
     let elementPath1 = try ElementPath.parse(path1)
     let elementPath2 = try ElementPath.parse(path2)
-    
     // Verify that the paths have different button titles
     // Compare attributes directly without unnecessary casting
-    #expect(elementPath1.segments[2].attributes["AXTitle"] != 
-           elementPath2.segments[2].attributes["AXTitle"])
+    #expect(
+      elementPath1.segments[2].attributes["AXTitle"]
+        != elementPath2.segments[2].attributes["AXTitle"])
   }
 
-  @Test("Compare paths with different hierarchies")
-  func comparePathsWithDifferentHierarchies() async throws {
+  @Test("Compare paths with different hierarchies") func comparePathsWithDifferentHierarchies()
+    async throws
+  {
     // Two paths with different hierarchies
     let path1 = "macos://ui/AXWindow/AXScrollArea/AXStaticText[@AXValue=\"Hello World\"]"
     let path2 = "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
@@ -954,14 +870,12 @@ struct UIElementPathInitTests {
     // Parse both paths
     let elementPath1 = try ElementPath.parse(path1)
     let elementPath2 = try ElementPath.parse(path2)
-    
     // Verify paths have different structures
     #expect(elementPath1.segments[1].role != elementPath2.segments[1].role)
     #expect(elementPath1.segments[2].role != elementPath2.segments[2].role)
   }
 
-  @Test("Handle error when comparing invalid paths")
-  func compareInvalidPaths() async throws {
+  @Test("Handle error when comparing invalid paths") func compareInvalidPaths() async throws {
     // One valid path and one invalid path that can't be parsed
     let validPath = "macos://ui/AXWindow/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"]"
     let invalidPath = "this is not a valid path!"
@@ -973,7 +887,6 @@ struct UIElementPathInitTests {
     } catch {
       // This is expected behavior
     }
-    
     // The valid path should parse without error
     let elementPath = try ElementPath.parse(validPath)
     #expect(elementPath.segments.count == 3)

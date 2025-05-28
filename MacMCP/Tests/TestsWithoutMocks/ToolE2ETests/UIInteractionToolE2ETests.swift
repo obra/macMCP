@@ -13,8 +13,7 @@ import Testing
 // @_implementationOnly import TestsWithoutMocks
 
 /// End-to-end tests for the UIInteractionTool using Calculator and TextEdit apps
-@Suite(.serialized)
-struct UIInteractionToolE2ETests {
+@Suite(.serialized) struct UIInteractionToolE2ETests {
   // Test components
   private var calculatorHelper: CalculatorTestHelper!
   private var textEditHelper: TextEditTestHelper!
@@ -81,22 +80,19 @@ struct UIInteractionToolE2ETests {
     _ = try? await calculatorHelper.app.terminate()
 
     // Only close TextEdit if the test used it
-    if try await testRequiresTextEdit() {
-      _ = try? await textEditHelper.app.terminate()
-    }
+    if try await testRequiresTextEdit() { _ = try? await textEditHelper.app.terminate() }
   }
 
   // MARK: - Test Methods
 
   /// Test basic clicking using UIInteractionTool handler interface
-  @Test("Basic Click Operations")
-  mutating func testBasicClick() async throws {
+  @Test("Basic Click Operations") mutating func testBasicClick() async throws {
     try await setUp()
 
     // Ensure Calculator is active before interactions
     NSRunningApplication.runningApplications(withBundleIdentifier: calculatorHelper.app.bundleId)
-      .first?
-      .activate(options: [])
+      .first?.activate(
+        options: [])
     try await Task.sleep(for: .milliseconds(2000))
 
     // Clear the calculator first
@@ -123,10 +119,8 @@ struct UIInteractionToolE2ETests {
       #expect(Bool(false), "Empty path for '5' button")
       return
     }
-    
     let result = try await calculatorHelper.toolChain.uiInteractionTool.handler([
-      "action": .string("click"),
-      "id": .string(buttonPath),
+      "action": .string("click"), "id": .string(buttonPath),
       "appBundleId": .string(calculatorHelper.app.bundleId),
     ])
 
@@ -149,8 +143,7 @@ struct UIInteractionToolE2ETests {
   }
 
   /// Test clicking on a UI element at specific coordinates
-  @Test("Click With Coordinates")
-  mutating func testClickWithCoordinates() async throws {
+  @Test("Click With Coordinates") mutating func testClickWithCoordinates() async throws {
     try await setUp()
     // First ensure Calculator is running and active
     // This is redundant with setUp, but serves as a safety measure
@@ -161,8 +154,8 @@ struct UIInteractionToolE2ETests {
 
     // Activate Calculator to ensure it's in front
     NSRunningApplication.runningApplications(withBundleIdentifier: calculatorHelper.app.bundleId)
-      .first?
-      .activate(options: [])
+      .first?.activate(
+        options: [])
     try await Task.sleep(for: .milliseconds(2000))
 
     // Clear the calculator display
@@ -181,7 +174,6 @@ struct UIInteractionToolE2ETests {
       #expect(Bool(false), "Failed to find button '5' after multiple attempts")
       return
     }
-
 
     // Verify the button has valid coordinates
     #expect(digitFive.frame.width > 10, "Button should have reasonable width")
@@ -212,14 +204,11 @@ struct UIInteractionToolE2ETests {
 
     // Now test the handler directly with double values
     let doubleParams: [String: Value] = [
-      "action": .string("click"),
-      "x": .double(centerX),
-      "y": .double(centerY),
+      "action": .string("click"), "x": .double(centerX), "y": .double(centerY),
     ]
 
     let doubleResult = try await calculatorHelper.toolChain.uiInteractionTool.handler(doubleParams)
-    #expect(
-      !doubleResult.isEmpty, "Handler should return non-empty result for double coordinates")
+    #expect(!doubleResult.isEmpty, "Handler should return non-empty result for double coordinates")
 
     // Verify the display shows "5" again
     try await calculatorHelper.assertDisplayValue(
@@ -232,9 +221,7 @@ struct UIInteractionToolE2ETests {
     try await Task.sleep(for: .milliseconds(1000))
 
     let intParams: [String: Value] = [
-      "action": .string("click"),
-      "x": .int(Int(centerX)),
-      "y": .int(Int(centerY)),
+      "action": .string("click"), "x": .int(Int(centerX)), "y": .int(Int(centerY)),
     ]
 
     let intResult = try await calculatorHelper.toolChain.uiInteractionTool.handler(intParams)
@@ -245,13 +232,11 @@ struct UIInteractionToolE2ETests {
       "5",
       message: "Display should show '5' after clicking with int coordinates",
     )
-    
     try await tearDown()
   }
 
   /// Test different click types (double-click, right-click)
-  @Test("Different Click Types")
-  mutating func testDifferentClickTypes() async throws {
+  @Test("Different Click Types") mutating func testDifferentClickTypes() async throws {
     try await setUp()
 
     // First ensure TextEdit is running and active
@@ -262,14 +247,13 @@ struct UIInteractionToolE2ETests {
 
     // Activate TextEdit and ensure a new document
     NSRunningApplication.runningApplications(withBundleIdentifier: textEditHelper.app.bundleId)
-      .first?
-      .activate(options: [])
+      .first?.activate(
+        options: [])
     try await Task.sleep(for: .milliseconds(2000))
 
     // Start with a clean document
     try await textEditHelper.resetAppState()
     try await Task.sleep(for: .milliseconds(1000))
-
 
     // Type some text with a clear word to double-click
     let testText = "Double-click-test word test"
@@ -290,10 +274,8 @@ struct UIInteractionToolE2ETests {
 
     // First test the position-based double-click using doubleClickAtPosition
     try await textEditHelper.toolChain.interactionService.doubleClickAtPosition(
-      position: CGPoint(
-        x: centerX,
-        y: centerY,
-      ))
+      position: CGPoint(x: centerX, y: centerY, )
+    )
     try await Task.sleep(for: .milliseconds(1000))
 
     // Now type replacement text that should replace the selected word
@@ -304,13 +286,11 @@ struct UIInteractionToolE2ETests {
     // Get the text and verify the replacement
     let documentText = try await textEditHelper.app.getText()
     #expect(documentText != nil, "Should get text from document")
-   
     // We can't guarantee exactly which word was selected,
     // but we can verify the replacement text is there
     #expect(
       documentText?.contains(replacementText) ?? false,
-      "Document should contain the replacement text",
-    )
+      "Document should contain the replacement text", )
 
     // Now test the element-based double-click using the handler directly
     // Type new text for this test
@@ -334,8 +314,7 @@ struct UIInteractionToolE2ETests {
       return
     }
     let doubleClickParams: [String: Value] = [
-      "action": .string("double_click"),
-      "id": .string(newTextAreaPath),
+      "action": .string("double_click"), "id": .string(newTextAreaPath),
     ]
 
     let doubleClickResult = try await textEditHelper.toolChain.uiInteractionTool.handler(
@@ -355,13 +334,11 @@ struct UIInteractionToolE2ETests {
       newDocumentText?.contains(newReplacement) ?? false,
       "Document should contain the new replacement text after element double-click",
     )
-    
     try await tearDown()
   }
 
   /// Test right-click functionality
-  @Test("Right Click Functionality")
-  mutating func testRightClick() async throws {
+  @Test("Right Click Functionality") mutating func testRightClick() async throws {
     try await setUp()
 
     // Ensure TextEdit is running and active
@@ -372,8 +349,8 @@ struct UIInteractionToolE2ETests {
 
     // Activate TextEdit and ensure a new document
     NSRunningApplication.runningApplications(withBundleIdentifier: textEditHelper.app.bundleId)
-      .first?
-      .activate(options: [])
+      .first?.activate(
+        options: [])
     try await Task.sleep(for: .milliseconds(2000))
 
     // Start with a clean document
@@ -388,47 +365,37 @@ struct UIInteractionToolE2ETests {
 
     // Find text area directly through MCP tool
     let findTextAreaParams: [String: Value] = [
-      "scope": .string("application"),
-      "bundleId": .string(textEditHelper.app.bundleId),
-      "filter": .object([
-        "role": .string("AXTextArea")
-      ]),
-      "maxDepth": .int(10)
+      "scope": .string("application"), "bundleId": .string(textEditHelper.app.bundleId),
+      "filter": .object(["role": .string("AXTextArea")]), "maxDepth": .int(10),
     ]
-    
-    let findResult = try await textEditHelper.toolChain.interfaceExplorerTool.handler(findTextAreaParams)
+    let findResult = try await textEditHelper.toolChain.interfaceExplorerTool.handler(
+      findTextAreaParams)
     #expect(!findResult.isEmpty, "Should find text area elements")
-    
     // Parse the JSON response to get the text area ID
     guard case .text(let jsonString) = findResult[0] else {
       #expect(Bool(false), "Expected text response from InterfaceExplorerTool")
       return
     }
-    
     let jsonData = Data(jsonString.utf8)
     let elements = try JSONSerialization.jsonObject(with: jsonData) as? [[String: Any]]
-    
     guard let textAreaElement = elements?.first else {
       #expect(Bool(false), "Failed to find TextEdit text area in MCP response")
       return
     }
-    
     guard let textAreaId = textAreaElement["id"] as? String else {
       #expect(Bool(false), "Text area missing ID in MCP response")
       return
     }
-    
     // Verify it's actually a text area and has right-click capability
     #expect(textAreaElement["role"] as? String == "AXTextArea", "Element should be AXTextArea")
-    
     // Check if ShowMenu action is available (optional - don't fail if not present)
     if let actionsString = textAreaElement["actions"] as? String {
-      #expect(actionsString.contains("ShowMenu"), "TextArea should support ShowMenu action for right-click")
+      #expect(
+        actionsString.contains("ShowMenu"),
+        "TextArea should support ShowMenu action for right-click")
     }
-    
     let rightClickParams: [String: Value] = [
-      "action": .string("right_click"),
-      "id": .string(textAreaId),
+      "action": .string("right_click"), "id": .string(textAreaId),
     ]
 
     let rightClickResult = try await textEditHelper.toolChain.uiInteractionTool.handler(
@@ -440,19 +407,14 @@ struct UIInteractionToolE2ETests {
 
     // Dismiss any context menu with escape key
     _ = try await textEditHelper.toolChain.keyboardInteractionTool.handler([
-      "action": .string("key_sequence"),
-      "sequence": .array([
-        .object(["tap": .string("Escape")])
-      ])
+      "action": .string("key_sequence"), "sequence": .array([.object(["tap": .string("Escape")])]),
     ])
     try await Task.sleep(for: .milliseconds(500))
-    
     try await tearDown()
   }
 
   /// Test drag operation
-  @Test("Drag Operation")
-  mutating func testDragOperation() async throws {
+  @Test("Drag Operation") mutating func testDragOperation() async throws {
     try await setUp()
     // This is a placeholder for a drag operation test
     // Implementing a robust drag test requires careful selection of source and target elements
@@ -460,7 +422,6 @@ struct UIInteractionToolE2ETests {
 
     // For now, we'll implement a basic test that verifies the API accepts the parameters
     // and returns a success result, even though we won't verify the actual drag effect
-
 
     // Ensure TextEdit is running and active
     if try await !(textEditHelper.app.isRunning()) {
@@ -470,8 +431,8 @@ struct UIInteractionToolE2ETests {
 
     // Activate TextEdit and ensure a new document
     NSRunningApplication.runningApplications(withBundleIdentifier: textEditHelper.app.bundleId)
-      .first?
-      .activate(options: [])
+      .first?.activate(
+        options: [])
     try await Task.sleep(for: .milliseconds(2000))
 
     // Start with a clean document
@@ -502,9 +463,7 @@ struct UIInteractionToolE2ETests {
         return
       }
       let invalidParams: [String: Value] = [
-        "action": .string("drag"),
-        "id": .string(textAreaPath),
-        // Missing targetId
+        "action": .string("drag"), "id": .string(textAreaPath),  // Missing targetId
       ]
 
       _ = try await textEditHelper.toolChain.uiInteractionTool.handler(invalidParams)
@@ -517,13 +476,11 @@ struct UIInteractionToolE2ETests {
         "Error should indicate missing targetId parameter",
       )
     }
-    
     try await tearDown()
   }
 
   /// Test scroll operation
-  @Test("Scroll Operation")
-  mutating func testScrollOperation() async throws {
+  @Test("Scroll Operation") mutating func testScrollOperation() async throws {
     try await setUp()
 
     // Ensure TextEdit is running and active
@@ -534,8 +491,8 @@ struct UIInteractionToolE2ETests {
 
     // Activate TextEdit and ensure a new document
     NSRunningApplication.runningApplications(withBundleIdentifier: textEditHelper.app.bundleId)
-      .first?
-      .activate(options: [])
+      .first?.activate(
+        options: [])
     try await Task.sleep(for: .milliseconds(2000))
 
     // Use the current working directory to build the path (simpler approach)
@@ -543,12 +500,10 @@ struct UIInteractionToolE2ETests {
     let projectDir = FileManager.default.currentDirectoryPath
 
     // Build full path to test file
-    let testFileURL = URL(fileURLWithPath: projectDir)
-      .appendingPathComponent("Tests")
-      .appendingPathComponent("TestsWithoutMocks")
-      .appendingPathComponent("TestAssets")
-      .appendingPathComponent("ScrollTestContent.txt")
-
+    let testFileURL = URL(fileURLWithPath: projectDir).appendingPathComponent("Tests")
+      .appendingPathComponent(
+        "TestsWithoutMocks"
+      ).appendingPathComponent("TestAssets").appendingPathComponent("ScrollTestContent.txt")
 
     // Verify file exists before attempting to open
     let fileManager = FileManager.default
@@ -559,24 +514,19 @@ struct UIInteractionToolE2ETests {
 
     // Ensure TextEdit is in the foreground by explicitly activating it
     let activateParams: [String: Value] = [
-      "action": .string("activateApplication"),
-      "bundleId": .string(textEditHelper.app.bundleId),
+      "action": .string("activateApplication"), "bundleId": .string(textEditHelper.app.bundleId),
     ]
 
     let activateResult = try await textEditHelper.toolChain.applicationManagementTool.handler(
       activateParams)
-    if let content = activateResult.first, case .text(_) = content {
-    }
+    if let content = activateResult.first, case .text(_) = content {}
 
     // Verify that TextEdit is now the frontmost application
-    let frontmostParams: [String: Value] = [
-      "action": .string("getFrontmostApplication")
-    ]
+    let frontmostParams: [String: Value] = ["action": .string("getFrontmostApplication")]
 
     let frontmostResult = try await textEditHelper.toolChain.applicationManagementTool.handler(
       frontmostParams)
-    if let content = frontmostResult.first, case .text(_) = content {
-    }
+    if let content = frontmostResult.first, case .text(_) = content {}
 
     // Wait a bit to ensure application is fully focused
     try await Task.sleep(for: .milliseconds(1000))
@@ -594,7 +544,6 @@ struct UIInteractionToolE2ETests {
     // 2. Look for a button with ID containing "OKButton"
     // 3. Look for a button in a sheet or dialog
 
-
     // Use multiple approaches to find the Open/OK button
     let searchScopes = ["application", "system"]
     var openButton: UIElement? = nil
@@ -602,10 +551,7 @@ struct UIInteractionToolE2ETests {
     // First, try to find by title "Open"
     for scope in searchScopes {
 
-      let openButtonCriteria = UIElementCriteria(
-        role: "AXButton",
-        title: "Open",
-      )
+      let openButtonCriteria = UIElementCriteria(role: "AXButton", title: "Open", )
 
       openButton = try await textEditHelper.toolChain.findElement(
         matching: openButtonCriteria,
@@ -614,9 +560,7 @@ struct UIInteractionToolE2ETests {
         maxDepth: 20,
       )
 
-      if openButton != nil {
-        break
-      }
+      if openButton != nil { break }
     }
 
     // If not found by title, try to find by ID containing "OKButton"
@@ -638,9 +582,7 @@ struct UIInteractionToolE2ETests {
           }
         }
 
-        if openButton != nil {
-          break
-        }
+        if openButton != nil { break }
       }
     }
 
@@ -648,10 +590,7 @@ struct UIInteractionToolE2ETests {
     if openButton == nil {
 
       for scope in searchScopes {
-        let openButtonCriteria = UIElementCriteria(
-          role: "AXButton",
-          titleContains: "Open",
-        )
+        let openButtonCriteria = UIElementCriteria(role: "AXButton", titleContains: "Open", )
 
         openButton = try await textEditHelper.toolChain.findElement(
           matching: openButtonCriteria,
@@ -660,9 +599,7 @@ struct UIInteractionToolE2ETests {
           maxDepth: 20,
         )
 
-        if openButton != nil {
-          break
-        }
+        if openButton != nil { break }
       }
     }
 
@@ -675,8 +612,7 @@ struct UIInteractionToolE2ETests {
         return
       }
       let clickParams: [String: Value] = [
-        "action": .string("click"),
-        "id": .string(openButtonPath),
+        "action": .string("click"), "id": .string(openButtonPath),
       ]
 
       _ = try await textEditHelper.toolChain.uiInteractionTool.handler(clickParams)
@@ -689,11 +625,7 @@ struct UIInteractionToolE2ETests {
       // Press Return key to confirm the dialog
       let returnKeyParams: [String: Value] = [
         "action": .string("key_sequence"),
-        "sequence": .array([
-          .object([
-            "tap": .string("return")
-          ])
-        ]),
+        "sequence": .array([.object(["tap": .string("return")])]),
       ]
 
       _ = try await textEditHelper.toolChain.keyboardInteractionTool.handler(returnKeyParams)
@@ -719,7 +651,6 @@ struct UIInteractionToolE2ETests {
     // For this test, we'll simulate a check using a marker in the text file
     let hasScrolledMarker = "SCROLL_TEST_MARKER_END"
     let _ = initialDocText?.contains(hasScrolledMarker) ?? false
-  
 
     // Also search for groups that might be confusing the system
     let groups = try await textEditHelper.toolChain.findElements(
@@ -734,9 +665,7 @@ struct UIInteractionToolE2ETests {
     }
 
     let scrollDownParams: [String: Value] = [
-      "action": .string("scroll"),
-      "id": .string(scrollAreaPath),
-      "direction": .string("down"),
+      "action": .string("scroll"), "id": .string(scrollAreaPath), "direction": .string("down"),
       "amount": .double(0.9),  // Scroll almost to the bottom
     ]
 
@@ -750,9 +679,7 @@ struct UIInteractionToolE2ETests {
 
     // Test scroll up
     let scrollUpParams: [String: Value] = [
-      "action": .string("scroll"),
-      "id": .string(scrollAreaPath),
-      "direction": .string("up"),
+      "action": .string("scroll"), "id": .string(scrollAreaPath), "direction": .string("up"),
       "amount": .double(0.9),  // Scroll almost to the top
     ]
 
@@ -782,15 +709,13 @@ struct UIInteractionToolE2ETests {
     if let content = scrollDownResult.first, case .text(let text) = content {
       #expect(
         text.contains("success") || text.contains("scroll"),
-        "Scroll down result should indicate success",
-      )
+        "Scroll down result should indicate success", )
     }
 
     if let content = scrollUpResult.first, case .text(let text) = content {
       #expect(
         text.contains("success") || text.contains("scroll"),
-        "Scroll up result should indicate success",
-      )
+        "Scroll up result should indicate success", )
     }
 
     // PARAMETER VALIDATION TESTS - Separated from actual functionality tests
@@ -822,10 +747,7 @@ struct UIInteractionToolE2ETests {
     // Test missing direction
     try await testInvalidParams(
       [
-        "action": .string("scroll"),
-        "id": .string(scrollAreaPath),
-        "amount": .double(0.5),
-        // Missing direction
+        "action": .string("scroll"), "id": .string(scrollAreaPath), "amount": .double(0.5),  // Missing direction
       ],
       expectedErrorContains: "direction",
       message: "Should throw an error when direction is missing",
@@ -834,9 +756,7 @@ struct UIInteractionToolE2ETests {
     // Test invalid direction
     try await testInvalidParams(
       [
-        "action": .string("scroll"),
-        "id": .string(scrollAreaPath),
-        "direction": .string("invalid"),
+        "action": .string("scroll"), "id": .string(scrollAreaPath), "direction": .string("invalid"),
         "amount": .double(0.5),
       ],
       expectedErrorContains: "direction",
@@ -846,10 +766,7 @@ struct UIInteractionToolE2ETests {
     // Test missing amount
     try await testInvalidParams(
       [
-        "action": .string("scroll"),
-        "id": .string(scrollAreaPath),
-        "direction": .string("down"),
-        // Missing amount
+        "action": .string("scroll"), "id": .string(scrollAreaPath), "direction": .string("down"),  // Missing amount
       ],
       expectedErrorContains: "amount",
       message: "Should throw an error when amount is missing",
@@ -858,25 +775,20 @@ struct UIInteractionToolE2ETests {
     // Test invalid amount (out of range)
     try await testInvalidParams(
       [
-        "action": .string("scroll"),
-        "id": .string(scrollAreaPath),
-        "direction": .string("down"),
+        "action": .string("scroll"), "id": .string(scrollAreaPath), "direction": .string("down"),
         "amount": .double(1.5),  // Out of range
       ],
       expectedErrorContains: "amount",
       message: "Should throw an error when amount is out of range",
     )
-    
     try await tearDown()
   }
 
   /// Test type text functionality (handled via keyboard interactions)
-  @Test("Type Text Functionality")
-  mutating func testTypeText() async throws {
+  @Test("Type Text Functionality") mutating func testTypeText() async throws {
     try await setUp()
     // Note: Type text is typically handled via KeyboardInteractionTool rather than UIInteractionTool
     // But we should make sure that our click operations correctly position the cursor for text input
-
 
     // Ensure TextEdit is running and active
     if try await !(textEditHelper.app.isRunning()) {
@@ -886,8 +798,8 @@ struct UIInteractionToolE2ETests {
 
     // Activate TextEdit and ensure a new document
     NSRunningApplication.runningApplications(withBundleIdentifier: textEditHelper.app.bundleId)
-      .first?
-      .activate(options: [])
+      .first?.activate(
+        options: [])
     try await Task.sleep(for: .milliseconds(2000))
 
     // Start with a clean document
@@ -956,11 +868,8 @@ struct UIInteractionToolE2ETests {
     let posX = textAreaFrame.origin.x + (textAreaFrame.size.width * 0.2)
     let posY = textAreaFrame.origin.y + (textAreaFrame.size.height * 0.5)  // Middle of text area
 
-
     // Click at the calculated position to place cursor after "Part1"
-    _ = try await textEditHelper.toolChain.clickAtPosition(
-      position: CGPoint(x: posX, y: posY),
-    )
+    _ = try await textEditHelper.toolChain.clickAtPosition(position: CGPoint(x: posX, y: posY), )
     try await Task.sleep(for: .milliseconds(1000))
 
     // 6. Now type the inserted text - using the new typeText that doesn't clear
@@ -977,23 +886,22 @@ struct UIInteractionToolE2ETests {
       finalText?.contains(expectedFinalText) ?? false,
       "Document should contain all three parts in correct order: 'Part1 Part2 Part3'",
     )
-    
     try await tearDown()
   }
 
   /// Test attempting to click on a non-existent element
-  @Test("Click Non-Existent Element")
-  mutating func testClickNonExistentElement() async throws {
+  @Test("Click Non-Existent Element") mutating func testClickNonExistentElement() async throws {
     try await setUp()
 
     // Ensure Calculator is active before interactions
     NSRunningApplication.runningApplications(withBundleIdentifier: calculatorHelper.app.bundleId)
-      .first?
-      .activate(options: [])
+      .first?.activate(
+        options: [])
     try await Task.sleep(for: .milliseconds(2000))
 
     // Use a clearly non-existent element ID
-    let nonExistentId = "macos://ui/AXApplication/AXWindow/AXButton[@AXDescription=\"NonExistentButton\"]"
+    let nonExistentId =
+      "macos://ui/AXApplication/AXWindow/AXButton[@AXDescription=\"NonExistentButton\"]"
 
     do {
       _ = try await calculatorHelper.toolChain.clickElement(
@@ -1014,8 +922,7 @@ struct UIInteractionToolE2ETests {
     // Test direct handler call with non-existent element
     do {
       let nonExistentParams: [String: Value] = [
-        "action": .string("click"),
-        "id": .string(nonExistentId),
+        "action": .string("click"), "id": .string(nonExistentId),
         "appBundleId": .string(calculatorHelper.app.bundleId),
       ]
 
@@ -1030,26 +937,23 @@ struct UIInteractionToolE2ETests {
         "Error should indicate element not found",
       )
     }
-    
     try await tearDown()
   }
 
   /// Test invalid action parameter
-  @Test("Invalid Action Parameter")
-  mutating func testInvalidAction() async throws {
+  @Test("Invalid Action Parameter") mutating func testInvalidAction() async throws {
     try await setUp()
 
     // Ensure Calculator is active before interactions
     NSRunningApplication.runningApplications(withBundleIdentifier: calculatorHelper.app.bundleId)
-      .first?
-      .activate(options: [])
+      .first?.activate(
+        options: [])
     try await Task.sleep(for: .milliseconds(2000))
 
     // Test with an invalid action
     do {
       let invalidParams: [String: Value] = [
-        "action": .string("invalid_action"),
-        "id": .string("macos://ui/AXApplication/AXButton"),
+        "action": .string("invalid_action"), "id": .string("macos://ui/AXApplication/AXButton"),
       ]
 
       _ = try await calculatorHelper.toolChain.uiInteractionTool.handler(invalidParams)
@@ -1066,8 +970,7 @@ struct UIInteractionToolE2ETests {
     // Test with missing action
     do {
       let invalidParams: [String: Value] = [
-        "id": .string("macos://ui/AXApplication/AXButton")
-        // Missing action
+        "id": .string("macos://ui/AXApplication/AXButton")  // Missing action
       ]
 
       _ = try await calculatorHelper.toolChain.uiInteractionTool.handler(invalidParams)
@@ -1080,7 +983,6 @@ struct UIInteractionToolE2ETests {
         "Error should indicate missing action: \(errorMessage)",
       )
     }
-    
     try await tearDown()
   }
 
@@ -1089,10 +991,7 @@ struct UIInteractionToolE2ETests {
   /// Save a screenshot of the UI state for debugging
   private func saveDebugScreenshot(appBundleId: String, testName: String) async throws {
     // Create parameters for the screenshot tool
-    let params: [String: Value] = [
-      "region": .string("window"),
-      "bundleId": .string(appBundleId),
-    ]
+    let params: [String: Value] = ["region": .string("window"), "bundleId": .string(appBundleId)]
 
     do {
       // Take the screenshot
@@ -1103,9 +1002,10 @@ struct UIInteractionToolE2ETests {
         let decodedData = Data(base64Encoded: data)!
 
         // Save screenshots to a temporary directory so the path works on any machine
-        let outputDir = FileManager.default.temporaryDirectory
-          .appendingPathComponent("macmcp-test-screenshots", isDirectory: true)
-          .path
+        let outputDir = FileManager.default.temporaryDirectory.appendingPathComponent(
+          "macmcp-test-screenshots",
+          isDirectory: true
+        ).path
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyyMMdd_HHmmss"
         let timestamp = dateFormatter.string(from: Date())
@@ -1120,12 +1020,8 @@ struct UIInteractionToolE2ETests {
           )
 
           try decodedData.write(to: fileURL)
-        } catch {
-          print("Error saving debug screenshot: \(error.localizedDescription)")
-        }
+        } catch { print("Error saving debug screenshot: \(error.localizedDescription)") }
       }
-    } catch {
-      print("Error taking debug screenshot: \(error.localizedDescription)")
-    }
+    } catch { print("Error taking debug screenshot: \(error.localizedDescription)") }
   }
 }

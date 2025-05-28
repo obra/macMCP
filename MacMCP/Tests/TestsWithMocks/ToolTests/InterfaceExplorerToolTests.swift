@@ -1,8 +1,8 @@
 // ABOUTME: InterfaceExplorerToolTests.swift
 // ABOUTME: Part of MacMCP allowing LLMs to interact with macOS applications.
 
-import Foundation
 import AppKit  // For NSRunningApplication
+import Foundation
 import MCP
 import Testing
 
@@ -11,8 +11,7 @@ import Testing
 // Test utilities are directly available in this module
 
 /// Test the InterfaceExplorerTool
-@Suite(.serialized)
-struct InterfaceExplorerToolTests {
+@Suite(.serialized) struct InterfaceExplorerToolTests {
   // Test components
   private var toolChain: ToolChain!
   private var calculator: CalculatorModel!
@@ -49,20 +48,17 @@ struct InterfaceExplorerToolTests {
   private mutating func launchCalculator() async throws {
     // In our mocked tests, we don't actually launch the calculator app
     // Just simulate a successful launch
-    
+
     // Set up calculator model (this sets up the mock state)
     calculator = CalculatorModel(toolChain: toolChain)
     try await calculator.launch()
-    
     // Wait to simulate app initialization
     try await Task.sleep(for: .milliseconds(300))
   }
 
   /// Test system scope with the interface explorer tool
-  @Test("Test system scope")
-  mutating func testSystemScope() async throws {
+  @Test("Test system scope") mutating func testSystemScope() async throws {
     try await setupTest()
-    
     // Define direct handler access for more precise testing
     let interfaceExplorerTool = InterfaceExplorerTool(
       accessibilityService: toolChain.accessibilityService,
@@ -71,8 +67,7 @@ struct InterfaceExplorerToolTests {
 
     // Create parameters for system scope
     let params: [String: Value] = [
-      "scope": .string("system"),
-      "maxDepth": .int(3),  // Limit depth to keep test manageable
+      "scope": .string("system"), "maxDepth": .int(3),  // Limit depth to keep test manageable
       "limit": .int(10),  // Limit results to keep test manageable
     ]
 
@@ -116,10 +111,8 @@ struct InterfaceExplorerToolTests {
   }
 
   /// Test application scope with the interface explorer tool
-  @Test("Test application scope")
-  mutating func testApplicationScope() async throws {
+  @Test("Test application scope") mutating func testApplicationScope() async throws {
     try await setupTest()
-    
     // Launch calculator first
     try await launchCalculator()
 
@@ -131,8 +124,7 @@ struct InterfaceExplorerToolTests {
 
     // Create parameters for application scope
     let params: [String: Value] = [
-      "scope": .string("application"),
-      "bundleId": .string("com.apple.calculator"),
+      "scope": .string("application"), "bundleId": .string("com.apple.calculator"),
       "maxDepth": .int(10),
       "includeHidden": .bool(false),
     ]
@@ -164,22 +156,16 @@ struct InterfaceExplorerToolTests {
       // Check for basic Calculator elements in the hierarchy
       func checkForElements(element: [String: Any]) {
         // Check if this is a button (Calculator has many buttons)
-        if let role = element["role"] as? String, role == "AXButton" {
-          foundButton = true
-        }
+        if let role = element["role"] as? String, role == "AXButton" { foundButton = true }
 
         // Check children recursively
         if let children = element["children"] as? [[String: Any]] {
-          for child in children {
-            checkForElements(element: child)
-          }
+          for child in children { checkForElements(element: child) }
         }
       }
 
       // Check all root elements
-      for element in elements {
-        checkForElements(element: element)
-      }
+      for element in elements { checkForElements(element: element) }
 
       // Now assert that we found buttons - windows are handled by WindowManagementTool now
       #expect(foundButton, "Should find at least one button in the Calculator")
@@ -191,10 +177,8 @@ struct InterfaceExplorerToolTests {
   }
 
   /// Test element scope with the interface explorer tool - using application scope instead for better mock support
-  @Test("Test element scope")
-  mutating func testElementScope() async throws {
+  @Test("Test element scope") mutating func testElementScope() async throws {
     try await setupTest()
-    
     // Launch calculator first
     try await launchCalculator()
 
@@ -204,11 +188,10 @@ struct InterfaceExplorerToolTests {
       logger: nil,
     )
 
-    // Use application scope which works better with mocks 
+    // Use application scope which works better with mocks
     // Create parameters for application scope
     let params: [String: Value] = [
-      "scope": .string("application"),
-      "bundleId": .string("com.apple.calculator"),
+      "scope": .string("application"), "bundleId": .string("com.apple.calculator"),
       "maxDepth": .int(5),
     ]
 
@@ -229,48 +212,38 @@ struct InterfaceExplorerToolTests {
 
       // Find a window element - recursively check all elements and their children
       var foundWindow = false
-      
       // Recursive function to search through element hierarchy
       func findWindowInHierarchy(element: [String: Any]) {
         // Check if this element is a window
         if let role = element["role"] as? String, role == "AXWindow" {
           foundWindow = true
-          
           // Verify path was returned and matches our expected format
           #expect(element["path"] != nil, "Element should have a path")
           if let path = element["path"] as? String {
             #expect(path.hasPrefix("macos://ui/"), "Path should start with macos://ui/")
             #expect(path.contains("AXWindow"), "Path should include AXWindow")
           }
-          
           // Verify children were also returned (optional check)
           if let children = element["children"] as? [[String: Any]] {
             #expect(!children.isEmpty, "Children should not be empty if present")
           }
-          
           return
         }
-        
         // Check children recursively
         if let children = element["children"] as? [[String: Any]] {
           for child in children {
             findWindowInHierarchy(element: child)
-            if foundWindow {
-              break
-            }
+            if foundWindow { break }
           }
         }
       }
-      
       // Search all root elements
       for element in elements {
         findWindowInHierarchy(element: element)
-        if foundWindow {
-          break
-        }
+        if foundWindow { break }
       }
-      
-      #expect(foundWindow, "Should find at least one window element in the Calculator app's hierarchy")
+      #expect(
+        foundWindow, "Should find at least one window element in the Calculator app's hierarchy")
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -279,10 +252,8 @@ struct InterfaceExplorerToolTests {
   }
 
   /// Test filtering with the interface explorer tool
-  @Test("Test filtering elements")
-  mutating func testFilteringElements() async throws {
+  @Test("Test filtering elements") mutating func testFilteringElements() async throws {
     try await setupTest()
-    
     // Launch calculator first
     try await launchCalculator()
 
@@ -294,12 +265,8 @@ struct InterfaceExplorerToolTests {
 
     // Create parameters for application scope with button filtering
     let params: [String: Value] = [
-      "scope": .string("application"),
-      "bundleId": .string("com.apple.calculator"),
-      "filter": .object([
-        "role": .string("AXButton")
-      ]),
-      "maxDepth": .int(10),
+      "scope": .string("application"), "bundleId": .string("com.apple.calculator"),
+      "filter": .object(["role": .string("AXButton")]), "maxDepth": .int(10),
     ]
 
     // Call the handler directly
@@ -332,10 +299,8 @@ struct InterfaceExplorerToolTests {
   }
 
   /// Test element types filtering with the interface explorer tool
-  @Test("Test element types filtering")
-  mutating func testElementTypesFiltering() async throws {
+  @Test("Test element types filtering") mutating func testElementTypesFiltering() async throws {
     try await setupTest()
-    
     // Launch calculator first
     try await launchCalculator()
 
@@ -347,10 +312,8 @@ struct InterfaceExplorerToolTests {
 
     // Create parameters to specifically find buttons using elementTypes
     let params: [String: Value] = [
-      "scope": .string("application"),
-      "bundleId": .string("com.apple.calculator"),
-      "elementTypes": .array([.string("button")]),
-      "maxDepth": .int(10),
+      "scope": .string("application"), "bundleId": .string("com.apple.calculator"),
+      "elementTypes": .array([.string("button")]), "maxDepth": .int(10),
     ]
 
     // Call the handler directly
@@ -374,8 +337,7 @@ struct InterfaceExplorerToolTests {
 
         // Also check that the element has the clickable capability
         if let props = element["props"] as? [String] {
-          #expect(
-            props.contains("clickable"), "Button should have clickable capability")
+          #expect(props.contains("clickable"), "Button should have clickable capability")
         }
       }
     } else {
@@ -386,10 +348,8 @@ struct InterfaceExplorerToolTests {
   }
 
   /// Test enhanced capabilities reporting
-  @Test("Test enhanced capabilities")
-  mutating func testEnhancedCapabilities() async throws {
+  @Test("Test enhanced capabilities") mutating func testEnhancedCapabilities() async throws {
     try await setupTest()
-    
     // Launch calculator first
     try await launchCalculator()
 
@@ -401,8 +361,7 @@ struct InterfaceExplorerToolTests {
 
     // Create parameters for application scope
     let params: [String: Value] = [
-      "scope": .string("application"),
-      "bundleId": .string("com.apple.calculator"),
+      "scope": .string("application"), "bundleId": .string("com.apple.calculator"),
       "maxDepth": .int(5),
     ]
 
@@ -444,16 +403,12 @@ struct InterfaceExplorerToolTests {
 
         // Recursively check children
         if let children = element["children"] as? [[String: Any]] {
-          for child in children {
-            checkElementsForPropsAndState(element: child)
-          }
+          for child in children { checkElementsForPropsAndState(element: child) }
         }
       }
 
       // Check all elements
-      for element in elements {
-        checkElementsForPropsAndState(element: element)
-      }
+      for element in elements { checkElementsForPropsAndState(element: element) }
 
       // Verify that we found elements with the expected props and state
       #expect(
@@ -468,10 +423,8 @@ struct InterfaceExplorerToolTests {
   }
 
   /// Test path support in interface explorer tool
-  @Test("Test element path support")
-  mutating func testElementPathSupport() async throws {
+  @Test("Test element path support") mutating func testElementPathSupport() async throws {
     try await setupTest()
-    
     // Launch calculator first
     try await launchCalculator()
 
@@ -483,8 +436,7 @@ struct InterfaceExplorerToolTests {
 
     // Create parameters for application scope
     let params: [String: Value] = [
-      "scope": .string("application"),
-      "bundleId": .string("com.apple.calculator"),
+      "scope": .string("application"), "bundleId": .string("com.apple.calculator"),
       "maxDepth": .int(5),
     ]
 
@@ -515,16 +467,12 @@ struct InterfaceExplorerToolTests {
 
         // Recursively check children
         if let children = element["children"] as? [[String: Any]] {
-          for child in children {
-            checkElementsForPaths(element: child)
-          }
+          for child in children { checkElementsForPaths(element: child) }
         }
       }
 
       // Check all elements
-      for element in elements {
-        checkElementsForPaths(element: element)
-      }
+      for element in elements { checkElementsForPaths(element: element) }
 
       // Verify that we found at least one element with a path
       #expect(foundElementWithPath, "Should find at least one element with a path")
@@ -545,16 +493,12 @@ struct InterfaceExplorerToolTests {
 
         // Recursively check children
         if let children = element["children"] as? [[String: Any]] {
-          for child in children {
-            checkButtonPaths(element: child)
-          }
+          for child in children { checkButtonPaths(element: child) }
         }
       }
 
       // Check all elements for buttons with valid paths
-      for element in elements {
-        checkButtonPaths(element: element)
-      }
+      for element in elements { checkButtonPaths(element: element) }
 
       // Verify that we found at least one button with a valid path
       #expect(foundButtonWithValidPath, "Should find at least one button with a valid path")
@@ -566,10 +510,8 @@ struct InterfaceExplorerToolTests {
   }
 
   /// Test position scope with the interface explorer tool
-  @Test("Test position scope")
-  mutating func testPositionScope() async throws {
+  @Test("Test position scope") mutating func testPositionScope() async throws {
     try await setupTest()
-    
     // Launch calculator first
     try await launchCalculator()
 
@@ -613,9 +555,7 @@ struct InterfaceExplorerToolTests {
 
     // Create parameters for position scope
     let params: [String: Value] = [
-      "scope": .string("position"),
-      "x": .double(Double(centerX)),
-      "y": .double(Double(centerY)),
+      "scope": .string("position"), "x": .double(Double(centerX)), "y": .double(Double(centerY)),
       "maxDepth": .int(5),
     ]
 
@@ -643,47 +583,56 @@ struct InterfaceExplorerToolTests {
 
     try await cleanupTest()
   }
-  
   /// Test that comparing UI element paths works correctly
-  @Test("Test comparing UI element paths")
-  mutating func testComparePaths() async throws {
+  @Test("Test comparing UI element paths") mutating func testComparePaths() async throws {
     try await setupTest()
-    
     // Create two ElementPath objects with different attributes
-    let pathString1 = "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow/AXButton[@AXTitle=\"1\"]"
-    let pathString2 = "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow/AXButton[@AXTitle=\"2\"]"
-    
+    let pathString1 =
+      "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow/AXButton[@AXTitle=\"1\"]"
+    let pathString2 =
+      "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]/AXWindow/AXButton[@AXTitle=\"2\"]"
     // Parse the paths
     let elementPath1 = try ElementPath.parse(pathString1)
     let elementPath2 = try ElementPath.parse(pathString2)
-    
     // Verify paths have the same structure but different button titles
-    #expect(elementPath1.segments.count == elementPath2.segments.count, "Paths should have the same number of segments")
-    #expect(elementPath1.segments[0].role == elementPath2.segments[0].role, "First segments should have the same role")
-    #expect(elementPath1.segments[1].role == elementPath2.segments[1].role, "Second segments should have the same role")
-    #expect(elementPath1.segments[2].role == elementPath2.segments[2].role, "Third segments should have the same role")
-    
+    #expect(
+      elementPath1.segments.count == elementPath2.segments.count,
+      "Paths should have the same number of segments"
+    )
+    #expect(
+      elementPath1.segments[0].role == elementPath2.segments[0].role,
+      "First segments should have the same role"
+    )
+    #expect(
+      elementPath1.segments[1].role == elementPath2.segments[1].role,
+      "Second segments should have the same role"
+    )
+    #expect(
+      elementPath1.segments[2].role == elementPath2.segments[2].role,
+      "Third segments should have the same role"
+    )
     // Verify that the button titles are different
-    #expect(elementPath1.segments[2].attributes["AXTitle"] != elementPath2.segments[2].attributes["AXTitle"], "Verify that the paths have different button titles")
-    
+    #expect(
+      elementPath1.segments[2].attributes["AXTitle"]
+        != elementPath2.segments[2].attributes["AXTitle"],
+      "Verify that the paths have different button titles"
+    )
     // Test string representations
     let path1String = elementPath1.toString()
     let path2String = elementPath2.toString()
-    
-    #expect(path1String == pathString1, "Path1 string representation should match the original string")
-    #expect(path2String == pathString2, "Path2 string representation should match the original string")
+    #expect(
+      path1String == pathString1, "Path1 string representation should match the original string")
+    #expect(
+      path2String == pathString2, "Path2 string representation should match the original string")
     #expect(path1String != path2String, "Path strings should be different")
-    
     try await cleanupTest()
   }
 
   // MARK: - Phase 1 Enhanced Filtering Tests
 
   /// Test textContains filter that searches across all text fields
-  @Test("Test textContains filter")
-  mutating func testTextContainsFilter() async throws {
+  @Test("Test textContains filter") mutating func testTextContainsFilter() async throws {
     try await setupTest()
-    
     // Launch calculator first
     try await launchCalculator()
 
@@ -695,12 +644,10 @@ struct InterfaceExplorerToolTests {
 
     // Test searching for a number button by searching all text fields
     let params: [String: Value] = [
-      "scope": .string("application"),
-      "bundleId": .string("com.apple.calculator"),
+      "scope": .string("application"), "bundleId": .string("com.apple.calculator"),
       "filter": .object([
         "textContains": .string("5")  // Should find the "5" button
-      ]),
-      "maxDepth": .int(10),
+      ]), "maxDepth": .int(10),
     ]
 
     // Call the handler directly
@@ -721,27 +668,16 @@ struct InterfaceExplorerToolTests {
       // Verify that all found elements contain "5" in some text field
       for element in elements {
         var containsFive = false
-        
         // Check title
-        if let title = element["title"] as? String, title.contains("5") {
-          containsFive = true
-        }
-        
+        if let title = element["title"] as? String, title.contains("5") { containsFive = true }
         // Check description
         if let description = element["description"] as? String, description.contains("5") {
           containsFive = true
         }
-        
         // Check value
-        if let value = element["value"] as? String, value.contains("5") {
-          containsFive = true
-        }
-        
+        if let value = element["value"] as? String, value.contains("5") { containsFive = true }
         // Check identifier
-        if let id = element["identifier"] as? String, id.contains("5") {
-          containsFive = true
-        }
-        
+        if let id = element["identifier"] as? String, id.contains("5") { containsFive = true }
         #expect(containsFive, "Each found element should contain '5' in at least one text field")
       }
     } else {
@@ -752,10 +688,8 @@ struct InterfaceExplorerToolTests {
   }
 
   /// Test isInteractable filter for elements that can be acted upon
-  @Test("Test isInteractable filter")
-  mutating func testIsInteractableFilter() async throws {
+  @Test("Test isInteractable filter") mutating func testIsInteractableFilter() async throws {
     try await setupTest()
-    
     // Launch calculator first
     try await launchCalculator()
 
@@ -767,12 +701,8 @@ struct InterfaceExplorerToolTests {
 
     // Test filtering for interactable elements only
     let params: [String: Value] = [
-      "scope": .string("application"),
-      "bundleId": .string("com.apple.calculator"),
-      "filter": .object([
-        "isInteractable": .bool(true)
-      ]),
-      "maxDepth": .int(10),
+      "scope": .string("application"), "bundleId": .string("com.apple.calculator"),
+      "filter": .object(["isInteractable": .bool(true)]), "maxDepth": .int(10),
     ]
 
     // Call the handler directly
@@ -793,11 +723,10 @@ struct InterfaceExplorerToolTests {
       // Verify that all found elements are interactable
       for element in elements {
         if let props = element["props"] as? [String] {
-          let isInteractable = props.contains("clickable") || 
-                             props.contains("editable") || 
-                             props.contains("toggleable") ||
-                             props.contains("selectable") ||
-                             props.contains("adjustable")
+          let isInteractable =
+            props.contains("clickable") || props.contains("editable")
+            || props.contains("toggleable")
+            || props.contains("selectable") || props.contains("adjustable")
           #expect(isInteractable, "Element should have at least one interactable capability")
         } else {
           #expect(Bool(false), "Element should have props information")
@@ -811,10 +740,8 @@ struct InterfaceExplorerToolTests {
   }
 
   /// Test isEnabled filter for enabled/disabled state
-  @Test("Test isEnabled filter")
-  mutating func testIsEnabledFilter() async throws {
+  @Test("Test isEnabled filter") mutating func testIsEnabledFilter() async throws {
     try await setupTest()
-    
     // Launch calculator first
     try await launchCalculator()
 
@@ -826,12 +753,8 @@ struct InterfaceExplorerToolTests {
 
     // Test filtering for enabled elements only
     let params: [String: Value] = [
-      "scope": .string("application"),
-      "bundleId": .string("com.apple.calculator"),
-      "filter": .object([
-        "isEnabled": .bool(true)
-      ]),
-      "maxDepth": .int(10),
+      "scope": .string("application"), "bundleId": .string("com.apple.calculator"),
+      "filter": .object(["isEnabled": .bool(true)]), "maxDepth": .int(10),
     ]
 
     // Call the handler directly
@@ -866,10 +789,9 @@ struct InterfaceExplorerToolTests {
   }
 
   /// Test inMenus/inMainContent location context filtering
-  @Test("Test location context filtering")
-  mutating func testLocationContextFiltering() async throws {
+  @Test("Test location context filtering") mutating func testLocationContextFiltering() async throws
+  {
     try await setupTest()
-    
     // Launch calculator first
     try await launchCalculator()
 
@@ -881,12 +803,8 @@ struct InterfaceExplorerToolTests {
 
     // Test filtering for main content elements (not in menus)
     let params: [String: Value] = [
-      "scope": .string("application"),
-      "bundleId": .string("com.apple.calculator"),
-      "filter": .object([
-        "inMainContent": .bool(true)
-      ]),
-      "maxDepth": .int(10),
+      "scope": .string("application"), "bundleId": .string("com.apple.calculator"),
+      "filter": .object(["inMainContent": .bool(true)]), "maxDepth": .int(10),
     ]
 
     // Call the handler directly

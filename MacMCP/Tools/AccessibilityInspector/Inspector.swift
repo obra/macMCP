@@ -152,9 +152,7 @@ class UIElementNode {
     var value: CFTypeRef?
     let result = AXUIElementCopyAttributeValue(element, attribute as CFString, &value)
 
-    if result == .success, let value {
-      return value
-    }
+    if result == .success, let value { return value }
     return nil
   }
 }
@@ -180,14 +178,10 @@ class Inspector {
     )
 
     // Find the application
-    guard let app = try findApplication() else {
-      throw InspectionError.applicationNotFound
-    }
+    guard let app = try findApplication() else { throw InspectionError.applicationNotFound }
 
     // Verify accessibility permissions
-    if !checkAccessibilityPermissions() {
-      throw InspectionError.accessibilityPermissionDenied
-    }
+    if !checkAccessibilityPermissions() { throw InspectionError.accessibilityPermissionDenied }
 
     // Get the AXUIElement for the application
     let appElement = AXUIElementCreateApplication(app.processIdentifier)

@@ -44,11 +44,7 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
   /// Create a new TextEdit model
   /// - Parameter toolChain: ToolChain instance for interacting with TextEdit
   public init(toolChain: ToolChain) {
-    super.init(
-      bundleId: "com.apple.TextEdit",
-      appName: "TextEdit",
-      toolChain: toolChain,
-    )
+    super.init(bundleId: "com.apple.TextEdit", appName: "TextEdit", toolChain: toolChain, )
 
     // Ensure that KeyboardInteractionTool is available for use in TextEditModel
     // Note: This is now a non-optional property in ToolChain
@@ -64,8 +60,7 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
       "action": .string("key_sequence"),
       "sequence": .array([
         .object([
-          "tap": .string("w"),
-          "modifiers": .array([.string("command"), .string("option")]),
+          "tap": .string("w"), "modifiers": .array([.string("command"), .string("option")]),
         ])
       ]),
     ]
@@ -74,10 +69,7 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
     try await Task.sleep(for: .milliseconds(1000))
 
     // If any dialogs appear asking to save, press "Don't Save" button by looking for it
-    let dontSaveCriteria = UIElementCriteria(
-      role: "AXButton",
-      title: "Don't Save",
-    )
+    let dontSaveCriteria = UIElementCriteria(role: "AXButton", title: "Don't Save", )
 
     if let dontSaveButton = try await toolChain.findElement(
       matching: dontSaveCriteria,
@@ -86,8 +78,7 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
       maxDepth: 10,
     ) {
       let clickParams: [String: Value] = [
-        "action": .string("click"),
-        "element": .string(dontSaveButton.path),
+        "action": .string("click"), "element": .string(dontSaveButton.path),
       ]
 
       _ = try await toolChain.uiInteractionTool.handler(clickParams)
@@ -98,10 +89,7 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
     let newDocParams: [String: Value] = [
       "action": .string("key_sequence"),
       "sequence": .array([
-        .object([
-          "tap": .string("n"),
-          "modifiers": .array([.string("command")]),
-        ])
+        .object(["tap": .string("n"), "modifiers": .array([.string("command")])])
       ]),
     ]
 
@@ -110,12 +98,7 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
 
     // If open panel is showing, dismiss it with Escape key
     let escapeParams: [String: Value] = [
-      "action": .string("key_sequence"),
-      "sequence": .array([
-        .object([
-          "tap": .string("escape")
-        ])
-      ]),
+      "action": .string("key_sequence"), "sequence": .array([.object(["tap": .string("escape")])]),
     ]
 
     _ = try await toolChain.keyboardInteractionTool.handler(escapeParams)
@@ -127,9 +110,7 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
   /// Get the text area element from TextEdit
   /// - Returns: The text area element, or nil if not found
   public func getTextArea() async throws -> UIElement? {
-    let textAreaCriteria = UIElementCriteria(
-      role: "AXTextArea",
-    )
+    let textAreaCriteria = UIElementCriteria(role: "AXTextArea", )
 
     let result = try await toolChain.findElement(
       matching: textAreaCriteria,
@@ -148,10 +129,7 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
     let selectAllParams: [String: Value] = [
       "action": .string("key_sequence"),
       "sequence": .array([
-        .object([
-          "tap": .string("a"),
-          "modifiers": .array([.string("command")]),
-        ])
+        .object(["tap": .string("a"), "modifiers": .array([.string("command")])])
       ]),
     ]
 
@@ -160,12 +138,7 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
 
     // Press delete key to remove selected text
     let deleteParams: [String: Value] = [
-      "action": .string("key_sequence"),
-      "sequence": .array([
-        .object([
-          "tap": .string("delete")
-        ])
-      ]),
+      "action": .string("key_sequence"), "sequence": .array([.object(["tap": .string("delete")])]),
     ]
 
     _ = try await toolChain.keyboardInteractionTool.handler(deleteParams)
@@ -179,10 +152,7 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
   /// - Returns: True if typing was successful
   public func typeText(_ text: String) async throws -> Bool {
     // Use type_text to type the text at the current cursor position
-    let typeParams: [String: Value] = [
-      "action": .string("type_text"),
-      "text": .string(text),
-    ]
+    let typeParams: [String: Value] = ["action": .string("type_text"), "text": .string(text)]
 
     _ = try await toolChain.keyboardInteractionTool.handler(typeParams)
 
@@ -213,10 +183,7 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
     let selectAllParams: [String: Value] = [
       "action": .string("key_sequence"),
       "sequence": .array([
-        .object([
-          "tap": .string("a"),
-          "modifiers": .array([.string("command")]),
-        ])
+        .object(["tap": .string("a"), "modifiers": .array([.string("command")])])
       ]),
     ]
 
@@ -230,13 +197,9 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
   /// Get the current text in the text area
   /// - Returns: The text in the text area
   public func getText() async throws -> String? {
-    guard let textArea = try await getTextArea() else {
-      return nil
-    }
+    guard let textArea = try await getTextArea() else { return nil }
 
-    if let value = textArea.value {
-      return String(describing: value)
-    }
+    if let value = textArea.value { return String(describing: value) }
 
     return nil
   }
@@ -248,10 +211,7 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
     let boldParams: [String: Value] = [
       "action": .string("key_sequence"),
       "sequence": .array([
-        .object([
-          "tap": .string("b"),
-          "modifiers": .array([.string("command")]),
-        ])
+        .object(["tap": .string("b"), "modifiers": .array([.string("command")])])
       ]),
     ]
 
@@ -267,10 +227,7 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
     let italicParams: [String: Value] = [
       "action": .string("key_sequence"),
       "sequence": .array([
-        .object([
-          "tap": .string("i"),
-          "modifiers": .array([.string("command")]),
-        ])
+        .object(["tap": .string("i"), "modifiers": .array([.string("command")])])
       ]),
     ]
 
@@ -284,12 +241,7 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
   public func insertNewline() async throws -> Bool {
     // Use key_sequence to press return key
     let returnParams: [String: Value] = [
-      "action": .string("key_sequence"),
-      "sequence": .array([
-        .object([
-          "tap": .string("return")
-        ])
-      ]),
+      "action": .string("key_sequence"), "sequence": .array([.object(["tap": .string("return")])]),
     ]
 
     _ = try await toolChain.keyboardInteractionTool.handler(returnParams)
@@ -304,16 +256,11 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
   public func navigateToMenuItem(_ menuPath: String) async throws -> Bool {
     // Convert the forward-slash path format to the new " > " format
     let parts = menuPath.split(separator: "/")
-    guard parts.count >= 1 else {
-      return false
-    }
-    
+    guard parts.count >= 1 else { return false }
     // Build the new menu path format
     let newMenuPath = parts.joined(separator: " > ")
-    
     let menuParams: [String: Value] = [
-      "action": .string("selectMenuItem"),
-      "bundleId": .string(bundleId),
+      "action": .string("selectMenuItem"), "bundleId": .string(bundleId),
       "menuPath": .string(newMenuPath),
     ]
 
@@ -369,35 +316,22 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
     let saveAsParams: [String: Value] = [
       "action": .string("key_sequence"),
       "sequence": .array([
-        .object([
-          "tap": .string("s"),
-          "modifiers": .array([.string("command"), .string("shift")]),
-        ]),
-        .object([
-          "delay": .double(1.0)
-        ]),
+        .object(["tap": .string("s"), "modifiers": .array([.string("command"), .string("shift")])]),
+        .object(["delay": .double(1.0)]),
       ]),
     ]
 
     _ = try await toolChain.keyboardInteractionTool.handler(saveAsParams)
 
     // Type the path
-    let typePathParams: [String: Value] = [
-      "action": .string("type_text"),
-      "text": .string(path),
-    ]
+    let typePathParams: [String: Value] = ["action": .string("type_text"), "text": .string(path)]
 
     _ = try await toolChain.keyboardInteractionTool.handler(typePathParams)
     try await Task.sleep(for: .milliseconds(500))
 
     // Press Return to confirm
     let returnParams: [String: Value] = [
-      "action": .string("key_sequence"),
-      "sequence": .array([
-        .object([
-          "tap": .string("return")
-        ])
-      ]),
+      "action": .string("key_sequence"), "sequence": .array([.object(["tap": .string("return")])]),
     ]
 
     _ = try await toolChain.keyboardInteractionTool.handler(returnParams)
@@ -414,35 +348,22 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
     let openParams: [String: Value] = [
       "action": .string("key_sequence"),
       "sequence": .array([
-        .object([
-          "tap": .string("o"),
-          "modifiers": .array([.string("command")]),
-        ]),
-        .object([
-          "delay": .double(1.0)
-        ]),
+        .object(["tap": .string("o"), "modifiers": .array([.string("command")])]),
+        .object(["delay": .double(1.0)]),
       ]),
     ]
 
     _ = try await toolChain.keyboardInteractionTool.handler(openParams)
 
     // Type the path
-    let typePathParams: [String: Value] = [
-      "action": .string("type_text"),
-      "text": .string(path),
-    ]
+    let typePathParams: [String: Value] = ["action": .string("type_text"), "text": .string(path)]
 
     _ = try await toolChain.keyboardInteractionTool.handler(typePathParams)
     try await Task.sleep(for: .milliseconds(500))
 
     // Press Return to confirm
     let returnParams: [String: Value] = [
-      "action": .string("key_sequence"),
-      "sequence": .array([
-        .object([
-          "tap": .string("return")
-        ])
-      ]),
+      "action": .string("key_sequence"), "sequence": .array([.object(["tap": .string("return")])]),
     ]
 
     _ = try await toolChain.keyboardInteractionTool.handler(returnParams)
@@ -455,9 +376,7 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
   /// - Returns: Path to the screenshot file
   public func takeScreenshot() async throws -> String? {
     // Take a full screenshot of the screen (simplest approach)
-    let screenshotParams: [String: Value] = [
-      "region": .string("full")
-    ]
+    let screenshotParams: [String: Value] = ["region": .string("full")]
 
     let result = try await toolChain.screenshotTool.handler(screenshotParams)
 

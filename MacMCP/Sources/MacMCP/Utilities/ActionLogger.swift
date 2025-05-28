@@ -89,26 +89,22 @@ public actor ActionLogService {
     logs.insert(entry, at: 0)
 
     // Trim the log if it exceeds the maximum size
-    if logs.count > maxEntries {
-      logs = Array(logs.prefix(maxEntries))
-    }
+    if logs.count > maxEntries { logs = Array(logs.prefix(maxEntries)) }
 
     // Also log to the standard logger for debugging
     if entry.success {
       logger.info(
         "[\(entry.category)] \(entry.action)",
-        metadata: [
-          "targetId": "\(entry.targetId ?? "none")",
-          "details": "\(entry.details)",
-        ])
+        metadata: ["targetId": "\(entry.targetId ?? "none")", "details": "\(entry.details)"]
+      )
     } else {
       logger.error(
         "[\(entry.category)] \(entry.action) - FAILED",
         metadata: [
-          "targetId": "\(entry.targetId ?? "none")",
-          "details": "\(entry.details)",
+          "targetId": "\(entry.targetId ?? "none")", "details": "\(entry.details)",
           "error": "\(entry.errorMessage ?? "Unknown error")",
-        ])
+        ]
+      )
     }
   }
 
@@ -119,10 +115,7 @@ public actor ActionLogService {
   ///   - targetId: The target element identifier (if applicable)
   ///   - details: Additional details about the action
   public func logSuccess(
-    category: String,
-    action: String,
-    targetId: String?,
-    details: [String: String] = [:],
+    category: String, action: String, targetId: String?, details: [String: String] = [:],
   ) {
     let entry = ActionLogEntry(
       timestamp: Date(),
@@ -187,42 +180,26 @@ public actor ActionLogService {
     var filteredLogs = logs
 
     // Apply category filter
-    if let category {
-      filteredLogs = filteredLogs.filter { $0.category == category }
-    }
+    if let category { filteredLogs = filteredLogs.filter { $0.category == category } }
 
     // Apply action filter
-    if let action {
-      filteredLogs = filteredLogs.filter { $0.action == action }
-    }
+    if let action { filteredLogs = filteredLogs.filter { $0.action == action } }
 
     // Apply target ID filter
-    if let targetId {
-      filteredLogs = filteredLogs.filter { $0.targetId == targetId }
-    }
+    if let targetId { filteredLogs = filteredLogs.filter { $0.targetId == targetId } }
 
     // Apply success/failure filters
-    if successOnly {
-      filteredLogs = filteredLogs.filter(\.success)
-    }
+    if successOnly { filteredLogs = filteredLogs.filter(\.success) }
 
-    if failuresOnly {
-      filteredLogs = filteredLogs.filter { !$0.success }
-    }
+    if failuresOnly { filteredLogs = filteredLogs.filter { !$0.success } }
 
     // Apply date range filters
-    if let since {
-      filteredLogs = filteredLogs.filter { $0.timestamp >= since }
-    }
+    if let since { filteredLogs = filteredLogs.filter { $0.timestamp >= since } }
 
-    if let until {
-      filteredLogs = filteredLogs.filter { $0.timestamp <= until }
-    }
+    if let until { filteredLogs = filteredLogs.filter { $0.timestamp <= until } }
 
     // Apply limit
-    if let limit, limit > 0 {
-      return Array(filteredLogs.prefix(limit))
-    }
+    if let limit, limit > 0 { return Array(filteredLogs.prefix(limit)) }
 
     return filteredLogs
   }

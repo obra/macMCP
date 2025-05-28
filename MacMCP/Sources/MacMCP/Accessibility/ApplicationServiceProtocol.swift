@@ -80,9 +80,7 @@ public struct ApplicationStateChange: Sendable, Equatable {
 
   /// Create a new application state change
   public init(
-    type: ApplicationStateChangeType,
-    application: ApplicationStateInfo,
-    timestamp: Date = Date()
+    type: ApplicationStateChangeType, application: ApplicationStateInfo, timestamp: Date = Date()
   ) {
     self.type = type
     self.application = application
@@ -105,12 +103,7 @@ public struct ApplicationLaunchResult: Sendable, Equatable {
   public let applicationName: String
 
   /// Create a new launch result
-  public init(
-    success: Bool,
-    processIdentifier: Int32,
-    bundleId: String,
-    applicationName: String
-  ) {
+  public init(success: Bool, processIdentifier: Int32, bundleId: String, applicationName: String) {
     self.success = success
     self.processIdentifier = processIdentifier
     self.bundleId = bundleId
@@ -127,8 +120,8 @@ public protocol ApplicationServiceProtocol: Sendable {
   ///   - hideOthers: Whether to hide other applications when opening this one
   /// - Returns: A boolean indicating whether the application was successfully opened
   /// - Throws: MacMCPErrorInfo if the application could not be opened
-  func openApplication(bundleId: String, arguments: [String]?, hideOthers: Bool?)
-    async throws -> Bool
+  func openApplication(bundleId: String, arguments: [String]?, hideOthers: Bool?) async throws
+    -> Bool
 
   /// Opens an application by its name.
   /// - Parameters:
@@ -164,18 +157,13 @@ public protocol ApplicationServiceProtocol: Sendable {
   ///   - timeout: Timeout in seconds for waiting for termination completion
   /// - Returns: Whether the application was successfully terminated
   /// - Throws: MacMCPErrorInfo if the application could not be terminated
-  func terminateApplication(
-    bundleId: String,
-    timeout: TimeInterval,
-  ) async throws -> Bool
+  func terminateApplication(bundleId: String, timeout: TimeInterval, ) async throws -> Bool
 
   /// Force terminate an application by its bundle identifier
   /// - Parameter bundleId: The bundle identifier of the application to force terminate
   /// - Returns: Whether the application was successfully terminated
   /// - Throws: MacMCPErrorInfo if the application could not be terminated
-  func forceTerminateApplication(
-    bundleId: String,
-  ) async throws -> Bool
+  func forceTerminateApplication(bundleId: String, ) async throws -> Bool
 
   /// Activates an already running application by bringing it to the foreground.
   /// - Parameter bundleId: The bundle identifier of the application to activate
@@ -187,25 +175,19 @@ public protocol ApplicationServiceProtocol: Sendable {
   /// - Parameter bundleId: The bundle identifier of the application to hide
   /// - Returns: Whether the application was successfully hidden
   /// - Throws: MacMCPErrorInfo if the application could not be hidden
-  func hideApplication(
-    bundleId: String,
-  ) async throws -> Bool
+  func hideApplication(bundleId: String, ) async throws -> Bool
 
   /// Unhide an application
   /// - Parameter bundleId: The bundle identifier of the application to unhide
   /// - Returns: Whether the application was successfully unhidden
   /// - Throws: MacMCPErrorInfo if the application could not be unhidden
-  func unhideApplication(
-    bundleId: String,
-  ) async throws -> Bool
+  func unhideApplication(bundleId: String, ) async throws -> Bool
 
   /// Hide all applications except the specified one
   /// - Parameter exceptBundleIdentifier: The bundle identifier of the application to keep visible
   /// - Returns: Whether the operation was successful
   /// - Throws: MacMCPErrorInfo if the operation fails
-  func hideOtherApplications(
-    exceptBundleIdentifier: String?,
-  ) async throws -> Bool
+  func hideOtherApplications(exceptBundleIdentifier: String?, ) async throws -> Bool
 
   /// Returns a dictionary of running applications.
   /// - Returns: A dictionary mapping bundle identifiers to application names
@@ -222,9 +204,9 @@ public protocol ApplicationServiceProtocol: Sendable {
   /// - Returns: A unique identifier for this observation that can be used to stop it
   /// - Throws: MacMCPErrorInfo if the observation could not be started
   func startObservingApplications(
-    notificationHandler: @escaping @Sendable (ApplicationStateChange) async
-      -> Void,
-  ) async throws -> String
+    notificationHandler: @escaping @Sendable (ApplicationStateChange) async -> Void,
+  )
+    async throws -> String
 
   /// Stop observing application state changes.
   /// - Parameter observerId: The identifier of the observation to stop

@@ -1,13 +1,12 @@
 // ABOUTME: ClipboardManagementE2ETests.swift
 // ABOUTME: Part of MacMCP allowing LLMs to interact with macOS applications.
 
+import Foundation
 import MCP
 import MacMCP
-import Foundation
 import Testing
 
-@Suite(.serialized)
-struct ClipboardManagementE2ETests {
+@Suite(.serialized) struct ClipboardManagementE2ETests {
   // System under test
   private var clipboardService: ClipboardService!
   private var tool: ClipboardManagementTool!
@@ -62,15 +61,10 @@ struct ClipboardManagementE2ETests {
 
   // MARK: - Text Operations Tests
 
-  @Test("Text Operations")
-  mutating func testTextOperations() async throws {
+  @Test("Text Operations") mutating func testTextOperations() async throws {
     try await setUp()
-    
     // 1. Set text
-    var input: [String: Any] = [
-      "action": "setText",
-      "text": testText,
-    ]
+    var input: [String: Any] = ["action": "setText", "text": testText]
 
     var result = try await tool.execute(with: input, env: [:])
     #expect(result["success"] as? Bool == true)
@@ -100,21 +94,15 @@ struct ClipboardManagementE2ETests {
     result = try await tool.execute(with: input, env: [:])
 
     #expect(result["isEmpty"] as? Bool == true)
-    
     try await tearDown()
   }
 
   // MARK: - Image Operations Tests
 
-  @Test("Image Operations")
-  mutating func testImageOperations() async throws {
+  @Test("Image Operations") mutating func testImageOperations() async throws {
     try await setUp()
-    
     // 1. Set image
-    var input: [String: Any] = [
-      "action": "setImage",
-      "imageData": testImageBase64,
-    ]
+    var input: [String: Any] = ["action": "setImage", "imageData": testImageBase64]
 
     var result = try await tool.execute(with: input, env: [:])
     #expect(result["success"] as? Bool == true)
@@ -142,21 +130,15 @@ struct ClipboardManagementE2ETests {
     input = ["action": "clear"]
     result = try await tool.execute(with: input, env: [:])
     #expect(result["success"] as? Bool == true)
-    
     try await tearDown()
   }
 
   // MARK: - File Operations Tests
 
-  @Test("File Operations")
-  mutating func testFileOperations() async throws {
+  @Test("File Operations") mutating func testFileOperations() async throws {
     try await setUp()
-    
     // 1. Set files
-    var input: [String: Any] = [
-      "action": "setFiles",
-      "filePaths": [tempFilePath1, tempFilePath2],
-    ]
+    var input: [String: Any] = ["action": "setFiles", "filePaths": [tempFilePath1, tempFilePath2]]
 
     var result = try await tool.execute(with: input, env: [:])
     #expect(result["success"] as? Bool == true)
@@ -183,16 +165,13 @@ struct ClipboardManagementE2ETests {
     input = ["action": "clear"]
     result = try await tool.execute(with: input, env: [:])
     #expect(result["success"] as? Bool == true)
-    
     try await tearDown()
   }
 
   // MARK: - Error Handling Tests
 
-  @Test("Invalid Input Parameters")
-  mutating func testInvalidInputParameters() async throws {
+  @Test("Invalid Input Parameters") mutating func testInvalidInputParameters() async throws {
     try await setUp()
-    
     // Test invalid action
     var input: [String: Any] = ["action": "invalidAction"]
 
@@ -205,9 +184,7 @@ struct ClipboardManagementE2ETests {
       } else {
         #expect(Bool(false), "Wrong error type thrown: \(error)")
       }
-    } catch {
-      #expect(Bool(false), "Unexpected error: \(error)")
-    }
+    } catch { #expect(Bool(false), "Unexpected error: \(error)") }
 
     // Test missing text parameter
     input = ["action": "setText"]
@@ -221,9 +198,7 @@ struct ClipboardManagementE2ETests {
       } else {
         #expect(Bool(false), "Wrong error type thrown: \(error)")
       }
-    } catch {
-      #expect(Bool(false), "Unexpected error: \(error)")
-    }
+    } catch { #expect(Bool(false), "Unexpected error: \(error)") }
 
     // Test missing imageData parameter
     input = ["action": "setImage"]
@@ -237,9 +212,7 @@ struct ClipboardManagementE2ETests {
       } else {
         #expect(Bool(false), "Wrong error type thrown: \(error)")
       }
-    } catch {
-      #expect(Bool(false), "Unexpected error: \(error)")
-    }
+    } catch { #expect(Bool(false), "Unexpected error: \(error)") }
 
     // Test missing filePaths parameter
     input = ["action": "setFiles"]
@@ -253,9 +226,7 @@ struct ClipboardManagementE2ETests {
       } else {
         #expect(Bool(false), "Wrong error type thrown: \(error)")
       }
-    } catch {
-      #expect(Bool(false), "Unexpected error: \(error)")
-    }
+    } catch { #expect(Bool(false), "Unexpected error: \(error)") }
 
     // Test empty filePaths array
     input = ["action": "setFiles", "filePaths": []]
@@ -269,26 +240,18 @@ struct ClipboardManagementE2ETests {
       } else {
         #expect(Bool(false), "Wrong error type thrown: \(error)")
       }
-    } catch {
-      #expect(Bool(false), "Unexpected error: \(error)")
-    }
-    
+    } catch { #expect(Bool(false), "Unexpected error: \(error)") }
     try await tearDown()
   }
 
-  @Test("Non Existent Files")
-  mutating func testNonExistentFiles() async throws {
+  @Test("Non Existent Files") mutating func testNonExistentFiles() async throws {
     try await setUp()
-    
     // Try to set non-existent files
     let nonExistentPath = tempDir.appendingPathComponent(
       "non_existent_file_\(UUID().uuidString).txt"
     ).path
 
-    let input: [String: Any] = [
-      "action": "setFiles",
-      "filePaths": [nonExistentPath],
-    ]
+    let input: [String: Any] = ["action": "setFiles", "filePaths": [nonExistentPath]]
 
     do {
       _ = try await tool.execute(with: input, env: [:])
@@ -300,22 +263,14 @@ struct ClipboardManagementE2ETests {
       } else {
         #expect(Bool(false), "Wrong error type thrown: \(error)")
       }
-    } catch {
-      #expect(Bool(false), "Unexpected error: \(error)")
-    }
-    
+    } catch { #expect(Bool(false), "Unexpected error: \(error)") }
     try await tearDown()
   }
 
-  @Test("Invalid Image Data")
-  mutating func testInvalidImageData() async throws {
+  @Test("Invalid Image Data") mutating func testInvalidImageData() async throws {
     try await setUp()
-    
     // Try to set invalid base64 data as an image
-    let input: [String: Any] = [
-      "action": "setImage",
-      "imageData": "not valid base64!",
-    ]
+    let input: [String: Any] = ["action": "setImage", "imageData": "not valid base64!"]
 
     do {
       _ = try await tool.execute(with: input, env: [:])
@@ -324,15 +279,11 @@ struct ClipboardManagementE2ETests {
       if case .internalError(let message) = error {
         #expect(
           message?.contains("INVALID_IMAGE_DATA") == true,
-          "Error should indicate invalid image data",
-        )
+          "Error should indicate invalid image data", )
       } else {
         #expect(Bool(false), "Wrong error type thrown: \(error)")
       }
-    } catch {
-      #expect(Bool(false), "Unexpected error: \(error)")
-    }
-    
+    } catch { #expect(Bool(false), "Unexpected error: \(error)") }
     try await tearDown()
   }
 }

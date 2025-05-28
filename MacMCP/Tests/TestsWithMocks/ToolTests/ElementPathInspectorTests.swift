@@ -6,8 +6,7 @@ import Testing
 
 @testable import MacMCP
 
-@Suite(.serialized)
-struct ElementPathInspectorTests {
+@Suite(.serialized) struct ElementPathInspectorTests {
   // Test data for path generation
   let testElement1 = UIElement(
     path: "macos://ui/AXButton[@AXTitle='Test Button']",
@@ -36,8 +35,7 @@ struct ElementPathInspectorTests {
   )
 
   // Test that path generation works correctly
-  @Test("Test element path generation")
-  mutating func testElementPathGeneration() throws {
+  @Test("Test element path generation") mutating func testElementPathGeneration() throws {
     // Generate paths for different elements
     let path1 = try testElement1.generatePath()
     let path2 = try testElement2.generatePath()
@@ -53,14 +51,11 @@ struct ElementPathInspectorTests {
   }
 
   // Test path generation with optional attributes
-  @Test("Test path with optional attributes")
-  mutating func testPathWithOptionalAttributes() throws {
+  @Test("Test path with optional attributes") mutating func testPathWithOptionalAttributes() throws
+  {
     // Test path with value included
     let pathWithValue = try testElement2.generatePath(includeValue: true)
-    #expect(
-      pathWithValue.contains("AXValue"),
-      "Path should include value attribute when requested"
-    )
+    #expect(pathWithValue.contains("AXValue"), "Path should include value attribute when requested")
 
     // Test path with frame included
     let pathWithFrame = try testElement1.generatePath(includeFrame: true)
@@ -71,8 +66,7 @@ struct ElementPathInspectorTests {
   }
 
   // Test element path hierarchy with parent-child relationships
-  @Test("Test element path hierarchy")
-  mutating func testElementPathHierarchy() throws {
+  @Test("Test element path hierarchy") mutating func testElementPathHierarchy() throws {
     // Create a parent element
     let parentElement = UIElement(
       path: "macos://ui/AXGroup[@AXTitle=\"Parent Group\"][@identifier=\"test-parent\"]",
@@ -110,7 +104,6 @@ struct ElementPathInspectorTests {
     // The order should be parent first, then child
     let groupIndex = childPath.range(of: "AXGroup")?.lowerBound
     let buttonIndex = childPath.range(of: "AXButton")?.lowerBound
-    #expect(
-      groupIndex! < buttonIndex!, "Parent role should appear before child role in path")
+    #expect(groupIndex! < buttonIndex!, "Parent role should appear before child role in path")
   }
 }

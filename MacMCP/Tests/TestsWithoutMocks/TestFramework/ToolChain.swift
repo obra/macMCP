@@ -40,7 +40,6 @@ public final class ToolChain: @unchecked Sendable {
   /// Tool for interacting with UI elements
   public let uiInteractionTool: UIInteractionTool
 
-
   /// Tool for managing windows
   public let windowManagementTool: WindowManagementTool
 
@@ -68,25 +67,17 @@ public final class ToolChain: @unchecked Sendable {
     accessibilityService = AccessibilityService(logger: logger)
     applicationService = ApplicationService(logger: logger)
     screenshotService = ScreenshotService(
-      accessibilityService: accessibilityService,
-      logger: logger,
-    )
+      accessibilityService: accessibilityService, logger: logger, )
     interactionService = UIInteractionService(
-      accessibilityService: accessibilityService,
-      logger: logger,
-    )
+      accessibilityService: accessibilityService, logger: logger, )
     menuNavigationService = MenuNavigationService(
-      accessibilityService: accessibilityService,
-      logger: logger,
-    )
+      accessibilityService: accessibilityService, logger: logger, )
 
     // Create tools
-    screenshotTool = ScreenshotTool(
-      screenshotService: screenshotService,
-      logger: logger,
-    )
+    screenshotTool = ScreenshotTool(screenshotService: screenshotService, logger: logger, )
 
-    let changeDetectionService = UIChangeDetectionService(accessibilityService: accessibilityService)
+    let changeDetectionService = UIChangeDetectionService(
+      accessibilityService: accessibilityService)
     uiInteractionTool = UIInteractionTool(
       interactionService: interactionService,
       accessibilityService: accessibilityService,
@@ -95,11 +86,8 @@ public final class ToolChain: @unchecked Sendable {
       logger: logger,
     )
 
-
     windowManagementTool = WindowManagementTool(
-      accessibilityService: accessibilityService,
-      logger: logger,
-    )
+      accessibilityService: accessibilityService, logger: logger, )
 
     menuNavigationTool = MenuNavigationTool(
       menuNavigationService: menuNavigationService,
@@ -109,9 +97,7 @@ public final class ToolChain: @unchecked Sendable {
     )
 
     interfaceExplorerTool = InterfaceExplorerTool(
-      accessibilityService: accessibilityService,
-      logger: logger,
-    )
+      accessibilityService: accessibilityService, logger: logger, )
 
     keyboardInteractionTool = KeyboardInteractionTool(
       interactionService: interactionService,
@@ -121,9 +107,7 @@ public final class ToolChain: @unchecked Sendable {
     )
 
     applicationManagementTool = ApplicationManagementTool(
-      applicationService: applicationService,
-      logger: logger,
-    )
+      applicationService: applicationService, logger: logger, )
   }
 
   // MARK: - Application Operations
@@ -134,20 +118,13 @@ public final class ToolChain: @unchecked Sendable {
   ///   - arguments: Optional command line arguments
   ///   - hideOthers: Whether to hide other applications
   /// - Returns: True if the application was successfully opened
-  public func openApp(
-    bundleId: String,
-    arguments: [String]? = nil,
-    hideOthers: Bool = false,
-  ) async throws -> Bool {
+  public func openApp(bundleId: String, arguments: [String]? = nil, hideOthers: Bool = false, )
+    async throws -> Bool
+  {
     // Create parameters for the application management tool
-    var params: [String: Value] = [
-      "action": .string("launch"),
-      "bundleId": .string(bundleId)
-    ]
+    var params: [String: Value] = ["action": .string("launch"), "bundleId": .string(bundleId)]
 
-    if let arguments {
-      params["arguments"] = .array(arguments.map { .string($0) })
-    }
+    if let arguments { params["arguments"] = .array(arguments.map { .string($0) }) }
 
     params["hideOthers"] = .bool(hideOthers)
 
@@ -183,9 +160,7 @@ public final class ToolChain: @unchecked Sendable {
     }
 
     // Wait for termination to complete
-    if !allTerminated {
-      try await Task.sleep(for: .milliseconds(3000))
-    }
+    if !allTerminated { try await Task.sleep(for: .milliseconds(3000)) }
 
     return NSRunningApplication.runningApplications(withBundleIdentifier: bundleId).isEmpty
   }
@@ -208,14 +183,9 @@ public final class ToolChain: @unchecked Sendable {
     maxDepth: Int = 10,
   ) async throws -> [UIElement] {
     // Create parameters for the tool
-    var params: [String: Value] = [
-      "scope": .string(scope),
-      "maxDepth": .int(maxDepth),
-    ]
+    var params: [String: Value] = ["scope": .string(scope), "maxDepth": .int(maxDepth)]
 
-    if let bundleId {
-      params["bundleId"] = .string(bundleId)
-    }
+    if let bundleId { params["bundleId"] = .string(bundleId) }
 
     if let position {
       params["x"] = .double(Double(position.x))
@@ -226,9 +196,7 @@ public final class ToolChain: @unchecked Sendable {
     var filterObj: [String: Value] = [:]
 
     // Add filter criteria if applicable
-    if criteria.role != nil {
-      filterObj["role"] = .string(criteria.role!)
-    }
+    if criteria.role != nil { filterObj["role"] = .string(criteria.role!) }
 
     // Add title contains filter
     if criteria.titleContains != nil {
@@ -244,31 +212,24 @@ public final class ToolChain: @unchecked Sendable {
     if criteria.descriptionContains != nil {
       filterObj["descriptionContains"] = .string(criteria.descriptionContains!)
     }
-    
     // Add exact description as textContains filter (for compact JSON format compatibility)
-    if criteria.description != nil {
-      filterObj["textContains"] = .string(criteria.description!)
-    }
+    if criteria.description != nil { filterObj["textContains"] = .string(criteria.description!) }
 
     // Include main content (windows and their contents) - this is equivalent to --show-window-contents
     filterObj["inMainContent"] = .bool(true)
 
     // Only add filter if we have filter criteria
-    if !filterObj.isEmpty {
-      params["filter"] = .object(filterObj)
-    }
+    if !filterObj.isEmpty { params["filter"] = .object(filterObj) }
 
     // Set hidden elements flag
     if criteria.isVisible != nil {
       params["includeHidden"] = .bool(true)  // We'll filter later based on isVisible
     }
-    
     // Always include coordinates since tests need them for clicking
     params["showCoordinates"] = .bool(true)
 
     // Call the interface explorer tool
     let result = try await interfaceExplorerTool.handler(params)
-
 
     // Parse the result
     if let content = result.first, case .text(let jsonString) = content {
@@ -329,7 +290,7 @@ public final class ToolChain: @unchecked Sendable {
 
   /// Click on a UI element using its element ID with change detection support
   /// - Parameters:
-  ///   - elementId: Element ID or path of the element to click  
+  ///   - elementId: Element ID or path of the element to click
   ///   - appBundleId: Optional bundle identifier of the application
   ///   - detectChanges: Enable UI change detection (default: false for compatibility)
   ///   - changeDetectionDelay: Delay in milliseconds before capturing changes
@@ -342,15 +303,11 @@ public final class ToolChain: @unchecked Sendable {
   ) async throws -> [Tool.Content] {
     // Create parameters for the tool
     var params: [String: Value] = [
-      "action": .string("click"),
-      "id": .string(elementId),
-      "detectChanges": .bool(detectChanges),
+      "action": .string("click"), "id": .string(elementId), "detectChanges": .bool(detectChanges),
       "changeDetectionDelay": .int(changeDetectionDelay),
     ]
 
-    if let appBundleId {
-      params["appBundleId"] = .string(appBundleId)
-    }
+    if let appBundleId { params["appBundleId"] = .string(appBundleId) }
 
     // Call the UI interaction tool and return full result
     return try await uiInteractionTool.handler(params)
@@ -361,19 +318,11 @@ public final class ToolChain: @unchecked Sendable {
   ///   - elementPath: Path of the element to click in macos://ui/ format
   ///   - bundleId: Optional bundle identifier of the application
   /// - Returns: True if the click was successful
-  public func clickElement(
-    elementPath: String,
-    bundleId: String? = nil,
-  ) async throws -> Bool {
+  public func clickElement(elementPath: String, bundleId: String? = nil, ) async throws -> Bool {
     // Create parameters for the tool
-    var params: [String: Value] = [
-      "action": .string("click"),
-      "id": .string(elementPath),
-    ]
+    var params: [String: Value] = ["action": .string("click"), "id": .string(elementPath)]
 
-    if let bundleId {
-      params["appBundleId"] = .string(bundleId)
-    }
+    if let bundleId { params["appBundleId"] = .string(bundleId) }
 
     // Call the UI interaction tool
     let result = try await uiInteractionTool.handler(params)
@@ -393,8 +342,7 @@ public final class ToolChain: @unchecked Sendable {
   public func clickAtPosition(position: CGPoint) async throws -> Bool {
     // Create parameters for the tool
     let params: [String: Value] = [
-      "action": .string("click"),
-      "x": .double(Double(position.x)),
+      "action": .string("click"), "x": .double(Double(position.x)),
       "y": .double(Double(position.y)),
     ]
 
@@ -416,21 +364,15 @@ public final class ToolChain: @unchecked Sendable {
   ///   - text: Text to type
   ///   - bundleId: Optional bundle identifier of the application
   /// - Returns: True if the text was successfully typed
-  public func typeText(
-    elementPath: String,
-    text: String,
-    bundleId: String? = nil,
-  ) async throws -> Bool {
+  public func typeText(elementPath: String, text: String, bundleId: String? = nil, ) async throws
+    -> Bool
+  {
     // Create parameters for the tool
     var params: [String: Value] = [
-      "action": .string("type"),
-      "id": .string(elementPath),
-      "text": .string(text),
+      "action": .string("type"), "id": .string(elementPath), "text": .string(text),
     ]
 
-    if let bundleId {
-      params["appBundleId"] = .string(bundleId)
-    }
+    if let bundleId { params["appBundleId"] = .string(bundleId) }
 
     // Call the UI interaction tool
     let result = try await uiInteractionTool.handler(params)
@@ -461,18 +403,10 @@ public final class ToolChain: @unchecked Sendable {
       // This is a simplified approach - in practice, we'd have a proper mapping
       var modifierStrings: [String] = []
 
-      if modifiers.contains(.maskShift) {
-        modifierStrings.append("shift")
-      }
-      if modifiers.contains(.maskCommand) {
-        modifierStrings.append("command")
-      }
-      if modifiers.contains(.maskAlternate) {
-        modifierStrings.append("option")
-      }
-      if modifiers.contains(.maskControl) {
-        modifierStrings.append("control")
-      }
+      if modifiers.contains(.maskShift) { modifierStrings.append("shift") }
+      if modifiers.contains(.maskCommand) { modifierStrings.append("command") }
+      if modifiers.contains(.maskAlternate) { modifierStrings.append("option") }
+      if modifiers.contains(.maskControl) { modifierStrings.append("control") }
 
       if !modifierStrings.isEmpty {
         tapEvent["modifiers"] = .array(modifierStrings.map { .string($0) })
@@ -484,8 +418,7 @@ public final class ToolChain: @unchecked Sendable {
 
     // Create the parameters for the tool
     let params: [String: Value] = [
-      "action": .string("key_sequence"),
-      "sequence": .array(sequence.map { .object($0) }),
+      "action": .string("key_sequence"), "sequence": .array(sequence.map { .object($0) }),
     ]
 
     // Call the keyboard interaction tool
@@ -503,19 +436,17 @@ public final class ToolChain: @unchecked Sendable {
   /// Type text using the keyboard interaction tool with change detection support
   /// - Parameters:
   ///   - text: The text to type
-  ///   - detectChanges: Enable UI change detection (default: false for compatibility) 
+  ///   - detectChanges: Enable UI change detection (default: false for compatibility)
   ///   - changeDetectionDelay: Delay in milliseconds before capturing changes
   /// - Returns: Array of tool content (may include change detection results)
   public func typeTextWithKeyboard(
-    text: String,
-    detectChanges: Bool = false,
-    changeDetectionDelay: Int = 200
-  ) async throws -> [Tool.Content] {
+    text: String, detectChanges: Bool = false, changeDetectionDelay: Int = 200
+  )
+    async throws -> [Tool.Content]
+  {
     // Create parameters for the tool
     let params: [String: Value] = [
-      "action": .string("type_text"),
-      "text": .string(text),
-      "detectChanges": .bool(detectChanges),
+      "action": .string("type_text"), "text": .string(text), "detectChanges": .bool(detectChanges),
       "changeDetectionDelay": .int(changeDetectionDelay),
     ]
 
@@ -528,10 +459,7 @@ public final class ToolChain: @unchecked Sendable {
   /// - Returns: True if the text was successfully typed
   public func typeTextWithKeyboard(text: String) async throws -> Bool {
     // Create parameters for the tool
-    let params: [String: Value] = [
-      "action": .string("type_text"),
-      "text": .string(text),
-    ]
+    let params: [String: Value] = ["action": .string("type_text"), "text": .string(text)]
 
     // Call the keyboard interaction tool
     let result = try await keyboardInteractionTool.handler(params)
@@ -551,8 +479,7 @@ public final class ToolChain: @unchecked Sendable {
   public func executeKeySequence(sequence: [[String: Value]]) async throws -> Bool {
     // Create parameters for the tool
     let params: [String: Value] = [
-      "action": .string("key_sequence"),
-      "sequence": .array(sequence.map { .object($0) }),
+      "action": .string("key_sequence"), "sequence": .array(sequence.map { .object($0) }),
     ]
 
     // Call the keyboard interaction tool
@@ -574,15 +501,10 @@ public final class ToolChain: @unchecked Sendable {
   ///   - bundleId: Application bundle identifier
   ///   - menuTitle: Title of the menu to explore (e.g., "File", "Edit")
   /// - Returns: Array of tool content containing menu items
-  public func getMenuItems(
-    bundleId: String,
-    menuTitle: String
-  ) async throws -> [Tool.Content] {
+  public func getMenuItems(bundleId: String, menuTitle: String) async throws -> [Tool.Content] {
     // Create parameters for the tool
     let params: [String: Value] = [
-      "action": .string("showMenu"),
-      "bundleId": .string(bundleId),
-      "menuPath": .string(menuTitle),
+      "action": .string("showMenu"), "bundleId": .string(bundleId), "menuPath": .string(menuTitle),
     ]
 
     // Call the menu navigation tool
@@ -616,20 +538,14 @@ public final class ToolChain: @unchecked Sendable {
   ) async throws -> [[String: Any]] {
     // Create parameters for the tool
     var params: [String: Value] = [
-      "scope": .string(scope),
-      "maxDepth": .int(maxDepth),
-      "includeHidden": .bool(includeHidden),
+      "scope": .string(scope), "maxDepth": .int(maxDepth), "includeHidden": .bool(includeHidden),
       "limit": .int(limit),
     ]
 
     // Add parameters based on scope
-    if let bundleId {
-      params["bundleId"] = .string(bundleId)
-    }
+    if let bundleId { params["bundleId"] = .string(bundleId) }
 
-    if let elementPath {
-      params["id"] = .string(elementPath)
-    }
+    if let elementPath { params["id"] = .string(elementPath) }
 
     if let position {
       params["x"] = .double(Double(position.x))
@@ -639,9 +555,7 @@ public final class ToolChain: @unchecked Sendable {
     // Add filter if provided
     if let filter, !filter.isEmpty {
       var filterObj: [String: Value] = [:]
-      for (key, value) in filter {
-        filterObj[key] = .string(value)
-      }
+      for (key, value) in filter { filterObj[key] = .string(value) }
       params["filter"] = .object(filterObj)
     }
 
@@ -663,7 +577,7 @@ public final class ToolChain: @unchecked Sendable {
   }
 
   // MARK: - JSON Parsing Helpers
-  
+
   /// Parse JSON from a tool response
   /// - Parameter content: The content returned from a tool
   /// - Returns: The parsed JSON as a dictionary
@@ -676,7 +590,6 @@ public final class ToolChain: @unchecked Sendable {
         userInfo: [NSLocalizedDescriptionKey: "Tool response is not text content"]
       )
     }
-    
     guard let data = jsonString.data(using: .utf8) else {
       throw NSError(
         domain: "ToolChain",
@@ -684,7 +597,6 @@ public final class ToolChain: @unchecked Sendable {
         userInfo: [NSLocalizedDescriptionKey: "Failed to convert JSON string to data"]
       )
     }
-    
     guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
       throw NSError(
         domain: "ToolChain",
@@ -692,10 +604,8 @@ public final class ToolChain: @unchecked Sendable {
         userInfo: [NSLocalizedDescriptionKey: "Failed to parse JSON or result is not a dictionary"]
       )
     }
-    
     return json
   }
-  
   /// Get a boolean value from a parsed JSON response
   /// - Parameters:
   ///   - json: The parsed JSON
@@ -704,7 +614,6 @@ public final class ToolChain: @unchecked Sendable {
   public func getBoolValue(from json: [String: Any], forKey key: String) -> Bool {
     return json[key] as? Bool ?? false
   }
-  
   // MARK: - Helper Methods
 
   /// Parse a UI element from JSON
@@ -735,9 +644,7 @@ public final class ToolChain: @unchecked Sendable {
     let stringValue: String? =
       value as? String
       ?? {
-        if let value {
-          return String(describing: value)
-        }
+        if let value { return String(describing: value) }
         return nil
       }()
     let description = json["description"] as? String
@@ -770,9 +677,7 @@ public final class ToolChain: @unchecked Sendable {
     var attributes: [String: Any] = [:]
     if let attributesDict = json["attributes"] as? [String: String] {
       // Convert string-to-string dictionary to string-to-any dictionary
-      for (key, value) in attributesDict {
-        attributes[key] = value
-      }
+      for (key, value) in attributesDict { attributes[key] = value }
     }
 
     // Extract actions (handle both old array format and new comma-separated string format)
@@ -782,11 +687,11 @@ public final class ToolChain: @unchecked Sendable {
       actions = actionsArray
     } else if let actionsString = json["actions"] as? String {
       // New format: comma-separated string without AX prefix
-      let rawActions = actionsString.components(separatedBy: ", ").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-      // Add back AX prefix for internal UIElement storage
-      actions = rawActions.map { action in
-        action.hasPrefix("AX") ? action : "AX\(action)"
+      let rawActions = actionsString.components(separatedBy: ", ").map {
+        $0.trimmingCharacters(in: .whitespacesAndNewlines)
       }
+      // Add back AX prefix for internal UIElement storage
+      actions = rawActions.map { action in action.hasPrefix("AX") ? action : "AX\(action)" }
     }
 
     // Extract capabilities and state information
@@ -798,23 +703,19 @@ public final class ToolChain: @unchecked Sendable {
 
     // Parse state and capabilities from either separate arrays or combined props string
     var allProps: [String] = []
-    
     // Check for separate state array (old format)
-    if let stateArray = json["state"] as? [String] {
-      allProps.append(contentsOf: stateArray)
-    }
-    
+    if let stateArray = json["state"] as? [String] { allProps.append(contentsOf: stateArray) }
     // Check for separate capabilities array (old format)
     if let capabilitiesArray = json["capabilities"] as? [String] {
       allProps.append(contentsOf: capabilitiesArray)
     }
-    
     // Check for combined props string (new EnhancedElementDescriptor format)
     if let propsString = json["props"] as? String {
-      let propsArray = propsString.components(separatedBy: ", ").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+      let propsArray = propsString.components(separatedBy: ", ").map {
+        $0.trimmingCharacters(in: .whitespacesAndNewlines)
+      }
       allProps.append(contentsOf: propsArray)
     }
-    
     // Process all props (state and capabilities together)
     for prop in allProps {
       switch prop.lowercased() {
@@ -827,7 +728,6 @@ public final class ToolChain: @unchecked Sendable {
       case "unfocused": isFocused = false
       case "selected": isSelected = true
       case "unselected": isSelected = false
-      
       // Capability properties
       case "clickable": attributes["clickable"] = true
       case "editable": attributes["editable"] = true

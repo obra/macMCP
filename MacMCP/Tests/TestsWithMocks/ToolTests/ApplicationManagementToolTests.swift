@@ -50,8 +50,7 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
   // Tracking properties for running applications
   var getRunningApplicationsCalled = false
   var runningAppsToReturn: [String: String] = [
-    "com.test.app1": "Test App 1",
-    "com.test.app2": "Test App 2",
+    "com.test.app1": "Test App 1", "com.test.app2": "Test App 2",
   ]
 
   // Tracking properties for activation
@@ -112,22 +111,18 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
   // MARK: - ApplicationServiceProtocol Implementation
 
   func openApplication(
-    bundleId _: String,
-    arguments _: [String]? = nil,
-    hideOthers _: Bool? = nil,
-  ) async throws -> Bool {
-    if shouldFailOperations {
-      throw errorToThrow ?? MCPError.internalError("Mock error")
-    }
+    bundleId _: String, arguments _: [String]? = nil, hideOthers _: Bool? = nil,
+  ) async throws
+    -> Bool
+  {
+    if shouldFailOperations { throw errorToThrow ?? MCPError.internalError("Mock error") }
     return true
   }
 
   func openApplication(name _: String, arguments _: [String]? = nil, hideOthers _: Bool? = nil)
     async throws -> Bool
   {
-    if shouldFailOperations {
-      throw errorToThrow ?? MCPError.internalError("Mock error")
-    }
+    if shouldFailOperations { throw errorToThrow ?? MCPError.internalError("Mock error") }
     return true
   }
 
@@ -147,9 +142,7 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
     lastWaitForLaunch = waitForLaunch
     lastTimeout = timeout
 
-    if shouldFailOperations {
-      throw errorToThrow ?? MCPError.internalError("Mock error")
-    }
+    if shouldFailOperations { throw errorToThrow ?? MCPError.internalError("Mock error") }
 
     return launchResultToReturn
   }
@@ -159,9 +152,7 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
     terminateLastBundleIdentifier = bundleId
     terminateLastTimeout = timeout
 
-    if shouldFailOperations {
-      throw errorToThrow ?? MCPError.internalError("Mock error")
-    }
+    if shouldFailOperations { throw errorToThrow ?? MCPError.internalError("Mock error") }
 
     return terminateResultToReturn
   }
@@ -170,9 +161,7 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
     forceTerminateApplicationCalled = true
     forceTerminateLastBundleIdentifier = bundleId
 
-    if shouldFailOperations {
-      throw errorToThrow ?? MCPError.internalError("Mock error")
-    }
+    if shouldFailOperations { throw errorToThrow ?? MCPError.internalError("Mock error") }
 
     return forceTerminateResultToReturn
   }
@@ -181,9 +170,7 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
     activateApplicationCalled = true
     activateLastBundleIdentifier = bundleId
 
-    if shouldFailOperations {
-      throw errorToThrow ?? MCPError.internalError("Mock error")
-    }
+    if shouldFailOperations { throw errorToThrow ?? MCPError.internalError("Mock error") }
 
     return activateResultToReturn
   }
@@ -192,9 +179,7 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
     hideApplicationCalled = true
     hideLastBundleIdentifier = bundleId
 
-    if shouldFailOperations {
-      throw errorToThrow ?? MCPError.internalError("Mock error")
-    }
+    if shouldFailOperations { throw errorToThrow ?? MCPError.internalError("Mock error") }
 
     return hideResultToReturn
   }
@@ -203,9 +188,7 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
     unhideApplicationCalled = true
     unhideLastBundleIdentifier = bundleId
 
-    if shouldFailOperations {
-      throw errorToThrow ?? MCPError.internalError("Mock error")
-    }
+    if shouldFailOperations { throw errorToThrow ?? MCPError.internalError("Mock error") }
 
     return unhideResultToReturn
   }
@@ -214,9 +197,7 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
     hideOtherApplicationsCalled = true
     hideOthersLastExceptBundleIdentifier = exceptBundleIdentifier
 
-    if shouldFailOperations {
-      throw errorToThrow ?? MCPError.internalError("Mock error")
-    }
+    if shouldFailOperations { throw errorToThrow ?? MCPError.internalError("Mock error") }
 
     return hideOthersResultToReturn
   }
@@ -224,9 +205,7 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
   func getRunningApplications() async throws -> [String: String] {
     getRunningApplicationsCalled = true
 
-    if shouldFailOperations {
-      throw errorToThrow ?? MCPError.internalError("Mock error")
-    }
+    if shouldFailOperations { throw errorToThrow ?? MCPError.internalError("Mock error") }
 
     return runningAppsToReturn
   }
@@ -234,22 +213,19 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
   func getFrontmostApplication() async throws -> ApplicationStateInfo? {
     getFrontmostApplicationCalled = true
 
-    if shouldFailOperations {
-      throw errorToThrow ?? MCPError.internalError("Mock error")
-    }
+    if shouldFailOperations { throw errorToThrow ?? MCPError.internalError("Mock error") }
 
     return frontmostApplicationToReturn
   }
 
   func startObservingApplications(
-    notificationHandler _: @escaping @Sendable (ApplicationStateChange) async
-      -> Void,
-  ) async throws -> String {
+    notificationHandler _: @escaping @Sendable (ApplicationStateChange) async -> Void,
+  )
+    async throws -> String
+  {
     startObservingApplicationsCalled = true
 
-    if shouldFailOperations {
-      throw errorToThrow ?? MCPError.internalError("Mock error")
-    }
+    if shouldFailOperations { throw errorToThrow ?? MCPError.internalError("Mock error") }
 
     return observerIdToReturn
   }
@@ -258,18 +234,14 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
     stopObservingApplicationsCalled = true
     lastObserverId = observerId
 
-    if shouldFailOperations {
-      throw errorToThrow ?? MCPError.internalError("Mock error")
-    }
+    if shouldFailOperations { throw errorToThrow ?? MCPError.internalError("Mock error") }
   }
 
   func isApplicationRunning(bundleId: String) async throws -> Bool {
     isApplicationRunningCalled = true
     isRunningLastBundleIdentifier = bundleId
 
-    if shouldFailOperations {
-      throw errorToThrow ?? MCPError.internalError("Mock error")
-    }
+    if shouldFailOperations { throw errorToThrow ?? MCPError.internalError("Mock error") }
 
     return isRunningResultToReturn
   }
@@ -278,17 +250,14 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
     getApplicationInfoCalled = true
     infoLastBundleIdentifier = bundleId
 
-    if shouldFailOperations {
-      throw errorToThrow ?? MCPError.internalError("Mock error")
-    }
+    if shouldFailOperations { throw errorToThrow ?? MCPError.internalError("Mock error") }
 
     return applicationInfoToReturn
   }
 }
 
 /// Tests for the ApplicationManagementTool
-@Suite(.serialized)
-struct ApplicationManagementToolTests {
+@Suite(.serialized) struct ApplicationManagementToolTests {
   // Test components
   private var mockApplicationService: MockApplicationService!
   private var applicationManagementTool: ApplicationManagementTool!
@@ -311,16 +280,12 @@ struct ApplicationManagementToolTests {
   // MARK: - Test Methods
 
   /// Test launching an application by bundle identifier
-  @Test("Launch by bundle identifier")
-  mutating func testLaunchByBundleIdentifier() async throws {
+  @Test("Launch by bundle identifier") mutating func testLaunchByBundleIdentifier() async throws {
     try await setUp()
-    
     // Setup
     let params: [String: Value] = [
-      "action": .string("launch"),
-      "bundleId": .string("com.test.app"),
-      "arguments": .array([.string("--arg1"), .string("--arg2")]),
-      "hideOthers": .bool(true),
+      "action": .string("launch"), "bundleId": .string("com.test.app"),
+      "arguments": .array([.string("--arg1"), .string("--arg2")]), "hideOthers": .bool(true),
     ]
 
     // Execute the test
@@ -340,24 +305,22 @@ struct ApplicationManagementToolTests {
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
       #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
-      #expect(jsonString.contains("\"processIdentifier\": 12345"), "Response should include process ID")
-      #expect(jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID")
+      #expect(
+        jsonString.contains("\"processIdentifier\": 12345"), "Response should include process ID")
+      #expect(
+        jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID")
     } else {
       #expect(Bool(false), "Result should be text content")
     }
-    
     try await tearDown()
   }
 
   /// Test launching an application by name
-  @Test("Launch by application name")
-  mutating func testLaunchByApplicationName() async throws {
+  @Test("Launch by application name") mutating func testLaunchByApplicationName() async throws {
     try await setUp()
-    
     // Setup
     let params: [String: Value] = [
-      "action": .string("launch"),
-      "applicationName": .string("Test App"),
+      "action": .string("launch"), "applicationName": .string("Test App"),
       "waitForLaunch": .bool(false),
       "launchTimeout": .double(60.0),
     ]
@@ -382,19 +345,15 @@ struct ApplicationManagementToolTests {
     } else {
       #expect(Bool(false), "Result should be text content")
     }
-    
     try await tearDown()
   }
 
   /// Test terminating an application
-  @Test("Terminate application")
-  mutating func testTerminate() async throws {
+  @Test("Terminate application") mutating func testTerminate() async throws {
     try await setUp()
-    
     // Setup
     let params: [String: Value] = [
-      "action": .string("terminate"),
-      "bundleId": .string("com.test.app"),
+      "action": .string("terminate"), "bundleId": .string("com.test.app"),
       "terminateTimeout": .double(15.0),
     ]
 
@@ -413,23 +372,20 @@ struct ApplicationManagementToolTests {
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
       #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
-      #expect(jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID")
+      #expect(
+        jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID")
     } else {
       #expect(Bool(false), "Result should be text content")
     }
-    
     try await tearDown()
   }
 
   /// Test force terminating an application
-  @Test("Force terminate application")
-  mutating func testForceTerminate() async throws {
+  @Test("Force terminate application") mutating func testForceTerminate() async throws {
     try await setUp()
-    
     // Setup
     let params: [String: Value] = [
-      "action": .string("forceTerminate"),
-      "bundleId": .string("com.test.app"),
+      "action": .string("forceTerminate"), "bundleId": .string("com.test.app"),
     ]
 
     // Execute the test
@@ -439,32 +395,31 @@ struct ApplicationManagementToolTests {
     #expect(result.count == 1, "Should return one content item")
 
     // Verify the service was called correctly
-    #expect(mockApplicationService.forceTerminateApplicationCalled, "Should call forceTerminateApplication")
+    #expect(
+      mockApplicationService.forceTerminateApplicationCalled,
+      "Should call forceTerminateApplication")
     #expect(mockApplicationService.forceTerminateLastBundleIdentifier == "com.test.app")
 
     // Verify the result content
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
       #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
-      #expect(jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID")
+      #expect(
+        jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID")
     } else {
       #expect(Bool(false), "Result should be text content")
     }
-    
     try await tearDown()
   }
 
   /// Test checking if an application is running
-  @Test("Check if application is running")
-  mutating func testIsRunning() async throws {
+  @Test("Check if application is running") mutating func testIsRunning() async throws {
     try await setUp()
-    
     // Setup
     mockApplicationService.isRunningResultToReturn = true
 
     let params: [String: Value] = [
-      "action": .string("isRunning"),
-      "bundleId": .string("com.test.app"),
+      "action": .string("isRunning"), "bundleId": .string("com.test.app"),
     ]
 
     // Execute the test
@@ -481,25 +436,21 @@ struct ApplicationManagementToolTests {
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
       #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
-      #expect(jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID")
+      #expect(
+        jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID")
       #expect(jsonString.contains("\"isRunning\": true"), "Response should include running status")
     } else {
       #expect(Bool(false), "Result should be text content")
     }
-    
     try await tearDown()
   }
 
   /// Test getting running applications
-  @Test("Get running applications")
-  mutating func testGetRunningApplications() async throws {
+  @Test("Get running applications") mutating func testGetRunningApplications() async throws {
     try await setUp()
-    
     // Setup - mock is already configured in setup
 
-    let params: [String: Value] = [
-      "action": .string("getRunningApplications")
-    ]
+    let params: [String: Value] = ["action": .string("getRunningApplications")]
 
     // Execute the test
     let result = try await applicationManagementTool.handler(params)
@@ -508,33 +459,43 @@ struct ApplicationManagementToolTests {
     #expect(result.count == 1, "Should return one content item")
 
     // Verify the service was called correctly
-    #expect(mockApplicationService.getRunningApplicationsCalled, "Should call getRunningApplications")
+    #expect(
+      mockApplicationService.getRunningApplicationsCalled, "Should call getRunningApplications")
 
     // Verify the result content
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
       #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
-      #expect(jsonString.contains("\"applications\":"), "Response should include applications array")
-      #expect(jsonString.contains("\"bundleId\": \"com.test.app1\""), "Response should include first app bundle ID")
-      #expect(jsonString.contains("\"applicationName\": \"Test App 1\""), "Response should include first app name")
-      #expect(jsonString.contains("\"bundleId\": \"com.test.app2\""), "Response should include second app bundle ID")
-      #expect(jsonString.contains("\"applicationName\": \"Test App 2\""), "Response should include second app name")
+      #expect(
+        jsonString.contains("\"applications\":"), "Response should include applications array")
+      #expect(
+        jsonString.contains("\"bundleId\": \"com.test.app1\""),
+        "Response should include first app bundle ID"
+      )
+      #expect(
+        jsonString.contains("\"applicationName\": \"Test App 1\""),
+        "Response should include first app name"
+      )
+      #expect(
+        jsonString.contains("\"bundleId\": \"com.test.app2\""),
+        "Response should include second app bundle ID"
+      )
+      #expect(
+        jsonString.contains("\"applicationName\": \"Test App 2\""),
+        "Response should include second app name"
+      )
     } else {
       #expect(Bool(false), "Result should be text content")
     }
-    
     try await tearDown()
   }
 
   /// Test activating an application
-  @Test("Activate application")
-  mutating func testActivateApplication() async throws {
+  @Test("Activate application") mutating func testActivateApplication() async throws {
     try await setUp()
-    
     // Setup
     let params: [String: Value] = [
-      "action": .string("activateApplication"),
-      "bundleId": .string("com.test.app"),
+      "action": .string("activateApplication"), "bundleId": .string("com.test.app"),
     ]
 
     // Execute the test
@@ -551,23 +512,20 @@ struct ApplicationManagementToolTests {
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
       #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
-      #expect(jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID")
+      #expect(
+        jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID")
     } else {
       #expect(Bool(false), "Result should be text content")
     }
-    
     try await tearDown()
   }
 
   /// Test hiding an application
-  @Test("Hide application")
-  mutating func testHideApplication() async throws {
+  @Test("Hide application") mutating func testHideApplication() async throws {
     try await setUp()
-    
     // Setup
     let params: [String: Value] = [
-      "action": .string("hideApplication"),
-      "bundleId": .string("com.test.app"),
+      "action": .string("hideApplication"), "bundleId": .string("com.test.app"),
     ]
 
     // Execute the test
@@ -584,23 +542,20 @@ struct ApplicationManagementToolTests {
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
       #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
-      #expect(jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID")
+      #expect(
+        jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID")
     } else {
       #expect(Bool(false), "Result should be text content")
     }
-    
     try await tearDown()
   }
 
   /// Test unhiding an application
-  @Test("Unhide application")
-  mutating func testUnhideApplication() async throws {
+  @Test("Unhide application") mutating func testUnhideApplication() async throws {
     try await setUp()
-    
     // Setup
     let params: [String: Value] = [
-      "action": .string("unhideApplication"),
-      "bundleId": .string("com.test.app"),
+      "action": .string("unhideApplication"), "bundleId": .string("com.test.app"),
     ]
 
     // Execute the test
@@ -617,23 +572,20 @@ struct ApplicationManagementToolTests {
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
       #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
-      #expect(jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID")
+      #expect(
+        jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID")
     } else {
       #expect(Bool(false), "Result should be text content")
     }
-    
     try await tearDown()
   }
 
   /// Test hiding other applications
-  @Test("Hide other applications")
-  mutating func testHideOtherApplications() async throws {
+  @Test("Hide other applications") mutating func testHideOtherApplications() async throws {
     try await setUp()
-    
     // Setup
     let params: [String: Value] = [
-      "action": .string("hideOtherApplications"),
-      "bundleId": .string("com.test.app"),
+      "action": .string("hideOtherApplications"), "bundleId": .string("com.test.app"),
     ]
 
     // Execute the test
@@ -650,24 +602,22 @@ struct ApplicationManagementToolTests {
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
       #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
-      #expect(jsonString.contains("\"exceptBundleIdentifier\": \"com.test.app\""), "Response should include except bundle ID")
+      #expect(
+        jsonString.contains("\"exceptBundleIdentifier\": \"com.test.app\""),
+        "Response should include except bundle ID"
+      )
     } else {
       #expect(Bool(false), "Result should be text content")
     }
-    
     try await tearDown()
   }
 
   /// Test getting the frontmost application
-  @Test("Get frontmost application")
-  mutating func testGetFrontmostApplication() async throws {
+  @Test("Get frontmost application") mutating func testGetFrontmostApplication() async throws {
     try await setUp()
-    
     // Setup - mock is already configured in setup
 
-    let params: [String: Value] = [
-      "action": .string("getFrontmostApplication")
-    ]
+    let params: [String: Value] = ["action": .string("getFrontmostApplication")]
 
     // Execute the test
     let result = try await applicationManagementTool.handler(params)
@@ -676,21 +626,29 @@ struct ApplicationManagementToolTests {
     #expect(result.count == 1, "Should return one content item")
 
     // Verify the service was called correctly
-    #expect(mockApplicationService.getFrontmostApplicationCalled, "Should call getFrontmostApplication")
+    #expect(
+      mockApplicationService.getFrontmostApplicationCalled, "Should call getFrontmostApplication")
 
     // Verify the result content
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
       #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
-      #expect(jsonString.contains("\"bundleId\": \"com.test.frontmost\""), "Response should include bundle ID")
-      #expect(jsonString.contains("\"applicationName\": \"Frontmost App\""), "Response should include app name")
-      #expect(jsonString.contains("\"processIdentifier\": 12345"), "Response should include process ID")
+      #expect(
+        jsonString.contains("\"bundleId\": \"com.test.frontmost\""),
+        "Response should include bundle ID")
+      #expect(
+        jsonString.contains("\"applicationName\": \"Frontmost App\""),
+        "Response should include app name")
+      #expect(
+        jsonString.contains("\"processIdentifier\": 12345"), "Response should include process ID")
       #expect(jsonString.contains("\"isActive\": true"), "Response should include active status")
-      #expect(jsonString.contains("\"isFinishedLaunching\": true"), "Response should include finished launching status")
+      #expect(
+        jsonString.contains("\"isFinishedLaunching\": true"),
+        "Response should include finished launching status"
+      )
     } else {
       #expect(Bool(false), "Result should be text content")
     }
-    
     try await tearDown()
   }
 
@@ -698,13 +656,10 @@ struct ApplicationManagementToolTests {
   @Test("Get frontmost application when none exists")
   mutating func testGetFrontmostApplicationNone() async throws {
     try await setUp()
-    
     // Setup - override the mock to return nil
     mockApplicationService.frontmostApplicationToReturn = nil
 
-    let params: [String: Value] = [
-      "action": .string("getFrontmostApplication")
-    ]
+    let params: [String: Value] = ["action": .string("getFrontmostApplication")]
 
     // Execute the test
     let result = try await applicationManagementTool.handler(params)
@@ -713,32 +668,32 @@ struct ApplicationManagementToolTests {
     #expect(result.count == 1, "Should return one content item")
 
     // Verify the service was called correctly
-    #expect(mockApplicationService.getFrontmostApplicationCalled, "Should call getFrontmostApplication")
+    #expect(
+      mockApplicationService.getFrontmostApplicationCalled, "Should call getFrontmostApplication")
 
     // Verify the result content
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
       #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
-      #expect(jsonString.contains("\"hasFrontmostApplication\": false"), "Response should indicate no frontmost app")
+      #expect(
+        jsonString.contains("\"hasFrontmostApplication\": false"),
+        "Response should indicate no frontmost app"
+      )
     } else {
       #expect(Bool(false), "Result should be text content")
     }
-    
     try await tearDown()
   }
 
   /// Test error handling for failures
-  @Test("Error handling")
-  mutating func testErrorHandling() async throws {
+  @Test("Error handling") mutating func testErrorHandling() async throws {
     try await setUp()
-    
     // Setup - configure mock to fail
     mockApplicationService.shouldFailOperations = true
     mockApplicationService.errorToThrow = MCPError.internalError("Test error message")
 
     let params: [String: Value] = [
-      "action": .string("launch"),
-      "bundleId": .string("com.test.app"),
+      "action": .string("launch"), "bundleId": .string("com.test.app"),
       "arguments": .array([.string("--arg1"), .string("--arg2")]),
     ]
 
@@ -750,26 +705,21 @@ struct ApplicationManagementToolTests {
       // Verify it's the correct error type
       switch error {
       case .internalError(let message):
-        #expect(message?.contains("Test error message") == true, "Error message should include the original error details")
-      default:
-        #expect(Bool(false), "Wrong error type: \(error)")
+        #expect(
+          message?.contains("Test error message") == true,
+          "Error message should include the original error details"
+        )
+      default: #expect(Bool(false), "Wrong error type: \(error)")
       }
-    } catch {
-      #expect(Bool(false), "Unexpected error type: \(error)")
-    }
-    
+    } catch { #expect(Bool(false), "Unexpected error type: \(error)") }
     try await tearDown()
   }
 
   /// Test validation errors for missing parameters
-  @Test("Validation errors")
-  mutating func testValidationErrors() async throws {
+  @Test("Validation errors") mutating func testValidationErrors() async throws {
     try await setUp()
-    
     // Test missing bundleId for an action that requires it
-    let params: [String: Value] = [
-      "action": .string("terminate")
-    ]
+    let params: [String: Value] = ["action": .string("terminate")]
 
     // Test that parameter validation works
     do {
@@ -778,18 +728,15 @@ struct ApplicationManagementToolTests {
     } catch let error as MCPError {
       switch error {
       case .invalidParams(let message):
-        #expect(message?.contains("bundleId is required") == true, "Error should indicate missing bundleId")
-      default:
-        #expect(Bool(false), "Wrong error type: \(error)")
+        #expect(
+          message?.contains("bundleId is required") == true,
+          "Error should indicate missing bundleId")
+      default: #expect(Bool(false), "Wrong error type: \(error)")
       }
-    } catch {
-      #expect(Bool(false), "Unexpected error type: \(error)")
-    }
+    } catch { #expect(Bool(false), "Unexpected error type: \(error)") }
 
     // Test missing both identifiers for launch
-    let launchParams: [String: Value] = [
-      "action": .string("launch")
-    ]
+    let launchParams: [String: Value] = ["action": .string("launch")]
 
     do {
       _ = try await applicationManagementTool.handler(launchParams)
@@ -797,18 +744,17 @@ struct ApplicationManagementToolTests {
     } catch let error as MCPError {
       switch error {
       case .invalidParams(let message):
-        #expect(message?.contains("Either applicationName or bundleId is required") == true, "Error should indicate missing identifiers")
-      default:
-        #expect(Bool(false), "Wrong error type: \(error)")
+        #expect(
+          message?.contains("Either applicationName or bundleId is required") == true,
+          "Error should indicate missing identifiers"
+        )
+      default: #expect(Bool(false), "Wrong error type: \(error)")
       }
-    } catch {
-      #expect(Bool(false), "Unexpected error type: \(error)")
-    }
+    } catch { #expect(Bool(false), "Unexpected error type: \(error)") }
 
     // Test invalid action
     let invalidActionParams: [String: Value] = [
-      "action": .string("invalidAction"),
-      "bundleId": .string("com.test.app"),
+      "action": .string("invalidAction"), "bundleId": .string("com.test.app"),
     ]
 
     do {
@@ -817,14 +763,12 @@ struct ApplicationManagementToolTests {
     } catch let error as MCPError {
       switch error {
       case .invalidParams(let message):
-        #expect(message?.contains("Valid action is required") == true, "Error should indicate invalid action")
-      default:
-        #expect(Bool(false), "Wrong error type: \(error)")
+        #expect(
+          message?.contains("Valid action is required") == true,
+          "Error should indicate invalid action")
+      default: #expect(Bool(false), "Wrong error type: \(error)")
       }
-    } catch {
-      #expect(Bool(false), "Unexpected error type: \(error)")
-    }
-    
+    } catch { #expect(Bool(false), "Unexpected error type: \(error)") }
     try await tearDown()
   }
 }

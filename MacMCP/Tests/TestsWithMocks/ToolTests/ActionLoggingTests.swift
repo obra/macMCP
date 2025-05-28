@@ -8,10 +8,8 @@ import Testing
 
 @testable import MacMCP
 
-@Suite(.serialized)
-struct ActionLoggingTests {
-  @Test("Log capture and retrieval")
-  func logCaptureAndRetrieval() async throws {
+@Suite(.serialized) struct ActionLoggingTests {
+  @Test("Log capture and retrieval") func logCaptureAndRetrieval() async throws {
     // Create a log capture service
     let logService = LogService()
 
@@ -52,9 +50,7 @@ struct ActionLoggingTests {
     logService.addLogEntry(entry3)
 
     // Retrieve all logs
-    let input: [String: Value] = [
-      "limit": .int(10)
-    ]
+    let input: [String: Value] = ["limit": .int(10)]
 
     let result = try await tool.handler(input)
 
@@ -64,7 +60,6 @@ struct ActionLoggingTests {
       #expect(Bool(false), "Expected text result")
       return
     }
-    
     #expect(json.contains("interaction"))
     #expect(json.contains("click"))
     #expect(json.contains("button-123"))
@@ -74,8 +69,7 @@ struct ActionLoggingTests {
     #expect(json.contains("capture"))
   }
 
-  @Test("Log filtering by category")
-  func logFilteringByCategory() async throws {
+  @Test("Log filtering by category") func logFilteringByCategory() async throws {
     // Create a log capture service
     let logService = LogService()
 
@@ -90,21 +84,17 @@ struct ActionLoggingTests {
         action: "click",
         targetId: "button-123",
         success: true,
-      ))
+      )
+    )
 
     logService.addLogEntry(
       ActionLogEntry(
-        timestamp: Date(),
-        category: "screenshot",
-        action: "capture",
-        targetId: nil,
-        success: true,
-      ))
+        timestamp: Date(), category: "screenshot", action: "capture", targetId: nil, success: true,
+      )
+    )
 
     // Retrieve filtered logs by category
-    let input: [String: Value] = [
-      "category": .string("interaction")
-    ]
+    let input: [String: Value] = ["category": .string("interaction")]
 
     let result = try await tool.handler(input)
 
@@ -114,7 +104,6 @@ struct ActionLoggingTests {
       #expect(Bool(false), "Expected text result")
       return
     }
-    
     #expect(json.contains("interaction"))
     #expect(json.contains("click"))
     #expect(json.contains("button-123"))
@@ -122,8 +111,7 @@ struct ActionLoggingTests {
     #expect(!json.contains("capture"))
   }
 
-  @Test("Log filtering by action")
-  func logFilteringByAction() async throws {
+  @Test("Log filtering by action") func logFilteringByAction() async throws {
     // Create a log capture service
     let logService = LogService()
 
@@ -138,7 +126,8 @@ struct ActionLoggingTests {
         action: "click",
         targetId: "button-123",
         success: true,
-      ))
+      )
+    )
 
     logService.addLogEntry(
       ActionLogEntry(
@@ -147,12 +136,11 @@ struct ActionLoggingTests {
         action: "type",
         targetId: "textfield-456",
         success: true,
-      ))
+      )
+    )
 
     // Retrieve filtered logs by action
-    let input: [String: Value] = [
-      "action": .string("click")
-    ]
+    let input: [String: Value] = ["action": .string("click")]
 
     let result = try await tool.handler(input)
 
@@ -162,7 +150,6 @@ struct ActionLoggingTests {
       #expect(Bool(false), "Expected text result")
       return
     }
-    
     #expect(json.contains("interaction"))
     #expect(json.contains("click"))
     #expect(json.contains("button-123"))
@@ -170,8 +157,7 @@ struct ActionLoggingTests {
     #expect(!json.contains("textfield-456"))
   }
 
-  @Test("Log filtering by time range")
-  func logFilteringByTimeRange() async throws {
+  @Test("Log filtering by time range") func logFilteringByTimeRange() async throws {
     // Create a log capture service
     let logService = LogService()
 
@@ -191,7 +177,8 @@ struct ActionLoggingTests {
         action: "click",
         targetId: "old-button",
         success: true,
-      ))
+      )
+    )
 
     logService.addLogEntry(
       ActionLogEntry(
@@ -200,12 +187,11 @@ struct ActionLoggingTests {
         action: "click",
         targetId: "new-button",
         success: true,
-      ))
+      )
+    )
 
     // Retrieve filtered logs by time range (last minute)
-    let input: [String: Value] = [
-      "since": .int(Int(oneMinuteAgo.timeIntervalSince1970))
-    ]
+    let input: [String: Value] = ["since": .int(Int(oneMinuteAgo.timeIntervalSince1970))]
 
     let result = try await tool.handler(input)
 
@@ -215,7 +201,6 @@ struct ActionLoggingTests {
       #expect(Bool(false), "Expected text result")
       return
     }
-    
     #expect(json.contains("new-button"))
     #expect(!json.contains("old-button"))
   }
@@ -251,40 +236,29 @@ struct ActionLogEntry: Codable, Equatable {
 class LogService: @unchecked Sendable {
   private var logs: [ActionLogEntry] = []
 
-  func addLogEntry(_ entry: ActionLogEntry) {
-    logs.append(entry)
-  }
+  func addLogEntry(_ entry: ActionLogEntry) { logs.append(entry) }
 
   func getLogs(
-    limit: Int? = nil,
-    category: String? = nil,
-    action: String? = nil,
-    since: Date? = nil,
-  ) -> [ActionLogEntry] {
+    limit: Int? = nil, category: String? = nil, action: String? = nil, since: Date? = nil,
+  )
+    -> [ActionLogEntry]
+  {
     var filteredLogs = logs
 
     // Apply category filter
-    if let category {
-      filteredLogs = filteredLogs.filter { $0.category == category }
-    }
+    if let category { filteredLogs = filteredLogs.filter { $0.category == category } }
 
     // Apply action filter
-    if let action {
-      filteredLogs = filteredLogs.filter { $0.action == action }
-    }
+    if let action { filteredLogs = filteredLogs.filter { $0.action == action } }
 
     // Apply timestamp filter
-    if let since {
-      filteredLogs = filteredLogs.filter { $0.timestamp >= since }
-    }
+    if let since { filteredLogs = filteredLogs.filter { $0.timestamp >= since } }
 
     // Sort by timestamp (newest first)
     filteredLogs.sort { $0.timestamp > $1.timestamp }
 
     // Apply limit
-    if let limit, limit > 0 {
-      return Array(filteredLogs.prefix(limit))
-    }
+    if let limit, limit > 0 { return Array(filteredLogs.prefix(limit)) }
 
     return filteredLogs
   }
@@ -297,15 +271,11 @@ struct ActionLogTool: @unchecked Sendable {
 
   private let logService: LogService
 
-  init(logService: LogService) {
-    self.logService = logService
-  }
+  init(logService: LogService) { self.logService = logService }
 
   // Handler property that captures self
   var handler: @Sendable ([String: Value]?) async throws -> [Tool.Content] {
-    { [self] params in
-      try await self.processRequest(params)
-    }
+    { [self] params in try await self.processRequest(params) }
   }
 
   // Private method to do the actual work
@@ -317,12 +287,7 @@ struct ActionLogTool: @unchecked Sendable {
     let since = params?["since"]?.intValue.map { Date(timeIntervalSince1970: TimeInterval($0)) }
 
     // Get filtered logs
-    let logs = logService.getLogs(
-      limit: limit,
-      category: category,
-      action: action,
-      since: since,
-    )
+    let logs = logService.getLogs(limit: limit, category: category, action: action, since: since, )
 
     // Convert to JSON
     let encoder = JSONEncoder()

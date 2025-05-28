@@ -27,9 +27,7 @@ class MCPTreeVisualizer {
   private let elementPrinter = MCPElementPrinter()
   private let options: Options
 
-  init(options: Options = Options()) {
-    self.options = options
-  }
+  init(options: Options = Options()) { self.options = options }
 
   /// Visualizes the accessibility tree starting from a root element
   /// - Parameters:
@@ -39,10 +37,11 @@ class MCPTreeVisualizer {
   /// server-side)
   /// - Returns: A string representation of the tree
   func visualize(
-    _ rootElement: MCPUIElementNode,
-    withFilters: [String: String] = [:],
+    _ rootElement: MCPUIElementNode, withFilters: [String: String] = [:],
     pathPattern: String? = nil,
-  ) -> String {
+  )
+    -> String
+  {
     var output = ""
 
     // Format the root element
@@ -54,9 +53,7 @@ class MCPTreeVisualizer {
     )
 
     // If root has children, add a visual separator
-    if !rootElement.children.isEmpty {
-      output += "   │\n"
-    }
+    if !rootElement.children.isEmpty { output += "   │\n" }
 
     // Add a message if this is a path-based result
     if pathPattern != nil, pathPattern!.hasPrefix("macos://ui/") {
@@ -114,8 +111,7 @@ class MCPTreeVisualizer {
       if !child.children.isEmpty {
         output +=
           prefix + (isLastChild ? "   " : "   " + TreeSymbols.vertical) + "   "
-          + TreeSymbols
-          .vertical + "\n"
+          + TreeSymbols.vertical + "\n"
       }
 
       // Recursively visualize grandchildren
@@ -139,15 +135,11 @@ class MCPTreeVisualizer {
     -> [MCPUIElementNode]
   {
     // If there are no standard filters, return all elements
-    if withFilters.isEmpty {
-      return elements
-    }
+    if withFilters.isEmpty { return elements }
 
     return elements.filter { element in
       // If there are no standard filters, include all elements
-      if withFilters.isEmpty {
-        return true
-      }
+      if withFilters.isEmpty { return true }
 
       // Special case: Always include application elements regardless of visible/enabled state
       if element.role == "AXApplication" {
@@ -156,18 +148,15 @@ class MCPTreeVisualizer {
           let keyLower = key.lowercased()
 
           // Skip enabled/visible filters for application elements
-          if keyLower == "enabled" || keyLower == "visible" {
-            continue
-          }
+          if keyLower == "enabled" || keyLower == "visible" { continue }
 
           // Handle component type filters
           if keyLower == "component-type" {
-            if !isElementOfComponentType(element, type: value.lowercased()) {
-              return false
-            }
+            if !isElementOfComponentType(element, type: value.lowercased()) { return false }
           } else if keyLower == "component-types" {
-            let types = value.lowercased().split(separator: ",")
-              .map { String($0.trimmingCharacters(in: .whitespaces)) }
+            let types = value.lowercased().split(separator: ",").map {
+              String($0.trimmingCharacters(in: .whitespaces))
+            }
             var matchesAny = false
             for componentType in types {
               if isElementOfComponentType(element, type: componentType) {
@@ -175,16 +164,12 @@ class MCPTreeVisualizer {
                 break
               }
             }
-            if !matchesAny {
-              return false
-            }
+            if !matchesAny { return false }
           }
           // Handle path filter
           else if keyLower == "path" {
             let elementPath = element.elementPath ?? element.generateSyntheticPath() ?? ""
-            if !elementPath.lowercased().contains(value.lowercased()) {
-              return false
-            }
+            if !elementPath.lowercased().contains(value.lowercased()) { return false }
           }
           // Handle all other filters
           else if !applyStandardFilter(element, key: keyLower, value: value) {
@@ -201,18 +186,15 @@ class MCPTreeVisualizer {
           let keyLower = key.lowercased()
 
           // Skip enabled filters for window elements
-          if keyLower == "enabled" {
-            continue
-          }
+          if keyLower == "enabled" { continue }
 
           // Handle component type filters
           if keyLower == "component-type" {
-            if !isElementOfComponentType(element, type: value.lowercased()) {
-              return false
-            }
+            if !isElementOfComponentType(element, type: value.lowercased()) { return false }
           } else if keyLower == "component-types" {
-            let types = value.lowercased().split(separator: ",")
-              .map { String($0.trimmingCharacters(in: .whitespaces)) }
+            let types = value.lowercased().split(separator: ",").map {
+              String($0.trimmingCharacters(in: .whitespaces))
+            }
             var matchesAny = false
             for componentType in types {
               if isElementOfComponentType(element, type: componentType) {
@@ -220,16 +202,12 @@ class MCPTreeVisualizer {
                 break
               }
             }
-            if !matchesAny {
-              return false
-            }
+            if !matchesAny { return false }
           }
           // Handle path filter
           else if keyLower == "path" {
             let elementPath = element.elementPath ?? element.generateSyntheticPath() ?? ""
-            if !elementPath.lowercased().contains(value.lowercased()) {
-              return false
-            }
+            if !elementPath.lowercased().contains(value.lowercased()) { return false }
           }
           // Handle all other filters
           else if !applyStandardFilter(element, key: keyLower, value: value) {
@@ -245,12 +223,11 @@ class MCPTreeVisualizer {
 
         // Handle component type filters
         if keyLower == "component-type" {
-          if !isElementOfComponentType(element, type: value.lowercased()) {
-            return false
-          }
+          if !isElementOfComponentType(element, type: value.lowercased()) { return false }
         } else if keyLower == "component-types" {
-          let types = value.lowercased().split(separator: ",")
-            .map { String($0.trimmingCharacters(in: .whitespaces)) }
+          let types = value.lowercased().split(separator: ",").map {
+            String($0.trimmingCharacters(in: .whitespaces))
+          }
           var matchesAny = false
           for componentType in types {
             if isElementOfComponentType(element, type: componentType) {
@@ -258,16 +235,12 @@ class MCPTreeVisualizer {
               break
             }
           }
-          if !matchesAny {
-            return false
-          }
+          if !matchesAny { return false }
         }
         // Handle path filter
         else if keyLower == "path" {
           let elementPath = element.elementPath ?? element.generateSyntheticPath() ?? ""
-          if !elementPath.lowercased().contains(value.lowercased()) {
-            return false
-          }
+          if !elementPath.lowercased().contains(value.lowercased()) { return false }
         }
         // Handle all other filters
         else if !applyStandardFilter(element, key: keyLower, value: value) {
@@ -283,17 +256,12 @@ class MCPTreeVisualizer {
   private func applyStandardFilter(_ element: MCPUIElementNode, key: String, value: String) -> Bool
   {
     switch key {
-    case "role":
-      return element.role.lowercased().contains(value.lowercased())
+    case "role": return element.role.lowercased().contains(value.lowercased())
     case "subrole":
-      if let subrole = element.subrole {
-        return subrole.lowercased().contains(value.lowercased())
-      }
+      if let subrole = element.subrole { return subrole.lowercased().contains(value.lowercased()) }
       return false
     case "title":
-      if let title = element.title {
-        return title.lowercased().contains(value.lowercased())
-      }
+      if let title = element.title { return title.lowercased().contains(value.lowercased()) }
       return false
     case "description":
       // Search in all possible description fields
@@ -301,8 +269,7 @@ class MCPTreeVisualizer {
         return true
       }
       return false
-    case "id", "identifier":
-      return element.identifier.lowercased().contains(value.lowercased())
+    case "id", "identifier": return element.identifier.lowercased().contains(value.lowercased())
     case "enabled":
       let isEnabled = element.isEnabled
       let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
@@ -358,34 +325,25 @@ class MCPTreeVisualizer {
       // Check if element is a window control
       let controlRoles = ["AXToolbar", "AXButton", "AXSlider", "AXScrollBar"]
       let controlSubroles = [
-        "AXCloseButton",
-        "AXMinimizeButton",
-        "AXZoomButton",
-        "AXToolbarButton",
+        "AXCloseButton", "AXMinimizeButton", "AXZoomButton", "AXToolbarButton",
         "AXFullScreenButton",
       ]
 
       // Check if it's a control by role
       if controlRoles.contains(element.role) {
         // Accept certain roles regardless of position (like toolbars)
-        if ["AXToolbar"].contains(element.role) {
-          return true
-        }
+        if ["AXToolbar"].contains(element.role) { return true }
 
         // For other controls, check if they're in the window chrome area
         // This is a heuristic - window controls are usually at the top of the window
-        if let frame = element.frame, frame.origin.y < 50 {
-          return true
-        }
+        if let frame = element.frame, frame.origin.y < 50 { return true }
 
         // Otherwise, it's not a window control
         return false
       }
 
       // Check if it's a control by subrole
-      if let subrole = element.subrole, controlSubroles.contains(subrole) {
-        return true
-      }
+      if let subrole = element.subrole, controlSubroles.contains(subrole) { return true }
 
       // Not a window control
       return false
@@ -395,32 +353,21 @@ class MCPTreeVisualizer {
       let menuRoles = ["AXMenuBar", "AXMenu", "AXMenuItem", "AXMenuBarItem"]
       let controlRoles = ["AXToolbar"]
       let controlSubroles = [
-        "AXCloseButton",
-        "AXMinimizeButton",
-        "AXZoomButton",
-        "AXToolbarButton",
+        "AXCloseButton", "AXMinimizeButton", "AXZoomButton", "AXToolbarButton",
         "AXFullScreenButton",
       ]
 
       // Exclude menu elements
-      if menuRoles.contains(element.role) {
-        return false
-      }
+      if menuRoles.contains(element.role) { return false }
 
       // Exclude control elements by role
-      if controlRoles.contains(element.role) {
-        return false
-      }
+      if controlRoles.contains(element.role) { return false }
 
       // Exclude control elements by subrole
-      if let subrole = element.subrole, controlSubroles.contains(subrole) {
-        return false
-      }
+      if let subrole = element.subrole, controlSubroles.contains(subrole) { return false }
 
       // Exclude buttons in the window chrome area
-      if element.role == "AXButton", let frame = element.frame, frame.origin.y < 50 {
-        return false
-      }
+      if element.role == "AXButton", let frame = element.frame, frame.origin.y < 50 { return false }
 
       // Include everything else
       return true
@@ -428,32 +375,19 @@ class MCPTreeVisualizer {
     case "interactive", "interactable":
       // Check for common interactive element roles
       let interactiveRoles = [
-        "AXButton",
-        "AXCheckBox",
-        "AXRadioButton",
-        "AXPopUpButton",
-        "AXMenuItem",
-        "AXLink",
+        "AXButton", "AXCheckBox", "AXRadioButton", "AXPopUpButton", "AXMenuItem", "AXLink",
         "AXSlider",
-        "AXTextField",
-        "AXTextArea",
-        "AXComboBox",
+        "AXTextField", "AXTextArea", "AXComboBox",
       ]
 
       // First check role
-      if interactiveRoles.contains(element.role) {
-        return true
-      }
+      if interactiveRoles.contains(element.role) { return true }
 
       // Check clickable state
-      if element.isClickable {
-        return true
-      }
+      if element.isClickable { return true }
 
       // Check action capability
-      if element.actions.contains("AXPress") {
-        return true
-      }
+      if element.actions.contains("AXPress") { return true }
 
       // Check general capabilities
       if let capabilities = (element.attributes["capabilities"] as? [String])
@@ -462,18 +396,15 @@ class MCPTreeVisualizer {
         let interactiveCapabilities = [
           "clickable", "editable", "toggleable", "selectable", "adjustable",
         ]
-        for capability in interactiveCapabilities {
-          if capabilities.contains(capability) {
-            return true
-          }
+        for capability in interactiveCapabilities where capabilities.contains(capability) {
+          return true
         }
       }
 
       // Not an interactive element
       return false
 
-    default:
-      return false
+    default: return false
     }
   }
 

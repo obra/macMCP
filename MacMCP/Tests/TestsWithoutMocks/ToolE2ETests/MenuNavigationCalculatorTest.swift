@@ -15,8 +15,7 @@ private struct CalculatorAppInfo {
 }
 
 /// A focused test for menu navigation in Calculator
-@Suite(.serialized)
-struct MenuNavigationCalculatorTest {
+@Suite(.serialized) struct MenuNavigationCalculatorTest {
   private var helper: CalculatorTestHelper!
 
   // Shared setup method
@@ -38,28 +37,21 @@ struct MenuNavigationCalculatorTest {
     let frontmost = try await getFrontmostApp()
     #expect(
       frontmost?.bundleId == "com.apple.calculator",
-      "Calculator should be frontmost after activation"
-    )
+      "Calculator should be frontmost after activation")
   }
-  
   // Shared teardown method
   private mutating func tearDown() async throws {
     if helper != nil {
       // Reset calculator to clean state
       await helper.resetAppState()
-      
       // Optionally terminate the app
       // We don't terminate here since the helper manages app lifecycle
     }
   }
 
-
-
   /// Test basic menu navigation: switch from Basic to Scientific calculator mode
-  @Test("View Menu Navigation")
-  mutating func testViewMenuNavigation() async throws {
+  @Test("View Menu Navigation") mutating func testViewMenuNavigation() async throws {
     try await setUp()
-    
     // First run the menu listing logic to understand the menu structure
     // Ensure Calculator is activated and in the foreground
     try await activateCalculatorWithMCP()
@@ -67,12 +59,9 @@ struct MenuNavigationCalculatorTest {
 
     // List all menu items in the application menu bar
     let menuParams: [String: Value] = [
-      "action": .string("showAllMenus"),
-      "bundleId": .string("com.apple.calculator"),
+      "action": .string("showAllMenus"), "bundleId": .string("com.apple.calculator"),
     ]
-    
     let _ = try await helper.toolChain.menuNavigationTool.handler(menuParams)
-
 
     // Use Menu Navigation Tool to switch to Scientific mode via View menu
     let scientificSuccess = try await switchToCalculatorMode("Scientific")
@@ -93,7 +82,6 @@ struct MenuNavigationCalculatorTest {
     // Wait for mode change to take effect
     try await Task.sleep(for: .milliseconds(2000))
 
-    
     try await tearDown()
   }
 
@@ -101,8 +89,7 @@ struct MenuNavigationCalculatorTest {
   private func activateCalculatorWithMCP() async throws {
     // Use the applicationManagementTool to activate Calculator
     let params: [String: Value] = [
-      "action": .string("activateApplication"),
-      "bundleId": .string("com.apple.calculator"),
+      "action": .string("activateApplication"), "bundleId": .string("com.apple.calculator"),
     ]
 
     let result = try await helper.toolChain.applicationManagementTool.handler(params)
@@ -110,17 +97,13 @@ struct MenuNavigationCalculatorTest {
     // Check if activation was successful
     if let content = result.first, case .text(let text) = content {
       let success = text.contains("success") && text.contains("true")
-      if !success {
-        throw MCPError.internalError("Failed to activate Calculator application")
-      }
+      if !success { throw MCPError.internalError("Failed to activate Calculator application") }
     }
   }
 
   /// Get the frontmost application
   private func getFrontmostApp() async throws -> CalculatorAppInfo? {
-    let params: [String: Value] = [
-      "action": .string("getFrontmostApplication")
-    ]
+    let params: [String: Value] = ["action": .string("getFrontmostApplication")]
 
     let result = try await helper.toolChain.applicationManagementTool.handler(params)
 
@@ -130,13 +113,9 @@ struct MenuNavigationCalculatorTest {
       // Extract application info from the JSON response
       if let data = text.data(using: .utf8),
         let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-        let bundleId = json["bundleId"] as? String,
-        let appName = json["applicationName"] as? String
+        let bundleId = json["bundleId"] as? String, let appName = json["applicationName"] as? String
       {
-        return CalculatorAppInfo(
-          bundleId: bundleId,
-          applicationName: appName
-        )
+        return CalculatorAppInfo(bundleId: bundleId, applicationName: appName)
       }
     }
 
@@ -147,8 +126,7 @@ struct MenuNavigationCalculatorTest {
   private func getCalculatorMode() async throws -> String {
     // Use interface explorer to check the window title which reflects the mode
     let explorerParams: [String: Value] = [
-      "scope": .string("application"),
-      "bundleId": .string("com.apple.calculator"),
+      "scope": .string("application"), "bundleId": .string("com.apple.calculator"),
     ]
 
     let result = try await helper.toolChain.interfaceExplorerTool.handler(explorerParams)
@@ -174,8 +152,7 @@ struct MenuNavigationCalculatorTest {
 
     // Use menu paths with MenuNavigationTool
     let menuParams: [String: Value] = [
-      "action": .string("selectMenuItem"),
-      "bundleId": .string("com.apple.calculator"),
+      "action": .string("selectMenuItem"), "bundleId": .string("com.apple.calculator"),
       "menuPath": .string("View > " + mode),
     ]
 

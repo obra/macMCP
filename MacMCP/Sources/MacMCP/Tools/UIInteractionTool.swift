@@ -12,30 +12,30 @@ public struct UIInteractionTool {
 
   /// Description of the tool
   public let description = """
-Interact with UI elements on macOS through clicking, dragging, scrolling, and coordinate-based actions.
+    Interact with UI elements on macOS through clicking, dragging, scrolling, and coordinate-based actions.
 
-IMPORTANT: Use InterfaceExplorerTool first to discover element IDs.
+    IMPORTANT: Use InterfaceExplorerTool first to discover element IDs.
 
-Available actions:
-- click: Single click on element or coordinates
-- double_click: Double click on element or coordinates  
-- right_click: Right click on element or coordinates to open context menus
-- drag: Drag from one element to another (file operations, selections)
-- scroll: Scroll within scrollable elements or views
+    Available actions:
+    - click: Single click on element or coordinates
+    - double_click: Double click on element or coordinates  
+    - right_click: Right click on element or coordinates to open context menus
+    - drag: Drag from one element to another (file operations, selections)
+    - scroll: Scroll within scrollable elements or views
 
-Interaction methods:
-1. Element-based: Use id from InterfaceExplorerTool (preferred for reliability)
-2. Coordinate-based: Use x, y coordinates for direct positioning (when elements unavailable)
+    Interaction methods:
+    1. Element-based: Use id from InterfaceExplorerTool (preferred for reliability)
+    2. Coordinate-based: Use x, y coordinates for direct positioning (when elements unavailable)
 
-Common workflows:
-1. Explore UI: InterfaceExplorerTool → find element id
-2. Click element: Use id from InterfaceExplorerTool
-3. Drag operations: Use source id + target targetId  
-4. Scroll content: Use container id + direction + amount
-5. Coordinate fallback: Use x, y coordinates when element detection fails
+    Common workflows:
+    1. Explore UI: InterfaceExplorerTool → find element id
+    2. Click element: Use id from InterfaceExplorerTool
+    3. Drag operations: Use source id + target targetId  
+    4. Scroll content: Use container id + direction + amount
+    5. Coordinate fallback: Use x, y coordinates when element detection fails
 
-Coordinate system: Screen pixels, (0,0) = top-left corner.
-"""
+    Coordinate system: Screen pixels, (0,0) = top-left corner.
+    """
 
   /// Input schema for the tool
   public private(set) var inputSchema: Value
@@ -79,7 +79,8 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
     self.accessibilityService = accessibilityService
     self.applicationService = applicationService
     self.changeDetectionService = changeDetectionService
-    self.interactionWrapper = InteractionWithChangeDetection(changeDetectionService: changeDetectionService)
+    self.interactionWrapper = InteractionWithChangeDetection(
+      changeDetectionService: changeDetectionService)
     self.logger = logger ?? Logger(label: "mcp.tool.ui_interact")
 
     // Set tool annotations first
@@ -101,99 +102,76 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
   /// Create the input schema for the tool
   private func createInputSchema() -> Value {
     var properties: [String: Value] = [
-        "action": .object([
-          "type": .string("string"),
-          "description": .string("UI interaction type: click/double_click/right_click for buttons/links, drag for file ops, scroll for navigation"),
-          "enum": .array([
-            .string("click"),
-            .string("double_click"),
-            .string("right_click"),
-            .string("drag"),
-            .string("scroll"),
-          ]),
+      "action": .object([
+        "type": .string("string"),
+        "description": .string(
+          "UI interaction type: click/double_click/right_click for buttons/links, drag for file ops, scroll for navigation"
+        ),
+        "enum": .array([
+          .string("click"), .string("double_click"), .string("right_click"), .string("drag"),
+          .string("scroll"),
         ]),
-        "id": .object([
-          "type": .string("string"),
-          "description": .string("Element ID from \(ToolNames.interfaceExplorer) - preferred method for reliability"),
-        ]),
-        "appBundleId": .object([
-          "type": .string("string"),
-          "description": .string("Application bundle ID for element context (e.g., 'com.apple.calculator')"),
-        ]),
-        "x": .object([
-          "type": .string("number"),
-          "description": .string("X coordinate in screen pixels (0 = left edge) - use when element ID unavailable"),
-        ]),
-        "y": .object([
-          "type": .string("number"),
-          "description": .string("Y coordinate in screen pixels (0 = top edge) - use when element ID unavailable"),
-        ]),
-        "targetId": .object([
-          "type": .string("string"),
-          "description": .string("Destination element ID for drag operations - required for 'drag' action"),
-        ]),
-        "direction": .object([
-          "type": .string("string"),
-          "description": .string("Scroll direction within scrollable element (required for 'scroll' action)"),
-          "enum": .array([
-            .string("up"),
-            .string("down"),
-            .string("left"),
-            .string("right"),
-          ]),
-        ]),
-        "amount": .object([
-          "type": .string("number"),
-          "description": .string("Scroll distance: 0.0 (minimal) to 1.0 (full page) - required for scroll action"),
-          "minimum": .double(0.0),
-          "maximum": .double(1.0),
-        ]),
+      ]),
+      "id": .object([
+        "type": .string("string"),
+        "description": .string(
+          "Element ID from \(ToolNames.interfaceExplorer) - preferred method for reliability"
+        ),
+      ]),
+      "appBundleId": .object([
+        "type": .string("string"),
+        "description": .string(
+          "Application bundle ID for element context (e.g., 'com.apple.calculator')"),
+      ]),
+      "x": .object([
+        "type": .string("number"),
+        "description": .string(
+          "X coordinate in screen pixels (0 = left edge) - use when element ID unavailable"
+        ),
+      ]),
+      "y": .object([
+        "type": .string("number"),
+        "description": .string(
+          "Y coordinate in screen pixels (0 = top edge) - use when element ID unavailable"
+        ),
+      ]),
+      "targetId": .object([
+        "type": .string("string"),
+        "description": .string(
+          "Destination element ID for drag operations - required for 'drag' action"),
+      ]),
+      "direction": .object([
+        "type": .string("string"),
+        "description": .string(
+          "Scroll direction within scrollable element (required for 'scroll' action)"),
+        "enum": .array([.string("up"), .string("down"), .string("left"), .string("right")]),
+      ]),
+      "amount": .object([
+        "type": .string("number"),
+        "description": .string(
+          "Scroll distance: 0.0 (minimal) to 1.0 (full page) - required for scroll action"
+        ), "minimum": .double(0.0), "maximum": .double(1.0),
+      ]),
     ]
-    
     // Add change detection properties
     properties.merge(ChangeDetectionHelper.addChangeDetectionSchemaProperties()) { _, new in new }
-    
     return .object([
-      "type": .string("object"),
-      "properties": .object(properties),
+      "type": .string("object"), "properties": .object(properties),
       "required": .array([.string("action")]),
       "additionalProperties": .bool(false),
       "examples": .array([
+        .object(["action": .string("click"), "id": .string("element-uuid-example")]),
+        .object(["action": .string("click"), "x": .int(400), "y": .int(300)]),
+        .object(["action": .string("double_click"), "id": .string("element-uuid-example")]),
+        .object(["action": .string("double_click"), "x": .int(400), "y": .int(300)]),
+        .object(["action": .string("right_click"), "id": .string("element-uuid-example")]),
+        .object(["action": .string("right_click"), "x": .int(400), "y": .int(300)]),
         .object([
-          "action": .string("click"),
-          "id": .string("element-uuid-example"),
-        ]),
-        .object([
-          "action": .string("click"),
-          "x": .int(400),
-          "y": .int(300),
-        ]),
-        .object([
-          "action": .string("double_click"),
-          "id": .string("element-uuid-example"),
-        ]),
-        .object([
-          "action": .string("double_click"),
-          "x": .int(400),
-          "y": .int(300),
-        ]),
-        .object([
-          "action": .string("right_click"),
-          "id": .string("element-uuid-example"),
-        ]),
-        .object([
-          "action": .string("right_click"),
-          "x": .int(400),
-          "y": .int(300),
-        ]),
-        .object([
-          "action": .string("drag"),
-          "id": .string("source-element-uuid"),
+          "action": .string("drag"), "id": .string("source-element-uuid"),
           "targetId": .string("target-element-uuid"),
         ]),
         .object([
-          "action": .string("scroll"),
-          "id": .string("element-uuid-example"),
+          "action": .string("scroll"), "id": .string("element-uuid-example"),
           "direction": .string("down"),
           "amount": .double(0.5),
         ]),
@@ -207,18 +185,15 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
     let handlerLogger = Logger(label: "mcp.tool.ui_interact")
 
     let accessibilityService = AccessibilityService(
-      logger: Logger(label: "mcp.tool.ui_interact.accessibility"),
-    )
+      logger: Logger(label: "mcp.tool.ui_interact.accessibility"), )
     let applicationService = ApplicationService(
-      logger: Logger(label: "mcp.tool.ui_interact.application")
-    )
+      logger: Logger(label: "mcp.tool.ui_interact.application"))
     let interactionService = UIInteractionService(
       accessibilityService: accessibilityService,
       logger: Logger(label: "mcp.tool.ui_interact.interaction"),
     )
     let changeDetectionService = UIChangeDetectionService(
-      accessibilityService: accessibilityService
-    )
+      accessibilityService: accessibilityService)
     let tool = UIInteractionTool(
       interactionService: interactionService,
       accessibilityService: accessibilityService,
@@ -249,11 +224,11 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
       handlerLogger.error(
         "UIInteractionTool.handler error",
         metadata: [
-          "error": "\(error.localizedDescription)",
-          "domain": "\(nsError.domain)",
+          "error": "\(error.localizedDescription)", "domain": "\(nsError.domain)",
           "code": "\(nsError.code)",
           "info": "\(nsError.userInfo)",
-        ])
+        ]
+      )
       throw error
     }
   }
@@ -264,53 +239,39 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
   private func processRequest(_ params: [String: Value]?) async throws -> [Tool.Content] {
     guard let params else {
       throw createInteractionError(
-        message: "Parameters are required",
-        context: ["toolName": name],
+        message: "Parameters are required", context: ["toolName": name],
       ).asMCPError
     }
 
     // Get the action
     guard let actionValue = params["action"]?.stringValue else {
-      throw createInteractionError(
-        message: "Action is required",
-        context: ["toolName": name],
-      ).asMCPError
+      throw createInteractionError(message: "Action is required", context: ["toolName": name], )
+        .asMCPError
     }
 
     // Process based on action type
     switch actionValue {
-    case "click":
-      return try await handleClick(params)
-    case "double_click":
-      return try await handleDoubleClick(params)
-    case "right_click":
-      return try await handleRightClick(params)
-    case "drag":
-      return try await handleDrag(params)
-    case "scroll":
-      return try await handleScroll(params)
+    case "click": return try await handleClick(params)
+    case "double_click": return try await handleDoubleClick(params)
+    case "right_click": return try await handleRightClick(params)
+    case "drag": return try await handleDrag(params)
+    case "scroll": return try await handleScroll(params)
     default:
       throw createInteractionError(
         message:
           "Invalid action: \(actionValue). Must be one of: click, double_click, right_click, drag, scroll",
         context: [
-          "toolName": name,
-          "providedAction": actionValue,
+          "toolName": name, "providedAction": actionValue,
           "validActions": "click, double_click, right_click, drag, scroll",
         ],
       ).asMCPError
     }
   }
 
-
-  
   /// Extract bundle ID from element ID or parameters
   private func extractBundleID(from elementId: String, params: [String: Value]) -> String? {
     // First check if bundleId is explicitly provided in params
-    if let appBundleId = params["appBundleId"]?.stringValue {
-      return appBundleId
-    }
-    
+    if let appBundleId = params["appBundleId"]?.stringValue { return appBundleId }
     // Try to extract from element ID (elementId is already resolved)
     do {
       let path = try ElementPath.parse(elementId)
@@ -320,13 +281,9 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
           return firstSegment.attributes["bundleId"] ?? firstSegment.attributes["@bundleId"]
         }
       }
-    } catch {
-      logger.debug("Could not parse element ID to extract bundleId: \(error)")
-    }
-    
+    } catch { logger.debug("Could not parse element ID to extract bundleId: \(error)") }
     return nil
   }
-  
   /// Ensure application is focused before interaction
   private func ensureApplicationFocus(bundleId: String) async throws {
     do {
@@ -340,14 +297,12 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
         logger.warning("Failed to activate application", metadata: ["bundleId": "\(bundleId)"])
       }
     } catch {
-      logger.warning("Error activating application", metadata: [
-        "bundleId": "\(bundleId)",
-        "error": "\(error.localizedDescription)"
-      ])
-      // Don't fail the entire interaction if activation fails
+      logger.warning(
+        "Error activating application",
+        metadata: ["bundleId": "\(bundleId)", "error": "\(error.localizedDescription)"]
+      )  // Don't fail the entire interaction if activation fails
     }
   }
-  
   /// Generic helper for element-based interactions
   private func performElementInteraction(
     elementId: String,
@@ -356,16 +311,12 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
     params: [String: Value]
   ) async throws -> [Tool.Content] {
     let (detectChanges, delay) = ChangeDetectionHelper.extractChangeDetectionParams(params)
-    
     // Resolve the element ID (handles both opaque IDs and raw paths)
     let resolvedElementId = ElementPath.resolveElementId(elementId)
     // Extract bundle ID for focus management and change detection
     let appBundleId = extractBundleID(from: resolvedElementId, params: params)
-    
     // Ensure application is focused before interaction
-    if let bundleId = appBundleId {
-      try await ensureApplicationFocus(bundleId: bundleId)
-    }
+    if let bundleId = appBundleId { try await ensureApplicationFocus(bundleId: bundleId) }
 
     // Before interacting, try to look up the element to verify it exists
     do {
@@ -373,9 +324,7 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
       let path = try ElementPath.parse(resolvedElementId)
 
       // Make sure the path is valid
-      if path.segments.isEmpty {
-        logger.warning("Invalid element ID, no segments found")
-      }
+      if path.segments.isEmpty { logger.warning("Invalid element ID, no segments found") }
 
       // Check if the path already specifies an application - if so, don't override with appBundleId
       let pathSpecifiesApp: Bool
@@ -419,8 +368,8 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
 
     do {
       // Determine scope for change detection
-      let scope: UIElementScope = appBundleId != nil ? .application(bundleId: appBundleId!) : .focusedApplication
-      
+      let scope: UIElementScope =
+        appBundleId != nil ? .application(bundleId: appBundleId!) : .focusedApplication
       let result = try await interactionWrapper.performWithChangeDetection(
         scope: scope,
         detectChanges: detectChanges,
@@ -432,33 +381,33 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
         return "Successfully \(action) element with ID: \(resolvedElementId)\(bundleIdInfo)"
       }
 
-      return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
+      return ChangeDetectionHelper.formatResponse(
+        message: result.result,
+        uiChanges: result.uiChanges,
+        logger: logger
+      )
     } catch {
       let nsError = error as NSError
       logger.error(
         "\(action.capitalized) operation failed",
         metadata: [
-          "error": "\(error.localizedDescription)",
-          "domain": "\(nsError.domain)",
+          "error": "\(error.localizedDescription)", "domain": "\(nsError.domain)",
           "code": "\(nsError.code)",
           "elementId": "\(resolvedElementId)",
-        ])
-      
+        ]
+      )
       // Create a more informative error that includes the actual ID
       let enhancedError = createInteractionError(
-        message: "Failed to \(action) element with ID: \(resolvedElementId). \(error.localizedDescription)",
+        message:
+          "Failed to \(action) element with ID: \(resolvedElementId). \(error.localizedDescription)",
         context: [
-          "toolName": name,
-          "action": action,
-          "originalElementId": elementId,
-          "resolvedElementId": resolvedElementId,
-          "originalError": error.localizedDescription,
+          "toolName": name, "action": action, "originalElementId": elementId,
+          "resolvedElementId": resolvedElementId, "originalError": error.localizedDescription,
         ]
       )
       throw enhancedError.asMCPError
     }
   }
-  
   /// Generic helper for position-based interactions
   private func performPositionInteraction(
     x: Double,
@@ -468,7 +417,6 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
     params: [String: Value]
   ) async throws -> [Tool.Content] {
     let (detectChanges, delay) = ChangeDetectionHelper.extractChangeDetectionParams(params)
-    
     do {
       let result = try await interactionWrapper.performWithChangeDetection(
         detectChanges: detectChanges,
@@ -478,7 +426,11 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
         return "Successfully \(action) at position (\(x), \(y))"
       }
 
-      return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
+      return ChangeDetectionHelper.formatResponse(
+        message: result.result,
+        uiChanges: result.uiChanges,
+        logger: logger
+      )
     } catch {
       logger.error(
         "Position \(action) operation failed", metadata: ["error": "\(error.localizedDescription)"])
@@ -531,8 +483,7 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
     throw createInteractionError(
       message: "Click action requires either id or x,y coordinates",
       context: [
-        "toolName": name,
-        "action": "click",
+        "toolName": name, "action": "click",
         "providedParams": "\(params.keys.joined(separator: ", "))",
       ],
     ).asMCPError
@@ -583,8 +534,7 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
     throw createInteractionError(
       message: "Double click action requires either id or x,y coordinates",
       context: [
-        "toolName": name,
-        "action": "double_click",
+        "toolName": name, "action": "double_click",
         "providedParams": "\(params.keys.joined(separator: ", "))",
       ],
     ).asMCPError
@@ -635,8 +585,7 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
     throw createInteractionError(
       message: "Right click action requires either id or x,y coordinates",
       context: [
-        "toolName": name,
-        "action": "right_click",
+        "toolName": name, "action": "right_click",
         "providedParams": "\(params.keys.joined(separator: ", "))",
       ],
     ).asMCPError
@@ -648,8 +597,7 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
       throw createInteractionError(
         message: "Drag action requires id (source)",
         context: [
-          "toolName": name,
-          "action": "drag",
+          "toolName": name, "action": "drag",
           "providedParams": "\(params.keys.joined(separator: ", "))",
         ],
       ).asMCPError
@@ -659,14 +607,11 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
       throw createInteractionError(
         message: "Drag action requires targetId",
         context: [
-          "toolName": name,
-          "action": "drag",
-          "sourceId": sourceElementID,
+          "toolName": name, "action": "drag", "sourceId": sourceElementID,
           "providedParams": "\(params.keys.joined(separator: ", "))",
         ],
       ).asMCPError
     }
-    
     // Resolve both element IDs (handles both opaque IDs and raw paths)
     let sourceResolvedElementId = ElementPath.resolveElementId(sourceElementID)
     let targetResolvedElementId = ElementPath.resolveElementId(targetElementID)
@@ -681,7 +626,8 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
     )
     return [
       .text(
-        "Successfully dragged from element \(sourceResolvedElementId) to element \(targetResolvedElementId)")
+        "Successfully dragged from element \(sourceResolvedElementId) to element \(targetResolvedElementId)"
+      )
     ]
   }
 
@@ -691,13 +637,11 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
       throw createInteractionError(
         message: "Scroll action requires id",
         context: [
-          "toolName": name,
-          "action": "scroll",
+          "toolName": name, "action": "scroll",
           "providedParams": "\(params.keys.joined(separator: ", "))",
         ],
       ).asMCPError
     }
-    
     // Resolve the element ID (handles both opaque IDs and raw paths)
     let resolvedElementId = ElementPath.resolveElementId(elementID)
 
@@ -707,9 +651,7 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
       throw createInteractionError(
         message: "Scroll action requires valid direction (up, down, left, right)",
         context: [
-          "toolName": name,
-          "action": "scroll",
-          "id": resolvedElementId,
+          "toolName": name, "action": "scroll", "id": resolvedElementId,
           "providedDirection": params["direction"]?.stringValue ?? "nil",
           "validDirections": "up, down, left, right",
         ],
@@ -720,12 +662,10 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
       throw createInteractionError(
         message: "Scroll action requires amount between 0.0 and 1.0",
         context: [
-          "toolName": name,
-          "action": "scroll",
-          "id": resolvedElementId,
+          "toolName": name, "action": "scroll", "id": resolvedElementId,
           "direction": directionString,
-          "providedAmount": params["amount"]?
-            .doubleValue != nil ? "\(params["amount"]!.doubleValue!)" : "nil",
+          "providedAmount": params["amount"]?.doubleValue != nil
+            ? "\(params["amount"]!.doubleValue!)" : "nil",
         ],
       ).asMCPError
     }

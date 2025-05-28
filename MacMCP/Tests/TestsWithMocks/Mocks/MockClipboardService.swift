@@ -27,9 +27,7 @@ public actor MockClipboardService: ClipboardServiceProtocol {
   private var _imageToReturn: String = "Mock base64 image data"
   private var _filesToReturn: [String] = ["/path/to/file1.txt", "/path/to/file2.txt"]
   private var _infoToReturn: ClipboardContentInfo = .init(
-    availableTypes: [.text, .image],
-    isEmpty: false,
-  )
+    availableTypes: [.text, .image], isEmpty: false, )
 
   // Error simulation - private variables
   private var _shouldThrowOnGetText = false
@@ -46,9 +44,7 @@ public actor MockClipboardService: ClipboardServiceProtocol {
   // MARK: - Setter methods for configuring mock behavior
 
   // Counter reset methods
-  public func resetGetInfoCallCount() {
-    getInfoCallCount = 0
-  }
+  public func resetGetInfoCallCount() { getInfoCallCount = 0 }
 
   public func resetAllCallCounts() {
     getTextCallCount = 0
@@ -62,54 +58,30 @@ public actor MockClipboardService: ClipboardServiceProtocol {
   }
 
   // Mock response setters
-  public func setTextToReturn(_ text: String) {
-    _textToReturn = text
-  }
+  public func setTextToReturn(_ text: String) { _textToReturn = text }
 
-  public func setImageToReturn(_ image: String) {
-    _imageToReturn = image
-  }
+  public func setImageToReturn(_ image: String) { _imageToReturn = image }
 
-  public func setFilesToReturn(_ files: [String]) {
-    _filesToReturn = files
-  }
+  public func setFilesToReturn(_ files: [String]) { _filesToReturn = files }
 
-  public func setInfoToReturn(_ info: ClipboardContentInfo) {
-    _infoToReturn = info
-  }
+  public func setInfoToReturn(_ info: ClipboardContentInfo) { _infoToReturn = info }
 
   // Error simulation setters
-  public func setShouldThrowOnGetText(_ value: Bool) {
-    _shouldThrowOnGetText = value
-  }
+  public func setShouldThrowOnGetText(_ value: Bool) { _shouldThrowOnGetText = value }
 
-  public func setShouldThrowOnSetText(_ value: Bool) {
-    _shouldThrowOnSetText = value
-  }
+  public func setShouldThrowOnSetText(_ value: Bool) { _shouldThrowOnSetText = value }
 
-  public func setShouldThrowOnGetImage(_ value: Bool) {
-    _shouldThrowOnGetImage = value
-  }
+  public func setShouldThrowOnGetImage(_ value: Bool) { _shouldThrowOnGetImage = value }
 
-  public func setShouldThrowOnSetImage(_ value: Bool) {
-    _shouldThrowOnSetImage = value
-  }
+  public func setShouldThrowOnSetImage(_ value: Bool) { _shouldThrowOnSetImage = value }
 
-  public func setShouldThrowOnGetFiles(_ value: Bool) {
-    _shouldThrowOnGetFiles = value
-  }
+  public func setShouldThrowOnGetFiles(_ value: Bool) { _shouldThrowOnGetFiles = value }
 
-  public func setShouldThrowOnSetFiles(_ value: Bool) {
-    _shouldThrowOnSetFiles = value
-  }
+  public func setShouldThrowOnSetFiles(_ value: Bool) { _shouldThrowOnSetFiles = value }
 
-  public func setShouldThrowOnClear(_ value: Bool) {
-    _shouldThrowOnClear = value
-  }
+  public func setShouldThrowOnClear(_ value: Bool) { _shouldThrowOnClear = value }
 
-  public func setShouldThrowOnGetInfo(_ value: Bool) {
-    _shouldThrowOnGetInfo = value
-  }
+  public func setShouldThrowOnGetInfo(_ value: Bool) { _shouldThrowOnGetInfo = value }
 
   // MARK: - ClipboardServiceProtocol Implementation
 

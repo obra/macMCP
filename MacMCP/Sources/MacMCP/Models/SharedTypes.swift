@@ -112,9 +112,7 @@ public struct WindowDescriptor: Codable, Sendable, Identifiable {
     let name: String =
       if let title = element.title, !title.isEmpty {
         title
-      } else if let app = element.attributes["application"] as? String {
-        "\(app) Window"
-      } else {
+      } else if let app = element.attributes["application"] as? String { "\(app) Window" } else {
         "Window"
       }
 
@@ -209,10 +207,8 @@ public struct MenuItemDescriptor: Codable, Sendable, Identifiable {
   ///   - element: The UIElement to convert
   ///   - includeSubmenu: Whether to include submenu items (default false)
   /// - Returns: A MenuItemDescriptor
-  public static func from(
-    element: UIElement,
-    includeSubmenu: Bool = false,
-  ) -> MenuItemDescriptor? {
+  public static func from(element: UIElement, includeSubmenu: Bool = false, ) -> MenuItemDescriptor?
+  {
     // More permissive approach for menu items - almost any element can be a menu item
     // We just filter out obvious containers and non-interactive elements
     let nonMenuRoles = [
@@ -233,15 +229,11 @@ public struct MenuItemDescriptor: Codable, Sendable, Identifiable {
         // Find the submenu element
         if let submenu = element.children.first(where: { $0.role == AXAttribute.Role.menu }) {
           // Convert submenu items
-          submenu.children.compactMap {
-            from(element: $0, includeSubmenu: includeSubmenu)
-          }
+          submenu.children.compactMap { from(element: $0, includeSubmenu: includeSubmenu) }
         } else {
           nil
         }
-      } else {
-        nil
-      }
+      } else { nil }
 
     // Extract keyboard shortcut if available
     let shortcut = element.attributes["keyboardShortcut"] as? String
@@ -250,9 +242,7 @@ public struct MenuItemDescriptor: Codable, Sendable, Identifiable {
     var name: String
     if let title = element.title, !title.isEmpty {
       name = title
-      if let shortcut, !shortcut.isEmpty {
-        name += " (\(shortcut))"
-      }
+      if let shortcut, !shortcut.isEmpty { name += " (\(shortcut))" }
     } else {
       // Fallback to a generic name with the role
       name = "Menu Item (\(element.role))"

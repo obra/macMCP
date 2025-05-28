@@ -13,24 +13,24 @@ public struct KeyboardInteractionTool: @unchecked Sendable {
 
   /// Description of the tool
   public let description = """
-Execute keyboard shortcuts and type text on macOS.
+    Execute keyboard shortcuts and type text on macOS.
 
-IMPORTANT: The 'sequence' parameter requires an array of action objects.
-Each object must contain exactly ONE of: press, tap, release, or delay.
+    IMPORTANT: The 'sequence' parameter requires an array of action objects.
+    Each object must contain exactly ONE of: press, tap, release, or delay.
 
-Common patterns:
-- Press Enter: [{"press": "return"}]
-- Keyboard shortcut: [{"tap": "c", "modifiers": ["command"]}]
-- Type then Enter: Use type_text action, then key_sequence for Enter
+    Common patterns:
+    - Press Enter: [{"press": "return"}]
+    - Keyboard shortcut: [{"tap": "c", "modifiers": ["command"]}]
+    - Type then Enter: Use type_text action, then key_sequence for Enter
 
-Valid action types in sequence:
-- tap: Press and release a key (most common)
-- press: Press and hold a key down
-- release: Release a previously pressed key
-- delay: Pause execution (in seconds)
+    Valid action types in sequence:
+    - tap: Press and release a key (most common)
+    - press: Press and hold a key down
+    - release: Release a previously pressed key
+    - delay: Pause execution (in seconds)
 
-Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, option, control, up, down, left, right, f1-f12
-"""
+    Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, option, control, up, down, left, right, f1-f12
+    """
 
   /// Input schema for the tool
   public private(set) var inputSchema: Value
@@ -68,7 +68,8 @@ Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, o
     self.interactionService = interactionService
     self.accessibilityService = accessibilityService
     self.changeDetectionService = changeDetectionService
-    self.interactionWrapper = InteractionWithChangeDetection(changeDetectionService: changeDetectionService)
+    self.interactionWrapper = InteractionWithChangeDetection(
+      changeDetectionService: changeDetectionService)
     self.logger = logger ?? Logger(label: "mcp.tool.keyboard")
 
     // Set tool annotations
@@ -90,76 +91,56 @@ Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, o
   /// Create the input schema for the tool
   private func createInputSchema() -> Value {
     let baseProperties: [String: Value] = [
-        "action": .object([
-          "type": .string("string"),
-          "description": .string("Use 'type_text' for typing text, 'key_sequence' for shortcuts and special keys"),
-          "enum": .array([
-            .string("type_text"),
-            .string("key_sequence"),
+      "action": .object([
+        "type": .string("string"),
+        "description": .string(
+          "Use 'type_text' for typing text, 'key_sequence' for shortcuts and special keys"
+        ), "enum": .array([.string("type_text"), .string("key_sequence")]),
+      ]),
+      "text": .object([
+        "type": .string("string"),
+        "description": .string("Text to type (required for type_text action)"),
+      ]),
+      "sequence": .object([
+        "type": .string("array"),
+        "description": .string(
+          "Array of action objects. Each must have exactly one action type: tap, press, release, or delay"
+        ),
+        "items": .object([
+          "type": .string("object"),
+          "description": .string(
+            "Action object with one of: {\"tap\": \"key\"}, {\"press\": \"key\"}, {\"release\": \"key\"}, or {\"delay\": seconds}"
+          ),
+          "examples": .array([
+            .object(["tap": .string("return")]),
+            .object(["tap": .string("c"), "modifiers": .array([.string("command")])]),
+            .object(["delay": .double(0.5)]), .object(["press": .string("shift")]),
+            .object(["release": .string("shift")]),
           ]),
         ]),
-        "text": .object([
-          "type": .string("string"),
-          "description": .string("Text to type (required for type_text action)"),
-        ]),
-        "sequence": .object([
-          "type": .string("array"),
-          "description": .string("Array of action objects. Each must have exactly one action type: tap, press, release, or delay"),
-          "items": .object([
-            "type": .string("object"),
-            "description": .string("Action object with one of: {\"tap\": \"key\"}, {\"press\": \"key\"}, {\"release\": \"key\"}, or {\"delay\": seconds}"),
-            "examples": .array([
-              .object([
-                "tap": .string("return"),
-              ]),
-              .object([
-                "tap": .string("c"),
-                "modifiers": .array([.string("command")]),
-              ]),
-              .object([
-                "delay": .double(0.5),
-              ]),
-              .object([
-                "press": .string("shift"),
-              ]),
-              .object([
-                "release": .string("shift"),
-              ]),
-            ]),
-          ]),
-        ])
-      ]
-      
-      // Merge in change detection properties 
-      let properties = baseProperties.merging(ChangeDetectionHelper.addChangeDetectionSchemaProperties()) { _, new in new }
-      
-      return .object([
-        "type": .string("object"),
-        "properties": .object(properties),
-        "required": .array([.string("action")]),
-        "additionalProperties": .bool(false),
-        "examples": .array([
-          .object([
+      ]),
+    ]
+    // Merge in change detection properties
+    let properties = baseProperties.merging(
+      ChangeDetectionHelper.addChangeDetectionSchemaProperties()
+    ) { _, new in
+      new
+    }
+    return .object([
+      "type": .string("object"), "properties": .object(properties),
+      "required": .array([.string("action")]),
+      "additionalProperties": .bool(false),
+      "examples": .array([
+        .object([
           "action": .string("key_sequence"),
-          "sequence": .array([
-            .object([
-              "press": .string("return"),
-            ]),
-          ]),
+          "sequence": .array([.object(["press": .string("return")])]),
         ]),
         .object([
           "action": .string("key_sequence"),
           "sequence": .array([
-            .object([
-              "tap": .string("c"),
-              "modifiers": .array([.string("command")]),
-            ]),
+            .object(["tap": .string("c"), "modifiers": .array([.string("command")])])
           ]),
-        ]),
-        .object([
-          "action": .string("type_text"),
-          "text": .string("Hello world"),
-        ]),
+        ]), .object(["action": .string("type_text"), "text": .string("Hello world")]),
       ]),
     ])
   }
@@ -178,41 +159,30 @@ Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, o
     }
   }
 
-
   /// Process a keyboard interaction request
   /// - Parameters:
   ///   - params: The request parameters
   /// - Returns: The tool result content
-  private func processRequest(
-    _ params: [String: Value]?,
-  ) async throws -> [Tool.Content] {
+  private func processRequest(_ params: [String: Value]?, ) async throws -> [Tool.Content] {
     guard let params else {
-      throw createError(
-        message: "Parameters are required",
-        context: ["toolName": name],
-      ).asMCPError
+      throw createError(message: "Parameters are required", context: ["toolName": name], )
+        .asMCPError
     }
 
     // Get the action
     guard let actionValue = params["action"]?.stringValue else {
-      throw createError(
-        message: "Action is required",
-        context: ["toolName": name],
-      ).asMCPError
+      throw createError(message: "Action is required", context: ["toolName": name], ).asMCPError
     }
 
     // Process based on action type
     switch actionValue {
-    case "type_text":
-      return try await handleTypeText(params)
-    case "key_sequence":
-      return try await handleKeySequence(params)
+    case "type_text": return try await handleTypeText(params)
+    case "key_sequence": return try await handleKeySequence(params)
     default:
       throw createError(
         message: "Invalid action: \(actionValue). Must be one of: type_text, key_sequence",
         context: [
-          "toolName": name,
-          "providedAction": actionValue,
+          "toolName": name, "providedAction": actionValue,
           "validActions": "type_text, key_sequence",
         ],
       ).asMCPError
@@ -223,15 +193,12 @@ Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, o
   /// - Parameters:
   ///   - params: The request parameters
   /// - Returns: The tool result content
-  private func handleTypeText(
-    _ params: [String: Value],
-  ) async throws -> [Tool.Content] {
+  private func handleTypeText(_ params: [String: Value], ) async throws -> [Tool.Content] {
     guard let text = params["text"]?.stringValue else {
       throw createError(
         message: "Text is required for type_text action",
         context: [
-          "toolName": name,
-          "action": "type_text",
+          "toolName": name, "action": "type_text",
           "providedParams": "\(params.keys.joined(separator: ", "))",
         ],
       ).asMCPError
@@ -241,8 +208,7 @@ Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, o
 
     // Type the text with change detection
     let result = try await interactionWrapper.performWithChangeDetection(
-      detectChanges: detectChanges,
-      delay: delay
+      detectChanges: detectChanges, delay: delay
     ) {
       logger.debug("Typing text", metadata: ["length": "\(text.count)"])
 
@@ -251,11 +217,7 @@ Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, o
         guard let keyCodeInfo = KeyCodeMapping.keyCodeForCharacter(character) else {
           throw createError(
             message: "Unsupported character: \(character)",
-            context: [
-              "toolName": name,
-              "action": "type_text",
-              "character": String(character),
-            ],
+            context: ["toolName": name, "action": "type_text", "character": String(character)],
           ).asMCPError
         }
 
@@ -266,10 +228,9 @@ Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, o
         logger.debug(
           "Typing character",
           metadata: [
-            "character": "\(character)",
-            "keyCode": "\(keyCode)",
-            "modifiers": "\(modifiers)",
-          ])
+            "character": "\(character)", "keyCode": "\(keyCode)", "modifiers": "\(modifiers)",
+          ]
+        )
 
         try await interactionService.pressKey(keyCode: keyCode, modifiers: modifiers)
 
@@ -280,22 +241,20 @@ Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, o
       return "Successfully typed \(text.count) characters"
     }
 
-    return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
+    return ChangeDetectionHelper.formatResponse(
+      message: result.result, uiChanges: result.uiChanges, logger: logger)
   }
 
   /// Handle key_sequence action
   /// - Parameters:
   ///   - params: The request parameters
   /// - Returns: The tool result content
-  private func handleKeySequence(
-    _ params: [String: Value],
-  ) async throws -> [Tool.Content] {
+  private func handleKeySequence(_ params: [String: Value], ) async throws -> [Tool.Content] {
     guard let sequenceArray = params["sequence"]?.arrayValue else {
       throw createError(
         message: "Sequence is required for key_sequence action",
         context: [
-          "toolName": name,
-          "action": "key_sequence",
+          "toolName": name, "action": "key_sequence",
           "providedParams": "\(params.keys.joined(separator: ", "))",
         ],
       ).asMCPError
@@ -305,86 +264,70 @@ Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, o
 
     // Execute the key sequence with change detection
     let result = try await interactionWrapper.performWithChangeDetection(
-      detectChanges: detectChanges,
-      delay: delay
+      detectChanges: detectChanges, delay: delay
     ) {
       // Process the sequence
       logger.debug("Executing key sequence", metadata: ["steps": "\(sequenceArray.count)"])
 
-    // Track currently pressed modifier keys
-    var activeModifiers: [String: Bool] = [:]
+      // Track currently pressed modifier keys
+      var activeModifiers: [String: Bool] = [:]
 
-    // Process each item in the sequence
-    for (index, item) in sequenceArray.enumerated() {
-      guard let itemObj = item.objectValue else {
-        throw createError(
-          message: "Sequence item must be an object",
-          context: [
-            "toolName": name,
-            "action": "key_sequence",
-            "index": "\(index)",
-          ],
-        ).asMCPError
+      // Process each item in the sequence
+      for (index, item) in sequenceArray.enumerated() {
+        guard let itemObj = item.objectValue else {
+          throw createError(
+            message: "Sequence item must be an object",
+            context: ["toolName": name, "action": "key_sequence", "index": "\(index)"],
+          ).asMCPError
+        }
+
+        // Process based on the action type
+        if let tapKey = itemObj["tap"]?.stringValue {
+          // Handle TAP event (press and release a key)
+          try await handleTapEvent(
+            key: tapKey,
+            modifiers: extractModifiers(from: itemObj),
+            activeModifiers: &activeModifiers,
+          )
+        } else if let pressKey = itemObj["press"]?.stringValue {
+          // Handle PRESS event (press a key without releasing)
+          try await handlePressEvent(key: pressKey, activeModifiers: &activeModifiers, )
+        } else if let releaseKey = itemObj["release"]?.stringValue {
+          // Handle RELEASE event (release a previously pressed key)
+          try await handleReleaseEvent(key: releaseKey, activeModifiers: &activeModifiers, )
+        } else if let delayTime = itemObj["delay"]?.doubleValue {
+          // Handle DELAY event (pause execution)
+          try await handleDelayEvent(seconds: delayTime)
+        } else {
+          throw createError(
+            message: "Invalid sequence item, must contain one of: tap, press, release, or delay",
+            context: [
+              "toolName": name, "action": "key_sequence", "index": "\(index)",
+              "keys": "\(itemObj.keys.joined(separator: ", "))",
+            ],
+          ).asMCPError
+        }
       }
 
-      // Process based on the action type
-      if let tapKey = itemObj["tap"]?.stringValue {
-        // Handle TAP event (press and release a key)
-        try await handleTapEvent(
-          key: tapKey,
-          modifiers: extractModifiers(from: itemObj),
-          activeModifiers: &activeModifiers,
-        )
-      } else if let pressKey = itemObj["press"]?.stringValue {
-        // Handle PRESS event (press a key without releasing)
-        try await handlePressEvent(
-          key: pressKey,
-          activeModifiers: &activeModifiers,
-        )
-      } else if let releaseKey = itemObj["release"]?.stringValue {
-        // Handle RELEASE event (release a previously pressed key)
-        try await handleReleaseEvent(
-          key: releaseKey,
-          activeModifiers: &activeModifiers,
-        )
-      } else if let delayTime = itemObj["delay"]?.doubleValue {
-        // Handle DELAY event (pause execution)
-        try await handleDelayEvent(seconds: delayTime)
-      } else {
-        throw createError(
-          message: "Invalid sequence item, must contain one of: tap, press, release, or delay",
-          context: [
-            "toolName": name,
-            "action": "key_sequence",
-            "index": "\(index)",
-            "keys": "\(itemObj.keys.joined(separator: ", "))",
-          ],
-        ).asMCPError
-      }
-    }
-
-    // Ensure all modifier keys are released
-    try await releaseAllModifiers(activeModifiers: &activeModifiers)
+      // Ensure all modifier keys are released
+      try await releaseAllModifiers(activeModifiers: &activeModifiers)
 
       return "Successfully executed key sequence with \(sequenceArray.count) commands"
     }
 
-    return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
+    return ChangeDetectionHelper.formatResponse(
+      message: result.result, uiChanges: result.uiChanges, logger: logger)
   }
 
   /// Extract modifier keys from a sequence item
   /// - Parameter item: The sequence item
   /// - Returns: Array of modifier key names, or nil if none
   private func extractModifiers(from item: [String: Value]) -> [String]? {
-    guard let modifiersArray = item["modifiers"]?.arrayValue else {
-      return nil
-    }
+    guard let modifiersArray = item["modifiers"]?.arrayValue else { return nil }
 
     var modifiers: [String] = []
     for modifier in modifiersArray {
-      if let modifierName = modifier.stringValue {
-        modifiers.append(modifierName)
-      }
+      if let modifierName = modifier.stringValue { modifiers.append(modifierName) }
     }
 
     return modifiers.isEmpty ? nil : modifiers
@@ -396,25 +339,24 @@ Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, o
   ///   - modifiers: Optional modifier keys to hold during the tap
   ///   - activeModifiers: Dictionary of currently pressed modifier keys
   private func handleTapEvent(
-    key: String,
-    modifiers: [String]?,
-    activeModifiers: inout [String: Bool],
+    key: String, modifiers: [String]?, activeModifiers: inout [String: Bool],
   ) async throws {
     logger.debug(
       "Handling tap event",
       metadata: [
         "key": "\(key)",
         "modifiers": modifiers != nil ? "\(modifiers!.joined(separator: ", "))" : "none",
-      ])
+      ]
+    )
 
     // If the key is a modifier key, just press and release it
     if KeyCodeMapping.isModifierKey(key) {
       // Get key code for the modifier
       guard let keyCodeInfo = KeyCodeMapping.keyCodeForKey(key) else {
         throw createError(
-          message: "Unsupported key: \(key)",
-          context: ["action": "tap", "key": key],
-        ).asMCPError
+          message: "Unsupported key: \(key)", context: ["action": "tap", "key": key],
+        )
+        .asMCPError
       }
 
       // Press and release the modifier key
@@ -434,13 +376,9 @@ Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, o
 
     // Calculate combined modifiers
     var combinedModifiers: CGEventFlags = []
-    for (modKey, isActive) in activeModifiers {
-      if isActive {
-        let modFlag = KeyCodeMapping.modifierFlagsForNames([modKey])
-        if !modFlag.isEmpty {
-          combinedModifiers.formUnion(modFlag)
-        }
-      }
+    for (modKey, isActive) in activeModifiers where isActive {
+      let modFlag = KeyCodeMapping.modifierFlagsForNames([modKey])
+      if !modFlag.isEmpty { combinedModifiers.formUnion(modFlag) }
     }
 
     // Get the key code for the key to tap
@@ -452,8 +390,7 @@ Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, o
       )
 
       throw createError(
-        message: "Unsupported key: \(key)",
-        context: ["action": "tap", "key": key],
+        message: "Unsupported key: \(key)", context: ["action": "tap", "key": key],
       ).asMCPError
     }
 
@@ -465,26 +402,20 @@ Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, o
 
     // Release temporary modifiers
     try await releaseTemporaryModifiers(
-      temporaryModifiers: temporaryModifiers,
-      activeModifiers: &activeModifiers,
-    )
+      temporaryModifiers: temporaryModifiers, activeModifiers: &activeModifiers, )
   }
 
   /// Handle a press event (press a key without releasing it)
   /// - Parameters:
   ///   - key: The key to press
   ///   - activeModifiers: Dictionary of currently pressed modifier keys
-  private func handlePressEvent(
-    key: String,
-    activeModifiers: inout [String: Bool],
-  ) async throws {
+  private func handlePressEvent(key: String, activeModifiers: inout [String: Bool], ) async throws {
     logger.debug("Handling press event", metadata: ["key": "\(key)"])
 
     // Get the key code
     guard let keyCodeInfo = KeyCodeMapping.keyCodeForKey(key) else {
       throw createError(
-        message: "Unsupported key: \(key)",
-        context: ["action": "press", "key": key],
+        message: "Unsupported key: \(key)", context: ["action": "press", "key": key],
       ).asMCPError
     }
 
@@ -518,22 +449,15 @@ Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, o
 
     // Calculate combined modifiers
     var combinedModifiers: CGEventFlags = []
-    for (modKey, isActive) in activeModifiers {
-      if isActive {
-        let modFlag = KeyCodeMapping.modifierFlagsForNames([modKey])
-        if !modFlag.isEmpty {
-          combinedModifiers.formUnion(modFlag)
-        }
-      }
+    for (modKey, isActive) in activeModifiers where isActive {
+      let modFlag = KeyCodeMapping.modifierFlagsForNames([modKey])
+      if !modFlag.isEmpty { combinedModifiers.formUnion(modFlag) }
     }
 
     // Create and post key down event
     let eventSource = CGEventSource(stateID: .combinedSessionState)
     let keyDownEvent = CGEvent(
-      keyboardEventSource: eventSource,
-      virtualKey: keyCodeInfo.keyCode,
-      keyDown: true,
-    )
+      keyboardEventSource: eventSource, virtualKey: keyCodeInfo.keyCode, keyDown: true, )
 
     guard let keyDownEvent else {
       throw createError(
@@ -543,9 +467,7 @@ Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, o
     }
 
     // Apply modifiers if any are active
-    if !combinedModifiers.isEmpty {
-      keyDownEvent.flags = combinedModifiers
-    }
+    if !combinedModifiers.isEmpty { keyDownEvent.flags = combinedModifiers }
 
     keyDownEvent.post(tap: .cghidEventTap)
   }
@@ -554,43 +476,32 @@ Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, o
   /// - Parameters:
   ///   - key: The key to release
   ///   - activeModifiers: Dictionary of currently pressed modifier keys
-  private func handleReleaseEvent(
-    key: String,
-    activeModifiers: inout [String: Bool],
-  ) async throws {
+  private func handleReleaseEvent(key: String, activeModifiers: inout [String: Bool], ) async throws
+  {
     logger.debug("Handling release event", metadata: ["key": "\(key)"])
 
     // Get the key code
     guard let keyCodeInfo = KeyCodeMapping.keyCodeForKey(key) else {
       throw createError(
-        message: "Unsupported key: \(key)",
-        context: ["action": "release", "key": key],
-      ).asMCPError
+        message: "Unsupported key: \(key)", context: ["action": "release", "key": key],
+      )
+      .asMCPError
     }
 
     // For modifier keys, mark them as inactive
-    if KeyCodeMapping.isModifierKey(key) {
-      activeModifiers[key] = false
-    }
+    if KeyCodeMapping.isModifierKey(key) { activeModifiers[key] = false }
 
     // Calculate combined modifiers
     var combinedModifiers: CGEventFlags = []
-    for (modKey, isActive) in activeModifiers {
-      if isActive {
-        let modFlag = KeyCodeMapping.modifierFlagsForNames([modKey])
-        if !modFlag.isEmpty {
-          combinedModifiers.formUnion(modFlag)
-        }
-      }
+    for (modKey, isActive) in activeModifiers where isActive {
+      let modFlag = KeyCodeMapping.modifierFlagsForNames([modKey])
+      if !modFlag.isEmpty { combinedModifiers.formUnion(modFlag) }
     }
 
     // Create and post key up event
     let eventSource = CGEventSource(stateID: .combinedSessionState)
     let keyUpEvent = CGEvent(
-      keyboardEventSource: eventSource,
-      virtualKey: keyCodeInfo.keyCode,
-      keyDown: false,
-    )
+      keyboardEventSource: eventSource, virtualKey: keyCodeInfo.keyCode, keyDown: false, )
 
     guard let keyUpEvent else {
       throw createError(
@@ -600,9 +511,7 @@ Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, o
     }
 
     // Apply modifiers if any are active
-    if !combinedModifiers.isEmpty {
-      keyUpEvent.flags = combinedModifiers
-    }
+    if !combinedModifiers.isEmpty { keyUpEvent.flags = combinedModifiers }
 
     keyUpEvent.post(tap: .cghidEventTap)
   }
@@ -626,20 +535,17 @@ Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, o
   ///   - activeModifiers: Currently active modifier keys
   /// - Returns: Array of temporary modifiers that were pressed
   private func pressTemporaryModifiers(
-    requestedModifiers: [String]?,
-    activeModifiers: inout [String: Bool],
-  ) async throws -> [String] {
+    requestedModifiers: [String]?, activeModifiers: inout [String: Bool],
+  )
+    async throws -> [String]
+  {
     var temporaryModifiers: [String] = []
 
-    guard let modifiers = requestedModifiers, !modifiers.isEmpty else {
-      return temporaryModifiers
-    }
+    guard let modifiers = requestedModifiers, !modifiers.isEmpty else { return temporaryModifiers }
 
     for modifier in modifiers {
       // Skip if this modifier is already active
-      if activeModifiers[modifier] == true {
-        continue
-      }
+      if activeModifiers[modifier] == true { continue }
 
       // Get key code for this modifier
       guard let keyCodeInfo = KeyCodeMapping.keyCodeForKey(modifier) else {
@@ -678,14 +584,13 @@ Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, o
   ///   - temporaryModifiers: Temporary modifiers to release
   ///   - activeModifiers: Currently active modifier keys
   private func releaseTemporaryModifiers(
-    temporaryModifiers: [String],
-    activeModifiers: inout [String: Bool],
-  ) async throws {
+    temporaryModifiers: [String], activeModifiers: inout [String: Bool],
+  )
+    async throws
+  {
     for modifier in temporaryModifiers {
       // Get key code for this modifier
-      guard let keyCodeInfo = KeyCodeMapping.keyCodeForKey(modifier) else {
-        continue
-      }
+      guard let keyCodeInfo = KeyCodeMapping.keyCodeForKey(modifier) else { continue }
 
       // Create and post key up event
       let eventSource = CGEventSource(stateID: .combinedSessionState)
@@ -695,9 +600,7 @@ Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, o
         keyDown: false,
       )
 
-      guard let keyUpEvent else {
-        continue
-      }
+      guard let keyUpEvent else { continue }
 
       keyUpEvent.post(tap: .cghidEventTap)
 
@@ -717,9 +620,7 @@ Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, o
 
     for modifier in modifiersToRelease {
       // Get key code for this modifier
-      guard let keyCodeInfo = KeyCodeMapping.keyCodeForKey(modifier) else {
-        continue
-      }
+      guard let keyCodeInfo = KeyCodeMapping.keyCodeForKey(modifier) else { continue }
 
       // Create and post key up event
       let eventSource = CGEventSource(stateID: .combinedSessionState)
@@ -729,9 +630,7 @@ Valid key names: a-z, 0-9, return, space, tab, escape, delete, command, shift, o
         keyDown: false,
       )
 
-      guard let keyUpEvent else {
-        continue
-      }
+      guard let keyUpEvent else { continue }
 
       keyUpEvent.post(tap: .cghidEventTap)
 
@@ -751,7 +650,5 @@ struct KeyboardInteractionError: Swift.Error {
   let message: String
   let context: [String: String]
 
-  var asMCPError: MCPError {
-    MCPError.invalidParams(message)
-  }
+  var asMCPError: MCPError { MCPError.invalidParams(message) }
 }

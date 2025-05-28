@@ -55,11 +55,8 @@ public protocol UIInteractionServiceProtocol {
   ///   - amount: The amount to scroll (normalized 0-1)
   ///   - appBundleId: Optional bundle ID of the application containing the element
   func scrollElementByPath(
-    path: String,
-    direction: ScrollDirection,
-    amount: Double,
-    appBundleId: String?,
-  ) async throws
+    path: String, direction: ScrollDirection, amount: Double, appBundleId: String?, )
+    async throws
 
   /// Perform a specific accessibility action on an element by path
   /// - Parameters:

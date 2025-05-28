@@ -7,17 +7,14 @@ import Testing
 
 @testable import MacMCP
 
-@Suite("Accessibility API Tests")
-struct AccessibilityTests {
-  @Test("System-wide element access")
-  func testSystemWideElement() {
+@Suite("Accessibility API Tests") struct AccessibilityTests {
+  @Test("System-wide element access") func testSystemWideElement() {
     let systemElement = AccessibilityElement.systemWideElement()
     // Just verify we received a valid element
     #expect(CFGetTypeID(systemElement) == AXUIElementGetTypeID())
   }
 
-  @Test("Application element by PID access")
-  func applicationElementByPID() {
+  @Test("Application element by PID access") func applicationElementByPID() {
     // Get the current process ID (this test app)
     let pid = ProcessInfo.processInfo.processIdentifier
 
@@ -26,11 +23,11 @@ struct AccessibilityTests {
     #expect(CFGetTypeID(appElement) == AXUIElementGetTypeID())
   }
 
-  @Test("Get element attributes")
-  func getAttributes() throws {
+  @Test("Get element attributes") func getAttributes() throws {
     // This test will be skipped if accessibility permissions aren't granted,
     // since we can't automate permission granting in tests
-    #expect(AccessibilityPermissions.isAccessibilityEnabled(), "Accessibility not enabled, skipping test")
+    #expect(
+      AccessibilityPermissions.isAccessibilityEnabled(), "Accessibility not enabled, skipping test")
 
     // Get the system-wide element
     let systemElement = AccessibilityElement.systemWideElement()
@@ -42,16 +39,13 @@ struct AccessibilityTests {
 
     // Try to get the focused application
     // This is more of a smoke test that doesn't force us to have a focused app
-    _ = try? AccessibilityElement.getAttribute(
-      systemElement,
-      attribute: "AXFocusedApplication",
-    )
+    _ = try? AccessibilityElement.getAttribute(systemElement, attribute: "AXFocusedApplication", )
   }
 
-  @Test("Convert to UIElement model")
-  func testConvertToUIElement() throws {
+  @Test("Convert to UIElement model") func testConvertToUIElement() throws {
     // This test will be skipped if accessibility permissions aren't granted
-    #expect(AccessibilityPermissions.isAccessibilityEnabled(), "Accessibility not enabled, skipping test")
+    #expect(
+      AccessibilityPermissions.isAccessibilityEnabled(), "Accessibility not enabled, skipping test")
 
     // Get a simple UI element - use the system-wide element
     let systemElement = AccessibilityElement.systemWideElement()
@@ -64,8 +58,7 @@ struct AccessibilityTests {
     #expect(!uiElement.path.isEmpty)
   }
 
-  @Test("Get element hierarchy (limited depth)")
-  func getElementHierarchy() throws {
+  @Test("Get element hierarchy (limited depth)") func getElementHierarchy() throws {
     // Using a manual approach to skip, since the XCTSkipIf seems to still register as a failure in some
     // environments
     print("Skipping test that requires system-level accessibility permissions")

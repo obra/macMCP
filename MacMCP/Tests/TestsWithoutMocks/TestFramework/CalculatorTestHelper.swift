@@ -9,8 +9,7 @@ import Testing
 @testable import MacMCP
 
 /// Helper class for Calculator testing, providing shared resources and convenience methods
-@MainActor
-public final class CalculatorTestHelper {
+@MainActor public final class CalculatorTestHelper {
   // MARK: - Properties
 
   /// The Calculator app model
@@ -36,9 +35,7 @@ public final class CalculatorTestHelper {
   /// Get or create a shared helper instance to avoid multiple app launches
   /// - Returns: A shared calculator helper instance
   public static func sharedHelper() -> CalculatorTestHelper {
-    if let helper = _sharedHelper {
-      return helper
-    }
+    if let helper = _sharedHelper { return helper }
 
     // Create a new instance
     let helper = CalculatorTestHelper()
@@ -62,14 +59,10 @@ public final class CalculatorTestHelper {
     if forceRelaunch || !isRunning {
       // Terminate any existing calculator instances first to ensure clean state
       let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleId)
-      for runningApp in runningApps {
-        _ = runningApp.terminate()
-      }
+      for runningApp in runningApps { _ = runningApp.terminate() }
 
       // Wait for termination to complete
-      if !runningApps.isEmpty {
-        try await Task.sleep(for: .milliseconds(1000))
-      }
+      if !runningApps.isEmpty { try await Task.sleep(for: .milliseconds(1000)) }
 
       // Launch calculator fresh
       _ = try await app.launch(hideOthers: hideOthers)
@@ -83,9 +76,7 @@ public final class CalculatorTestHelper {
       .first
     {
       let activateSuccess = calcApp.activate(options: [])
-      if !activateSuccess {
-        print("Warning: Failed to activate Calculator as frontmost app")
-      }
+      if !activateSuccess { print("Warning: Failed to activate Calculator as frontmost app") }
 
       // Wait for activation
       try await Task.sleep(for: .milliseconds(500))
@@ -108,14 +99,13 @@ public final class CalculatorTestHelper {
   private func waitForCalculatorUIReady() async throws {
     let maxAttempts = 10
     let delayMs = 500
-    
     for attempt in 1...maxAttempts {
       // Try to verify that basic UI elements are accessible
       do {
         // Check if we can find the main window
-        if let _ = try await app.getMainWindow() {
+        if (try await app.getMainWindow()) != nil {
           // Try to find a basic button to ensure the UI is loaded
-          if let _ = try await app.findButton("1") {
+          if (try await app.findButton("1")) != nil {
             // UI is ready
             return
           }
@@ -123,12 +113,8 @@ public final class CalculatorTestHelper {
       } catch {
         // UI not ready yet, continue waiting
       }
-      
-      if attempt < maxAttempts {
-        try await Task.sleep(for: .milliseconds(delayMs))
-      }
+      if attempt < maxAttempts { try await Task.sleep(for: .milliseconds(delayMs)) }
     }
-    
     // If we get here, UI didn't become ready in time
     throw NSError(
       domain: "CalculatorTestHelper",
@@ -192,18 +178,13 @@ public final class CalculatorTestHelper {
   /// Type text using the keyboard
   /// - Parameter text: The text to type
   /// - Returns: True if the text was successfully typed
-  public func typeText(_ text: String) async throws -> Bool {
-    try await app.typeText(text)
-  }
+  public func typeText(_ text: String) async throws -> Bool { try await app.typeText(text) }
 
   /// Take a screenshot of the calculator
   /// - Returns: Path to the screenshot file
   public func takeScreenshot() async throws -> String? {
     // Use the screenshot tool to take a screenshot
-    let params: [String: Value] = [
-      "region": .string("window"),
-      "bundleId": .string(app.bundleId),
-    ]
+    let params: [String: Value] = ["region": .string("window"), "bundleId": .string(app.bundleId)]
 
     let result = try await toolChain.screenshotTool.handler(params)
 

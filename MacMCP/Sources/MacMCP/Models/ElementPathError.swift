@@ -61,16 +61,12 @@ public enum ElementPathError: Error, CustomStringConvertible, Equatable {
 
   /// Index is out of range for the number of matching elements
   case indexOutOfRange(Int, availableCount: Int, atSegment: Int)
-  
   /// Enhanced index out of range with custom message
   case indexOutOfRangeEnhanced(String, index: Int, availableCount: Int, atSegment: Int)
-  
   /// Multiple matches found but no index specified for disambiguation
   case ambiguousMatchNoIndex(String, matchCount: Int, atSegment: Int)
-  
   /// Index specified but only one element matches (index unnecessary)
   case unnecessaryIndex(Int, atSegment: Int)
-  
   /// A suggested validation warning rather than a hard error
   case validationWarning(String, suggestion: String)
 
@@ -80,14 +76,12 @@ public enum ElementPathError: Error, CustomStringConvertible, Equatable {
       return "Invalid path syntax: \(path)\nDetails: \(details)"
     case .invalidPathPrefix(let prefix):
       return "Invalid path prefix: \(prefix), should start with macos://ui/"
-    case .invalidSegmentRole(let role):
-      return "Invalid segment role: \(role)"
+    case .invalidSegmentRole(let role): return "Invalid segment role: \(role)"
     case .invalidAttributeSyntax(let attr, let segmentIndex):
       return "Invalid attribute syntax: \(attr) at segment \(segmentIndex)"
     case .invalidIndexSyntax(let index, let segmentIndex):
       return "Invalid index syntax: \(index) at segment \(segmentIndex)"
-    case .emptyPath:
-      return "Path is empty - must contain at least one segment"
+    case .emptyPath: return "Path is empty - must contain at least one segment"
     case .invalidAttributeValue(let value, let attribute):
       return "Invalid attribute value: \(value) for attribute \(attribute)"
     case .segmentResolutionFailed(let segment, let segmentIndex):
@@ -100,9 +94,7 @@ public enum ElementPathError: Error, CustomStringConvertible, Equatable {
       var details = "Failed to resolve segment: \(segment) at index \(index)\nReason: \(reason)"
       if !candidates.isEmpty {
         details += "\nPossible alternatives:"
-        for (i, candidate) in candidates.enumerated() {
-          details += "\n  \(i + 1). \(candidate)"
-        }
+        for (i, candidate) in candidates.enumerated() { details += "\n  \(i + 1). \(candidate)" }
         details +=
           "\nConsider using one of these alternatives or add more specific attributes to your path."
       }
@@ -126,13 +118,15 @@ public enum ElementPathError: Error, CustomStringConvertible, Equatable {
     case .insufficientPermissions(let feature, let details):
       return "Insufficient accessibility permissions for: \(feature).\n\(details)"
     case .indexOutOfRange(let index, let availableCount, let segmentIndex):
-      return "Index \(index) is out of range at segment \(segmentIndex). Only \(availableCount) elements match this segment (valid indices: 0-\(availableCount - 1))."
-    case .indexOutOfRangeEnhanced(let message, _, _, _):
-      return message
+      return
+        "Index \(index) is out of range at segment \(segmentIndex). Only \(availableCount) elements match this segment (valid indices: 0-\(availableCount - 1))."
+    case .indexOutOfRangeEnhanced(let message, _, _, _): return message
     case .ambiguousMatchNoIndex(let segment, let matchCount, let segmentIndex):
-      return "Ambiguous match at segment \(segmentIndex): \(matchCount) elements match '\(segment)' but no index specified. Use #0, #1, #2, etc. to select a specific element."
+      return
+        "Ambiguous match at segment \(segmentIndex): \(matchCount) elements match '\(segment)' but no index specified. Use #0, #1, #2, etc. to select a specific element."
     case .unnecessaryIndex(let index, let segmentIndex):
-      return "Unnecessary index #\(index) at segment \(segmentIndex): only one element matches this segment. Consider removing the index for cleaner paths."
+      return
+        "Unnecessary index #\(index) at segment \(segmentIndex): only one element matches this segment. Consider removing the index for cleaner paths."
     case .validationWarning(let message, let suggestion):
       return "Warning: \(message).\nSuggestion: \(suggestion)"
     }
@@ -140,8 +134,7 @@ public enum ElementPathError: Error, CustomStringConvertible, Equatable {
 
   public static func == (lhs: ElementPathError, rhs: ElementPathError) -> Bool {
     switch (lhs, rhs) {
-    case (.emptyPath, .emptyPath):
-      true
+    case (.emptyPath, .emptyPath): true
     case (
       .invalidPathSyntax(let lhsPath, let lhsDetails),
       .invalidPathSyntax(let rhsPath, let rhsDetails)
@@ -149,13 +142,11 @@ public enum ElementPathError: Error, CustomStringConvertible, Equatable {
       lhsPath == rhsPath && lhsDetails == rhsDetails
     case (.invalidPathPrefix(let lhsPrefix), .invalidPathPrefix(let rhsPrefix)):
       lhsPrefix == rhsPrefix
-    case (.invalidSegmentRole(let lhsRole), .invalidSegmentRole(let rhsRole)):
-      lhsRole == rhsRole
+    case (.invalidSegmentRole(let lhsRole), .invalidSegmentRole(let rhsRole)): lhsRole == rhsRole
     case (
       .invalidAttributeSyntax(let lhsAttr, let lhsSegment),
       .invalidAttributeSyntax(let rhsAttr, let rhsSegment),
-    ):
-      lhsAttr == rhsAttr && lhsSegment == rhsSegment
+    ): lhsAttr == rhsAttr && lhsSegment == rhsSegment
     case (
       .invalidIndexSyntax(let lhsIndex, let lhsSegment),
       .invalidIndexSyntax(let rhsIndex, let rhsSegment)
@@ -169,8 +160,7 @@ public enum ElementPathError: Error, CustomStringConvertible, Equatable {
     case (
       .segmentResolutionFailed(let lhsSegment, let lhsIndex),
       .segmentResolutionFailed(let rhsSegment, let rhsIndex),
-    ):
-      lhsSegment == rhsSegment && lhsIndex == rhsIndex
+    ): lhsSegment == rhsSegment && lhsIndex == rhsIndex
     case (
       .noMatchingElements(let lhsSegment, let lhsIndex),
       .noMatchingElements(let rhsSegment, let rhsIndex)
@@ -179,8 +169,7 @@ public enum ElementPathError: Error, CustomStringConvertible, Equatable {
     case (
       .ambiguousMatch(let lhsSegment, let lhsCount, let lhsIndex),
       .ambiguousMatch(let rhsSegment, let rhsCount, let rhsIndex),
-    ):
-      lhsSegment == rhsSegment && lhsCount == rhsCount && lhsIndex == rhsIndex
+    ): lhsSegment == rhsSegment && lhsCount == rhsCount && lhsIndex == rhsIndex
     case (
       .resolutionFailed(let lhsSegment, let lhsIndex, let lhsCandidates, let lhsReason),
       .resolutionFailed(let rhsSegment, let rhsIndex, let rhsCandidates, let rhsReason),
@@ -195,8 +184,7 @@ public enum ElementPathError: Error, CustomStringConvertible, Equatable {
     case (
       .invalidAttributeFormat(let lhsAttr, let lhsFormat, let lhsIndex),
       .invalidAttributeFormat(let rhsAttr, let rhsFormat, let rhsIndex),
-    ):
-      lhsAttr == rhsAttr && lhsFormat == rhsFormat && lhsIndex == rhsIndex
+    ): lhsAttr == rhsAttr && lhsFormat == rhsFormat && lhsIndex == rhsIndex
     case (
       .pathTooComplex(let lhsPath, let lhsDetails), .pathTooComplex(let rhsPath, let rhsDetails)
     ):
@@ -204,13 +192,11 @@ public enum ElementPathError: Error, CustomStringConvertible, Equatable {
     case (
       .potentialAmbiguity(let lhsSegment, let lhsDetails, let lhsIndex),
       .potentialAmbiguity(let rhsSegment, let rhsDetails, let rhsIndex),
-    ):
-      lhsSegment == rhsSegment && lhsDetails == rhsDetails && lhsIndex == rhsIndex
+    ): lhsSegment == rhsSegment && lhsDetails == rhsDetails && lhsIndex == rhsIndex
     case (
       .missingAttribute(let lhsSegment, let lhsAttr, let lhsIndex),
       .missingAttribute(let rhsSegment, let rhsAttr, let rhsIndex),
-    ):
-      lhsSegment == rhsSegment && lhsAttr == rhsAttr && lhsIndex == rhsIndex
+    ): lhsSegment == rhsSegment && lhsAttr == rhsAttr && lhsIndex == rhsIndex
     case (
       .resolutionTimeout(let lhsSegment, let lhsIndex),
       .resolutionTimeout(let rhsSegment, let rhsIndex)
@@ -219,23 +205,21 @@ public enum ElementPathError: Error, CustomStringConvertible, Equatable {
     case (
       .insufficientPermissions(let lhsFeature, let lhsDetails),
       .insufficientPermissions(let rhsFeature, let rhsDetails),
-    ):
-      lhsFeature == rhsFeature && lhsDetails == rhsDetails
+    ): lhsFeature == rhsFeature && lhsDetails == rhsDetails
     case (
       .indexOutOfRange(let lhsIndex, let lhsCount, let lhsSegment),
       .indexOutOfRange(let rhsIndex, let rhsCount, let rhsSegment)
-    ):
-      lhsIndex == rhsIndex && lhsCount == rhsCount && lhsSegment == rhsSegment
+    ): lhsIndex == rhsIndex && lhsCount == rhsCount && lhsSegment == rhsSegment
     case (
       .indexOutOfRangeEnhanced(let lhsMessage, let lhsIndex, let lhsCount, let lhsSegment),
       .indexOutOfRangeEnhanced(let rhsMessage, let rhsIndex, let rhsCount, let rhsSegment)
     ):
-      lhsMessage == rhsMessage && lhsIndex == rhsIndex && lhsCount == rhsCount && lhsSegment == rhsSegment
+      lhsMessage == rhsMessage && lhsIndex == rhsIndex && lhsCount == rhsCount
+        && lhsSegment == rhsSegment
     case (
       .ambiguousMatchNoIndex(let lhsSegment, let lhsCount, let lhsIndex),
       .ambiguousMatchNoIndex(let rhsSegment, let rhsCount, let rhsIndex)
-    ):
-      lhsSegment == rhsSegment && lhsCount == rhsCount && lhsIndex == rhsIndex
+    ): lhsSegment == rhsSegment && lhsCount == rhsCount && lhsIndex == rhsIndex
     case (
       .unnecessaryIndex(let lhsIndex, let lhsSegment),
       .unnecessaryIndex(let rhsIndex, let rhsSegment)
@@ -244,10 +228,8 @@ public enum ElementPathError: Error, CustomStringConvertible, Equatable {
     case (
       .validationWarning(let lhsMessage, let lhsSuggestion),
       .validationWarning(let rhsMessage, let rhsSuggestion),
-    ):
-      lhsMessage == rhsMessage && lhsSuggestion == rhsSuggestion
-    default:
-      false
+    ): lhsMessage == rhsMessage && lhsSuggestion == rhsSuggestion
+    default: false
     }
   }
 }

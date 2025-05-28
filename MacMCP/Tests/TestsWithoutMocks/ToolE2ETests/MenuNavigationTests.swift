@@ -14,8 +14,7 @@ private struct TextEditAppInfo {
 }
 
 /// A focused test for menu navigation in TextEdit
-@Suite(.serialized)
-struct MenuNavigationTest {
+@Suite(.serialized) struct MenuNavigationTest {
   private var helper: TextEditTestHelper!
 
   // Shared setup method
@@ -38,19 +37,14 @@ struct MenuNavigationTest {
     let frontmost = try await getFrontmostApp()
     #expect(frontmost?.bundleId == "com.apple.TextEdit")
   }
-  
   // Shared teardown method
   private mutating func tearDown() async throws {
-    if helper != nil {
-      _ = try await helper.closeWindowAndDiscardChanges()
-    }
+    if helper != nil { _ = try await helper.closeWindowAndDiscardChanges() }
   }
 
   /// Test basic menu navigation: open a new document and close it
-  @Test("Menu Navigation Basic Operations")
-  mutating func testMenuNavigationBasic() async throws {
+  @Test("Menu Navigation Basic Operations") mutating func testMenuNavigationBasic() async throws {
     try await setUp()
-    
     // Get initial count of windows
     let initialWindows = try await getTextEditWindowCount()
 
@@ -71,8 +65,7 @@ struct MenuNavigationTest {
       // Verify a new window was opened
       #expect(
         afterOpenWindows == initialWindows + 1,
-        "Opening a new document should increase window count by 1"
-      )
+        "Opening a new document should increase window count by 1")
 
       // Only try to close if we verified window count increased
       if afterOpenWindows == initialWindows + 1 {
@@ -93,7 +86,6 @@ struct MenuNavigationTest {
         )
       }
     }
-    
     try await tearDown()
   }
 
@@ -101,8 +93,7 @@ struct MenuNavigationTest {
   private func activateTextEditWithMCP() async throws {
     // Use the applicationManagementTool to activate TextEdit
     let params: [String: Value] = [
-      "action": .string("activateApplication"),
-      "bundleId": .string("com.apple.TextEdit"),
+      "action": .string("activateApplication"), "bundleId": .string("com.apple.TextEdit"),
     ]
 
     let result = try await helper.toolChain.applicationManagementTool.handler(params)
@@ -110,17 +101,13 @@ struct MenuNavigationTest {
     // Check if activation was successful
     if let content = result.first, case .text(let text) = content {
       let success = text.contains("success") && text.contains("true")
-      if !success {
-        throw MCPError.internalError("Failed to activate TextEdit application")
-      }
+      if !success { throw MCPError.internalError("Failed to activate TextEdit application") }
     }
   }
 
   /// Get the frontmost application
   private func getFrontmostApp() async throws -> TextEditAppInfo? {
-    let params: [String: Value] = [
-      "action": .string("getFrontmostApplication")
-    ]
+    let params: [String: Value] = ["action": .string("getFrontmostApplication")]
 
     let result = try await helper.toolChain.applicationManagementTool.handler(params)
 
@@ -130,13 +117,9 @@ struct MenuNavigationTest {
       // Extract application info from the JSON response
       if let data = text.data(using: .utf8),
         let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-        let bundleId = json["bundleId"] as? String,
-        let appName = json["applicationName"] as? String
+        let bundleId = json["bundleId"] as? String, let appName = json["applicationName"] as? String
       {
-        return TextEditAppInfo(
-          bundleId: bundleId,
-          applicationName: appName
-        )
+        return TextEditAppInfo(bundleId: bundleId, applicationName: appName)
       }
     }
 
@@ -147,8 +130,7 @@ struct MenuNavigationTest {
   private func getTextEditWindowCount() async throws -> Int {
     // Use window management tool to get the application windows
     let windowParams: [String: Value] = [
-      "action": .string("getApplicationWindows"),
-      "bundleId": .string("com.apple.TextEdit"),
+      "action": .string("getApplicationWindows"), "bundleId": .string("com.apple.TextEdit"),
       "includeMinimized": .bool(true),
     ]
 
@@ -176,8 +158,7 @@ struct MenuNavigationTest {
     try await Task.sleep(for: .milliseconds(1000))
 
     let menuParams: [String: Value] = [
-      "action": .string("selectMenuItem"),
-      "bundleId": .string("com.apple.TextEdit"),
+      "action": .string("selectMenuItem"), "bundleId": .string("com.apple.TextEdit"),
       "menuPath": .string("File > New"),
     ]
 
@@ -198,8 +179,7 @@ struct MenuNavigationTest {
     try await Task.sleep(for: .milliseconds(1000))
 
     let menuParams: [String: Value] = [
-      "action": .string("selectMenuItem"),
-      "bundleId": .string("com.apple.TextEdit"),
+      "action": .string("selectMenuItem"), "bundleId": .string("com.apple.TextEdit"),
       "menuPath": .string("File > Close"),
     ]
 

@@ -12,29 +12,29 @@ public struct OnboardingTool: @unchecked Sendable {
 
   /// Description of the tool
   public let description = """
-Provides comprehensive guidance and best practices for AI assistants working with macOS applications through MCP.
+    Provides comprehensive guidance and best practices for AI assistants working with macOS applications through MCP.
 
-IMPORTANT: This tool provides expert guidance for effective macOS automation workflows.
+    IMPORTANT: This tool provides expert guidance for effective macOS automation workflows.
 
-Available topics:
-- general: Core principles and recommended workflows for all macOS apps
-- exploration: Best practices for discovering and understanding UI elements
-- interaction: Techniques for reliable clicking, typing, and UI manipulation
-- keynote: Specific guidance for Apple Keynote presentation software
-- pages: Specific guidance for Apple Pages word processing
-- finder: Specific guidance for macOS Finder file management
-- safari: Specific guidance for Safari web browser automation
-- complex_apps: Strategies for working with professional/complex applications
+    Available topics:
+    - general: Core principles and recommended workflows for all macOS apps
+    - exploration: Best practices for discovering and understanding UI elements
+    - interaction: Techniques for reliable clicking, typing, and UI manipulation
+    - keynote: Specific guidance for Apple Keynote presentation software
+    - pages: Specific guidance for Apple Pages word processing
+    - finder: Specific guidance for macOS Finder file management
+    - safari: Specific guidance for Safari web browser automation
+    - complex_apps: Strategies for working with professional/complex applications
 
-When to use this tool:
-- Starting work with a new application type
-- Encountering automation challenges or failures
-- Need app-specific workflow recommendations
-- Want to understand best practices for UI exploration
-- Planning complex multi-step automation tasks
+    When to use this tool:
+    - Starting work with a new application type
+    - Encountering automation challenges or failures
+    - Need app-specific workflow recommendations
+    - Want to understand best practices for UI exploration
+    - Planning complex multi-step automation tasks
 
-Each topic provides detailed workflows, code examples, and troubleshooting guidance tailored for AI assistants using MacMCP tools.
-"""
+    Each topic provides detailed workflows, code examples, and troubleshooting guidance tailored for AI assistants using MacMCP tools.
+    """
 
   /// Input schema for the tool
   public private(set) var inputSchema: Value
@@ -47,9 +47,7 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
 
   /// Tool handler function
   public var handler: @Sendable ([String: Value]?) async throws -> [Tool.Content] {
-    { [self] params in
-      return try await self.processRequest(params)
-    }
+    { [self] params in return try await self.processRequest(params) }
   }
 
   /// Create a new onboarding tool
@@ -80,49 +78,27 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
       "properties": .object([
         "topic": .object([
           "type": .string("string"),
-          "description": .string("Guidance topic: 'general' for core principles, app names for specific guidance, 'exploration'/'interaction' for techniques"),
+          "description": .string(
+            "Guidance topic: 'general' for core principles, app names for specific guidance, 'exploration'/'interaction' for techniques"
+          ),
           "enum": .array([
-            .string("general"),
-            .string("exploration"),
-            .string("interaction"),
-            .string("keynote"),
-            .string("pages"),
-            .string("finder"),
-            .string("safari"),
-            .string("complex_apps"),
+            .string("general"), .string("exploration"), .string("interaction"), .string("keynote"),
+            .string("pages"), .string("finder"), .string("safari"), .string("complex_apps"),
           ]),
         ]),
         "specific": .object([
           "type": .string("string"),
-          "description": .string("Optional subtopic for more targeted guidance within the main topic"),
+          "description": .string(
+            "Optional subtopic for more targeted guidance within the main topic"),
         ]),
-      ]),
-      "required": .array([.string("topic")]),
-      "additionalProperties": .bool(false),
+      ]), "required": .array([.string("topic")]), "additionalProperties": .bool(false),
       "examples": .array([
-        .object([
-          "topic": .string("general"),
-        ]),
-        .object([
-          "topic": .string("exploration"),
-        ]),
-        .object([
-          "topic": .string("interaction"),
-        ]),
-        .object([
-          "topic": .string("keynote"),
-          "specific": .string("presentations"),
-        ]),
-        .object([
-          "topic": .string("pages"),
-        ]),
-        .object([
-          "topic": .string("safari"),
-          "specific": .string("forms"),
-        ]),
-        .object([
-          "topic": .string("complex_apps"),
-        ]),
+        .object(["topic": .string("general")]), .object(["topic": .string("exploration")]),
+        .object(["topic": .string("interaction")]),
+        .object(["topic": .string("keynote"), "specific": .string("presentations")]),
+        .object(["topic": .string("pages")]),
+        .object(["topic": .string("safari"), "specific": .string("forms")]),
+        .object(["topic": .string("complex_apps")]),
       ]),
     ])
   }
@@ -131,9 +107,7 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
   /// - Parameter params: The request parameters
   /// - Returns: The tool result content
   private func processRequest(_ params: [String: Value]?) async throws -> [Tool.Content] {
-    guard let params else {
-      throw MCPError.invalidParams("Parameters are required")
-    }
+    guard let params else { throw MCPError.invalidParams("Parameters are required") }
 
     // Get the topic
     guard let topic = params["topic"]?.stringValue else {
@@ -156,22 +130,14 @@ Each topic provides detailed workflows, code examples, and troubleshooting guida
   /// - Returns: Guidance text
   private func getGuidance(topic: String, specific: String?) -> String {
     switch topic {
-    case "general":
-      generalGuidance(specific: specific)
-    case "exploration":
-      ExplorationGuidance.guidance(specific: specific)
-    case "interaction":
-      InteractionGuidance.guidance(specific: specific)
-    case "keynote":
-      KeynoteGuidance.guidance(specific: specific)
-    case "pages":
-      pagesGuidance(specific: specific)
-    case "finder":
-      finderGuidance(specific: specific)
-    case "safari":
-      safariGuidance(specific: specific)
-    case "complex_apps":
-      complexAppsGuidance(specific: specific)
+    case "general": generalGuidance(specific: specific)
+    case "exploration": ExplorationGuidance.guidance(specific: specific)
+    case "interaction": InteractionGuidance.guidance(specific: specific)
+    case "keynote": KeynoteGuidance.guidance(specific: specific)
+    case "pages": pagesGuidance(specific: specific)
+    case "finder": finderGuidance(specific: specific)
+    case "safari": safariGuidance(specific: specific)
+    case "complex_apps": complexAppsGuidance(specific: specific)
     default:
       "Topic not recognized. Please use one of the following: general, exploration, interaction, keynote, pages, finder, safari, or complex_apps."
     }

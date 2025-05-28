@@ -87,33 +87,21 @@ public struct UIElementCriteria {
   /// - Returns: True if the element matches all specified criteria
   public func matches(_ element: UIElement) -> Bool {
     // Check exact matches first
-    if let role, element.role != role {
-      return false
-    }
+    if let role, element.role != role { return false }
 
-    if let title, element.title != title {
-      return false
-    }
+    if let title, element.title != title { return false }
 
-    if let path, element.path != path {
-      return false
-    }
+    if let path, element.path != path { return false }
 
     if let value {
-      if element.value == nil {
-        return false
-      }
+      if element.value == nil { return false }
 
       // Handle conversion to string for comparison
       let elementValueString = String(describing: element.value!)
-      if elementValueString != value {
-        return false
-      }
+      if elementValueString != value { return false }
     }
 
-    if let description, element.elementDescription != description {
-      return false
-    }
+    if let description, element.elementDescription != description { return false }
 
     // Check contains matches with case-insensitive comparison
     if let titleContains {
@@ -122,27 +110,20 @@ public struct UIElementCriteria {
       }
     }
 
-    if let pathContains,
-      !element.path.localizedCaseInsensitiveContains(pathContains)
-    {
+    if let pathContains, !element.path.localizedCaseInsensitiveContains(pathContains) {
       return false
     }
 
     if let valueContains {
-      if element.value == nil {
-        return false
-      }
+      if element.value == nil { return false }
 
       // Handle conversion to string for comparison
       let elementValueString = String(describing: element.value!)
-      if !elementValueString.localizedCaseInsensitiveContains(valueContains) {
-        return false
-      }
+      if !elementValueString.localizedCaseInsensitiveContains(valueContains) { return false }
     }
 
     if let descriptionContains {
-      if element
-        .elementDescription == nil
+      if element.elementDescription == nil
         || !(element.elementDescription!.localizedCaseInsensitiveContains(descriptionContains))
       {
         return false
@@ -151,30 +132,18 @@ public struct UIElementCriteria {
 
     // Check capabilities
     // Note that element.isClickable is derived from attributes in the parseUIElement method
-    if let isClickable, element.isClickable != isClickable {
-      return false
-    }
+    if let isClickable, element.isClickable != isClickable { return false }
 
-    if let isEditable, element.isEditable != isEditable {
-      return false
-    }
+    if let isEditable, element.isEditable != isEditable { return false }
 
-    if let isVisible, element.isVisible != isVisible {
-      return false
-    }
+    if let isVisible, element.isVisible != isVisible { return false }
 
-    if let isEnabled, element.isEnabled != isEnabled {
-      return false
-    }
+    if let isEnabled, element.isEnabled != isEnabled { return false }
 
     // Check position criteria
-    if let position, !element.frame.contains(position) {
-      return false
-    }
+    if let position, !element.frame.contains(position) { return false }
 
-    if let area, !element.frame.intersects(area) {
-      return false
-    }
+    if let area, !element.frame.intersects(area) { return false }
 
     // All specified criteria are matched
     return true
@@ -185,61 +154,33 @@ public struct UIElementCriteria {
   public var debugDescription: String {
     var parts: [String] = []
 
-    if let role {
-      parts.append("role='\(role)'")
-    }
+    if let role { parts.append("role='\(role)'") }
 
-    if let title {
-      parts.append("title='\(title)'")
-    }
+    if let title { parts.append("title='\(title)'") }
 
-    if let path {
-      parts.append("path='\(path)'")
-    }
+    if let path { parts.append("path='\(path)'") }
 
-    if let value {
-      parts.append("value='\(value)'")
-    }
+    if let value { parts.append("value='\(value)'") }
 
-    if let description {
-      parts.append("description='\(description)'")
-    }
+    if let description { parts.append("description='\(description)'") }
 
-    if let titleContains {
-      parts.append("titleContains='\(titleContains)'")
-    }
+    if let titleContains { parts.append("titleContains='\(titleContains)'") }
 
-    if let pathContains {
-      parts.append("pathContains='\(pathContains)'")
-    }
+    if let pathContains { parts.append("pathContains='\(pathContains)'") }
 
-    if let valueContains {
-      parts.append("valueContains='\(valueContains)'")
-    }
+    if let valueContains { parts.append("valueContains='\(valueContains)'") }
 
-    if let descriptionContains {
-      parts.append("descriptionContains='\(descriptionContains)'")
-    }
+    if let descriptionContains { parts.append("descriptionContains='\(descriptionContains)'") }
 
-    if let isClickable {
-      parts.append("isClickable=\(isClickable)")
-    }
+    if let isClickable { parts.append("isClickable=\(isClickable)") }
 
-    if let isEditable {
-      parts.append("isEditable=\(isEditable)")
-    }
+    if let isEditable { parts.append("isEditable=\(isEditable)") }
 
-    if let isVisible {
-      parts.append("isVisible=\(isVisible)")
-    }
+    if let isVisible { parts.append("isVisible=\(isVisible)") }
 
-    if let isEnabled {
-      parts.append("isEnabled=\(isEnabled)")
-    }
+    if let isEnabled { parts.append("isEnabled=\(isEnabled)") }
 
-    if let position {
-      parts.append("position=(\(position.x), \(position.y))")
-    }
+    if let position { parts.append("position=(\(position.x), \(position.y))") }
 
     if let area {
       parts.append(

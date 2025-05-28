@@ -29,9 +29,7 @@ public actor MCPServer {
 
   /// The screenshot service
   private lazy var screenshotService = ScreenshotService(
-    accessibilityService: accessibilityService,
-    logger: logger,
-  )
+    accessibilityService: accessibilityService, logger: logger, )
 
   /// The UI interaction service
   private lazy var interactionService = UIInteractionService(
@@ -69,14 +67,9 @@ public actor MCPServer {
       version: version,
       capabilities: Server.Capabilities(
         // We have a minimal resources implementation to pass validation
-        resources: .init(
-          subscribe: false,
-          listChanged: false,
-        ),
+        resources: .init(subscribe: false, listChanged: false, ),
         // We fully support tools
-        tools: .init(
-          listChanged: true,
-        ),
+        tools: .init(listChanged: true, ),
       ),
       configuration: .strict,
     )
@@ -97,10 +90,7 @@ public actor MCPServer {
 
     logger.info(
       "Starting macOS MCP Server",
-      metadata: [
-        "name": "\(server.name)",
-        "version": "\(server.version)",
-      ])
+      metadata: ["name": "\(server.name)", "version": "\(server.version)"])
 
     // Before starting, ensure we have accessibility permissions
     try await checkAccessibilityPermissions()
@@ -115,10 +105,8 @@ public actor MCPServer {
       // Log client connection
       logger.info(
         "Client connected",
-        metadata: [
-          "clientName": "\(clientInfo.name)",
-          "clientVersion": "\(clientInfo.version)",
-        ])
+        metadata: ["clientName": "\(clientInfo.name)", "clientVersion": "\(clientInfo.version)"]
+      )
     }
 
     isStarted = true
@@ -134,11 +122,7 @@ public actor MCPServer {
   }
 
   /// Wait until the server completes
-  public func waitUntilCompleted() async {
-    if isStarted {
-      await server.waitUntilCompleted()
-    }
-  }
+  public func waitUntilCompleted() async { if isStarted { await server.waitUntilCompleted() } }
 
   /// Check if the process has the required accessibility permissions
   private func checkAccessibilityPermissions() async throws {
@@ -153,10 +137,9 @@ public actor MCPServer {
       logger.info("Accessibility permissions already granted")
     } else {
       logger.warning("Accessibility permissions not granted - some functionality may be limited")
-      logger
-        .warning(
-          "The user needs to grant accessibility permissions in System Settings > Privacy & Security > Accessibility",
-        )
+      logger.warning(
+        "The user needs to grant accessibility permissions in System Settings > Privacy & Security > Accessibility",
+      )
 
       // Instead of trying to prompt for permissions (which can cause issues in direct mode),
       // just log a warning and continue
@@ -172,40 +155,31 @@ public actor MCPServer {
 
     // Create resource registry
     let resourceRegistry = ResourceRegistry()
-    
     // Register application windows resource handler
     let windowsResourceHandler = ApplicationWindowsResourceHandler(
       accessibilityService: accessibilityService,
       logger: logger
     )
     resourceRegistry.register(windowsResourceHandler)
-    
     // Register application menus resource handler
     let menusResourceHandler = ApplicationMenusResourceHandler(
       menuNavigationService: menuNavigationService,
       logger: logger
     )
     resourceRegistry.register(menusResourceHandler)
-    
     // Register applications resource handler
     let applicationsResourceHandler = ApplicationsResourceHandler(
       applicationService: applicationService,
       logger: logger
     )
     resourceRegistry.register(applicationsResourceHandler)
-    
     // Register resource templates
     let templates = ResourceTemplateFactory.createTemplates()
-    for template in templates {
-      resourceRegistry.registerTemplate(template)
-    }
+    for template in templates { resourceRegistry.registerTemplate(template) }
     logger.info("Registered \(templates.count) resource templates")
-    
     // Register server info handler
     await server.withMethodHandler(ServerInfo.self) { [weak self] _ in
-      guard let self else {
-        throw MCPError.internalError("Server was deallocated")
-      }
+      guard let self else { throw MCPError.internalError("Server was deallocated") }
 
       logger.debug("Received server/info request")
 
@@ -229,22 +203,15 @@ public actor MCPServer {
       return ServerInfo.Result(
         name: server.name,
         version: server.version,
-        capabilities: ServerInfo.Capabilities(
-          apiExplorer: false,
-        ),
-        info: ServerInfo.ServerInfoDetails(
-          platform: platform,
-          os: os,
-        ),
+        capabilities: ServerInfo.Capabilities(apiExplorer: false, ),
+        info: ServerInfo.ServerInfoDetails(platform: platform, os: os, ),
         supportedVersions: ["2025-03-26", "2024-11-05"],
       )
     }
 
     // Register shutdown handler
     await server.withMethodHandler(Shutdown.self) { [weak self] _ in
-      guard let self else {
-        throw MCPError.internalError("Server was deallocated")
-      }
+      guard let self else { throw MCPError.internalError("Server was deallocated") }
 
       logger.info("Received shutdown request, server will stop after response")
 
@@ -259,17 +226,18 @@ public actor MCPServer {
     }
 
     // Register resources/read handler
-    let resourcesReadHandler = ResourcesReadMethodHandler(registry: resourceRegistry, logger: logger)
+    let resourcesReadHandler = ResourcesReadMethodHandler(
+      registry: resourceRegistry, logger: logger)
     await server.withMethodHandler(ResourcesRead.self) { params in
       try await resourcesReadHandler.handle(params)
     }
 
     // Register resource listing handler
-    let resourcesListHandler = ResourcesListMethodHandler(registry: resourceRegistry, logger: logger)
+    let resourcesListHandler = ResourcesListMethodHandler(
+      registry: resourceRegistry, logger: logger)
     await server.withMethodHandler(ListResources.self) { params in
       try await resourcesListHandler.handle(params)
     }
-    
     // Register resource templates listing handler
     await server.withMethodHandler(MCP.ListResourceTemplates.self) { _ in
       // Convert our templates to MCP format
@@ -285,18 +253,14 @@ public actor MCPServer {
 
     // Register tool listing handler
     await server.withMethodHandler(ListTools.self) { [weak self] _ in
-      guard let self else {
-        throw MCPError.internalError("Server was deallocated")
-      }
+      guard let self else { throw MCPError.internalError("Server was deallocated") }
 
       return await ListTools.Result(tools: tools)
     }
 
     // Register tool call handler
     await server.withMethodHandler(CallTool.self) { [weak self] params in
-      guard let self else {
-        throw MCPError.internalError("Server was deallocated")
-      }
+      guard let self else { throw MCPError.internalError("Server was deallocated") }
 
       // Find the handler for this tool
       guard let handler = await toolHandlers[params.name] else {
@@ -331,15 +295,10 @@ public actor MCPServer {
       name: ToolNames.ping,
       description: "Test connectivity with the macOS MCP server",
       inputSchema: Value.object([
-        "type": "object",
-        "properties": [:],
-        "additionalProperties": false,
+        "type": "object", "properties": [:], "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#",
       ]),
-      annotations: .init(
-        title: "Ping",
-        readOnlyHint: true,
-      ),
+      annotations: .init(title: "Ping", readOnlyHint: true, ),
       handler: { _ in
         // Return a simple ping response
         [Tool.Content.text("Pong from macOS MCP server")]
@@ -357,7 +316,8 @@ public actor MCPServer {
     )
 
     // Register the UI interaction tool
-    let changeDetectionService = UIChangeDetectionService(accessibilityService: accessibilityService)
+    let changeDetectionService = UIChangeDetectionService(
+      accessibilityService: accessibilityService)
     let interactionTool = UIInteractionTool(
       interactionService: interactionService,
       accessibilityService: accessibilityService,
@@ -373,12 +333,9 @@ public actor MCPServer {
       handler: interactionTool.handler,
     )
 
-
     // Register the window management tool
     let windowManagementTool = WindowManagementTool(
-      accessibilityService: accessibilityService,
-      logger: logger,
-    )
+      accessibilityService: accessibilityService, logger: logger, )
     await registerTool(
       name: windowManagementTool.name,
       description: windowManagementTool.description,
@@ -404,9 +361,7 @@ public actor MCPServer {
 
     // Register the interface explorer tool (consolidated UI exploration tool)
     let interfaceExplorerTool = InterfaceExplorerTool(
-      accessibilityService: accessibilityService,
-      logger: logger,
-    )
+      accessibilityService: accessibilityService, logger: logger, )
     await registerTool(
       name: interfaceExplorerTool.name,
       description: interfaceExplorerTool.description,
@@ -431,9 +386,7 @@ public actor MCPServer {
     )
 
     // Register the clipboard management tool
-    let clipboardManagementTool = ClipboardManagementTool(
-      clipboardService: clipboardService,
-    )
+    let clipboardManagementTool = ClipboardManagementTool(clipboardService: clipboardService, )
     await registerTool(
       name: clipboardManagementTool.name,
       description: clipboardManagementTool.description,
@@ -455,11 +408,7 @@ public actor MCPServer {
     // Register cancellation handler
     await server.onNotification(CancelNotification.self) { [weak self] notification in
       guard let self else { return }
-      logger.debug(
-        "Received cancellation request",
-        metadata: [
-          "id": "\(notification.params.id)"
-        ])
+      logger.debug("Received cancellation request", metadata: ["id": "\(notification.params.id)"])
       // Note: Currently we don't have long-running operations that need to be cancelled
       // If such operations are added in the future, we would need to implement
       // a cancellation mechanism here
@@ -482,11 +431,7 @@ public actor MCPServer {
   ) async {
     // Define the tool
     let tool = Tool(
-      name: name,
-      description: description,
-      inputSchema: inputSchema,
-      annotations: annotations,
-    )
+      name: name, description: description, inputSchema: inputSchema, annotations: annotations, )
 
     // Add to our tools list
     tools.append(tool)
@@ -494,11 +439,6 @@ public actor MCPServer {
     // Store the handler
     toolHandlers[name] = handler
 
-    logger.info(
-      "Registered tool",
-      metadata: [
-        "name": "\(name)",
-        "description": "\(description)",
-      ])
+    logger.info("Registered tool", metadata: ["name": "\(name)", "description": "\(description)"])
   }
 }
