@@ -348,149 +348,180 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
     }
   }
   
-  /// Handle click action
-  private func handleClick(_ params: [String: Value]) async throws -> [Tool.Content] {
+  /// Generic helper for element-based interactions
+  private func performElementInteraction(
+    elementId: String,
+    action: String,
+    interactionMethod: (String, String?) async throws -> Void,
+    params: [String: Value]
+  ) async throws -> [Tool.Content] {
     let (detectChanges, delay) = ChangeDetectionHelper.extractChangeDetectionParams(params)
-    // Element ID click
-    if let elementID = params["id"]?.stringValue {
-      // Resolve the element ID (handles both opaque IDs and raw paths)
-      let resolvedElementId = ElementPath.resolveElementId(elementID)
-      // Extract bundle ID for focus management and change detection
-      let appBundleId = extractBundleID(from: resolvedElementId, params: params)
-      
-      // Ensure application is focused before interaction
-      if let bundleId = appBundleId {
-        try await ensureApplicationFocus(bundleId: bundleId)
+    
+    // Resolve the element ID (handles both opaque IDs and raw paths)
+    let resolvedElementId = ElementPath.resolveElementId(elementId)
+    // Extract bundle ID for focus management and change detection
+    let appBundleId = extractBundleID(from: resolvedElementId, params: params)
+    
+    // Ensure application is focused before interaction
+    if let bundleId = appBundleId {
+      try await ensureApplicationFocus(bundleId: bundleId)
+    }
+
+    // Before interacting, try to look up the element to verify it exists
+    do {
+      // Try to parse the element ID (resolvedElementId is already resolved)
+      let path = try ElementPath.parse(resolvedElementId)
+
+      // Make sure the path is valid
+      if path.segments.isEmpty {
+        logger.warning("Invalid element ID, no segments found")
       }
 
-      // Before clicking, try to look up the element to verify it exists
-      do {
-        // Try to parse the element ID (resolvedElementId is already resolved)
-        let path = try ElementPath.parse(resolvedElementId)
-
-        // Make sure the path is valid
-        if path.segments.isEmpty {
-          logger.warning("Invalid element ID, no segments found")
-        }
-
-        // Check if the path already specifies an application - if so, don't override with appBundleId
+      // Check if the path already specifies an application - if so, don't override with appBundleId
+      let pathSpecifiesApp: Bool
+      if !path.segments.isEmpty {
         let firstSegment = path.segments[0]
-        let pathSpecifiesApp =
+        pathSpecifiesApp =
           firstSegment.role == "AXApplication"
           && (firstSegment.attributes["bundleId"] != nil
             || firstSegment.attributes["AXTitle"] != nil)
+      } else {
+        pathSpecifiesApp = false
+      }
 
-        // If path doesn't specify an app but appBundleId is provided, log a message
-        if !pathSpecifiesApp, appBundleId != nil {
-          logger.info(
-            "Using provided appBundleId alongside element ID",
-            metadata: ["appBundleId": "\(appBundleId!)"],
+      // If path doesn't specify an app but appBundleId is provided, log a message
+      if !pathSpecifiesApp, appBundleId != nil {
+        logger.info(
+          "Using provided appBundleId alongside element ID",
+          metadata: ["appBundleId": "\(appBundleId!)"],
+        )
+      }
+
+      // Attempt to resolve the path to verify it exists (only if path is not empty)
+      // This is just for validation - actual resolution happens in interactionService
+      if !resolvedElementId.isEmpty {
+        do {
+          _ = try await path.resolve(using: accessibilityService)
+          logger.debug("Element ID verified and resolved successfully")
+        } catch {
+          logger.warning(
+            "Element ID did not resolve, but will still attempt \(action) operation",
+            metadata: ["error": "\(error.localizedDescription)"],
           )
         }
+      }
+    } catch {
+      logger.warning(
+        "Error parsing or validating element ID, but will still attempt \(action) operation",
+        metadata: ["error": "\(error.localizedDescription)"],
+      )
+    }
 
-        // Attempt to resolve the path to verify it exists (only if path is not empty)
-        // This is just for validation - actual resolution happens in interactionService
-        if !resolvedElementId.isEmpty {
-          do {
-            _ = try await path.resolve(using: accessibilityService)
-            logger.debug("Element ID verified and resolved successfully")
-          } catch {
-            logger.warning(
-              "Element ID did not resolve, but will still attempt click operation",
-              metadata: ["error": "\(error.localizedDescription)"],
-            )
-          }
-        }
-      } catch {
-        logger.warning(
-          "Error parsing or validating element ID, but will still attempt click operation",
-          metadata: ["error": "\(error.localizedDescription)"],
-        )
+    do {
+      // Determine scope for change detection
+      let scope: UIElementScope = appBundleId != nil ? .application(bundleId: appBundleId!) : .focusedApplication
+      
+      let result = try await interactionWrapper.performWithChangeDetection(
+        scope: scope,
+        detectChanges: detectChanges,
+        delay: delay,
+        maxDepth: 15
+      ) {
+        try await interactionMethod(resolvedElementId, appBundleId)
+        let bundleIdInfo = appBundleId != nil ? " in app \(appBundleId!)" : ""
+        return "Successfully \(action) element with ID: \(resolvedElementId)\(bundleIdInfo)"
       }
 
-      do {
-        // Determine scope for change detection
-        let scope: UIElementScope = appBundleId != nil ? .application(bundleId: appBundleId!) : .focusedApplication
-        
-        let result = try await interactionWrapper.performWithChangeDetection(
-          scope: scope,
-          detectChanges: detectChanges,
-          delay: delay,
-          maxDepth: 15
-        ) {
-          try await interactionService.clickElementByPath(path: resolvedElementId, appBundleId: appBundleId)
-          let bundleIdInfo = appBundleId != nil ? " in app \(appBundleId!)" : ""
-          return "Successfully clicked element with ID: \(resolvedElementId)\(bundleIdInfo)"
-        }
-
-        return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
-      } catch {
-        let nsError = error as NSError
-        logger.error(
-          "Click operation failed",
-          metadata: [
-            "error": "\(error.localizedDescription)",
-            "domain": "\(nsError.domain)",
-            "code": "\(nsError.code)",
-            "elementId": "\(resolvedElementId)",
-          ])
-        
-        // Create a more informative error that includes the actual ID
-        let enhancedError = createInteractionError(
-          message: "Failed to click element with ID: \(resolvedElementId). \(error.localizedDescription)",
-          context: [
-            "toolName": name,
-            "action": "click",
-            "originalElementId": elementID,
-            "resolvedElementId": resolvedElementId,
-            "originalError": error.localizedDescription,
-          ]
-        )
-        throw enhancedError.asMCPError
+      return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
+    } catch {
+      let nsError = error as NSError
+      logger.error(
+        "\(action.capitalized) operation failed",
+        metadata: [
+          "error": "\(error.localizedDescription)",
+          "domain": "\(nsError.domain)",
+          "code": "\(nsError.code)",
+          "elementId": "\(resolvedElementId)",
+        ])
+      
+      // Create a more informative error that includes the actual ID
+      let enhancedError = createInteractionError(
+        message: "Failed to \(action) element with ID: \(resolvedElementId). \(error.localizedDescription)",
+        context: [
+          "toolName": name,
+          "action": action,
+          "originalElementId": elementId,
+          "resolvedElementId": resolvedElementId,
+          "originalError": error.localizedDescription,
+        ]
+      )
+      throw enhancedError.asMCPError
+    }
+  }
+  
+  /// Generic helper for position-based interactions
+  private func performPositionInteraction(
+    x: Double,
+    y: Double,
+    action: String,
+    interactionMethod: (CGPoint) async throws -> Void,
+    params: [String: Value]
+  ) async throws -> [Tool.Content] {
+    let (detectChanges, delay) = ChangeDetectionHelper.extractChangeDetectionParams(params)
+    
+    do {
+      let result = try await interactionWrapper.performWithChangeDetection(
+        detectChanges: detectChanges,
+        delay: delay
+      ) {
+        try await interactionMethod(CGPoint(x: x, y: y))
+        return "Successfully \(action) at position (\(x), \(y))"
       }
+
+      return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
+    } catch {
+      logger.error(
+        "Position \(action) operation failed", metadata: ["error": "\(error.localizedDescription)"])
+      throw error
+    }
+  }
+
+  /// Handle click action
+  private func handleClick(_ params: [String: Value]) async throws -> [Tool.Content] {
+    // Element ID click
+    if let elementID = params["id"]?.stringValue {
+      return try await performElementInteraction(
+        elementId: elementID,
+        action: "clicked",
+        interactionMethod: { path, bundleId in
+          try await interactionService.clickElementByPath(path: path, appBundleId: bundleId)
+        },
+        params: params
+      )
     }
 
     // Position click
     // Check for double first, then fall back to int for backward compatibility
     if let xDouble = params["x"]?.doubleValue, let yDouble = params["y"]?.doubleValue {
-      let x = xDouble
-      let y = yDouble
-
-      do {
-        let result = try await interactionWrapper.performWithChangeDetection(
-          detectChanges: detectChanges,
-          delay: delay
-        ) {
-          try await interactionService.clickAtPosition(position: CGPoint(x: x, y: y))
-          return "Successfully clicked at position (\(x), \(y))"
-        }
-
-        return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
-      } catch {
-        logger.error(
-          "Position click operation failed", metadata: ["error": "\(error.localizedDescription)"])
-        throw error
-      }
+      return try await performPositionInteraction(
+        x: xDouble,
+        y: yDouble,
+        action: "clicked",
+        interactionMethod: { position in
+          try await interactionService.clickAtPosition(position: position)
+        },
+        params: params
+      )
     } else if let xInt = params["x"]?.intValue, let yInt = params["y"]?.intValue {
-      // Fallback to integers if doubles are not provided
-      let x = Double(xInt)
-      let y = Double(yInt)
-
-      do {
-        let result = try await interactionWrapper.performWithChangeDetection(
-          detectChanges: detectChanges,
-          delay: delay
-        ) {
-          try await interactionService.clickAtPosition(position: CGPoint(x: x, y: y))
-          return "Successfully clicked at position (\(x), \(y))"
-        }
-
-        return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
-      } catch {
-        logger.error(
-          "Position click operation failed", metadata: ["error": "\(error.localizedDescription)"])
-        throw error
-      }
+      return try await performPositionInteraction(
+        x: Double(xInt),
+        y: Double(yInt),
+        action: "clicked",
+        interactionMethod: { position in
+          try await interactionService.clickAtPosition(position: position)
+        },
+        params: params
+      )
     }
 
     logger.error(
@@ -509,102 +540,40 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
 
   /// Handle double click action
   private func handleDoubleClick(_ params: [String: Value]) async throws -> [Tool.Content] {
-    let (detectChanges, delay) = ChangeDetectionHelper.extractChangeDetectionParams(params)
     // Element ID double click
     if let elementID = params["id"]?.stringValue {
-      // Resolve the element ID (handles both opaque IDs and raw paths)
-      let resolvedElementId = ElementPath.resolveElementId(elementID)
-      // Extract bundle ID for focus management and change detection
-      let appBundleId = extractBundleID(from: resolvedElementId, params: params)
-      
-      // Ensure application is focused before interaction
-      if let bundleId = appBundleId {
-        try await ensureApplicationFocus(bundleId: bundleId)
-      }
-
-      do {
-        // Determine scope for change detection
-        let scope: UIElementScope = appBundleId != nil ? .application(bundleId: appBundleId!) : .focusedApplication
-        
-        let result = try await interactionWrapper.performWithChangeDetection(
-          scope: scope,
-          detectChanges: detectChanges,
-          delay: delay,
-          maxDepth: 15
-        ) {
-          try await interactionService.doubleClickElementByPath(path: resolvedElementId, appBundleId: appBundleId)
-          let bundleIdInfo = appBundleId != nil ? " in app \(appBundleId!)" : ""
-          return "Successfully double-clicked element with ID: \(resolvedElementId)\(bundleIdInfo)"
-        }
-
-        return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
-      } catch {
-        let nsError = error as NSError
-        logger.error(
-          "Double click operation failed",
-          metadata: [
-            "error": "\(error.localizedDescription)",
-            "domain": "\(nsError.domain)",
-            "code": "\(nsError.code)",
-            "elementId": "\(resolvedElementId)",
-          ])
-        
-        // Create a more informative error that includes the actual ID
-        let enhancedError = createInteractionError(
-          message: "Failed to double-click element with ID: \(resolvedElementId). \(error.localizedDescription)",
-          context: [
-            "toolName": name,
-            "action": "double_click",
-            "originalElementId": elementID,
-            "resolvedElementId": resolvedElementId,
-            "originalError": error.localizedDescription,
-          ]
-        )
-        throw enhancedError.asMCPError
-      }
+      return try await performElementInteraction(
+        elementId: elementID,
+        action: "double-clicked",
+        interactionMethod: { path, bundleId in
+          try await interactionService.doubleClickElementByPath(path: path, appBundleId: bundleId)
+        },
+        params: params
+      )
     }
 
     // Position double click
     // Check for double first, then fall back to int for backward compatibility
     if let xDouble = params["x"]?.doubleValue, let yDouble = params["y"]?.doubleValue {
-      let x = xDouble
-      let y = yDouble
-
-      do {
-        let result = try await interactionWrapper.performWithChangeDetection(
-          detectChanges: detectChanges,
-          delay: delay
-        ) {
-          try await interactionService.doubleClickAtPosition(position: CGPoint(x: x, y: y))
-          return "Successfully double-clicked at position (\(x), \(y))"
-        }
-
-        return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
-      } catch {
-        logger.error(
-          "Position double click operation failed", metadata: ["error": "\(error.localizedDescription)"])
-        throw error
-      }
+      return try await performPositionInteraction(
+        x: xDouble,
+        y: yDouble,
+        action: "double-clicked",
+        interactionMethod: { position in
+          try await interactionService.doubleClickAtPosition(position: position)
+        },
+        params: params
+      )
     } else if let xInt = params["x"]?.intValue, let yInt = params["y"]?.intValue {
-      // Fallback to integers if doubles are not provided
-      let x = Double(xInt)
-      let y = Double(yInt)
-
-      do {
-        let result = try await interactionWrapper.performWithChangeDetection(
-          detectChanges: detectChanges,
-          delay: delay
-        ) {
-          try await interactionService.doubleClickAtPosition(position: CGPoint(x: x, y: y))
-          return "Successfully double-clicked at position (\(x), \(y))"
-        }
-
-        return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
-      } catch {
-        logger.error(
-          "Position double click operation failed", metadata: ["error": "\(error.localizedDescription)"])
-        throw error
-      }
+      return try await performPositionInteraction(
+        x: Double(xInt),
+        y: Double(yInt),
+        action: "double-clicked",
+        interactionMethod: { position in
+          try await interactionService.doubleClickAtPosition(position: position)
+        },
+        params: params
+      )
     }
 
     logger.error(
@@ -623,102 +592,40 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
 
   /// Handle right click action
   private func handleRightClick(_ params: [String: Value]) async throws -> [Tool.Content] {
-    let (detectChanges, delay) = ChangeDetectionHelper.extractChangeDetectionParams(params)
     // Element ID right click
     if let elementID = params["id"]?.stringValue {
-      // Resolve the element ID (handles both opaque IDs and raw paths)
-      let resolvedElementId = ElementPath.resolveElementId(elementID)
-      // Extract bundle ID for focus management and change detection
-      let appBundleId = extractBundleID(from: resolvedElementId, params: params)
-      
-      // Ensure application is focused before interaction
-      if let bundleId = appBundleId {
-        try await ensureApplicationFocus(bundleId: bundleId)
-      }
-
-      do {
-        // Determine scope for change detection
-        let scope: UIElementScope = appBundleId != nil ? .application(bundleId: appBundleId!) : .focusedApplication
-        
-        let result = try await interactionWrapper.performWithChangeDetection(
-          scope: scope,
-          detectChanges: detectChanges,
-          delay: delay,
-          maxDepth: 15
-        ) {
-          try await interactionService.rightClickElementByPath(path: resolvedElementId, appBundleId: appBundleId)
-          let bundleIdInfo = appBundleId != nil ? " in app \(appBundleId!)" : ""
-          return "Successfully right-clicked element with ID: \(resolvedElementId)\(bundleIdInfo)"
-        }
-
-        return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
-      } catch {
-        let nsError = error as NSError
-        logger.error(
-          "Right click operation failed",
-          metadata: [
-            "error": "\(error.localizedDescription)",
-            "domain": "\(nsError.domain)",
-            "code": "\(nsError.code)",
-            "elementId": "\(resolvedElementId)",
-          ])
-        
-        // Create a more informative error that includes the actual ID
-        let enhancedError = createInteractionError(
-          message: "Failed to right-click element with ID: \(resolvedElementId). \(error.localizedDescription)",
-          context: [
-            "toolName": name,
-            "action": "right_click",
-            "originalElementId": elementID,
-            "resolvedElementId": resolvedElementId,
-            "originalError": error.localizedDescription,
-          ]
-        )
-        throw enhancedError.asMCPError
-      }
+      return try await performElementInteraction(
+        elementId: elementID,
+        action: "right-clicked",
+        interactionMethod: { path, bundleId in
+          try await interactionService.rightClickElementByPath(path: path, appBundleId: bundleId)
+        },
+        params: params
+      )
     }
 
     // Position right click
     // Check for double first, then fall back to int for backward compatibility
     if let xDouble = params["x"]?.doubleValue, let yDouble = params["y"]?.doubleValue {
-      let x = xDouble
-      let y = yDouble
-
-      do {
-        let result = try await interactionWrapper.performWithChangeDetection(
-          detectChanges: detectChanges,
-          delay: delay
-        ) {
-          try await interactionService.rightClickAtPosition(position: CGPoint(x: x, y: y))
-          return "Successfully right-clicked at position (\(x), \(y))"
-        }
-
-        return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
-      } catch {
-        logger.error(
-          "Position right click operation failed", metadata: ["error": "\(error.localizedDescription)"])
-        throw error
-      }
+      return try await performPositionInteraction(
+        x: xDouble,
+        y: yDouble,
+        action: "right-clicked",
+        interactionMethod: { position in
+          try await interactionService.rightClickAtPosition(position: position)
+        },
+        params: params
+      )
     } else if let xInt = params["x"]?.intValue, let yInt = params["y"]?.intValue {
-      // Fallback to integers if doubles are not provided
-      let x = Double(xInt)
-      let y = Double(yInt)
-
-      do {
-        let result = try await interactionWrapper.performWithChangeDetection(
-          detectChanges: detectChanges,
-          delay: delay
-        ) {
-          try await interactionService.rightClickAtPosition(position: CGPoint(x: x, y: y))
-          return "Successfully right-clicked at position (\(x), \(y))"
-        }
-
-        return ChangeDetectionHelper.formatResponse(message: result.result, uiChanges: result.uiChanges, logger: logger)
-      } catch {
-        logger.error(
-          "Position right click operation failed", metadata: ["error": "\(error.localizedDescription)"])
-        throw error
-      }
+      return try await performPositionInteraction(
+        x: Double(xInt),
+        y: Double(yInt),
+        action: "right-clicked",
+        interactionMethod: { position in
+          try await interactionService.rightClickAtPosition(position: position)
+        },
+        params: params
+      )
     }
 
     logger.error(
