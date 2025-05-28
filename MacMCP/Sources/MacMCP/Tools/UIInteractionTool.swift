@@ -321,7 +321,7 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
         }
       }
     } catch {
-      logger.debug("Could not parse element path to extract bundleId: \(error)")
+      logger.debug("Could not parse element ID to extract bundleId: \(error)")
     }
     
     return nil
@@ -761,20 +761,20 @@ Coordinate system: Screen pixels, (0,0) = top-left corner.
     }
     
     // Resolve both element IDs (handles both opaque IDs and raw paths)
-    let sourceElementPath = ElementPath.resolveElementId(sourceElementID)
-    let targetElementPath = ElementPath.resolveElementId(targetElementID)
+    let sourceResolvedElementId = ElementPath.resolveElementId(sourceElementID)
+    let targetResolvedElementId = ElementPath.resolveElementId(targetElementID)
 
     // Check if app bundle ID is provided
     let appBundleId = params["appBundleId"]?.stringValue
 
     try await interactionService.dragElementByPath(
-      sourcePath: sourceElementPath,
-      targetPath: targetElementPath,
+      sourcePath: sourceResolvedElementId,
+      targetPath: targetResolvedElementId,
       appBundleId: appBundleId,
     )
     return [
       .text(
-        "Successfully dragged from element \(sourceElementPath) to element \(targetElementPath)")
+        "Successfully dragged from element \(sourceResolvedElementId) to element \(targetResolvedElementId)")
     ]
   }
 

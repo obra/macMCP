@@ -33,7 +33,7 @@ public struct InteractionGuidance {
 
     ## Best Practices for Clicking
 
-    ### 1. Element Path-Based Clicking (Preferred)
+    ### 1. Element ID-Based Clicking (Preferred)
 
     ```json
     {
@@ -43,7 +43,7 @@ public struct InteractionGuidance {
     }
     ```
 
-    This is the most reliable method, as it uses path-based identifiers that describe the element's position in the accessibility hierarchy and are stable even if the UI position changes.
+    This is the most reliable method, as it uses ID-based identifiers that describe the element's position in the accessibility hierarchy and are stable even if the UI position changes.
 
     ### 2. Position-Based Clicking (Fallback)
 
@@ -77,8 +77,8 @@ public struct InteractionGuidance {
 
     1. **Element Not Found**: 
        - Verify the element exists using InterfaceExplorerTool
-       - Check if the element path is correctly formatted and valid
-       - Ensure the path attributes match the actual element attributes
+       - Check if the element ID is correctly formatted and valid
+       - Ensure the ID attributes match the actual element attributes
        - Ensure the application is focused
 
     2. **Click Not Registering**:

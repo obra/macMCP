@@ -802,7 +802,7 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
       return try formatResponse(Array(limitedDescriptors))
     } catch let pathError as ElementPathError {
       // If there's a path resolution error, provide specific information
-      throw MCPError.internalError("Failed to resolve element path: \(pathError.description)")
+      throw MCPError.internalError("Failed to resolve element ID: \(pathError.description)")
     } catch {
       // For other errors
       throw MCPError.internalError("Error finding element by path: \(error.localizedDescription)")
