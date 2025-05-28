@@ -775,10 +775,18 @@ public final class ToolChain: @unchecked Sendable {
       }
     }
 
-    // Extract actions
+    // Extract actions (handle both old array format and new comma-separated string format)
     var actions: [String] = []
     if let actionsArray = json["actions"] as? [String] {
+      // Old format: array of strings
       actions = actionsArray
+    } else if let actionsString = json["actions"] as? String {
+      // New format: comma-separated string without AX prefix
+      let rawActions = actionsString.components(separatedBy: ", ").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+      // Add back AX prefix for internal UIElement storage
+      actions = rawActions.map { action in
+        action.hasPrefix("AX") ? action : "AX\(action)"
+      }
     }
 
     // Extract capabilities and state information

@@ -198,8 +198,8 @@ struct VerbosityUnitTests {
     print("With coordinates (\(jsonStringWithCoords.count) chars): \(jsonStringWithCoords)")
   }
   
-  @Test("showActions parameter controls actions output")
-  func testShowActionsParameter() async throws {
+  @Test("actions are always shown without AX prefix")
+  func testActionsAlwaysShown() async throws {
     let element = UIElement(
       path: "test://actions",
       role: "AXButton",
@@ -211,38 +211,20 @@ struct VerbosityUnitTests {
       actions: ["AXPress", "AXFocus", "AXShowMenu"]
     )
     
-    // Test with showActions = false (default)
-    let descriptorWithoutActions = EnhancedElementDescriptor.from(
-      element: element, 
-      maxDepth: 1, 
-      showActions: false
-    )
-    let jsonWithoutActions = try JSONEncoder().encode(descriptorWithoutActions)
-    let jsonStringWithoutActions = String(data: jsonWithoutActions, encoding: .utf8)!
+    // Actions should always be included now
+    let descriptor = EnhancedElementDescriptor.from(element: element, maxDepth: 1)
+    let jsonData = try JSONEncoder().encode(descriptor)
+    let jsonString = String(data: jsonData, encoding: .utf8)!
     
-    #expect(!jsonStringWithoutActions.contains("actions"), "Actions should be omitted when showActions=false")
-    #expect(!jsonStringWithoutActions.contains("AXPress"), "AXPress action should not appear when showActions=false")
+    #expect(jsonString.contains("actions"), "Actions should always be included")
+    #expect(jsonString.contains("Press"), "Press action should appear without AX prefix")
+    #expect(jsonString.contains("Focus"), "Focus action should appear without AX prefix") 
+    #expect(jsonString.contains("ShowMenu"), "ShowMenu action should appear without AX prefix")
+    #expect(!jsonString.contains("AXPress"), "AXPress should not appear (prefix removed)")
+    #expect(!jsonString.contains("AXFocus"), "AXFocus should not appear (prefix removed)")
+    #expect(!jsonString.contains("AXShowMenu"), "AXShowMenu should not appear (prefix removed)")
     
-    // Test with showActions = true
-    let descriptorWithActions = EnhancedElementDescriptor.from(
-      element: element,
-      maxDepth: 1,
-      showActions: true
-    )
-    let jsonWithActions = try JSONEncoder().encode(descriptorWithActions)
-    let jsonStringWithActions = String(data: jsonWithActions, encoding: .utf8)!
-    
-    #expect(jsonStringWithActions.contains("actions"), "Actions should be included when showActions=true")
-    #expect(jsonStringWithActions.contains("AXPress"), "AXPress action should appear when showActions=true")
-    #expect(jsonStringWithActions.contains("AXFocus"), "AXFocus action should appear when showActions=true")
-    #expect(jsonStringWithActions.contains("AXShowMenu"), "AXShowMenu action should appear when showActions=true")
-    
-    // Verify significant size difference
-    let sizeDifference = jsonStringWithActions.count - jsonStringWithoutActions.count
-    #expect(sizeDifference > 20, "Including actions should add significant content, got difference: \(sizeDifference)")
-    
-    print("Without actions (\(jsonStringWithoutActions.count) chars): \(jsonStringWithoutActions)")
-    print("With actions (\(jsonStringWithActions.count) chars): \(jsonStringWithActions)")
+    print("Actions JSON (\(jsonString.count) chars): \(jsonString)")
   }
   
   @Test("ChangeDetectionHelper uses verbosity reduction")
@@ -274,9 +256,9 @@ struct VerbosityUnitTests {
     if case .text(let jsonString) = response[0] {
       // Verify verbosity reduction is applied
       #expect(!jsonString.contains("\"frame\""), "Frame should be excluded due to showCoordinates=false")
-      #expect(!jsonString.contains("\"actions\""), "Actions should be excluded due to showActions=false") 
+      #expect(jsonString.contains("\"actions\""), "Actions should always be included now") 
       #expect(!jsonString.contains("100"), "X coordinate should not appear in response")
-      #expect(!jsonString.contains("AXPress"), "Actions should not appear in response")
+      #expect(jsonString.contains("Press"), "Actions should appear without AX prefix")
       
       // Verify essential information is still present
       #expect(jsonString.contains("AXButton"), "Role should be included")

@@ -72,7 +72,6 @@ public struct ChangeDetectionHelper {
             element: element, 
             maxDepth: 1, 
             showCoordinates: false,  // Exclude frame for reduced verbosity
-            showActions: false       // Exclude actions for reduced verbosity
         )
         
         // Convert to dictionary for JSON serialization
