@@ -711,9 +711,16 @@ struct ElementPathTests {
       valueContains _: String?,
       description _: String?,
       descriptionContains _: String?,
+      textContains _: String?,
+      anyFieldContains _: String?,
+      isInteractable _: Bool?,
+      isEnabled _: Bool?,
+      inMenus _: Bool?,
+      inMainContent _: Bool?,
+      elementTypes _: [String]?,
       scope _: UIElementScope,
       recursive _: Bool,
-      maxDepth _: Int,
+      maxDepth _: Int
     ) async throws -> [UIElement] {
       []
     }

@@ -54,6 +54,13 @@ public final class UIChangeDetectionService: UIChangeDetectionServiceProtocol {
             valueContains: nil,
             description: nil,
             descriptionContains: nil,
+            textContains: nil,
+            anyFieldContains: nil,
+            isInteractable: nil,
+            isEnabled: nil,
+            inMenus: nil,
+            inMainContent: nil,
+            elementTypes: nil,
             scope: scope,
             recursive: true,
             maxDepth: maxDepth

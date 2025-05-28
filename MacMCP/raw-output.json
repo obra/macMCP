@@ -1,0 +1,872 @@
+[
+  {
+    "id" : "E-wLCqTJT36JL6T-ZsuwUQ",
+    "props" : "hasChildren",
+    "children" : [
+      {
+        "id" : "iTJkPAQPTKuL2Ts1w1P4aQ",
+        "props" : "hasChildren",
+        "children" : [
+          {
+            "id" : "XPtnPU1PSdilBodXLY-lcw",
+            "props" : "editable, selectable, hasMenu",
+            "value" : "Right-click test text",
+            "role" : "AXTextArea First Text View"
+          },
+          {
+            "id" : "ogt6kdV8ToCeW4oTHdgzOg",
+            "props" : "hasChildren",
+            "children" : [
+              {
+                "id" : "WZEs9EpsSW2gseRyDtZ0bw",
+                "props" : "selectable",
+                "role" : "AXPopUpButton"
+              },
+              {
+                "id" : "WZEs9EpsSW2gseRyDtZ0bw",
+                "props" : "selectable",
+                "role" : "AXPopUpButton"
+              },
+              {
+                "id" : "EYUcS5_cQuqga3kxMtGmcQ",
+                "props" : "hasChildren",
+                "children" : [
+                  {
+                    "id" : "_pGOK3MJSe-N-KTWOi4d8A",
+                    "props" : "clickable, toggleable",
+                    "value" : "0",
+                    "role" : "AXCheckBox bold"
+                  },
+                  {
+                    "id" : "JHXbra0vTMaD_OaOkZK1cw",
+                    "props" : "clickable, toggleable",
+                    "value" : "0",
+                    "role" : "AXCheckBox italic"
+                  },
+                  {
+                    "id" : "T16sVA4DQQaFd1AgACjHwg",
+                    "props" : "clickable, toggleable",
+                    "value" : "0",
+                    "role" : "AXCheckBox underline"
+                  }
+                ],
+                "role" : "AXGroup _NS:378. text style"
+              },
+              {
+                "id" : "WZEs9EpsSW2gseRyDtZ0bw",
+                "props" : "selectable",
+                "role" : "AXPopUpButton"
+              },
+              {
+                "id" : "x9dCp3g4RKiBfLYOCebCzQ",
+                "props" : "selectable",
+                "role" : "AXComboBox"
+              }
+            ],
+            "role" : "AXToolbar"
+          },
+          {
+            "id" : "LFv5h_iORxCxDBOXd58vgA",
+            "props" : "clickable",
+            "role" : "AXButton"
+          },
+          {
+            "id" : "9AZrYiLmQLWQ-piypesrZA",
+            "props" : "clickable, selectable, hasChildren, hasMenu",
+            "children" : [
+              {
+                "id" : "M_yrvrx-SZWO5kqrF6Q2Fg",
+                "props" : "hasChildren",
+                "children" : [
+                  {
+                    "id" : "CQ1ybJwTRvCn38k1P_5bMg",
+                    "role" : "AXGroup"
+                  }
+                ],
+                "role" : "AXGroup"
+              }
+            ],
+            "role" : "AXButton"
+          },
+          {
+            "id" : "19WZnwpeTsO-SrFJe0uIQw",
+            "props" : "clickable",
+            "role" : "AXButton"
+          },
+          {
+            "id" : "xbDpOP57Tauk93Twnoinmw",
+            "props" : "clickable, selectable, hasMenu",
+            "role" : "AXMenuButton Edited. document actions"
+          }
+        ],
+        "role" : "AXWindow _NS:34. Untitled 31.rtf"
+      },
+      {
+        "id" : "r6PyVhZgSAiXWmSCe5jeww",
+        "props" : "hasChildren",
+        "children" : [
+          {
+            "id" : "tQ9GNz4SSUiTeMoOKr3WWg",
+            "props" : "editable, selectable, hasMenu",
+            "value" : "Right-click test text",
+            "role" : "AXTextArea First Text View"
+          },
+          {
+            "id" : "RdpEjSI6TgyPTFhw1oG5VA",
+            "props" : "hasChildren",
+            "children" : [
+              {
+                "id" : "PaH0e3QsTa2yfRlv7XKdbw",
+                "props" : "selectable",
+                "role" : "AXPopUpButton"
+              },
+              {
+                "id" : "PaH0e3QsTa2yfRlv7XKdbw",
+                "props" : "selectable",
+                "role" : "AXPopUpButton"
+              },
+              {
+                "id" : "6d_8gx5bQB-_DtqkIVC3kQ",
+                "props" : "hasChildren",
+                "children" : [
+                  {
+                    "id" : "f9riF-sdTIqwPo5Rmhf-DA",
+                    "props" : "clickable, toggleable",
+                    "value" : "0",
+                    "role" : "AXCheckBox bold"
+                  },
+                  {
+                    "id" : "6_6v4958TIeMWNrfqy8VnQ",
+                    "props" : "clickable, toggleable",
+                    "value" : "0",
+                    "role" : "AXCheckBox italic"
+                  },
+                  {
+                    "id" : "frDrdUqqSqGh1szG2eB86g",
+                    "props" : "clickable, toggleable",
+                    "value" : "0",
+                    "role" : "AXCheckBox underline"
+                  }
+                ],
+                "role" : "AXGroup _NS:378. text style"
+              },
+              {
+                "id" : "PaH0e3QsTa2yfRlv7XKdbw",
+                "props" : "selectable",
+                "role" : "AXPopUpButton"
+              },
+              {
+                "id" : "NLiUGEBxQt693rmRy502ug",
+                "props" : "selectable",
+                "role" : "AXComboBox"
+              }
+            ],
+            "role" : "AXToolbar"
+          },
+          {
+            "id" : "4Byc7EGQR1eJ8xtv8RgGhw",
+            "props" : "clickable, selectable, hasChildren, hasMenu",
+            "children" : [
+              {
+                "id" : "PHPO1GoIQx20QivqeiMP_g",
+                "props" : "hasChildren",
+                "children" : [
+                  {
+                    "id" : "iabutjIzSteydYenLbx8Kg",
+                    "role" : "AXGroup"
+                  }
+                ],
+                "role" : "AXGroup"
+              }
+            ],
+            "role" : "AXButton"
+          },
+          {
+            "id" : "xOHGic8yRtm66PH86sgDwA",
+            "props" : "clickable",
+            "role" : "AXButton"
+          },
+          {
+            "id" : "NW_X-967RMm1wXMdNgLNmQ",
+            "props" : "hasChildren",
+            "children" : [
+              {
+                "id" : "TJQgJe8dQECxrjgdisy6Zg",
+                "props" : "selectable",
+                "role" : "AXPopUpButton"
+              },
+              {
+                "id" : "wvNv8zWAQoWAIpRbiAyEpw",
+                "props" : "selectable",
+                "role" : "AXPopUpButton Where:"
+              },
+              {
+                "id" : "pUbbzPrLRMepMefTt1vPgQ",
+                "props" : "clickable",
+                "role" : "AXButton DontSaveButton. Delete"
+              },
+              {
+                "id" : "viSB7szhRPWeREJOeWdR7w",
+                "props" : "clickable",
+                "role" : "AXButton CancelButton. Cancel"
+              },
+              {
+                "id" : "M-DjCL4PTyW-ybRrkgkefg",
+                "props" : "clickable",
+                "role" : "AXButton OKButton. Save"
+              },
+              {
+                "id" : "LrM5qOzCRciVqtw4zRHB3g",
+                "props" : "selectable, hasMenu",
+                "value" : "Do you want to keep this new document “Untitled 30.rtf”?",
+                "role" : "AXStaticText VMessageText"
+              },
+              {
+                "id" : "zII5dN4hRKi0KhongieRtA",
+                "props" : "selectable, hasMenu",
+                "value" : "You can choose to save your changes, or delete this document immediately. You can’t undo this action.",
+                "role" : "AXStaticText VInformativeText"
+              },
+              {
+                "id" : "_oWVRhnLSzaONX5iBHnrDw",
+                "props" : "editable, selectable, hasMenu",
+                "value" : "Untitled 30.rtf",
+                "role" : "AXTextField saveAsNameTextField"
+              },
+              {
+                "id" : "TMjung4RQWe6UjX5Aoz2gA",
+                "props" : "editable, selectable, hasMenu",
+                "role" : "AXTextField _NS:8. tag editor"
+              }
+            ],
+            "role" : "AXSheet save-panel. save"
+          },
+          {
+            "id" : "5KYu4RXwSv2aGdJpT4MvPA",
+            "props" : "clickable, selectable, hasMenu",
+            "role" : "AXMenuButton Edited. document actions"
+          },
+          {
+            "id" : "X5dY2njSTYq2qWZJnpLLXQ",
+            "props" : "clickable",
+            "role" : "AXButton"
+          }
+        ],
+        "role" : "AXWindow _NS:34. Untitled 30.rtf"
+      },
+      {
+        "id" : "jTvELHrgSyGVacBuklbo6g",
+        "props" : "hasChildren",
+        "children" : [
+          {
+            "id" : "cudsrBrQRk6uBowQTI4yoA",
+            "props" : "editable, selectable, hasMenu",
+            "value" : "Double-click-test word test",
+            "role" : "AXTextArea First Text View"
+          },
+          {
+            "id" : "4Wtr5P5SQtGdyQj2BX-nNA",
+            "props" : "hasChildren",
+            "children" : [
+              {
+                "id" : "LdBFTw2uSV2TsGWkY70AMw",
+                "props" : "selectable",
+                "role" : "AXPopUpButton"
+              },
+              {
+                "id" : "LdBFTw2uSV2TsGWkY70AMw",
+                "props" : "selectable",
+                "role" : "AXPopUpButton"
+              },
+              {
+                "id" : "nlAaQXTlT9m8tUDTsGTxyA",
+                "props" : "hasChildren",
+                "children" : [
+                  {
+                    "id" : "2sr81H_rTnmQ-sbJhipfzw",
+                    "props" : "clickable, toggleable",
+                    "value" : "0",
+                    "role" : "AXCheckBox bold"
+                  },
+                  {
+                    "id" : "AMqXl3tlQlGKq5hWOMEO3w",
+                    "props" : "clickable, toggleable",
+                    "value" : "0",
+                    "role" : "AXCheckBox italic"
+                  },
+                  {
+                    "id" : "pDU3mkMbRx-axffVLYhWlQ",
+                    "props" : "clickable, toggleable",
+                    "value" : "0",
+                    "role" : "AXCheckBox underline"
+                  }
+                ],
+                "role" : "AXGroup _NS:378. text style"
+              },
+              {
+                "id" : "LdBFTw2uSV2TsGWkY70AMw",
+                "props" : "selectable",
+                "role" : "AXPopUpButton"
+              },
+              {
+                "id" : "Eaxhw7krR9KOuoDc3JYqBg",
+                "props" : "selectable",
+                "role" : "AXComboBox"
+              }
+            ],
+            "role" : "AXToolbar"
+          },
+          {
+            "id" : "C294B1A8QkykEBXMOPEhkw",
+            "props" : "clickable, selectable, hasChildren, hasMenu",
+            "children" : [
+              {
+                "id" : "6Jp-giLyR8S2ZwIRufldfQ",
+                "props" : "hasChildren",
+                "children" : [
+                  {
+                    "id" : "cVWi2SoRROuACK8uLrZh2g",
+                    "role" : "AXGroup"
+                  }
+                ],
+                "role" : "AXGroup"
+              }
+            ],
+            "role" : "AXButton"
+          },
+          {
+            "id" : "A1EAFx76RJqoIUWiFtevKQ",
+            "props" : "clickable",
+            "role" : "AXButton"
+          },
+          {
+            "id" : "NSH2I7wLQVKX__E3TrUxpw",
+            "props" : "hasChildren",
+            "children" : [
+              {
+                "id" : "YFphQaapQfeTzQiw5lc_yg",
+                "props" : "selectable",
+                "role" : "AXPopUpButton"
+              },
+              {
+                "id" : "6vZdobVgSWGr8UW_8yU3VA",
+                "props" : "selectable",
+                "role" : "AXPopUpButton Where:"
+              },
+              {
+                "id" : "9k22dzf6TjmdUuo1nh1ufw",
+                "props" : "clickable",
+                "role" : "AXButton DontSaveButton. Delete"
+              },
+              {
+                "id" : "9pW_RO2QSoyG5QgfGWWE8g",
+                "props" : "clickable",
+                "role" : "AXButton CancelButton. Cancel"
+              },
+              {
+                "id" : "XTEWLgv-RpuvRwJLBdj4IQ",
+                "props" : "clickable",
+                "role" : "AXButton OKButton. Save"
+              },
+              {
+                "id" : "igGZ1WE-TnypuCy00_kPLA",
+                "props" : "selectable, hasMenu",
+                "value" : "Do you want to keep this new document “Untitled 29.rtf”?",
+                "role" : "AXStaticText VMessageText"
+              },
+              {
+                "id" : "sv6QbCOuSDe3CKRM4a-15w",
+                "props" : "selectable, hasMenu",
+                "value" : "You can choose to save your changes, or delete this document immediately. You can’t undo this action.",
+                "role" : "AXStaticText VInformativeText"
+              },
+              {
+                "id" : "-z2VufT-SxS26CKBbvDQwA",
+                "props" : "editable, selectable, hasMenu",
+                "value" : "Untitled 29.rtf",
+                "role" : "AXTextField saveAsNameTextField"
+              },
+              {
+                "id" : "C7LPgbPsRd2X0dI8RQnoxg",
+                "props" : "editable, selectable, hasMenu",
+                "role" : "AXTextField _NS:8. tag editor"
+              }
+            ],
+            "role" : "AXSheet save-panel. save"
+          },
+          {
+            "id" : "26poClhuT62F__C4QNvFzQ",
+            "props" : "clickable, selectable, hasMenu",
+            "role" : "AXMenuButton Edited. document actions"
+          },
+          {
+            "id" : "HrIv1HykSI6M7ZFoXmT04A",
+            "props" : "clickable",
+            "role" : "AXButton"
+          }
+        ],
+        "role" : "AXWindow _NS:34. Untitled 29.rtf"
+      },
+      {
+        "id" : "p50IrtcoQAenAaUHO4wbVw",
+        "props" : "hasChildren",
+        "children" : [
+          {
+            "id" : "9u23rQZbSuynKKu9FIY1eQ",
+            "props" : "editable, selectable, hasMenu",
+            "value" : "Right-click test text",
+            "role" : "AXTextArea First Text View"
+          },
+          {
+            "id" : "RYU_3IhFSLSefIHk08rvMQ",
+            "props" : "hasChildren",
+            "children" : [
+              {
+                "id" : "2MnYvXmFTpCpOOUofP6KrA",
+                "props" : "selectable",
+                "role" : "AXPopUpButton"
+              },
+              {
+                "id" : "2MnYvXmFTpCpOOUofP6KrA",
+                "props" : "selectable",
+                "role" : "AXPopUpButton"
+              },
+              {
+                "id" : "w1F7Z529Q36rsRkANgRNpw",
+                "props" : "hasChildren",
+                "children" : [
+                  {
+                    "id" : "kdgdoNpLRuqkO-NSUQeXWw",
+                    "props" : "clickable, toggleable",
+                    "value" : "0",
+                    "role" : "AXCheckBox bold"
+                  },
+                  {
+                    "id" : "kXwCgJ6ZQDCHExxZZKdjYQ",
+                    "props" : "clickable, toggleable",
+                    "value" : "0",
+                    "role" : "AXCheckBox italic"
+                  },
+                  {
+                    "id" : "UZHtPOSZROO0sGKhxJh5yA",
+                    "props" : "clickable, toggleable",
+                    "value" : "0",
+                    "role" : "AXCheckBox underline"
+                  }
+                ],
+                "role" : "AXGroup _NS:378. text style"
+              },
+              {
+                "id" : "2MnYvXmFTpCpOOUofP6KrA",
+                "props" : "selectable",
+                "role" : "AXPopUpButton"
+              },
+              {
+                "id" : "CG2hoQ28Td6eQwjeqgbm8A",
+                "props" : "selectable",
+                "role" : "AXComboBox"
+              }
+            ],
+            "role" : "AXToolbar"
+          },
+          {
+            "id" : "oIzUyNr-SUSR_fxWhVBHyA",
+            "props" : "clickable, selectable, hasChildren, hasMenu",
+            "children" : [
+              {
+                "id" : "Bh3oeWfyTSmX0ilWNcjKDg",
+                "props" : "hasChildren",
+                "children" : [
+                  {
+                    "id" : "h18fED_MQQifNLMc2CPosQ",
+                    "role" : "AXGroup"
+                  }
+                ],
+                "role" : "AXGroup"
+              }
+            ],
+            "role" : "AXButton"
+          },
+          {
+            "id" : "k5xjNb9tQb-VuJiDS_eiDQ",
+            "props" : "clickable",
+            "role" : "AXButton"
+          },
+          {
+            "id" : "QY0_AJhvSIKpWIpCwizMFw",
+            "props" : "hasChildren",
+            "children" : [
+              {
+                "id" : "zlBIkpWbTcCXOGLRZxK5hw",
+                "props" : "selectable",
+                "role" : "AXPopUpButton"
+              },
+              {
+                "id" : "HwfzYeVuRh6rHe3V6mUDQg",
+                "props" : "selectable",
+                "role" : "AXPopUpButton Where:"
+              },
+              {
+                "id" : "Zs1RbL0vRwqeOHY_-xUGew",
+                "props" : "clickable",
+                "role" : "AXButton DontSaveButton. Delete"
+              },
+              {
+                "id" : "b00RLki_SCmUsuCjHT2TXw",
+                "props" : "clickable",
+                "role" : "AXButton CancelButton. Cancel"
+              },
+              {
+                "id" : "tP6dAco_TjGFKa65DsNBug",
+                "props" : "clickable",
+                "role" : "AXButton OKButton. Save"
+              },
+              {
+                "id" : "gmLUJsXfSZy_X2HCbVNntg",
+                "props" : "selectable, hasMenu",
+                "value" : "Do you want to keep this new document “Untitled 27.rtf”?",
+                "role" : "AXStaticText VMessageText"
+              },
+              {
+                "id" : "eZ8NntyfTVmx8cbrvvjIWw",
+                "props" : "selectable, hasMenu",
+                "value" : "You can choose to save your changes, or delete this document immediately. You can’t undo this action.",
+                "role" : "AXStaticText VInformativeText"
+              },
+              {
+                "id" : "QGg-XKhOR2OBnS-JwESttw",
+                "props" : "editable, selectable, hasMenu",
+                "value" : "Untitled 27.rtf",
+                "role" : "AXTextField saveAsNameTextField"
+              },
+              {
+                "id" : "hFxZPZyjSCW9siele3SgKw",
+                "props" : "editable, selectable, hasMenu",
+                "role" : "AXTextField _NS:8. tag editor"
+              }
+            ],
+            "role" : "AXSheet save-panel. save"
+          },
+          {
+            "id" : "PKN3_SQhTbWds5UUUe02wg",
+            "props" : "clickable, selectable, hasMenu",
+            "role" : "AXMenuButton Edited. document actions"
+          },
+          {
+            "id" : "S1ev_Ik6SsGyZbxgdz7auA",
+            "props" : "clickable",
+            "role" : "AXButton"
+          }
+        ],
+        "role" : "AXWindow _NS:34. Untitled 27.rtf"
+      },
+      {
+        "id" : "v6FYgp6hRp6EV-DWEEkc7A",
+        "props" : "hasChildren",
+        "children" : [
+          {
+            "id" : "oo-hrmTAREKcClsKwYpQzw",
+            "props" : "editable, selectable, hasMenu",
+            "value" : "Hello, TextEdit!",
+            "role" : "AXTextArea First Text View"
+          },
+          {
+            "id" : "kSiV_dlmSdaYAGeGn_3GqA",
+            "props" : "hasChildren",
+            "children" : [
+              {
+                "id" : "aEQe7I0SRJuYEiDRqp_urg",
+                "props" : "selectable",
+                "role" : "AXPopUpButton"
+              },
+              {
+                "id" : "aEQe7I0SRJuYEiDRqp_urg",
+                "props" : "selectable",
+                "role" : "AXPopUpButton"
+              },
+              {
+                "id" : "BdqG4Es9QFegwbOHNVXPtA",
+                "props" : "hasChildren",
+                "children" : [
+                  {
+                    "id" : "ve4OGHVYSgSvRXfY2sZKaQ",
+                    "props" : "clickable, toggleable",
+                    "value" : "0",
+                    "role" : "AXCheckBox bold"
+                  },
+                  {
+                    "id" : "cfbGnXqzRHycoeHKckVIRQ",
+                    "props" : "clickable, toggleable",
+                    "value" : "0",
+                    "role" : "AXCheckBox italic"
+                  },
+                  {
+                    "id" : "vdUikufpRFaiZ08RaB5Qqg",
+                    "props" : "clickable, toggleable",
+                    "value" : "0",
+                    "role" : "AXCheckBox underline"
+                  }
+                ],
+                "role" : "AXGroup _NS:378. text style"
+              },
+              {
+                "id" : "aEQe7I0SRJuYEiDRqp_urg",
+                "props" : "selectable",
+                "role" : "AXPopUpButton"
+              },
+              {
+                "id" : "QbHtigSISD2KFhVeTcHw5g",
+                "props" : "selectable",
+                "role" : "AXComboBox"
+              }
+            ],
+            "role" : "AXToolbar"
+          },
+          {
+            "id" : "7mtUDbeUTCO4G1OvfGVqGw",
+            "props" : "clickable, selectable, hasChildren, hasMenu",
+            "children" : [
+              {
+                "id" : "dnfGg3LmSSCUp5Pzk_CwsA",
+                "props" : "hasChildren",
+                "children" : [
+                  {
+                    "id" : "DkWqN8H1QjuJK5I1m9orJw",
+                    "role" : "AXGroup"
+                  }
+                ],
+                "role" : "AXGroup"
+              }
+            ],
+            "role" : "AXButton"
+          },
+          {
+            "id" : "c6pA1dS-SBSRQWPAnKd2ww",
+            "props" : "clickable",
+            "role" : "AXButton"
+          },
+          {
+            "id" : "EmLTlULGQvqKGyODiy11Cw",
+            "props" : "hasChildren",
+            "children" : [
+              {
+                "id" : "WuNs7fKlS2aXdWZMeoe_bQ",
+                "props" : "selectable",
+                "role" : "AXPopUpButton"
+              },
+              {
+                "id" : "siJ6spskTeeBET2XAGKzKQ",
+                "props" : "selectable",
+                "role" : "AXPopUpButton Where:"
+              },
+              {
+                "id" : "Z7cqQnobRteCY7EWVKh_ZA",
+                "props" : "clickable",
+                "role" : "AXButton DontSaveButton. Delete"
+              },
+              {
+                "id" : "ICz9ExFmSeeBq3k_2jnW3g",
+                "props" : "clickable",
+                "role" : "AXButton CancelButton. Cancel"
+              },
+              {
+                "id" : "H75blEIWTHuiDB5GdarpBA",
+                "props" : "clickable",
+                "role" : "AXButton OKButton. Save"
+              },
+              {
+                "id" : "9DANvmJFQd-ku-xFM3QN_g",
+                "props" : "selectable, hasMenu",
+                "value" : "Do you want to keep this new document “Untitled 23.rtf”?",
+                "role" : "AXStaticText VMessageText"
+              },
+              {
+                "id" : "pb1Lcx8_QweF1tnsjllXwQ",
+                "props" : "selectable, hasMenu",
+                "value" : "You can choose to save your changes, or delete this document immediately. You can’t undo this action.",
+                "role" : "AXStaticText VInformativeText"
+              },
+              {
+                "id" : "0ObSaX94Rwi-YcGUUSbjQQ",
+                "props" : "editable, selectable, hasMenu",
+                "value" : "Untitled 23.rtf",
+                "role" : "AXTextField saveAsNameTextField"
+              },
+              {
+                "id" : "gTs5Nh66Ti6__okdAmLlJA",
+                "props" : "editable, selectable, hasMenu",
+                "role" : "AXTextField _NS:8. tag editor"
+              }
+            ],
+            "role" : "AXSheet save-panel. save"
+          },
+          {
+            "id" : "jeoJGMKVRFW656Q9ycn_aw",
+            "props" : "clickable, selectable, hasMenu",
+            "role" : "AXMenuButton Edited. document actions"
+          },
+          {
+            "id" : "2zyKshh2QDiTBmJQDFHwuQ",
+            "props" : "clickable",
+            "role" : "AXButton"
+          }
+        ],
+        "role" : "AXWindow _NS:34. Untitled 23.rtf"
+      },
+      {
+        "id" : "K8oEOYNGQx-dRbSafPaPkQ",
+        "props" : "hasChildren",
+        "children" : [
+          {
+            "id" : "AcqReDshT3CJj4HJr7xJ_Q",
+            "props" : "editable, selectable, hasMenu",
+            "value" : "Double-click-test word testREPLACED",
+            "role" : "AXTextArea First Text View"
+          },
+          {
+            "id" : "JgVU4pKNQU2a8v5BZiDnPA",
+            "props" : "hasChildren",
+            "children" : [
+              {
+                "id" : "KZmL5Zy5Qs-V1mRO0oIzgA",
+                "props" : "selectable",
+                "role" : "AXPopUpButton"
+              },
+              {
+                "id" : "KZmL5Zy5Qs-V1mRO0oIzgA",
+                "props" : "selectable",
+                "role" : "AXPopUpButton"
+              },
+              {
+                "id" : "inAXO19SQbOeStaKk8cKcQ",
+                "props" : "hasChildren",
+                "children" : [
+                  {
+                    "id" : "6ATUnqb8Qo2OU145l3Fm-g",
+                    "props" : "clickable, toggleable",
+                    "value" : "0",
+                    "role" : "AXCheckBox bold"
+                  },
+                  {
+                    "id" : "KbWqTZoMTfiFgwFWFxZKWg",
+                    "props" : "clickable, toggleable",
+                    "value" : "0",
+                    "role" : "AXCheckBox italic"
+                  },
+                  {
+                    "id" : "8hGoRpl6SgWrjoJWyjifPA",
+                    "props" : "clickable, toggleable",
+                    "value" : "0",
+                    "role" : "AXCheckBox underline"
+                  }
+                ],
+                "role" : "AXGroup _NS:378. text style"
+              },
+              {
+                "id" : "KZmL5Zy5Qs-V1mRO0oIzgA",
+                "props" : "selectable",
+                "role" : "AXPopUpButton"
+              },
+              {
+                "id" : "NNvgSXZHQKGaWKZny7EwGQ",
+                "props" : "selectable",
+                "role" : "AXComboBox"
+              }
+            ],
+            "role" : "AXToolbar"
+          },
+          {
+            "id" : "pthcds8wRM-A7HLCA-G3Og",
+            "props" : "clickable, selectable, hasChildren, hasMenu",
+            "children" : [
+              {
+                "id" : "yDW2LDKaQaKusUVRrGv17w",
+                "props" : "hasChildren",
+                "children" : [
+                  {
+                    "id" : "p9-xQw5FSVCDZvPio9KVaw",
+                    "role" : "AXGroup"
+                  }
+                ],
+                "role" : "AXGroup"
+              }
+            ],
+            "role" : "AXButton"
+          },
+          {
+            "id" : "jO5NVP50SfWmP1R0tC-wLw",
+            "props" : "clickable",
+            "role" : "AXButton"
+          },
+          {
+            "id" : "JfkCE1QrTEeOcrRtYqhP9w",
+            "props" : "hasChildren",
+            "children" : [
+              {
+                "id" : "rfxvtJlaQhO8JBAsmZqohQ",
+                "props" : "selectable",
+                "role" : "AXPopUpButton"
+              },
+              {
+                "id" : "JAlAoD2cRyS-QjpIo3FJUw",
+                "props" : "selectable",
+                "role" : "AXPopUpButton Where:"
+              },
+              {
+                "id" : "rx6o8Io5T6WG-qN_TPY9rg",
+                "props" : "clickable",
+                "role" : "AXButton DontSaveButton. Delete"
+              },
+              {
+                "id" : "_51asaYwQWyaempBX85taw",
+                "props" : "clickable",
+                "role" : "AXButton CancelButton. Cancel"
+              },
+              {
+                "id" : "dXguSor8RROqTv4Gd88wSQ",
+                "props" : "clickable",
+                "role" : "AXButton OKButton. Save"
+              },
+              {
+                "id" : "PwpbGH_qSv2UHiuG1SqOlw",
+                "props" : "selectable, hasMenu",
+                "value" : "Do you want to keep this new document “Untitled 26”?",
+                "role" : "AXStaticText VMessageText"
+              },
+              {
+                "id" : "JEC7Bq7vRY-DMQGCkRThQQ",
+                "props" : "selectable, hasMenu",
+                "value" : "You can choose to save your changes, or delete this document immediately. You can’t undo this action.",
+                "role" : "AXStaticText VInformativeText"
+              },
+              {
+                "id" : "0Zd2FoCPQKaf-T7cGGp9AA",
+                "props" : "editable, selectable, hasMenu",
+                "value" : "Untitled 26.rtf",
+                "role" : "AXTextField saveAsNameTextField"
+              },
+              {
+                "id" : "nIs38cgISaqJZk3YS2yuvg",
+                "props" : "editable, selectable, hasMenu",
+                "role" : "AXTextField _NS:8. tag editor"
+              }
+            ],
+            "role" : "AXSheet save-panel. save"
+          },
+          {
+            "id" : "ogA-I6FvQriI9BF8ZQKWpw",
+            "props" : "clickable, selectable, hasMenu",
+            "role" : "AXMenuButton Edited. document actions"
+          },
+          {
+            "id" : "RLQpagF_TgScFQ6KffeS6g",
+            "props" : "clickable",
+            "role" : "AXButton"
+          }
+        ],
+        "role" : "AXWindow _NS:34. Untitled 26"
+      },
+    ],
+    "role" : "AXApplication TextEdit"
+  }
+]

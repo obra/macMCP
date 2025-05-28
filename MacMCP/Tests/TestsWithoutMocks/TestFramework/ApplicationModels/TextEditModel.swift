@@ -127,16 +127,45 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
   /// Get the text area element from TextEdit
   /// - Returns: The text area element, or nil if not found
   public func getTextArea() async throws -> UIElement? {
+    print("DEBUG: getTextArea() called, bundleId = \(bundleId)")
+    
     let textAreaCriteria = UIElementCriteria(
       role: "AXTextArea",
     )
+    
+    print("DEBUG: Searching for elements with criteria: \(textAreaCriteria)")
 
-    return try await toolChain.findElement(
+    let result = try await toolChain.findElement(
       matching: textAreaCriteria,
       scope: "application",
       bundleId: bundleId,
       maxDepth: 15,
     )
+    
+    print("DEBUG: findElement result: \(result?.description ?? "nil")")
+    
+    // Let's also try to get ALL elements to see what's available
+    print("DEBUG: About to call findElements with scope=application, bundleId=\(bundleId), maxDepth=15")
+    let allElements = try await toolChain.findElements(
+      matching: UIElementCriteria(),  // No criteria = all elements
+      scope: "application", 
+      bundleId: bundleId,
+      maxDepth: 15,
+    )
+    print("DEBUG: findElements returned \(allElements.count) elements")
+    
+    print("DEBUG: Total elements found: \(allElements.count)")
+    for (i, element) in allElements.enumerated() {
+      print("DEBUG: Element \(i): role=\(element.role), path=\(element.path)")
+    }
+    
+    let textAreas = allElements.filter { $0.role.contains("AXTextArea") }
+    print("DEBUG: TextArea elements found: \(textAreas.count)")
+    for (i, textArea) in textAreas.enumerated() {
+      print("DEBUG: TextArea \(i): role=\(textArea.role), value=\(textArea.value ?? "nil")")
+    }
+
+    return result
   }
 
   /// Clear document content by selecting all text and deleting it

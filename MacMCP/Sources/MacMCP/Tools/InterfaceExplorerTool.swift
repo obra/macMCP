@@ -483,72 +483,30 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     inMainContent: Bool?,
     elementTypes: [String],
   ) async throws -> [Tool.Content] {
-    // Get system-wide UI state
-    let systemElement = try await accessibilityService.getSystemUIElement(
+    // Always use AccessibilityService filtering now that it supports all filters
+    var elements = try await accessibilityService.findUIElements(
+      role: role,
+      title: nil,
+      titleContains: nil,
+      value: value,
+      valueContains: valueContains,
+      description: nil,
+      descriptionContains: nil,
+      textContains: textContains,
+      anyFieldContains: anyFieldContains,
+      isInteractable: isInteractable,
+      isEnabled: isEnabled,
+      inMenus: inMenus,
+      inMainContent: inMainContent,
+      elementTypes: elementTypes,
+      scope: .systemWide,
       recursive: true,
       maxDepth: maxDepth,
     )
 
-    // Apply filters if specified
-    var elements: [UIElement]
-    if role != nil || value != nil || valueContains != nil || isInteractable != nil
-      || isEnabled != nil || inMenus != nil || inMainContent != nil || !elementTypes.contains("any")
-      || textContains != nil || anyFieldContains != nil
-    {
-      // Check if we can use AccessibilityService filtering (only for filters it supports)
-      let canUseAccessibilityServiceFilters = textContains == nil && anyFieldContains == nil
-      
-      if canUseAccessibilityServiceFilters {
-        // Use findUIElements for filtered results (only for filters supported by AccessibilityService)
-        elements = try await accessibilityService.findUIElements(
-          role: role,
-          title: nil,
-          titleContains: nil,
-          value: value,
-          valueContains: valueContains,
-          description: nil,
-          descriptionContains: nil,
-          scope: .systemWide,
-          recursive: true,
-          maxDepth: maxDepth,
-        )
-      } else {
-        // Get the full system element first, then filter
-        let systemElement = try await accessibilityService.getSystemUIElement(
-          recursive: true,
-          maxDepth: maxDepth,
-        )
-        elements = [systemElement]
-      }
-
-      // Apply additional filters (including textContains and anyFieldContains)
-      elements = applyAdditionalFilters(
-        elements: elements,
-        role: role,
-        value: value,
-        valueContains: valueContains,
-        textContains: textContains,
-        anyFieldContains: anyFieldContains,
-        isInteractable: isInteractable,
-        isEnabled: isEnabled,
-        inMenus: inMenus,
-        inMainContent: inMainContent,
-        elementTypes: elementTypes,
-        includeHidden: includeHidden,
-        includeNonInteractable: includeNonInteractable,
-        limit: limit,
-      )
-    } else {
-      elements = [systemElement]
-
-      // Apply visibility, enabled, and interactability filters if specified
-      if !includeHidden {
-        elements = filterVisibleElements(elements)
-      }
-      if !includeDisabled {
-        elements = filterEnabledElements(elements)
-      }
-      // Note: includeNonInteractable filter will be implemented in next iteration
+    // Apply limit if needed
+    if elements.count > limit {
+      elements = Array(elements.prefix(limit))
     }
 
     // Convert to enhanced element descriptors
@@ -585,83 +543,30 @@ Performance tips: Start with 'application' scope for specific apps, use filters 
     // Get application-specific UI state
     var elements: [UIElement]
 
-    if role != nil || value != nil || valueContains != nil || isInteractable != nil
-      || isEnabled != nil || inMenus != nil || inMainContent != nil || !elementTypes.contains("any")
-      || textContains != nil || anyFieldContains != nil
-    {
-      // Check if we can use AccessibilityService filtering (only for filters it supports)
-      let canUseAccessibilityServiceFilters = textContains == nil && anyFieldContains == nil
-      
-      if canUseAccessibilityServiceFilters {
-        // Use findUIElements for filtered results (only for filters supported by AccessibilityService)
-        elements = try await accessibilityService.findUIElements(
-          role: role,
-          title: nil,
-          titleContains: nil,
-          value: value,
-          valueContains: valueContains,
-          description: nil,
-          descriptionContains: nil,
-          scope: .application(bundleId: bundleId),
-          recursive: true,
-          maxDepth: maxDepth,
-        )
-      } else {
-        // Get the full application element first, then filter descendants
-        let appElement = try await accessibilityService.getApplicationUIElement(
-          bundleId: bundleId,
-          recursive: true,
-          maxDepth: maxDepth,
-        )
-        
-        // For textContains and anyFieldContains, we need to search descendants, not just the root element
-        elements = findMatchingDescendants(
-          in: appElement,
-          role: role,
-          value: value,
-          valueContains: valueContains,
-          textContains: textContains,
-          anyFieldContains: anyFieldContains,
-          isInteractable: isInteractable,
-          isEnabled: isEnabled,
-          inMenus: inMenus,
-          inMainContent: inMainContent,
-          elementTypes: elementTypes,
-          includeHidden: includeHidden,
-          maxDepth: maxDepth,
-          limit: limit,
-        )
-      }
-    } else {
-      // Get the full application element
-      let appElement = try await accessibilityService.getApplicationUIElement(
-        bundleId: bundleId,
-        recursive: true,
-        maxDepth: maxDepth,
-      )
-      elements = [appElement]
+    // Always use AccessibilityService filtering now that it supports all filters
+    elements = try await accessibilityService.findUIElements(
+      role: role,
+      title: nil,
+      titleContains: nil,
+      value: value,
+      valueContains: valueContains,
+      description: nil,
+      descriptionContains: nil,
+      textContains: textContains,
+      anyFieldContains: anyFieldContains,
+      isInteractable: isInteractable,
+      isEnabled: isEnabled,
+      inMenus: inMenus,
+      inMainContent: inMainContent,
+      elementTypes: elementTypes,
+      scope: .application(bundleId: bundleId),
+      recursive: true,
+      maxDepth: maxDepth,
+    )
 
-      // Apply visibility, enabled, and interactability filters if specified
-      if !includeHidden {
-        elements = filterVisibleElements(elements)
-      }
-      if !includeDisabled {
-        elements = filterEnabledElements(elements)
-      }
-      
-      // Apply default menu filtering - exclude menus unless explicitly requested
-      if inMenus == nil && inMainContent == nil {
-        // Default behavior: exclude menu elements, show main content only
-        elements = filterMainContentElements(elements)
-      } else if let shouldShowMenus = inMenus, !shouldShowMenus {
-        elements = filterMainContentElements(elements)
-      } else if let shouldShowMainContent = inMainContent, shouldShowMainContent {
-        elements = filterMainContentElements(elements)
-      }
-      
-      if !includeNonInteractable {
-        elements = filterInteractableElements(elements)
-      }
+    // Apply limit if needed
+    if elements.count > limit {
+      elements = Array(elements.prefix(limit))
     }
 
     // Convert to enhanced element descriptors

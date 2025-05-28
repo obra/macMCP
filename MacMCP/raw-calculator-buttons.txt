@@ -1,0 +1,20 @@
+[1;32m[0] AXApplication: Calculator[0m
+   Frame: (x:0, y:0, w:0, h:0)
+   State: Disabled, Invisible, Not clickable, Unfocused, Unselected
+   Role: AXApplication (application)
+   Relationships: Children: 2
+   Parameterized Attributes: AXReplaceRangeWithText
+
+   Additional Attributes:
+      AXChildrenInNavigationOrder: [Array with 2 elements]
+      AXEnhancedUserInterface: 0
+      AXFocusedUIElement: [Element reference]
+      AXFocusedWindow: [Element reference]
+      AXFrontmost: 0
+      AXFunctionRowTopLevelElements: []
+      AXHidden: 0
+      AXMainWindow: [Element reference]
+      AXMenuBar: [Element reference]
+      AXPreferredLanguage: en
+      AXWindows: [Array with 1 elements]
+   │

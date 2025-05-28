@@ -65,7 +65,7 @@ struct ResourcesUIElementTests {
             rootElement
         }
         
-        func findUIElements(role: String?, title: String?, titleContains: String?, value: String?, valueContains: String?, description: String?, descriptionContains: String?, scope: UIElementScope, recursive: Bool, maxDepth: Int) async throws -> [UIElement] {
+        func findUIElements(role: String?, title: String?, titleContains: String?, value: String?, valueContains: String?, description: String?, descriptionContains: String?, textContains: String?, anyFieldContains: String?, isInteractable: Bool?, isEnabled: Bool?, inMenus: Bool?, inMainContent: Bool?, elementTypes: [String]?, scope: UIElementScope, recursive: Bool, maxDepth: Int) async throws -> [UIElement] {
             [rootElement]
         }
         
@@ -295,7 +295,7 @@ struct ResourcesUIElementTests {
             return nil
         }
         
-        func findUIElements(role: String?, title: String?, titleContains: String?, value: String?, valueContains: String?, description: String?, descriptionContains: String?, scope: UIElementScope, recursive: Bool, maxDepth: Int) async throws -> [UIElement] {
+        func findUIElements(role: String?, title: String?, titleContains: String?, value: String?, valueContains: String?, description: String?, descriptionContains: String?, textContains: String?, anyFieldContains: String?, isInteractable: Bool?, isEnabled: Bool?, inMenus: Bool?, inMainContent: Bool?, elementTypes: [String]?, scope: UIElementScope, recursive: Bool, maxDepth: Int) async throws -> [UIElement] {
             return []
         }
         

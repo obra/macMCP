@@ -848,8 +848,8 @@ public enum FrameSource: String, Codable {
       }
     }
     
-    // Role filter
-    let roleMatches = criteria.role == nil || role == criteria.role
+    // Role filter - use contains match to handle roles like "AXTextArea First Text View"
+    let roleMatches = criteria.role == nil || role.contains(criteria.role!)
     
     // Element type filter
     let typeMatches = targetRoles.isEmpty || targetRoles.contains(role)

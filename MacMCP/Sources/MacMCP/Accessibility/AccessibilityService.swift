@@ -200,6 +200,13 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
     valueContains: String? = nil,
     description: String? = nil,
     descriptionContains: String? = nil,
+    textContains: String? = nil,
+    anyFieldContains: String? = nil,
+    isInteractable: Bool? = nil,
+    isEnabled: Bool? = nil,
+    inMenus: Bool? = nil,
+    inMainContent: Bool? = nil,
+    elementTypes: [String]? = nil,
     scope: UIElementScope = .focusedApplication,
     recursive: Bool = true,
     maxDepth: Int = AccessibilityService.defaultMaxDepth,
@@ -261,89 +268,30 @@ public actor AccessibilityService: AccessibilityServiceProtocol {
       maxDepth: maxDepth,
     )
 
-    // Filter elements based on criteria
-    var matches: [UIElement] = []
+    // Create filter criteria
+    let criteria = UIElement.FilterCriteria(
+      role: role,
+      title: title,
+      titleContains: titleContains,
+      value: value,
+      valueContains: valueContains,
+      description: description,
+      descriptionContains: descriptionContains,
+      textContains: textContains,
+      isInteractable: isInteractable,
+      isEnabled: isEnabled,
+      inMenus: inMenus,
+      inMainContent: inMainContent,
+      elementTypes: elementTypes ?? ["any"],
+      includeHidden: true  // AccessibilityService doesn't filter by visibility
+    )
 
-    // Function to recursively find matching elements
-    func findMatches(in element: UIElement) {
-      var isMatch = true
-
-      // Check role if specified
-      if let roleToMatch = role {
-        if element.role != roleToMatch {
-          isMatch = false
-        }
-      }
-
-      // Check title (exact) if specified
-      if let titleToMatch = title {
-        if element.title != titleToMatch {
-          isMatch = false
-        }
-      }
-
-      // Check titleContains if specified
-      if let titleSubstring = titleContains {
-        if let title = element.title {
-          if !title.localizedCaseInsensitiveContains(titleSubstring) {
-            isMatch = false
-          }
-        } else {
-          isMatch = false
-        }
-      }
-
-      // Check value (exact) if specified
-      if let valueToMatch = value {
-        if element.value != valueToMatch {
-          isMatch = false
-        }
-      }
-
-      // Check valueContains if specified
-      if let valueSubstring = valueContains {
-        if let value = element.value {
-          if !value.localizedCaseInsensitiveContains(valueSubstring) {
-            isMatch = false
-          }
-        } else {
-          isMatch = false
-        }
-      }
-
-      // Check description (exact) if specified
-      if let descToMatch = description {
-        if element.elementDescription != descToMatch {
-          isMatch = false
-        }
-      }
-
-      // Check descriptionContains if specified
-      if let descSubstring = descriptionContains {
-        if let desc = element.elementDescription {
-          if !desc.localizedCaseInsensitiveContains(descSubstring) {
-            isMatch = false
-          }
-        } else {
-          isMatch = false
-        }
-      }
-
-      // Add to matches if all criteria match
-      if isMatch {
-        matches.append(element)
-      }
-
-      // Recursively check children
-      for child in element.children {
-        findMatches(in: child)
-      }
-    }
-
-    // Start the search
-    findMatches(in: rootUIElement)
-
-    return matches
+    // Use UIElement's filtering infrastructure
+    return rootUIElement.findMatchingDescendants(
+      criteria: criteria,
+      maxDepth: maxDepth,
+      limit: Int.max  // No limit for AccessibilityService
+    )
   }
 
   /// Perform a specific accessibility action on an element
