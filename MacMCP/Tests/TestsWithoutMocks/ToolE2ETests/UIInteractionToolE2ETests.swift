@@ -423,11 +423,7 @@ struct UIInteractionToolE2ETests {
     
     // Check if ShowMenu action is available (optional - don't fail if not present)
     if let actionsString = textAreaElement["actions"] as? String {
-      if actionsString.contains("ShowMenu") {
-        print("✓ TextArea supports ShowMenu action")
-      } else {
-        print("ℹ TextArea doesn't have ShowMenu action - right-click may not work")
-      }
+      #expect(actionsString.contains("ShowMenu"), "TextArea should support ShowMenu action for right-click")
     }
     
     let rightClickParams: [String: Value] = [

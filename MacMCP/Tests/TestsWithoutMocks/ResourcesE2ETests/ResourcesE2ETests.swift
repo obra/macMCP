@@ -177,17 +177,11 @@ struct ResourcesE2ETests {
         // Create a resource URI with interactable filter
         let resourceURI = "macos://ui/AXApplication[@bundleId=\"\(calculatorBundleId)\"]?interactable=true&maxDepth=5"
         
-        // Debug the URI to ensure it has query parameters
-        print("DEBUG: Testing URI: \(resourceURI)")
-        
         let components = ResourceURIComponents(
             scheme: "macos",
             path: "/ui/AXApplication[@bundleId=\"\(calculatorBundleId)\"]",
             queryParameters: ["interactable": "true", "maxDepth": "5"]
         )
-        
-        // Debug the components 
-        print("DEBUG: Components: \(components)")
         
         // Call the handler directly
         let (content, metadata) = try await handler.handleRead(uri: resourceURI, components: components)
@@ -198,8 +192,6 @@ struct ResourcesE2ETests {
             #expect(jsonString.contains("AXButton"), "Response should include calculator buttons")
             
             // The response should be an array since interactable=true returns an array
-            // Add testing debug info about first/last chars of response
-            print("DEBUG: JSON first chars: \(jsonString.prefix(10)), last chars: \(jsonString.suffix(10))")
             #expect(jsonString.hasPrefix("["), "Response should be an array")
             #expect(jsonString.hasSuffix("]"), "Response should be an array")
             
@@ -210,9 +202,6 @@ struct ResourcesE2ETests {
             #expect(metadata != nil, "Metadata should be provided")
             if let metadata = metadata {
                 #expect(metadata.mimeType == "application/json", "MIME type should be application/json")
-                // Print additionalMetadata to help debug
-                let additionalMetaStr = String(describing: metadata.additionalMetadata)
-                print("DEBUG: additionalMetadata = \(additionalMetaStr)")
                 #expect(metadata.additionalMetadata?["interactableCount"] != nil, 
                        "Metadata should include interactable count")
             }

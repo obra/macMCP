@@ -323,24 +323,10 @@ struct ApplicationWindowsResourceTests {
         // Call the handler
         let (content, metadata) = try await handler.handleRead(uri: resourceURI, components: components)
         
-        // Debug: Log the AccessibilityElement children directly
-        print("DEBUG: Testing window elements in the mock:")
-        for (i, element) in mockWindows.enumerated() {
-            print("DEBUG: Window \(i): role=\(element.role), title=\(element.title ?? "nil"), isMinimized=\(element.isMinimized)")
-        }
-        
-        // Debug: Check the XML
+        // Parse the JSON to verify the windows
         if case let .text(jsonString) = content {
-            print("DEBUG: JSON response: \(jsonString)")
-            
-            // Parse the JSON to verify the windows
             let jsonData = jsonString.data(using: .utf8)!
             let windowsArray = try JSONDecoder().decode([WindowDescriptor].self, from: jsonData)
-            
-            print("DEBUG: Parsed window count: \(windowsArray.count)")
-            for (i, window) in windowsArray.enumerated() {
-                print("DEBUG: Parsed window \(i): title=\(window.title ?? "nil"), isMinimized=\(window.isMinimized)")
-            }
             
             #expect(windowsArray.count == 3, "Should return 3 windows")
             
