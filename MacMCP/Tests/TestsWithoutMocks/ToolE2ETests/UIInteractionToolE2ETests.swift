@@ -24,7 +24,6 @@ import Testing
 
   // Shared setup method
   private mutating func setUp() async throws {
-
     // Initialize test helpers
     calculatorHelper = await CalculatorTestHelper.sharedHelper()
     textEditHelper = await TextEditTestHelper.shared()
@@ -86,13 +85,14 @@ import Testing
   // MARK: - Test Methods
 
   /// Test basic clicking using UIInteractionTool handler interface
-  @Test("Basic Click Operations") mutating func testBasicClick() async throws {
+  @Test("Basic Click Operations") mutating func basicClick() async throws {
     try await setUp()
 
     // Ensure Calculator is active before interactions
     NSRunningApplication.runningApplications(withBundleIdentifier: calculatorHelper.app.bundleId)
       .first?.activate(
-        options: [])
+        options: [],
+      )
     try await Task.sleep(for: .milliseconds(2000))
 
     // Clear the calculator first
@@ -101,7 +101,7 @@ import Testing
 
     // Find a simple button to test clicking
     var digitFive: UIElement?
-    for _ in 0..<3 {
+    for _ in 0 ..< 3 {
       digitFive = try await calculatorHelper.app.findButton("5")
       if digitFive != nil { break }
       try await Task.sleep(for: .milliseconds(1000))
@@ -128,7 +128,7 @@ import Testing
     if case .text(let message) = result.first {
       #expect(
         message.contains("Successfully clicked") || message.contains("success"),
-        "Success message should indicate click was successful"
+        "Success message should indicate click was successful",
       )
     } else {
       #expect(Bool(false), "Handler should return text content")
@@ -137,13 +137,14 @@ import Testing
     // Verify the display shows the clicked button
     try await Task.sleep(for: .milliseconds(1000))
     try await calculatorHelper.assertDisplayValue(
-      "5", message: "Display should show '5' after clicking button")
+      "5", message: "Display should show '5' after clicking button",
+    )
 
     try await tearDown()
   }
 
   /// Test clicking on a UI element at specific coordinates
-  @Test("Click With Coordinates") mutating func testClickWithCoordinates() async throws {
+  @Test("Click With Coordinates") mutating func clickWithCoordinates() async throws {
     try await setUp()
     // First ensure Calculator is running and active
     // This is redundant with setUp, but serves as a safety measure
@@ -155,7 +156,8 @@ import Testing
     // Activate Calculator to ensure it's in front
     NSRunningApplication.runningApplications(withBundleIdentifier: calculatorHelper.app.bundleId)
       .first?.activate(
-        options: [])
+        options: [],
+      )
     try await Task.sleep(for: .milliseconds(2000))
 
     // Clear the calculator display
@@ -164,7 +166,7 @@ import Testing
 
     // Find the "5" button with retries if needed
     var digitFive: UIElement?
-    for _ in 0..<3 {
+    for _ in 0 ..< 3 {
       digitFive = try await calculatorHelper.app.findButton("5")
       if digitFive != nil { break }
       try await Task.sleep(for: .milliseconds(1000))
@@ -236,7 +238,7 @@ import Testing
   }
 
   /// Test different click types (double-click, right-click)
-  @Test("Different Click Types") mutating func testDifferentClickTypes() async throws {
+  @Test("Different Click Types") mutating func differentClickTypes() async throws {
     try await setUp()
 
     // First ensure TextEdit is running and active
@@ -248,7 +250,8 @@ import Testing
     // Activate TextEdit and ensure a new document
     NSRunningApplication.runningApplications(withBundleIdentifier: textEditHelper.app.bundleId)
       .first?.activate(
-        options: [])
+        options: [],
+      )
     try await Task.sleep(for: .milliseconds(2000))
 
     // Start with a clean document
@@ -274,7 +277,7 @@ import Testing
 
     // First test the position-based double-click using doubleClickAtPosition
     try await textEditHelper.toolChain.interactionService.doubleClickAtPosition(
-      position: CGPoint(x: centerX, y: centerY, )
+      position: CGPoint(x: centerX, y: centerY),
     )
     try await Task.sleep(for: .milliseconds(1000))
 
@@ -290,7 +293,8 @@ import Testing
     // but we can verify the replacement text is there
     #expect(
       documentText?.contains(replacementText) ?? false,
-      "Document should contain the replacement text", )
+      "Document should contain the replacement text",
+    )
 
     // Now test the element-based double-click using the handler directly
     // Type new text for this test
@@ -318,7 +322,8 @@ import Testing
     ]
 
     let doubleClickResult = try await textEditHelper.toolChain.uiInteractionTool.handler(
-      doubleClickParams)
+      doubleClickParams,
+    )
     #expect(!doubleClickResult.isEmpty, "Handler should return non-empty result for double-click")
     try await Task.sleep(for: .milliseconds(1000))
 
@@ -338,7 +343,7 @@ import Testing
   }
 
   /// Test right-click functionality
-  @Test("Right Click Functionality") mutating func testRightClick() async throws {
+  @Test("Right Click Functionality") mutating func rightClick() async throws {
     try await setUp()
 
     // Ensure TextEdit is running and active
@@ -350,7 +355,8 @@ import Testing
     // Activate TextEdit and ensure a new document
     NSRunningApplication.runningApplications(withBundleIdentifier: textEditHelper.app.bundleId)
       .first?.activate(
-        options: [])
+        options: [],
+      )
     try await Task.sleep(for: .milliseconds(2000))
 
     // Start with a clean document
@@ -369,7 +375,8 @@ import Testing
       "filter": .object(["role": .string("AXTextArea")]), "maxDepth": .int(10),
     ]
     let findResult = try await textEditHelper.toolChain.interfaceExplorerTool.handler(
-      findTextAreaParams)
+      findTextAreaParams,
+    )
     #expect(!findResult.isEmpty, "Should find text area elements")
     // Parse the JSON response to get the text area ID
     guard case .text(let jsonString) = findResult[0] else {
@@ -392,14 +399,16 @@ import Testing
     if let actionsString = textAreaElement["actions"] as? String {
       #expect(
         actionsString.contains("ShowMenu"),
-        "TextArea should support ShowMenu action for right-click")
+        "TextArea should support ShowMenu action for right-click",
+      )
     }
     let rightClickParams: [String: Value] = [
       "action": .string("right_click"), "id": .string(textAreaId),
     ]
 
     let rightClickResult = try await textEditHelper.toolChain.uiInteractionTool.handler(
-      rightClickParams)
+      rightClickParams,
+    )
     #expect(!rightClickResult.isEmpty, "Handler should return non-empty result for right-click")
 
     // Since it's difficult to programmatically verify a context menu appeared,
@@ -414,7 +423,7 @@ import Testing
   }
 
   /// Test drag operation
-  @Test("Drag Operation") mutating func testDragOperation() async throws {
+  @Test("Drag Operation") mutating func dragOperation() async throws {
     try await setUp()
     // This is a placeholder for a drag operation test
     // Implementing a robust drag test requires careful selection of source and target elements
@@ -432,7 +441,8 @@ import Testing
     // Activate TextEdit and ensure a new document
     NSRunningApplication.runningApplications(withBundleIdentifier: textEditHelper.app.bundleId)
       .first?.activate(
-        options: [])
+        options: [],
+      )
     try await Task.sleep(for: .milliseconds(2000))
 
     // Start with a clean document
@@ -463,7 +473,7 @@ import Testing
         return
       }
       let invalidParams: [String: Value] = [
-        "action": .string("drag"), "id": .string(textAreaPath),  // Missing targetId
+        "action": .string("drag"), "id": .string(textAreaPath), // Missing targetId
       ]
 
       _ = try await textEditHelper.toolChain.uiInteractionTool.handler(invalidParams)
@@ -480,7 +490,7 @@ import Testing
   }
 
   /// Test scroll operation
-  @Test("Scroll Operation") mutating func testScrollOperation() async throws {
+  @Test("Scroll Operation") mutating func scrollOperation() async throws {
     try await setUp()
 
     // Ensure TextEdit is running and active
@@ -492,7 +502,8 @@ import Testing
     // Activate TextEdit and ensure a new document
     NSRunningApplication.runningApplications(withBundleIdentifier: textEditHelper.app.bundleId)
       .first?.activate(
-        options: [])
+        options: [],
+      )
     try await Task.sleep(for: .milliseconds(2000))
 
     // Use the current working directory to build the path (simpler approach)
@@ -502,7 +513,7 @@ import Testing
     // Build full path to test file
     let testFileURL = URL(fileURLWithPath: projectDir).appendingPathComponent("Tests")
       .appendingPathComponent(
-        "TestsWithoutMocks"
+        "TestsWithoutMocks",
       ).appendingPathComponent("TestAssets").appendingPathComponent("ScrollTestContent.txt")
 
     // Verify file exists before attempting to open
@@ -518,15 +529,17 @@ import Testing
     ]
 
     let activateResult = try await textEditHelper.toolChain.applicationManagementTool.handler(
-      activateParams)
-    if let content = activateResult.first, case .text(_) = content {}
+      activateParams,
+    )
+    if let content = activateResult.first, case .text = content {}
 
     // Verify that TextEdit is now the frontmost application
     let frontmostParams: [String: Value] = ["action": .string("getFrontmostApplication")]
 
     let frontmostResult = try await textEditHelper.toolChain.applicationManagementTool.handler(
-      frontmostParams)
-    if let content = frontmostResult.first, case .text(_) = content {}
+      frontmostParams,
+    )
+    if let content = frontmostResult.first, case .text = content {}
 
     // Wait a bit to ensure application is fully focused
     try await Task.sleep(for: .milliseconds(1000))
@@ -546,12 +559,11 @@ import Testing
 
     // Use multiple approaches to find the Open/OK button
     let searchScopes = ["application", "system"]
-    var openButton: UIElement? = nil
+    var openButton: UIElement?
 
     // First, try to find by title "Open"
     for scope in searchScopes {
-
-      let openButtonCriteria = UIElementCriteria(role: "AXButton", title: "Open", )
+      let openButtonCriteria = UIElementCriteria(role: "AXButton", title: "Open")
 
       openButton = try await textEditHelper.toolChain.findElement(
         matching: openButtonCriteria,
@@ -565,7 +577,6 @@ import Testing
 
     // If not found by title, try to find by ID containing "OKButton"
     if openButton == nil {
-
       for scope in searchScopes {
         let buttons = try await textEditHelper.toolChain.findElements(
           matching: UIElementCriteria(role: "AXButton"),
@@ -588,9 +599,8 @@ import Testing
 
     // If still not found, try to find by title containing "Open"
     if openButton == nil {
-
       for scope in searchScopes {
-        let openButtonCriteria = UIElementCriteria(role: "AXButton", titleContains: "Open", )
+        let openButtonCriteria = UIElementCriteria(role: "AXButton", titleContains: "Open")
 
         openButton = try await textEditHelper.toolChain.findElement(
           matching: openButtonCriteria,
@@ -604,7 +614,6 @@ import Testing
     }
 
     if let openButton {
-
       // Click the Open button
       let openButtonPath = openButton.path
       if openButtonPath.isEmpty {
@@ -650,7 +659,7 @@ import Testing
     // Get initial visible range (a real implementation would capture what's visible)
     // For this test, we'll simulate a check using a marker in the text file
     let hasScrolledMarker = "SCROLL_TEST_MARKER_END"
-    let _ = initialDocText?.contains(hasScrolledMarker) ?? false
+    _ = initialDocText?.contains(hasScrolledMarker) ?? false
 
     // Also search for groups that might be confusing the system
     let groups = try await textEditHelper.toolChain.findElements(
@@ -660,17 +669,18 @@ import Testing
       maxDepth: 10,
     )
 
-    let _ = groups.filter {
+    _ = groups.filter {
       $0.isEditable || ($0.frame.size.width > 200 && $0.frame.size.height > 200)
     }
 
     let scrollDownParams: [String: Value] = [
       "action": .string("scroll"), "id": .string(scrollAreaPath), "direction": .string("down"),
-      "amount": .double(0.9),  // Scroll almost to the bottom
+      "amount": .double(0.9), // Scroll almost to the bottom
     ]
 
     let scrollDownResult = try await textEditHelper.toolChain.uiInteractionTool.handler(
-      scrollDownParams)
+      scrollDownParams,
+    )
     #expect(!scrollDownResult.isEmpty, "Handler should return non-empty result for scroll down")
     try await Task.sleep(for: .milliseconds(1000))
 
@@ -680,11 +690,12 @@ import Testing
     // Test scroll up
     let scrollUpParams: [String: Value] = [
       "action": .string("scroll"), "id": .string(scrollAreaPath), "direction": .string("up"),
-      "amount": .double(0.9),  // Scroll almost to the top
+      "amount": .double(0.9), // Scroll almost to the top
     ]
 
     let scrollUpResult = try await textEditHelper.toolChain.uiInteractionTool.handler(
-      scrollUpParams)
+      scrollUpParams,
+    )
     #expect(!scrollUpResult.isEmpty, "Handler should return non-empty result for scroll up")
     try await Task.sleep(for: .milliseconds(1000))
 
@@ -709,20 +720,22 @@ import Testing
     if let content = scrollDownResult.first, case .text(let text) = content {
       #expect(
         text.contains("success") || text.contains("scroll"),
-        "Scroll down result should indicate success", )
+        "Scroll down result should indicate success",
+      )
     }
 
     if let content = scrollUpResult.first, case .text(let text) = content {
       #expect(
         text.contains("success") || text.contains("scroll"),
-        "Scroll up result should indicate success", )
+        "Scroll up result should indicate success",
+      )
     }
 
     // PARAMETER VALIDATION TESTS - Separated from actual functionality tests
 
     // Test helper to validate error responses
     func testInvalidParams(
-      _ params: [String: Value], expectedErrorContains: String, message: String
+      _ params: [String: Value], expectedErrorContains: String, message: String,
     ) async throws {
       do {
         _ = try await textEditHelper.toolChain.uiInteractionTool.handler(params)
@@ -747,7 +760,8 @@ import Testing
     // Test missing direction
     try await testInvalidParams(
       [
-        "action": .string("scroll"), "id": .string(scrollAreaPath), "amount": .double(0.5),  // Missing direction
+        "action": .string("scroll"), "id": .string(scrollAreaPath), "amount": .double(0.5),
+        // Missing direction
       ],
       expectedErrorContains: "direction",
       message: "Should throw an error when direction is missing",
@@ -766,7 +780,8 @@ import Testing
     // Test missing amount
     try await testInvalidParams(
       [
-        "action": .string("scroll"), "id": .string(scrollAreaPath), "direction": .string("down"),  // Missing amount
+        "action": .string("scroll"), "id": .string(scrollAreaPath), "direction": .string("down"),
+        // Missing amount
       ],
       expectedErrorContains: "amount",
       message: "Should throw an error when amount is missing",
@@ -776,7 +791,7 @@ import Testing
     try await testInvalidParams(
       [
         "action": .string("scroll"), "id": .string(scrollAreaPath), "direction": .string("down"),
-        "amount": .double(1.5),  // Out of range
+        "amount": .double(1.5), // Out of range
       ],
       expectedErrorContains: "amount",
       message: "Should throw an error when amount is out of range",
@@ -787,8 +802,10 @@ import Testing
   /// Test type text functionality (handled via keyboard interactions)
   @Test("Type Text Functionality") mutating func testTypeText() async throws {
     try await setUp()
-    // Note: Type text is typically handled via KeyboardInteractionTool rather than UIInteractionTool
-    // But we should make sure that our click operations correctly position the cursor for text input
+    // Note: Type text is typically handled via KeyboardInteractionTool rather than
+    // UIInteractionTool
+    // But we should make sure that our click operations correctly position the cursor for text
+    // input
 
     // Ensure TextEdit is running and active
     if try await !(textEditHelper.app.isRunning()) {
@@ -799,7 +816,8 @@ import Testing
     // Activate TextEdit and ensure a new document
     NSRunningApplication.runningApplications(withBundleIdentifier: textEditHelper.app.bundleId)
       .first?.activate(
-        options: [])
+        options: [],
+      )
     try await Task.sleep(for: .milliseconds(2000))
 
     // Start with a clean document
@@ -866,10 +884,10 @@ import Testing
     // Position approximately after "Part1" - about 20% of the way across
     // For a real test we would want to calculate this more precisely based on font metrics
     let posX = textAreaFrame.origin.x + (textAreaFrame.size.width * 0.2)
-    let posY = textAreaFrame.origin.y + (textAreaFrame.size.height * 0.5)  // Middle of text area
+    let posY = textAreaFrame.origin.y + (textAreaFrame.size.height * 0.5) // Middle of text area
 
     // Click at the calculated position to place cursor after "Part1"
-    _ = try await textEditHelper.toolChain.clickAtPosition(position: CGPoint(x: posX, y: posY), )
+    _ = try await textEditHelper.toolChain.clickAtPosition(position: CGPoint(x: posX, y: posY))
     try await Task.sleep(for: .milliseconds(1000))
 
     // 6. Now type the inserted text - using the new typeText that doesn't clear
@@ -890,13 +908,14 @@ import Testing
   }
 
   /// Test attempting to click on a non-existent element
-  @Test("Click Non-Existent Element") mutating func testClickNonExistentElement() async throws {
+  @Test("Click Non-Existent Element") mutating func clickNonExistentElement() async throws {
     try await setUp()
 
     // Ensure Calculator is active before interactions
     NSRunningApplication.runningApplications(withBundleIdentifier: calculatorHelper.app.bundleId)
       .first?.activate(
-        options: [])
+        options: [],
+      )
     try await Task.sleep(for: .milliseconds(2000))
 
     // Use a clearly non-existent element ID
@@ -941,13 +960,14 @@ import Testing
   }
 
   /// Test invalid action parameter
-  @Test("Invalid Action Parameter") mutating func testInvalidAction() async throws {
+  @Test("Invalid Action Parameter") mutating func invalidAction() async throws {
     try await setUp()
 
     // Ensure Calculator is active before interactions
     NSRunningApplication.runningApplications(withBundleIdentifier: calculatorHelper.app.bundleId)
       .first?.activate(
-        options: [])
+        options: [],
+      )
     try await Task.sleep(for: .milliseconds(2000))
 
     // Test with an invalid action
@@ -970,7 +990,7 @@ import Testing
     // Test with missing action
     do {
       let invalidParams: [String: Value] = [
-        "id": .string("macos://ui/AXApplication/AXButton")  // Missing action
+        "id": .string("macos://ui/AXApplication/AXButton"), // Missing action
       ]
 
       _ = try await calculatorHelper.toolChain.uiInteractionTool.handler(invalidParams)
@@ -1004,7 +1024,7 @@ import Testing
         // Save screenshots to a temporary directory so the path works on any machine
         let outputDir = FileManager.default.temporaryDirectory.appendingPathComponent(
           "macmcp-test-screenshots",
-          isDirectory: true
+          isDirectory: true,
         ).path
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyyMMdd_HHmmss"

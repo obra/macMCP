@@ -26,13 +26,14 @@ public struct ApplicationsResourceHandler: ResourceHandler {
     self.applicationService = applicationService
     self.logger = logger
   }
+
   /// Handle a resource read request
   /// - Parameters:
   ///   - uri: The resource URI
   ///   - components: Parsed URI components
   /// - Returns: The resource content and metadata
   /// - Throws: Error if the resource cannot be read
-  public func handleRead(uri: String, components: ResourceURIComponents) async throws -> (
+  public func handleRead(uri: String, components _: ResourceURIComponents) async throws -> (
     ResourcesRead.ResourceContent, ResourcesRead.ResourceMetadata?
   ) {
     logger.debug("Handling applications resource read", metadata: ["uri": "\(uri)"])
@@ -57,7 +58,8 @@ public struct ApplicationsResourceHandler: ResourceHandler {
     // Serialize to JSON
     do {
       let jsonData = try JSONSerialization.data(
-        withJSONObject: appList, options: [.prettyPrinted, .sortedKeys])
+        withJSONObject: appList, options: [.prettyPrinted, .sortedKeys],
+      )
       guard let jsonString = String(data: jsonData, encoding: .utf8) else {
         throw MCPError.internalError("Failed to encode running applications as JSON")
       }
@@ -65,13 +67,14 @@ public struct ApplicationsResourceHandler: ResourceHandler {
       let metadata = ResourcesRead.ResourceMetadata(
         mimeType: mimeType,
         size: jsonString.utf8.count,
-        additionalMetadata: ["applicationCount": .double(Double(appList.count))]
+        additionalMetadata: ["applicationCount": .double(Double(appList.count))],
       )
       return (.text(jsonString), metadata)
     } catch {
       logger.error("Error encoding running applications: \(error.localizedDescription)")
       throw MCPError.internalError(
-        "Failed to encode running applications: \(error.localizedDescription)")
+        "Failed to encode running applications: \(error.localizedDescription)",
+      )
     }
   }
 }

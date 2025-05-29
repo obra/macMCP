@@ -2,6 +2,7 @@
 // ABOUTME: Part of MacMCP allowing LLMs to interact with macOS applications.
 
 import Foundation
+
 // Test utilities are directly available in this module
 import MCP
 import Testing
@@ -37,8 +38,10 @@ private struct CalculatorAppInfo {
     let frontmost = try await getFrontmostApp()
     #expect(
       frontmost?.bundleId == "com.apple.calculator",
-      "Calculator should be frontmost after activation")
+      "Calculator should be frontmost after activation",
+    )
   }
+
   // Shared teardown method
   private mutating func tearDown() async throws {
     if helper != nil {
@@ -50,7 +53,7 @@ private struct CalculatorAppInfo {
   }
 
   /// Test basic menu navigation: switch from Basic to Scientific calculator mode
-  @Test("View Menu Navigation") mutating func testViewMenuNavigation() async throws {
+  @Test("View Menu Navigation") mutating func viewMenuNavigation() async throws {
     try await setUp()
     // First run the menu listing logic to understand the menu structure
     // Ensure Calculator is activated and in the foreground
@@ -61,7 +64,7 @@ private struct CalculatorAppInfo {
     let menuParams: [String: Value] = [
       "action": .string("showAllMenus"), "bundleId": .string("com.apple.calculator"),
     ]
-    let _ = try await helper.toolChain.menuNavigationTool.handler(menuParams)
+    _ = try await helper.toolChain.menuNavigationTool.handler(menuParams)
 
     // Use Menu Navigation Tool to switch to Scientific mode via View menu
     let scientificSuccess = try await switchToCalculatorMode("Scientific")
@@ -73,7 +76,7 @@ private struct CalculatorAppInfo {
     try await Task.sleep(for: .milliseconds(2000))
 
     // Get updated calculator mode
-    let _ = try await getCalculatorMode()
+    _ = try await getCalculatorMode()
 
     // Now try switching to Basic mode
     let basicSuccess = try await switchToCalculatorMode("Basic")
@@ -109,11 +112,11 @@ private struct CalculatorAppInfo {
 
     // Parse the response to get application info
     if let content = result.first, case .text(let text) = content {
-
       // Extract application info from the JSON response
       if let data = text.data(using: .utf8),
-        let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-        let bundleId = json["bundleId"] as? String, let appName = json["applicationName"] as? String
+         let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+         let bundleId = json["bundleId"] as? String,
+         let appName = json["applicationName"] as? String
       {
         return CalculatorAppInfo(bundleId: bundleId, applicationName: appName)
       }
@@ -161,7 +164,6 @@ private struct CalculatorAppInfo {
 
     // Check if navigation was successful
     if let content = result.first, case .text(let text) = content {
-
       // Add a longer delay to allow menu action to take effect
       try await Task.sleep(for: .milliseconds(1000))
 

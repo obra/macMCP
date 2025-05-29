@@ -5,7 +5,7 @@ import Foundation
 import MCP
 
 /// Domain for MacMCP errors
-public let MacMCPErrorDomain = "com.macos.mcp"
+public let macMCPErrorDomain = "com.macos.mcp"
 
 /// Error categories for MacMCP
 public enum MacMCPErrorCategory: String, Sendable {
@@ -54,39 +54,39 @@ public struct MacMCPErrorInfo: Swift.Error, LocalizedError, Sendable {
   /// Human-readable recovery suggestion
   public var recoverySuggestion: String? {
     switch category {
-    case .permissions:
-      "Check System Settings > Privacy & Security > Accessibility to ensure this application has the required permissions."
+      case .permissions:
+        "Check System Settings > Privacy & Security > Accessibility to ensure this application has the required permissions."
 
-    case .accessibility:
-      "The macOS accessibility API encountered an issue. This may be due to system restrictions or unsupported UI elements."
+      case .accessibility:
+        "The macOS accessibility API encountered an issue. This may be due to system restrictions or unsupported UI elements."
 
-    case .interaction:
-      "The UI element might not support this interaction, or the element might have changed or disappeared. Try getting the current UI state first."
+      case .interaction:
+        "The UI element might not support this interaction, or the element might have changed or disappeared. Try getting the current UI state first."
 
-    case .element:
-      "The UI element could not be found or accessed. It may have been removed, changed, or might be in a different part of the UI hierarchy."
+      case .element:
+        "The UI element could not be found or accessed. It may have been removed, changed, or might be in a different part of the UI hierarchy."
 
-    case .screenshot:
-      "Taking a screenshot failed. Make sure screen recording permissions are granted in System Settings > Privacy & Security."
+      case .screenshot:
+        "Taking a screenshot failed. Make sure screen recording permissions are granted in System Settings > Privacy & Security."
 
-    case .application:
-      "The target application could not be accessed. Make sure it is running and is not in a restricted mode."
+      case .application:
+        "The target application could not be accessed. Make sure it is running and is not in a restricted mode."
 
-    case .applicationLaunch:
-      "Failed to launch the application. Check that the application is installed and not damaged. You may need to check system permissions as well."
+      case .applicationLaunch:
+        "Failed to launch the application. Check that the application is installed and not damaged. You may need to check system permissions as well."
 
-    case .applicationNotFound:
-      "The specified application could not be found. Verify the application name or bundle identifier and ensure the application is installed on the system."
+      case .applicationNotFound:
+        "The specified application could not be found. Verify the application name or bundle identifier and ensure the application is installed on the system."
 
-    case .network:
-      "Network communication failed. Check your internet connection and firewall settings."
+      case .network:
+        "Network communication failed. Check your internet connection and firewall settings."
 
-    case .parsing: "Failed to parse data. The format may be invalid or unexpected."
+      case .parsing: "Failed to parse data. The format may be invalid or unexpected."
 
-    case .timeout:
-      "The operation timed out. The system might be under heavy load or the operation may be too complex."
+      case .timeout:
+        "The operation timed out. The system might be under heavy load or the operation may be too complex."
 
-    case .unknown: "An unexpected error occurred. Please try again or restart the application."
+      case .unknown: "An unexpected error occurred. Please try again or restart the application."
     }
   }
 
@@ -128,13 +128,15 @@ public struct MacMCPErrorInfo: Swift.Error, LocalizedError, Sendable {
     userInfo["category"] = category.rawValue
 
     // Add context information
-    for (key, value) in context { userInfo["context_\(key)"] = value }
+    for (key, value) in context {
+      userInfo["context_\(key)"] = value
+    }
 
     // Add underlying error if available
     if let underlyingError { userInfo[NSUnderlyingErrorKey] = underlyingError }
 
     // Create a fully-formed domain with category
-    let domain = "\(MacMCPErrorDomain).\(category.rawValue.lowercased())"
+    let domain = "\(macMCPErrorDomain).\(category.rawValue.lowercased())"
 
     return NSError(domain: domain, code: code, userInfo: userInfo)
   }
@@ -395,7 +397,7 @@ extension NSError {
   /// Convert to MacMCPErrorInfo if possible
   var asMacMCPError: MacMCPErrorInfo? {
     // Check if this is already a MacMCP error
-    if domain.hasPrefix(MacMCPErrorDomain) {
+    if domain.hasPrefix(macMCPErrorDomain) {
       // Extract category from domain
       let domainComponents = domain.components(separatedBy: ".")
       let categoryString = domainComponents.count > 1 ? domainComponents[1] : "unknown"

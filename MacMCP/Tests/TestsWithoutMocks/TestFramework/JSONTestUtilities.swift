@@ -5,7 +5,7 @@ import Foundation
 import Testing
 
 /// Utilities for working with JSON responses in tests
-struct JSONTestUtilities {
+enum JSONTestUtilities {
   /// Error types for JSON parsing
   enum JSONTestError: Error, CustomStringConvertible {
     case invalidJSON(String)
@@ -14,15 +14,16 @@ struct JSONTestUtilities {
     case invalidPropertyValue(property: String, expected: String, actual: String)
     var description: String {
       switch self {
-      case .invalidJSON(let message): return "Invalid JSON: \(message)"
-      case .missingProperty(let property): return "Missing property: \(property)"
-      case .wrongPropertyType(let property, let expectedType, let actualType):
-        return "Wrong property type for '\(property)': expected \(expectedType), got \(actualType)"
-      case .invalidPropertyValue(let property, let expected, let actual):
-        return "Invalid property value for '\(property)': expected \(expected), got \(actual)"
+        case .invalidJSON(let message): "Invalid JSON: \(message)"
+        case .missingProperty(let property): "Missing property: \(property)"
+        case .wrongPropertyType(let property, let expectedType, let actualType):
+          "Wrong property type for '\(property)': expected \(expectedType), got \(actualType)"
+        case .invalidPropertyValue(let property, let expected, let actual):
+          "Invalid property value for '\(property)': expected \(expected), got \(actual)"
       }
     }
   }
+
   /// Parses JSON string into a dictionary or array
   /// - Parameter jsonString: The JSON string to parse
   /// - Returns: The parsed JSON object
@@ -35,6 +36,7 @@ struct JSONTestUtilities {
       throw JSONTestError.invalidJSON("Parse error: \(error.localizedDescription)")
     }
   }
+
   /// Parses JSON string into an array of dictionaries
   /// - Parameter jsonString: The JSON string to parse
   /// - Returns: The parsed JSON array
@@ -46,6 +48,7 @@ struct JSONTestUtilities {
     }
     return array
   }
+
   /// Parses JSON string into a dictionary
   /// - Parameter jsonString: The JSON string to parse
   /// - Returns: The parsed JSON dictionary
@@ -57,6 +60,7 @@ struct JSONTestUtilities {
     }
     return dict
   }
+
   /// Verifies that a JSON object contains a specific property
   /// - Parameters:
   ///   - json: The JSON object to check
@@ -69,6 +73,7 @@ struct JSONTestUtilities {
     guard json[property] != nil else { throw JSONTestError.missingProperty(property) }
     return true
   }
+
   /// Verifies that a JSON object contains a property with a specific value
   /// - Parameters:
   ///   - json: The JSON object to check
@@ -81,7 +86,7 @@ struct JSONTestUtilities {
     _ json: [String: Any],
     property: String,
     equals expectedValue: Any,
-    message: String? = nil
+    message: String? = nil,
   ) throws -> Bool {
     // First check if property exists
     try assertPropertyExists(json, property: property)
@@ -91,7 +96,7 @@ struct JSONTestUtilities {
       throw JSONTestError.wrongPropertyType(
         property: property,
         expectedType: "\(type(of: expectedValue))",
-        actualType: "\(type(of: actualValue))"
+        actualType: "\(type(of: actualValue))",
       )
     }
     // Check values match (converted to strings for comparison)
@@ -99,10 +104,12 @@ struct JSONTestUtilities {
     let actualStr = "\(actualValue)"
     if expectedStr != actualStr {
       throw JSONTestError.invalidPropertyValue(
-        property: property, expected: expectedStr, actual: actualStr)
+        property: property, expected: expectedStr, actual: actualStr,
+      )
     }
     return true
   }
+
   /// Verifies that a JSON array contains objects with specific property values
   /// - Parameters:
   ///   - jsonArray: The JSON array to check
@@ -115,7 +122,7 @@ struct JSONTestUtilities {
     _ jsonArray: [[String: Any]],
     property: String,
     equals expectedValue: Any,
-    message: String? = nil
+    message: String? = nil,
   ) throws -> Bool {
     for item in jsonArray {
       // Skip items that don't have the property or don't match the value
@@ -134,9 +141,10 @@ struct JSONTestUtilities {
     throw JSONTestError.invalidPropertyValue(
       property: property,
       expected: "\(expectedValue)",
-      actual: "not found in array"
+      actual: "not found in array",
     )
   }
+
   /// Performs multiple assertions on a JSON string
   /// - Parameters:
   ///   - jsonString: The JSON string to test
@@ -144,7 +152,7 @@ struct JSONTestUtilities {
   /// - Returns: True if all assertions pass
   /// - Throws: JSONTestError if parsing fails or any assertion fails
   @discardableResult static func testJSONObject(
-    _ jsonString: String, assertions: ([String: Any]) throws -> Void
+    _ jsonString: String, assertions: ([String: Any]) throws -> Void,
   )
     throws -> Bool
   {
@@ -152,6 +160,7 @@ struct JSONTestUtilities {
     try assertions(json)
     return true
   }
+
   /// Performs multiple assertions on a JSON array
   /// - Parameters:
   ///   - jsonString: The JSON string to test
@@ -159,7 +168,7 @@ struct JSONTestUtilities {
   /// - Returns: True if all assertions pass
   /// - Throws: JSONTestError if parsing fails or any assertion fails
   @discardableResult static func testJSONArray(
-    _ jsonString: String, assertions: ([[String: Any]]) throws -> Void
+    _ jsonString: String, assertions: ([[String: Any]]) throws -> Void,
   )
     throws -> Bool
   {

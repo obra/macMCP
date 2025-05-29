@@ -36,21 +36,28 @@ public struct CompactMenuItem: Codable, Sendable {
     self.children = children
     self.elementPath = elementPath
   }
+
   /// Get all descendant paths in a flat array
   public var allDescendantPaths: [String] {
     var paths = [path]
-    if let children = children {
-      for child in children { paths.append(contentsOf: child.allDescendantPaths) }
+    if let children {
+      for child in children {
+        paths.append(contentsOf: child.allDescendantPaths)
+      }
     }
     return paths
   }
+
   /// Find a child menu item by path
   public func findChild(withPath targetPath: String) -> CompactMenuItem? {
     if path == targetPath { return self }
-    guard let children = children else { return nil }
-    for child in children { if let found = child.findChild(withPath: targetPath) { return found } }
+    guard let children else { return nil }
+    for child in children {
+      if let found = child.findChild(withPath: targetPath) { return found }
+    }
     return nil
   }
+
   /// Get the depth level of this menu item (0 for top-level)
-  public var depth: Int { return path.components(separatedBy: " > ").count - 1 }
+  public var depth: Int { path.components(separatedBy: " > ").count - 1 }
 }

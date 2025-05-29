@@ -38,7 +38,7 @@ extension TestScenario {
   ///   - condition: The condition to wait for
   /// - Throws: Error if timeout is reached
   public func waitFor(
-    timeout: TimeInterval, description: String, condition: @escaping () async throws -> Bool
+    timeout: TimeInterval, description: String, condition: @escaping () async throws -> Bool,
   )
     async throws
   {
@@ -53,9 +53,10 @@ extension TestScenario {
     throw NSError(
       domain: "TestScenario",
       code: 1000,
-      userInfo: [NSLocalizedDescriptionKey: "Timeout waiting for condition: \(description)"]
+      userInfo: [NSLocalizedDescriptionKey: "Timeout waiting for condition: \(description)"],
     )
   }
+
   /// Helper method to expect a UI element matching criteria
   /// - Parameters:
   ///   - criteria: Criteria to match against UI elements
@@ -66,16 +67,17 @@ extension TestScenario {
   public func expectUIElementMatching(
     _ criteria: UIElementCriteria,
     timeout: TimeInterval = 5.0,
-    message: String? = nil
+    message: String? = nil,
   ) async throws -> UIElement {
     // This will be implemented once the UIElementCriteria and ToolChain are available
     // For now, throw a not implemented error
     throw NSError(
       domain: "TestScenario",
       code: 1001,
-      userInfo: [NSLocalizedDescriptionKey: "Not yet implemented: \(#function)"]
+      userInfo: [NSLocalizedDescriptionKey: "Not yet implemented: \(#function)"],
     )
   }
+
   /// Helper method to expect a condition to become true
   /// - Parameters:
   ///   - condition: The condition to check
@@ -85,7 +87,7 @@ extension TestScenario {
   public func expectCondition(
     _ condition: @escaping () async throws -> Bool,
     timeout: TimeInterval = 5.0,
-    message: String
+    message: String,
   ) async throws {
     try await waitFor(timeout: timeout, description: message) { try await condition() }
   }

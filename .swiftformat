@@ -1,7 +1,10 @@
---indent 4
+# Apple's standard formatting
+--indent 2
 --indentcase true
 --trimwhitespace always
---maxwidth 120
+--maxwidth 100
+
+# Code style rules  
 --self remove
 --wraparguments before-first
 --wrapcollections before-first
@@ -9,4 +12,13 @@
 --ifdef no-indent
 --patternlet inline
 --swiftversion 6.1
+
+# Auto-fix the specific issues we saw
+--enable blockComments
+--enable redundantLet
+--enable spaceAroundComments
+--enable redundantParens
+--enable redundantPattern
+
+# Exclusions
 --exclude MacMCP/.build,MacMCP/swift-sdk

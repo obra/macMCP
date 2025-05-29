@@ -21,6 +21,7 @@ public actor MenuCacheService: MenuCacheServiceProtocol {
     self.maxCacheSize = maxCacheSize
     self.defaultTimeout = defaultTimeout
   }
+
   public func getHierarchy(for bundleId: String) async -> MenuHierarchy? {
     // Check if hierarchy exists and is valid
     guard let hierarchy = cache[bundleId] else {
@@ -41,17 +42,20 @@ public actor MenuCacheService: MenuCacheServiceProtocol {
     hitCount += 1
     return hierarchy
   }
+
   public func setHierarchy(_ hierarchy: MenuHierarchy, for bundleId: String) async {
     // Ensure we don't exceed max cache size
-    if cache.count >= maxCacheSize && cache[bundleId] == nil { await evictLeastRecentlyUsed() }
+    if cache.count >= maxCacheSize, cache[bundleId] == nil { await evictLeastRecentlyUsed() }
     // Store hierarchy
     cache[bundleId] = hierarchy
     updateAccessOrder(for: bundleId)
   }
+
   public func invalidate(for bundleId: String) async {
     cache.removeValue(forKey: bundleId)
     removeFromAccessOrder(bundleId)
   }
+
   public func invalidateAll() async {
     cache.removeAll()
     accessOrder.removeAll()
@@ -59,10 +63,13 @@ public actor MenuCacheService: MenuCacheServiceProtocol {
     hitCount = 0
     missCount = 0
   }
+
   public func cleanup() async {
     var expiredKeys: [String] = []
     // Find expired entries
-    for (bundleId, hierarchy) in cache where !hierarchy.isValid { expiredKeys.append(bundleId) }
+    for (bundleId, hierarchy) in cache where !hierarchy.isValid {
+      expiredKeys.append(bundleId)
+    }
     // Remove expired entries
     for key in expiredKeys {
       cache.removeValue(forKey: key)
@@ -70,14 +77,16 @@ public actor MenuCacheService: MenuCacheServiceProtocol {
       expiredCount += 1
     }
   }
+
   public func getStatistics() async -> CacheStatistics {
-    return CacheStatistics(
+    CacheStatistics(
       entryCount: cache.count,
       hitCount: hitCount,
       missCount: missCount,
-      expiredCount: expiredCount
+      expiredCount: expiredCount,
     )
   }
+
   // MARK: - Private Methods
 
   /// Update LRU access order for a bundle ID
@@ -87,10 +96,12 @@ public actor MenuCacheService: MenuCacheServiceProtocol {
     // Add to front (most recently used)
     accessOrder.insert(bundleId, at: 0)
   }
+
   /// Remove bundle ID from access order tracking
   private func removeFromAccessOrder(_ bundleId: String) {
     accessOrder.removeAll { $0 == bundleId }
   }
+
   /// Evict the least recently used entry to make room
   private func evictLeastRecentlyUsed() async {
     guard !accessOrder.isEmpty else {
@@ -102,12 +113,14 @@ public actor MenuCacheService: MenuCacheServiceProtocol {
     let lruBundleId = accessOrder.removeLast()
     cache.removeValue(forKey: lruBundleId)
   }
+
   /// Reset performance statistics (useful for testing)
   public func resetStatistics() async {
     hitCount = 0
     missCount = 0
     expiredCount = 0
   }
+
   /// Get basic cache information for debugging
   public func getCacheInfo() async -> CacheInfo {
     var entryDetails: [String: EntryInfo] = [:]
@@ -119,7 +132,7 @@ public actor MenuCacheService: MenuCacheServiceProtocol {
         generatedAt: hierarchy.generatedAt,
         expiresAt: hierarchy.cacheExpiresAt,
         isValid: hierarchy.isValid,
-        topLevelMenus: hierarchy.topLevelMenus
+        topLevelMenus: hierarchy.topLevelMenus,
       )
     }
     return CacheInfo(
@@ -127,7 +140,7 @@ public actor MenuCacheService: MenuCacheServiceProtocol {
       maxCacheSize: maxCacheSize,
       defaultTimeout: defaultTimeout,
       accessOrder: accessOrder,
-      entries: entryDetails
+      entries: entryDetails,
     )
   }
 }

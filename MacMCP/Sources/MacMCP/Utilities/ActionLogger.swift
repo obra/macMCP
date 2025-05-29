@@ -95,7 +95,7 @@ public actor ActionLogService {
     if entry.success {
       logger.info(
         "[\(entry.category)] \(entry.action)",
-        metadata: ["targetId": "\(entry.targetId ?? "none")", "details": "\(entry.details)"]
+        metadata: ["targetId": "\(entry.targetId ?? "none")", "details": "\(entry.details)"],
       )
     } else {
       logger.error(
@@ -103,7 +103,7 @@ public actor ActionLogService {
         metadata: [
           "targetId": "\(entry.targetId ?? "none")", "details": "\(entry.details)",
           "error": "\(entry.errorMessage ?? "Unknown error")",
-        ]
+        ],
       )
     }
   }

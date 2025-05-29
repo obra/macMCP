@@ -178,7 +178,7 @@ import Testing
     // Create a button element
     let button = UIElement(
       path:
-        "macos://ui/AXWindow[@AXTitle=\"Test Window\"]/AXGroup[@AXTitle=\"Controls Group\"]/AXButton[@AXTitle=\"OK Button\"]",
+      "macos://ui/AXWindow[@AXTitle=\"Test Window\"]/AXGroup[@AXTitle=\"Controls Group\"]/AXButton[@AXTitle=\"OK Button\"]",
       role: "AXButton",
       title: "OK Button",
       frame: CGRect(x: 20, y: 50, width: 80, height: 30),

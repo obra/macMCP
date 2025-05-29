@@ -5,7 +5,7 @@ import Foundation
 import Logging
 import MCP
 
-public struct ChangeDetectionHelper {
+public enum ChangeDetectionHelper {
   /// Extract change detection parameters from request
   public static func extractChangeDetectionParams(_ params: [String: Value]) -> (
     detectChanges: Bool, delay: TimeInterval
@@ -18,8 +18,8 @@ public struct ChangeDetectionHelper {
 
   /// Format response with UI changes using opaque IDs
   public static func formatResponse(message: String, uiChanges: UIChanges?, logger: Logger) -> [Tool
-    .Content]
-  {
+    .Content
+  ] {
     if let changes = uiChanges, changes.hasChanges {
       var response = ["interaction": ["success": true, "result": message]] as [String: Any]
       var changesDict: [String: Any] = [:]
@@ -45,20 +45,22 @@ public struct ChangeDetectionHelper {
       response["uiChanges"] = changesDict
       do {
         let jsonData = try JSONSerialization.data(
-          withJSONObject: response, options: [.prettyPrinted])
+          withJSONObject: response, options: [.prettyPrinted],
+        )
         if let jsonString = String(data: jsonData, encoding: .utf8) { return [.text(jsonString)] }
       } catch { logger.warning("Failed to serialize UI changes response: \(error)") }
     }
     // Fallback to simple message
     return [.text(message)]
   }
+
   /// Format a single UI element for response with opaque ID
   private static func formatElementForResponse(_ element: UIElement) -> [String: Any] {
     // Use EnhancedElementDescriptor with verbosity reduction for consistent formatting
     let descriptor = EnhancedElementDescriptor.from(
       element: element,
       maxDepth: 1,
-      showCoordinates: false,  // Exclude frame for reduced verbosity
+      showCoordinates: false, // Exclude frame for reduced verbosity
     )
     // Convert to dictionary for JSON serialization
     do {
@@ -76,9 +78,10 @@ public struct ChangeDetectionHelper {
     // Final fallback
     return ["id": element.path, "role": element.role]
   }
+
   /// Add change detection schema properties to a tool's input schema
   public static func addChangeDetectionSchemaProperties() -> [String: Value] {
-    return [
+    [
       "detectChanges": .object([
         "type": .string("boolean"),
         "description": .string(

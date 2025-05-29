@@ -37,7 +37,8 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
   /// - Note: Implemented as two rapid clicks with a short delay between them
   public func doubleClickAtPosition(position: CGPoint) async throws {
     logger.debug(
-      "Double-clicking at position", metadata: ["x": "\(position.x)", "y": "\(position.y)"])
+      "Double-clicking at position", metadata: ["x": "\(position.x)", "y": "\(position.y)"],
+    )
 
     // Perform two clicks in rapid succession to simulate a double-click
     try await clickAtPosition(position: position)
@@ -49,7 +50,8 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
   /// - Parameter position: The screen position to right-click
   public func rightClickAtPosition(position: CGPoint) async throws {
     logger.debug(
-      "Right-clicking at position", metadata: ["x": "\(position.x)", "y": "\(position.y)"])
+      "Right-clicking at position", metadata: ["x": "\(position.x)", "y": "\(position.y)"],
+    )
 
     // Get the element at the position (if any) using a separate task to avoid data races
     let elementAtPosition = await Task.detached {
@@ -67,7 +69,8 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
 
     if let element = elementAtPosition {
       if let axElement = element.axElement {
-        // Try accessibility action directly on the element, but fall back to mouse simulation if it fails
+        // Try accessibility action directly on the element, but fall back to mouse simulation if it
+        // fails
         do {
           let actions = try getActionNames(for: axElement)
           if actions.contains(AXAttribute.Action.showMenu) {
@@ -78,8 +81,8 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
         } catch {
           logger.debug(
             "Accessibility right-click failed for position-based click, falling back to mouse simulation",
-            metadata: ["error": "\(error.localizedDescription)"]
-          )  // Fall through to mouse simulation
+            metadata: ["error": "\(error.localizedDescription)"],
+          ) // Fall through to mouse simulation
         }
       }
       // Fallback to position-based right clicking
@@ -120,8 +123,8 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
         } catch {
           logger.debug(
             "AXPress failed for position-based click, falling back to mouse simulation",
-            metadata: ["error": "\(error.localizedDescription)"]
-          )  // Fall through to mouse simulation
+            metadata: ["error": "\(error.localizedDescription)"],
+          ) // Fall through to mouse simulation
         }
       }
 
@@ -140,7 +143,7 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
   public func pressKey(keyCode: Int, modifiers: CGEventFlags? = nil) async throws {
     logger.debug(
       "Pressing key",
-      metadata: ["keyCode": "\(keyCode)", "modifiers": modifiers != nil ? "\(modifiers!)" : "none"]
+      metadata: ["keyCode": "\(keyCode)", "modifiers": modifiers != nil ? "\(modifiers!)" : "none"],
     )
 
     // Get the event source
@@ -148,10 +151,12 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
 
     // Create key events
     let keyDownEvent = CGEvent(
-      keyboardEventSource: eventSource, virtualKey: CGKeyCode(keyCode), keyDown: true, )
+      keyboardEventSource: eventSource, virtualKey: CGKeyCode(keyCode), keyDown: true,
+    )
 
     let keyUpEvent = CGEvent(
-      keyboardEventSource: eventSource, virtualKey: CGKeyCode(keyCode), keyDown: false, )
+      keyboardEventSource: eventSource, virtualKey: CGKeyCode(keyCode), keyDown: false,
+    )
 
     guard let keyDownEvent, let keyUpEvent else {
       throw createError("Failed to create key events", code: 2003)
@@ -164,7 +169,7 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
 
       logger.debug(
         "Applied modifiers to key events",
-        metadata: ["keyCode": "\(keyCode)", "modifiers": "\(modifiers)"]
+        metadata: ["keyCode": "\(keyCode)", "modifiers": "\(modifiers)"],
       )
     }
 
@@ -208,11 +213,13 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
       let sortedEntries = elementCache.sorted { $0.value.1 < $1.value.1 }
       let entriesToRemove = sortedEntries.prefix(elementCache.count - cacheMaxSize / 2)
 
-      for (id, _) in entriesToRemove { elementCache.removeValue(forKey: id) }
+      for (id, _) in entriesToRemove {
+        elementCache.removeValue(forKey: id)
+      }
 
       logger.debug(
         "Cleaned \(entriesToRemove.count) old elements from cache",
-        metadata: ["remainingCacheSize": "\(elementCache.count)"]
+        metadata: ["remainingCacheSize": "\(elementCache.count)"],
       )
     }
   }
@@ -261,7 +268,7 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
         "action": "\(action)", "actionsResult": "\(actionsResult.rawValue)",
         "actionsAvailable":
           "\(actionNames != nil ? (actionNames as? [String])?.joined(separator: ", ") ?? "nil" : "nil")",
-      ]
+      ],
     )
 
     // Check if the action is supported by the element
@@ -276,7 +283,7 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
           "Action not supported by element",
           metadata: [
             "action": "\(action)", "availableActions": "\(actionsList.joined(separator: ", "))",
-          ]
+          ],
         )
       }
     } else {
@@ -302,10 +309,11 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
     }
 
     // Set a longer timeout for the action
-    let timeoutResult = AXUIElementSetMessagingTimeout(element, 1.0)  // 1 second timeout
+    let timeoutResult = AXUIElementSetMessagingTimeout(element, 1.0) // 1 second timeout
     if timeoutResult != .success {
       logger.warning(
-        "Failed to set messaging timeout", metadata: ["error": "\(timeoutResult.rawValue)"])
+        "Failed to set messaging timeout", metadata: ["error": "\(timeoutResult.rawValue)"],
+      )
     }
 
     // Perform the action
@@ -320,22 +328,22 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
           "action": .string(action), "error": .string("\(error.rawValue)"),
           "errorName": .string(getAXErrorName(error)),
           "actionSupported": .string("\(actionSupported)"),
-        ]
+        ],
       )
 
       // Print specific advice based on error code
       switch error {
-      case .illegalArgument: logger.trace("Illegal argument - The action name might be incorrect")
-      case .invalidUIElement:
-        logger.trace("Invalid UI element - The element might no longer exist or be invalid")
-      case .cannotComplete:
-        logger.trace("Cannot complete - The operation timed out or could not be completed")
-      case .actionUnsupported:
-        logger.trace("Action unsupported - The element does not support this action")
-      case .notImplemented:
-        logger.trace("Not implemented - The application has not implemented this action")
-      case .apiDisabled: logger.trace("API disabled - Accessibility permissions might be missing")
-      default: logger.trace("Unknown error code - Consult macOS Accessibility API documentation")
+        case .illegalArgument: logger.trace("Illegal argument - The action name might be incorrect")
+        case .invalidUIElement:
+          logger.trace("Invalid UI element - The element might no longer exist or be invalid")
+        case .cannotComplete:
+          logger.trace("Cannot complete - The operation timed out or could not be completed")
+        case .actionUnsupported:
+          logger.trace("Action unsupported - The element does not support this action")
+        case .notImplemented:
+          logger.trace("Not implemented - The application has not implemented this action")
+        case .apiDisabled: logger.trace("API disabled - Accessibility permissions might be missing")
+        default: logger.trace("Unknown error code - Consult macOS Accessibility API documentation")
       }
 
       // If action not supported, try fallback to mouse click for button elements
@@ -351,14 +359,14 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
           "Element does not support the requested action",
           metadata: [
             "role": "\(role as? String ?? "unknown")", "availableActions": "\(availableActions)",
-          ]
+          ],
         )
 
         logger.trace(
           "Element does not support AXPress action and no fallback is allowed",
           metadata: [
             "role": .string(role as? String ?? "unknown"), "actions": .string(availableActions),
-          ]
+          ],
         )
       }
 
@@ -378,23 +386,23 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
   /// Get a human-readable name for an AXError code
   private func getAXErrorName(_ error: AXError) -> String {
     switch error {
-    case .success: "Success"
-    case .failure: "Failure"
-    case .illegalArgument: "Illegal Argument"
-    case .invalidUIElement: "Invalid UI Element"
-    case .invalidUIElementObserver: "Invalid UI Element Observer"
-    case .cannotComplete: "Cannot Complete"
-    case .attributeUnsupported: "Attribute Unsupported"
-    case .actionUnsupported: "Action Unsupported"
-    case .notificationUnsupported: "Notification Unsupported"
-    case .notImplemented: "Not Implemented"
-    case .notificationAlreadyRegistered: "Notification Already Registered"
-    case .notificationNotRegistered: "Notification Not Registered"
-    case .apiDisabled: "API Disabled"
-    case .noValue: "No Value"
-    case .parameterizedAttributeUnsupported: "Parameterized Attribute Unsupported"
-    case .notEnoughPrecision: "Not Enough Precision"
-    default: "Unknown Error (\(error.rawValue))"
+      case .success: "Success"
+      case .failure: "Failure"
+      case .illegalArgument: "Illegal Argument"
+      case .invalidUIElement: "Invalid UI Element"
+      case .invalidUIElementObserver: "Invalid UI Element Observer"
+      case .cannotComplete: "Cannot Complete"
+      case .attributeUnsupported: "Attribute Unsupported"
+      case .actionUnsupported: "Action Unsupported"
+      case .notificationUnsupported: "Notification Unsupported"
+      case .notImplemented: "Not Implemented"
+      case .notificationAlreadyRegistered: "Notification Already Registered"
+      case .notificationNotRegistered: "Notification Not Registered"
+      case .apiDisabled: "API Disabled"
+      case .noValue: "No Value"
+      case .parameterizedAttributeUnsupported: "Parameterized Attribute Unsupported"
+      case .notEnoughPrecision: "Not Enough Precision"
+      default: "Unknown Error (\(error.rawValue))"
     }
   }
 
@@ -402,8 +410,9 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
   private func getActionNames(for element: AXUIElement) throws -> [String] {
     guard
       let actionNames = try AccessibilityElement.getAttribute(
-        element, attribute: AXAttribute.actions, )
-        as? [String]
+        element, attribute: AXAttribute.actions,
+      )
+      as? [String]
     else { return [] }
     return actionNames
   }
@@ -433,10 +442,9 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
     // Post the events
     mouseDown.post(tap: .cghidEventTap)
     // delay for 100ms
-    Thread.sleep(forTimeInterval: 0.5)  // 100 milliseconds
+    Thread.sleep(forTimeInterval: 0.5) // 100 milliseconds
     mouseUp.post(tap: .cghidEventTap)
-    Thread.sleep(forTimeInterval: 0.5)  // 100 milliseconds
-
+    Thread.sleep(forTimeInterval: 0.5) // 100 milliseconds
   }
 
   /// Simulate a right mouse click at a specific position
@@ -544,12 +552,14 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
     // Create key events
     guard
       let keyDown = CGEvent(
-        keyboardEventSource: eventSource, virtualKey: CGKeyCode(keyCode), keyDown: true, )
+        keyboardEventSource: eventSource, virtualKey: CGKeyCode(keyCode), keyDown: true,
+      )
     else { throw createError("Failed to create key down event", code: 1010) }
 
     guard
       let keyUp = CGEvent(
-        keyboardEventSource: eventSource, virtualKey: CGKeyCode(keyCode), keyDown: false, )
+        keyboardEventSource: eventSource, virtualKey: CGKeyCode(keyCode), keyDown: false,
+      )
     else { throw createError("Failed to create key up event", code: 1011) }
 
     // Apply modifiers
@@ -570,87 +580,87 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
     var keyCode: Int
 
     switch character {
-    // Common characters
-    case 97...122:  // a-z
-      keyCode = Int(character) - 97 + 0
-    case 65...90:  // A-Z
-      keyCode = Int(character) - 65 + 0
-      modifiers.insert(.maskShift)
-    case 48...57:  // 0-9
-      keyCode = Int(character) - 48 + 29
-    // Whitespace
-    case 32:  // space
-      keyCode = 49
-    case 9:  // tab
-      keyCode = 48
-    case 13:  // return
-      keyCode = 36
-    // Punctuation
-    case 33:  // !
-      keyCode = 18
-      modifiers.insert(.maskShift)
-    case 64:  // @
-      keyCode = 19
-      modifiers.insert(.maskShift)
-    case 35:  // #
-      keyCode = 20
-      modifiers.insert(.maskShift)
-    case 36:  // $
-      keyCode = 21
-      modifiers.insert(.maskShift)
-    case 37:  // %
-      keyCode = 23
-      modifiers.insert(.maskShift)
-    case 94:  // ^
-      keyCode = 22
-      modifiers.insert(.maskShift)
-    case 38:  // &
-      keyCode = 26
-      modifiers.insert(.maskShift)
-    case 42:  // *
-      keyCode = 28
-      modifiers.insert(.maskShift)
-    case 40:  // (
-      keyCode = 25
-      modifiers.insert(.maskShift)
-    case 41:  // )
-      keyCode = 29
-      modifiers.insert(.maskShift)
-    case 45:  // -
-      keyCode = 27
-    case 95:  // _
-      keyCode = 27
-      modifiers.insert(.maskShift)
-    case 61:  // =
-      keyCode = 24
-    case 43:  // +
-      keyCode = 24
-      modifiers.insert(.maskShift)
-    case 91, 123:  // [ {
-      keyCode = 33
-      if character == 123 { modifiers.insert(.maskShift) }
-    case 93, 125:  // ] }
-      keyCode = 30
-      if character == 125 { modifiers.insert(.maskShift) }
-    case 92, 124:  // \ |
-      keyCode = 42
-      if character == 124 { modifiers.insert(.maskShift) }
-    case 59, 58:  // ; :
-      keyCode = 41
-      if character == 58 { modifiers.insert(.maskShift) }
-    case 39, 34:  // ' "
-      keyCode = 39
-      if character == 34 { modifiers.insert(.maskShift) }
-    case 44, 60:  // , <
-      keyCode = 43
-      if character == 60 { modifiers.insert(.maskShift) }
-    case 46, 62:  // . >
-      keyCode = 47
-      if character == 62 { modifiers.insert(.maskShift) }
-    case 47, 63:  // / ?
-      keyCode = 44
-      if character == 63 { modifiers.insert(.maskShift) }
-    default: throw createError("Unsupported character: \(character)", code: 1012)
+      // Common characters
+      case 97 ... 122: // a-z
+        keyCode = Int(character) - 97 + 0
+      case 65 ... 90: // A-Z
+        keyCode = Int(character) - 65 + 0
+        modifiers.insert(.maskShift)
+      case 48 ... 57: // 0-9
+        keyCode = Int(character) - 48 + 29
+      // Whitespace
+      case 32: // space
+        keyCode = 49
+      case 9: // tab
+        keyCode = 48
+      case 13: // return
+        keyCode = 36
+      // Punctuation
+      case 33: // !
+        keyCode = 18
+        modifiers.insert(.maskShift)
+      case 64: // @
+        keyCode = 19
+        modifiers.insert(.maskShift)
+      case 35: // #
+        keyCode = 20
+        modifiers.insert(.maskShift)
+      case 36: // $
+        keyCode = 21
+        modifiers.insert(.maskShift)
+      case 37: // %
+        keyCode = 23
+        modifiers.insert(.maskShift)
+      case 94: // ^
+        keyCode = 22
+        modifiers.insert(.maskShift)
+      case 38: // &
+        keyCode = 26
+        modifiers.insert(.maskShift)
+      case 42: // *
+        keyCode = 28
+        modifiers.insert(.maskShift)
+      case 40: // (
+        keyCode = 25
+        modifiers.insert(.maskShift)
+      case 41: // )
+        keyCode = 29
+        modifiers.insert(.maskShift)
+      case 45: // -
+        keyCode = 27
+      case 95: // _
+        keyCode = 27
+        modifiers.insert(.maskShift)
+      case 61: // =
+        keyCode = 24
+      case 43: // +
+        keyCode = 24
+        modifiers.insert(.maskShift)
+      case 91, 123: // [ {
+        keyCode = 33
+        if character == 123 { modifiers.insert(.maskShift) }
+      case 93, 125: // ] }
+        keyCode = 30
+        if character == 125 { modifiers.insert(.maskShift) }
+      case 92, 124: // \ |
+        keyCode = 42
+        if character == 124 { modifiers.insert(.maskShift) }
+      case 59, 58: // ; :
+        keyCode = 41
+        if character == 58 { modifiers.insert(.maskShift) }
+      case 39, 34: // ' "
+        keyCode = 39
+        if character == 34 { modifiers.insert(.maskShift) }
+      case 44, 60: // , <
+        keyCode = 43
+        if character == 60 { modifiers.insert(.maskShift) }
+      case 46, 62: // . >
+        keyCode = 47
+        if character == 62 { modifiers.insert(.maskShift) }
+      case 47, 63: // / ?
+        keyCode = 44
+        if character == 63 { modifiers.insert(.maskShift) }
+      default: throw createError("Unsupported character: \(character)", code: 1012)
     }
 
     return (keyCode, modifiers)
@@ -658,7 +668,7 @@ public actor UIInteractionService: UIInteractionServiceProtocol {
 
   /// Create a standard error with a code
   private func createError(_ message: String, code: Int) -> Error {
-    createInteractionError(message: message, context: ["internalErrorCode": "\(code)"], )
+    createInteractionError(message: message, context: ["internalErrorCode": "\(code)"])
   }
 }
 
@@ -672,7 +682,7 @@ extension UIInteractionService {
   public func clickElementByPath(path: String, appBundleId: String?) async throws {
     logger.debug(
       "Clicking element by path",
-      metadata: ["path": "\(path)", "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil"]
+      metadata: ["path": "\(path)", "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil"],
     )
 
     // Parse the path
@@ -693,7 +703,7 @@ extension UIInteractionService {
   public func doubleClickElementByPath(path: String, appBundleId: String?) async throws {
     logger.debug(
       "Double-clicking element by path",
-      metadata: ["path": "\(path)", "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil"]
+      metadata: ["path": "\(path)", "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil"],
     )
 
     // Parse the path
@@ -715,7 +725,7 @@ extension UIInteractionService {
   public func rightClickElementByPath(path: String, appBundleId: String?) async throws {
     logger.debug(
       "Right-clicking element by path",
-      metadata: ["path": "\(path)", "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil"]
+      metadata: ["path": "\(path)", "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil"],
     )
 
     // Parse the path
@@ -741,7 +751,7 @@ extension UIInteractionService {
       metadata: [
         "path": "\(path)", "textLength": "\(text.count)",
         "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil",
-      ]
+      ],
     )
 
     // Parse the path
@@ -758,7 +768,7 @@ extension UIInteractionService {
 
     if role == AXAttribute.Role.textField || role == AXAttribute.Role.textArea {
       // For text fields, set the value directly
-      try AccessibilityElement.setAttribute(element, attribute: AXAttribute.value, value: text, )
+      try AccessibilityElement.setAttribute(element, attribute: AXAttribute.value, value: text)
     } else {
       // For other elements, try to set focus and use key events
       let focusParams = AXUIElementSetMessagingTimeout(element, 1.0)
@@ -767,7 +777,7 @@ extension UIInteractionService {
       }
 
       // Set focus to the element
-      try AccessibilityElement.setAttribute(element, attribute: "AXFocused", value: true, )
+      try AccessibilityElement.setAttribute(element, attribute: "AXFocused", value: true)
 
       // Give UI time to update focus
       try await Task.sleep(for: .milliseconds(100))
@@ -793,7 +803,7 @@ extension UIInteractionService {
       metadata: [
         "sourcePath": "\(sourcePath)", "targetPath": "\(targetPath)",
         "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil",
-      ]
+      ],
     )
 
     // Parse the paths
@@ -825,7 +835,7 @@ extension UIInteractionService {
     // Get source size to calculate center
     var sizeRef: CFTypeRef?
     if AXUIElementCopyAttributeValue(sourceElement, "AXSize" as CFString, &sizeRef) == .success,
-      CFGetTypeID(sizeRef!) == AXValueGetTypeID()
+       CFGetTypeID(sizeRef!) == AXValueGetTypeID()
     {
       let value = sizeRef as! AXValue
       var size = CGSize.zero
@@ -849,7 +859,7 @@ extension UIInteractionService {
     // Get target size to calculate center
     sizeRef = nil
     if AXUIElementCopyAttributeValue(targetElement, "AXSize" as CFString, &sizeRef) == .success,
-      CFGetTypeID(sizeRef!) == AXValueGetTypeID()
+       CFGetTypeID(sizeRef!) == AXValueGetTypeID()
     {
       let value = sizeRef as! AXValue
       var size = CGSize.zero
@@ -880,7 +890,7 @@ extension UIInteractionService {
       metadata: [
         "path": "\(path)", "direction": "\(direction)", "amount": "\(amount)",
         "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil",
-      ]
+      ],
     )
 
     // Parse the path
@@ -897,10 +907,10 @@ extension UIInteractionService {
     // Map direction to scroll action
     let scrollAction =
       switch direction {
-      case .up: "AXScrollUp"
-      case .down: "AXScrollDown"
-      case .left: "AXScrollLeft"
-      case .right: "AXScrollRight"
+        case .upward: "AXScrollUp"
+        case .downward: "AXScrollDown"
+        case .leftward: "AXScrollLeft"
+        case .rightward: "AXScrollRight"
       }
 
     // Check if the element supports the specific scroll action
@@ -909,7 +919,7 @@ extension UIInteractionService {
       let scrollCount = max(1, min(10, Int(amount * 10)))
 
       // Perform the scroll action the calculated number of times
-      for _ in 0..<scrollCount {
+      for _ in 0 ..< scrollCount {
         try performAction(element, action: scrollAction)
         try await Task.sleep(for: .milliseconds(50))
       }
@@ -923,7 +933,7 @@ extension UIInteractionService {
       var position = CGPoint.zero
       var positionRef: CFTypeRef?
       if AXUIElementCopyAttributeValue(element, "AXPosition" as CFString, &positionRef) == .success,
-        CFGetTypeID(positionRef!) == AXValueGetTypeID()
+         CFGetTypeID(positionRef!) == AXValueGetTypeID()
       {
         let value = positionRef as! AXValue
         AXValueGetValue(value, .cgPoint, &position)
@@ -933,7 +943,7 @@ extension UIInteractionService {
       var size = CGSize.zero
       var sizeRef: CFTypeRef?
       if AXUIElementCopyAttributeValue(element, "AXSize" as CFString, &sizeRef) == .success,
-        CFGetTypeID(sizeRef!) == AXValueGetTypeID()
+         CFGetTypeID(sizeRef!) == AXValueGetTypeID()
       {
         let value = sizeRef as! AXValue
         AXValueGetValue(value, .cgSize, &size)
@@ -948,18 +958,18 @@ extension UIInteractionService {
       let scrollDeltaY: Int
 
       switch direction {
-      case .up:
-        scrollDeltaX = 0
-        scrollDeltaY = -Int(amount * 10)
-      case .down:
-        scrollDeltaX = 0
-        scrollDeltaY = Int(amount * 10)
-      case .left:
-        scrollDeltaX = -Int(amount * 10)
-        scrollDeltaY = 0
-      case .right:
-        scrollDeltaX = Int(amount * 10)
-        scrollDeltaY = 0
+        case .upward:
+          scrollDeltaX = 0
+          scrollDeltaY = -Int(amount * 10)
+        case .downward:
+          scrollDeltaX = 0
+          scrollDeltaY = Int(amount * 10)
+        case .leftward:
+          scrollDeltaX = -Int(amount * 10)
+          scrollDeltaY = 0
+        case .rightward:
+          scrollDeltaX = Int(amount * 10)
+          scrollDeltaY = 0
       }
 
       try simulateScrollWheel(at: position, deltaX: scrollDeltaX, deltaY: scrollDeltaY)
@@ -977,7 +987,7 @@ extension UIInteractionService {
       metadata: [
         "path": "\(path)", "action": "\(action)",
         "appBundleId": appBundleId != nil ? "\(appBundleId!)" : "nil",
-      ]
+      ],
     )
 
     // Parse the path
@@ -1022,7 +1032,7 @@ extension UIInteractionService {
           "AXPress failed for path-based element, will try mouse simulation fallback",
           metadata: [
             "error": .string(error.localizedDescription), "code": .string("\(nsError.code)"),
-          ]
+          ],
         )
       }
     } else {
@@ -1039,7 +1049,7 @@ extension UIInteractionService {
     var position = CGPoint.zero
     var positionRef: CFTypeRef?
     if AXUIElementCopyAttributeValue(element, "AXPosition" as CFString, &positionRef) == .success,
-      CFGetTypeID(positionRef!) == AXValueGetTypeID()
+       CFGetTypeID(positionRef!) == AXValueGetTypeID()
     {
       let value = positionRef as! AXValue
       AXValueGetValue(value, .cgPoint, &position)
@@ -1049,14 +1059,14 @@ extension UIInteractionService {
     var size = CGSize.zero
     var sizeRef: CFTypeRef?
     if AXUIElementCopyAttributeValue(element, "AXSize" as CFString, &sizeRef) == .success,
-      CFGetTypeID(sizeRef!) == AXValueGetTypeID()
+       CFGetTypeID(sizeRef!) == AXValueGetTypeID()
     {
       let value = sizeRef as! AXValue
       AXValueGetValue(value, .cgSize, &size)
     }
 
     // Calculate center point
-    let centerPoint = CGPoint(x: position.x + size.width / 2, y: position.y + size.height / 2, )
+    let centerPoint = CGPoint(x: position.x + size.width / 2, y: position.y + size.height / 2)
 
     logger.debug(
       "Using mouse simulation fallback for path-based element",
@@ -1075,7 +1085,7 @@ extension UIInteractionService {
         metadata: [
           "error": .string(error.localizedDescription), "domain": .string(nsError.domain),
           "code": .string("\(nsError.code)"),
-        ]
+        ],
       )
 
       // Create a more informative error with context
@@ -1118,7 +1128,7 @@ extension UIInteractionService {
     var position = CGPoint.zero
     var positionRef: CFTypeRef?
     if AXUIElementCopyAttributeValue(element, "AXPosition" as CFString, &positionRef) == .success,
-      CFGetTypeID(positionRef!) == AXValueGetTypeID()
+       CFGetTypeID(positionRef!) == AXValueGetTypeID()
     {
       let value = positionRef as! AXValue
       AXValueGetValue(value, .cgPoint, &position)
@@ -1128,14 +1138,14 @@ extension UIInteractionService {
     var size = CGSize.zero
     var sizeRef: CFTypeRef?
     if AXUIElementCopyAttributeValue(element, "AXSize" as CFString, &sizeRef) == .success,
-      CFGetTypeID(sizeRef!) == AXValueGetTypeID()
+       CFGetTypeID(sizeRef!) == AXValueGetTypeID()
     {
       let value = sizeRef as! AXValue
       AXValueGetValue(value, .cgSize, &size)
     }
 
     // Calculate center point
-    let centerPoint = CGPoint(x: position.x + size.width / 2, y: position.y + size.height / 2, )
+    let centerPoint = CGPoint(x: position.x + size.width / 2, y: position.y + size.height / 2)
 
     logger.debug(
       "Element doesn't support AXDoubleClick or AXPress action, falling back to mouse simulation",
@@ -1166,7 +1176,7 @@ extension UIInteractionService {
     var position = CGPoint.zero
     var positionRef: CFTypeRef?
     if AXUIElementCopyAttributeValue(element, "AXPosition" as CFString, &positionRef) == .success,
-      CFGetTypeID(positionRef!) == AXValueGetTypeID()
+       CFGetTypeID(positionRef!) == AXValueGetTypeID()
     {
       let value = positionRef as! AXValue
       AXValueGetValue(value, .cgPoint, &position)
@@ -1176,14 +1186,14 @@ extension UIInteractionService {
     var size = CGSize.zero
     var sizeRef: CFTypeRef?
     if AXUIElementCopyAttributeValue(element, "AXSize" as CFString, &sizeRef) == .success,
-      CFGetTypeID(sizeRef!) == AXValueGetTypeID()
+       CFGetTypeID(sizeRef!) == AXValueGetTypeID()
     {
       let value = sizeRef as! AXValue
       AXValueGetValue(value, .cgSize, &size)
     }
 
     // Calculate center point
-    let centerPoint = CGPoint(x: position.x + size.width / 2, y: position.y + size.height / 2, )
+    let centerPoint = CGPoint(x: position.x + size.width / 2, y: position.y + size.height / 2)
 
     logger.debug(
       "Element doesn't support AXShowMenu action, falling back to mouse simulation",

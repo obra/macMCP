@@ -41,7 +41,7 @@ import Testing
   /// Helper to run a request and verify results using the shared helper
   @MainActor private func runRequestAndVerify(
     _ request: [String: Value],
-    extraAssertions: ((EnhancedElementDescriptor) -> Void)? = nil
+    extraAssertions: ((EnhancedElementDescriptor) -> Void)? = nil,
   ) async throws {
     let helper = CalculatorTestHelper.sharedHelper()
     let response = try await helper.toolChain.interfaceExplorerTool.handler(request)
@@ -58,7 +58,9 @@ import Testing
         verifyFullyQualifiedPath(descriptor.id)
         extraAssertions?(descriptor)
         if let children = descriptor.children {
-          for child in children { verifyFullyQualifiedPath(child.id) }
+          for child in children {
+            verifyFullyQualifiedPath(child.id)
+          }
         }
       }
       // Verify we can find the button using the model interface
@@ -66,13 +68,15 @@ import Testing
         // Try to find the button through the model
         let foundButton = try await helper.app.findButton(description)
         #expect(
-          foundButton != nil, "Should be able to find button with description '\(description)'")
+          foundButton != nil, "Should be able to find button with description '\(description)'",
+        )
       }
     } catch { #expect(Bool(false), "Failed to decode response JSON: \(error)") }
   }
+
   // MARK: - Test Cases
 
-  @Test("Role filtering with full paths") func testRoleFilteringFullPaths() async throws {
+  @Test("Role filtering with full paths") func roleFilteringFullPaths() async throws {
     try await setUp()
     let request: [String: Value] = [
       "scope": .string("application"), "bundleId": .string(calculatorBundleId),
@@ -85,7 +89,7 @@ import Testing
     await tearDown()
   }
 
-  @Test("Element type filtering with full paths") func testElementTypeFilteringFullPaths()
+  @Test("Element type filtering with full paths") func elementTypeFilteringFullPaths()
     async throws
   {
     try await setUp()
@@ -98,7 +102,7 @@ import Testing
     await tearDown()
   }
 
-  @Test("Attribute filtering with full paths") func testAttributeFilteringFullPaths() async throws {
+  @Test("Attribute filtering with full paths") func attributeFilteringFullPaths() async throws {
     try await setUp()
     let request: [String: Value] = [
       "scope": .string("application"), "bundleId": .string(calculatorBundleId),
@@ -107,12 +111,13 @@ import Testing
     ]
     try await runRequestAndVerify(request) { descriptor in
       #expect(
-        descriptor.description?.contains("3") ?? false, "Element doesn't match filter criteria")
+        descriptor.description?.contains("3") ?? false, "Element doesn't match filter criteria",
+      )
     }
     await tearDown()
   }
 
-  @Test("Combined filtering with full paths") func testCombinedFilteringFullPaths() async throws {
+  @Test("Combined filtering with full paths") func combinedFilteringFullPaths() async throws {
     try await setUp()
     let request: [String: Value] = [
       "scope": .string("application"), "bundleId": .string(calculatorBundleId),
@@ -122,7 +127,8 @@ import Testing
     try await runRequestAndVerify(request) { descriptor in
       #expect(descriptor.role == "AXButton", "Non-button element returned")
       #expect(
-        descriptor.description?.contains("4") ?? false, "Element doesn't match description criteria"
+        descriptor.description?.contains("4") ?? false,
+        "Element doesn't match description criteria",
       )
     }
     await tearDown()

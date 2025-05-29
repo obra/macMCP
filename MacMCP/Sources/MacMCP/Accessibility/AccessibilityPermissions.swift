@@ -14,19 +14,19 @@ public enum AccessibilityPermissions {
 
     public var errorDescription: String? {
       switch self {
-      case .permissionDenied:
-        "Accessibility permission denied. The app requires accessibility permissions to function."
-      case .promptFailed: "Failed to prompt for accessibility permissions."
-      case .timeout: "Timed out waiting for accessibility permissions."
+        case .permissionDenied:
+          "Accessibility permission denied. The app requires accessibility permissions to function."
+        case .promptFailed: "Failed to prompt for accessibility permissions."
+        case .timeout: "Timed out waiting for accessibility permissions."
       }
     }
 
     public var recoverySuggestion: String? {
       switch self {
-      case .permissionDenied:
-        "Please go to System Settings > Privacy & Security > Accessibility and enable this application."
-      case .promptFailed, .timeout:
-        "Try manually enabling accessibility permissions in System Settings > Privacy & Security > Accessibility."
+        case .permissionDenied:
+          "Please go to System Settings > Privacy & Security > Accessibility and enable this application."
+        case .promptFailed, .timeout:
+          "Try manually enabling accessibility permissions in System Settings > Privacy & Security > Accessibility."
       }
     }
 
@@ -44,9 +44,9 @@ public enum AccessibilityPermissions {
     /// Get a numeric code for the error
     private var codeValue: Int {
       switch self {
-      case .permissionDenied: 1001
-      case .promptFailed: 1002
-      case .timeout: 1003
+        case .permissionDenied: 1001
+        case .promptFailed: 1002
+        case .timeout: 1003
       }
     }
   }
@@ -68,7 +68,8 @@ public enum AccessibilityPermissions {
 
     // Prompt the user for accessibility permissions
     // Create options with the prompt key
-    // Using a literal string since direct access to kAXTrustedCheckOptionPrompt causes threading issues
+    // Using a literal string since direct access to kAXTrustedCheckOptionPrompt causes threading
+    // issues
     let options: NSDictionary = ["AXTrustedCheckOptionPrompt": true]
     let trusted = AXIsProcessTrustedWithOptions(options)
 

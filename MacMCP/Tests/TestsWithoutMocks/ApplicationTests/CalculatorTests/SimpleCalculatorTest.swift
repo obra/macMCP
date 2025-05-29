@@ -24,9 +24,10 @@ import Testing
   private mutating func setUp() async throws {
     // Set up standardized logging
     (logger, logFileURL) = TestLogger.create(
-      label: "mcp.test.calculator", testName: "SimpleCalculatorTest")
+      label: "mcp.test.calculator", testName: "SimpleCalculatorTest",
+    )
     TestLogger.configureEnvironment(logger: logger)
-    let _ = TestLogger.createDiagnosticLog(testName: "SimpleCalculatorTest", logger: logger)
+    _ = TestLogger.createDiagnosticLog(testName: "SimpleCalculatorTest", logger: logger)
     logger.debug("Setting up SimpleCalculatorTest")
     // Initialize toolchain and app model
     toolChain = ToolChain()
@@ -36,7 +37,9 @@ import Testing
     let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleId)
     if !runningApps.isEmpty {
       logger.debug("Terminating existing Calculator instances")
-      for runningApp in runningApps { _ = runningApp.terminate() }
+      for runningApp in runningApps {
+        _ = runningApp.terminate()
+      }
       // Wait for termination to complete
       try await Task.sleep(for: .milliseconds(1000))
     }
@@ -64,11 +67,12 @@ import Testing
     // Clear the calculator state
     logger.debug("Clearing calculator state")
     _ = try await app.clear()
-    try await Task.sleep(for: .milliseconds(500))  // Wait for clear to complete
+    try await Task.sleep(for: .milliseconds(500)) // Wait for clear to complete
 
     calculatorRunning = true
     logger.debug("Calculator setup complete")
   }
+
   // Shared teardown method
   private mutating func tearDown() async throws {
     logger.debug("Tearing down SimpleCalculatorTest")
@@ -77,7 +81,9 @@ import Testing
       let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleId)
       if !runningApps.isEmpty {
         logger.debug("Terminating Calculator application")
-        for runningApp in runningApps { _ = runningApp.terminate() }
+        for runningApp in runningApps {
+          _ = runningApp.terminate()
+        }
         // Wait for termination to complete
         try await Task.sleep(for: .milliseconds(1000))
       }
@@ -86,7 +92,7 @@ import Testing
     logger.debug("Teardown complete")
   }
 
-  @Test("Test basic button press") mutating func testBasicButtonPress() async throws {
+  @Test("Test basic button press") mutating func basicButtonPress() async throws {
     try await setUp()
 
     // Press the '5' button
@@ -111,7 +117,7 @@ import Testing
     try await tearDown()
   }
 
-  @Test("Test basic addition") mutating func testBasicAddition() async throws {
+  @Test("Test basic addition") mutating func basicAddition() async throws {
     try await setUp()
     // Clear the calculator first to ensure clean state
     logger.debug("Clearing calculator state")

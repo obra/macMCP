@@ -25,6 +25,7 @@ open class UIElementResourceHandler: ResourceHandler, @unchecked Sendable {
     self.accessibilityService = accessibilityService
     self.logger = logger
   }
+
   /// Handle a read request for this resource
   /// - Parameters:
   ///   - uri: The resource URI
@@ -45,7 +46,8 @@ open class UIElementResourceHandler: ResourceHandler, @unchecked Sendable {
     if pathComponents.isEmpty || pathComponents[0] != "ui" {
       throw ResourceURIError.invalidURIFormat("Path must start with 'ui': \(uri)")
     }
-    // Extract the UI element path without the 'ui' prefix but maintain the rest of the path structure
+    // Extract the UI element path without the 'ui' prefix but maintain the rest of the path
+    // structure
     // (For now, we don't need this since we're using the full URI)
 
     // Build the full element path
@@ -56,18 +58,21 @@ open class UIElementResourceHandler: ResourceHandler, @unchecked Sendable {
     // Look directly at the parsed query parameters
     let interactableValue = queryParams.interactable
     logger.debug(
-      "parsed query params: \(queryParams.custom), direct interactable value: \(interactableValue)")
+      "parsed query params: \(queryParams.custom), direct interactable value: \(interactableValue)",
+    )
     let interactableOnly = interactableValue
     logger.debug("interactableOnly flag: \(interactableOnly)")
     do {
       // Look up the element by path
       let element = try await accessibilityService.findElementByPath(path: fullPath)
-      guard let element = element else {
+      guard let element else {
         throw MCPError.invalidParams("Element not found for path: \(fullPath)")
       }
       // Debug the query parameters and interactableOnly flag - print individual keys
       logger.debug("Query parameters keys: \(queryParams.custom.keys)")
-      for (key, value) in queryParams.custom { logger.debug("Query parameter: \(key) = \(value)") }
+      for (key, value) in queryParams.custom {
+        logger.debug("Query parameter: \(key) = \(value)")
+      }
       logger.debug("interactableOnly flag: \(interactableOnly)")
       // Print components directly for debugging
       logger.debug("Raw URI components path: \(components.path)")
@@ -102,7 +107,7 @@ open class UIElementResourceHandler: ResourceHandler, @unchecked Sendable {
         let descriptors = interactableElements.map { element in
           EnhancedElementDescriptor.from(
             element: element,
-            maxDepth: 0  // Don't include children for interactable list
+            maxDepth: 0, // Don't include children for interactable list
           )
         }
         logger.debug("Created \(descriptors.count) element descriptors")
@@ -129,7 +134,7 @@ open class UIElementResourceHandler: ResourceHandler, @unchecked Sendable {
         let metadata = ResourcesRead.ResourceMetadata(
           mimeType: "application/json",
           size: jsonString.count,
-          additionalMetadata: additionalMetadata
+          additionalMetadata: additionalMetadata,
         )
         return (.text(jsonString), metadata)
       }
@@ -149,19 +154,19 @@ open class UIElementResourceHandler: ResourceHandler, @unchecked Sendable {
           "path": .string(fullPath), "role": .string(element.role),
           "hasChildren": .bool(!element.children.isEmpty),
           "childCount": .double(Double(element.children.count)),
-        ]
+        ],
       )
       return (.text(jsonString), metadata)
     } catch {
       logger.error(
         "Failed to get UI element",
-        metadata: ["path": "\(fullPath)", "error": "\(error.localizedDescription)"]
+        metadata: ["path": "\(fullPath)", "error": "\(error.localizedDescription)"],
       )
       if let pathError = error as? ElementPathError {
         throw MCPError.invalidParams("Invalid element path: \(pathError.description)")
       } else if let axError = error as? AccessibilityPermissions.Error {
         let permissionError = createPermissionError(
-          message: "Accessibility permission denied: \(axError.localizedDescription)"
+          message: "Accessibility permission denied: \(axError.localizedDescription)",
         )
         throw permissionError.asMCPError
       } else if let mcpError = error as? MCPError {

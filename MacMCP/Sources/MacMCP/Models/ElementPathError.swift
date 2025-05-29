@@ -72,164 +72,166 @@ public enum ElementPathError: Error, CustomStringConvertible, Equatable {
 
   public var description: String {
     switch self {
-    case .invalidPathSyntax(let path, let details):
-      return "Invalid path syntax: \(path)\nDetails: \(details)"
-    case .invalidPathPrefix(let prefix):
-      return "Invalid path prefix: \(prefix), should start with macos://ui/"
-    case .invalidSegmentRole(let role): return "Invalid segment role: \(role)"
-    case .invalidAttributeSyntax(let attr, let segmentIndex):
-      return "Invalid attribute syntax: \(attr) at segment \(segmentIndex)"
-    case .invalidIndexSyntax(let index, let segmentIndex):
-      return "Invalid index syntax: \(index) at segment \(segmentIndex)"
-    case .emptyPath: return "Path is empty - must contain at least one segment"
-    case .invalidAttributeValue(let value, let attribute):
-      return "Invalid attribute value: \(value) for attribute \(attribute)"
-    case .segmentResolutionFailed(let segment, let segmentIndex):
-      return "Failed to resolve segment: \(segment) at index \(segmentIndex)"
-    case .noMatchingElements(let segment, let segmentIndex):
-      return "No elements match segment: \(segment) at index \(segmentIndex)"
-    case .ambiguousMatch(let segment, let count, let segmentIndex):
-      return "Ambiguous match: \(count) elements match segment \(segment) at index \(segmentIndex)"
-    case .resolutionFailed(let segment, let index, let candidates, let reason):
-      var details = "Failed to resolve segment: \(segment) at index \(index)\nReason: \(reason)"
-      if !candidates.isEmpty {
-        details += "\nPossible alternatives:"
-        for (i, candidate) in candidates.enumerated() { details += "\n  \(i + 1). \(candidate)" }
-        details +=
-          "\nConsider using one of these alternatives or add more specific attributes to your path."
-      }
-      return details
-    case .applicationNotFound(let appIdentifier, let details):
-      return "Application not found: \(appIdentifier). \(details)"
-    case .invalidAttributeFormat(let attribute, let expectedFormat, let segmentIndex):
-      return
-        "Invalid attribute format: \(attribute) at segment \(segmentIndex). Expected format: \(expectedFormat)"
-    case .pathTooComplex(let path, let details):
-      return "Path is too complex: \(path).\nDetails: \(details)"
-    case .potentialAmbiguity(let segment, let details, let segmentIndex):
-      return
-        "Potential ambiguity in segment \(segmentIndex): \(segment).\nDetails: \(details)\nConsider adding more specific attributes or an index."
-    case .missingAttribute(let segment, let suggestedAttribute, let segmentIndex):
-      return
-        "Missing essential attribute in segment \(segmentIndex): \(segment).\nConsider adding \(suggestedAttribute) for more reliable resolution."
-    case .resolutionTimeout(let segment, let segmentIndex):
-      return
-        "Resolution timeout for segment \(segmentIndex): \(segment).\nThe UI hierarchy might be too deep or complex."
-    case .insufficientPermissions(let feature, let details):
-      return "Insufficient accessibility permissions for: \(feature).\n\(details)"
-    case .indexOutOfRange(let index, let availableCount, let segmentIndex):
-      return
-        "Index \(index) is out of range at segment \(segmentIndex). Only \(availableCount) elements match this segment (valid indices: 0-\(availableCount - 1))."
-    case .indexOutOfRangeEnhanced(let message, _, _, _): return message
-    case .ambiguousMatchNoIndex(let segment, let matchCount, let segmentIndex):
-      return
-        "Ambiguous match at segment \(segmentIndex): \(matchCount) elements match '\(segment)' but no index specified. Use #0, #1, #2, etc. to select a specific element."
-    case .unnecessaryIndex(let index, let segmentIndex):
-      return
-        "Unnecessary index #\(index) at segment \(segmentIndex): only one element matches this segment. Consider removing the index for cleaner paths."
-    case .validationWarning(let message, let suggestion):
-      return "Warning: \(message).\nSuggestion: \(suggestion)"
+      case .invalidPathSyntax(let path, let details):
+        return "Invalid path syntax: \(path)\nDetails: \(details)"
+      case .invalidPathPrefix(let prefix):
+        return "Invalid path prefix: \(prefix), should start with macos://ui/"
+      case .invalidSegmentRole(let role): return "Invalid segment role: \(role)"
+      case .invalidAttributeSyntax(let attr, let segmentIndex):
+        return "Invalid attribute syntax: \(attr) at segment \(segmentIndex)"
+      case .invalidIndexSyntax(let index, let segmentIndex):
+        return "Invalid index syntax: \(index) at segment \(segmentIndex)"
+      case .emptyPath: return "Path is empty - must contain at least one segment"
+      case .invalidAttributeValue(let value, let attribute):
+        return "Invalid attribute value: \(value) for attribute \(attribute)"
+      case .segmentResolutionFailed(let segment, let segmentIndex):
+        return "Failed to resolve segment: \(segment) at index \(segmentIndex)"
+      case .noMatchingElements(let segment, let segmentIndex):
+        return "No elements match segment: \(segment) at index \(segmentIndex)"
+      case .ambiguousMatch(let segment, let count, let segmentIndex):
+        return "Ambiguous match: \(count) elements match segment \(segment) at index \(segmentIndex)"
+      case .resolutionFailed(let segment, let index, let candidates, let reason):
+        var details = "Failed to resolve segment: \(segment) at index \(index)\nReason: \(reason)"
+        if !candidates.isEmpty {
+          details += "\nPossible alternatives:"
+          for (i, candidate) in candidates.enumerated() {
+            details += "\n  \(i + 1). \(candidate)"
+          }
+          details +=
+            "\nConsider using one of these alternatives or add more specific attributes to your path."
+        }
+        return details
+      case .applicationNotFound(let appIdentifier, let details):
+        return "Application not found: \(appIdentifier). \(details)"
+      case .invalidAttributeFormat(let attribute, let expectedFormat, let segmentIndex):
+        return
+          "Invalid attribute format: \(attribute) at segment \(segmentIndex). Expected format: \(expectedFormat)"
+      case .pathTooComplex(let path, let details):
+        return "Path is too complex: \(path).\nDetails: \(details)"
+      case .potentialAmbiguity(let segment, let details, let segmentIndex):
+        return
+          "Potential ambiguity in segment \(segmentIndex): \(segment).\nDetails: \(details)\nConsider adding more specific attributes or an index."
+      case .missingAttribute(let segment, let suggestedAttribute, let segmentIndex):
+        return
+          "Missing essential attribute in segment \(segmentIndex): \(segment).\nConsider adding \(suggestedAttribute) for more reliable resolution."
+      case .resolutionTimeout(let segment, let segmentIndex):
+        return
+          "Resolution timeout for segment \(segmentIndex): \(segment).\nThe UI hierarchy might be too deep or complex."
+      case .insufficientPermissions(let feature, let details):
+        return "Insufficient accessibility permissions for: \(feature).\n\(details)"
+      case .indexOutOfRange(let index, let availableCount, let segmentIndex):
+        return
+          "Index \(index) is out of range at segment \(segmentIndex). Only \(availableCount) elements match this segment (valid indices: 0-\(availableCount - 1))."
+      case .indexOutOfRangeEnhanced(let message, _, _, _): return message
+      case .ambiguousMatchNoIndex(let segment, let matchCount, let segmentIndex):
+        return
+          "Ambiguous match at segment \(segmentIndex): \(matchCount) elements match '\(segment)' but no index specified. Use #0, #1, #2, etc. to select a specific element."
+      case .unnecessaryIndex(let index, let segmentIndex):
+        return
+          "Unnecessary index #\(index) at segment \(segmentIndex): only one element matches this segment. Consider removing the index for cleaner paths."
+      case .validationWarning(let message, let suggestion):
+        return "Warning: \(message).\nSuggestion: \(suggestion)"
     }
   }
 
   public static func == (lhs: ElementPathError, rhs: ElementPathError) -> Bool {
     switch (lhs, rhs) {
-    case (.emptyPath, .emptyPath): true
-    case (
+      case (.emptyPath, .emptyPath): true
+      case (
       .invalidPathSyntax(let lhsPath, let lhsDetails),
-      .invalidPathSyntax(let rhsPath, let rhsDetails)
+      .invalidPathSyntax(let rhsPath, let rhsDetails),
     ):
-      lhsPath == rhsPath && lhsDetails == rhsDetails
-    case (.invalidPathPrefix(let lhsPrefix), .invalidPathPrefix(let rhsPrefix)):
-      lhsPrefix == rhsPrefix
-    case (.invalidSegmentRole(let lhsRole), .invalidSegmentRole(let rhsRole)): lhsRole == rhsRole
-    case (
+        lhsPath == rhsPath && lhsDetails == rhsDetails
+      case (.invalidPathPrefix(let lhsPrefix), .invalidPathPrefix(let rhsPrefix)):
+        lhsPrefix == rhsPrefix
+      case (.invalidSegmentRole(let lhsRole), .invalidSegmentRole(let rhsRole)): lhsRole == rhsRole
+      case (
       .invalidAttributeSyntax(let lhsAttr, let lhsSegment),
       .invalidAttributeSyntax(let rhsAttr, let rhsSegment),
     ): lhsAttr == rhsAttr && lhsSegment == rhsSegment
-    case (
+      case (
       .invalidIndexSyntax(let lhsIndex, let lhsSegment),
-      .invalidIndexSyntax(let rhsIndex, let rhsSegment)
+      .invalidIndexSyntax(let rhsIndex, let rhsSegment),
     ):
-      lhsIndex == rhsIndex && lhsSegment == rhsSegment
-    case (
+        lhsIndex == rhsIndex && lhsSegment == rhsSegment
+      case (
       .invalidAttributeValue(let lhsValue, let lhsAttr),
-      .invalidAttributeValue(let rhsValue, let rhsAttr)
+      .invalidAttributeValue(let rhsValue, let rhsAttr),
     ):
-      lhsValue == rhsValue && lhsAttr == rhsAttr
-    case (
+        lhsValue == rhsValue && lhsAttr == rhsAttr
+      case (
       .segmentResolutionFailed(let lhsSegment, let lhsIndex),
       .segmentResolutionFailed(let rhsSegment, let rhsIndex),
     ): lhsSegment == rhsSegment && lhsIndex == rhsIndex
-    case (
+      case (
       .noMatchingElements(let lhsSegment, let lhsIndex),
-      .noMatchingElements(let rhsSegment, let rhsIndex)
+      .noMatchingElements(let rhsSegment, let rhsIndex),
     ):
-      lhsSegment == rhsSegment && lhsIndex == rhsIndex
-    case (
+        lhsSegment == rhsSegment && lhsIndex == rhsIndex
+      case (
       .ambiguousMatch(let lhsSegment, let lhsCount, let lhsIndex),
       .ambiguousMatch(let rhsSegment, let rhsCount, let rhsIndex),
     ): lhsSegment == rhsSegment && lhsCount == rhsCount && lhsIndex == rhsIndex
-    case (
+      case (
       .resolutionFailed(let lhsSegment, let lhsIndex, let lhsCandidates, let lhsReason),
       .resolutionFailed(let rhsSegment, let rhsIndex, let rhsCandidates, let rhsReason),
     ):
-      lhsSegment == rhsSegment && lhsIndex == rhsIndex && lhsCandidates == rhsCandidates
-        && lhsReason == rhsReason
-    case (
+        lhsSegment == rhsSegment && lhsIndex == rhsIndex && lhsCandidates == rhsCandidates
+          && lhsReason == rhsReason
+      case (
       .applicationNotFound(let lhsApp, let lhsDetails),
-      .applicationNotFound(let rhsApp, let rhsDetails)
+      .applicationNotFound(let rhsApp, let rhsDetails),
     ):
-      lhsApp == rhsApp && lhsDetails == rhsDetails
-    case (
+        lhsApp == rhsApp && lhsDetails == rhsDetails
+      case (
       .invalidAttributeFormat(let lhsAttr, let lhsFormat, let lhsIndex),
       .invalidAttributeFormat(let rhsAttr, let rhsFormat, let rhsIndex),
     ): lhsAttr == rhsAttr && lhsFormat == rhsFormat && lhsIndex == rhsIndex
-    case (
-      .pathTooComplex(let lhsPath, let lhsDetails), .pathTooComplex(let rhsPath, let rhsDetails)
+      case (
+      .pathTooComplex(let lhsPath, let lhsDetails), .pathTooComplex(let rhsPath, let rhsDetails),
     ):
-      lhsPath == rhsPath && lhsDetails == rhsDetails
-    case (
+        lhsPath == rhsPath && lhsDetails == rhsDetails
+      case (
       .potentialAmbiguity(let lhsSegment, let lhsDetails, let lhsIndex),
       .potentialAmbiguity(let rhsSegment, let rhsDetails, let rhsIndex),
     ): lhsSegment == rhsSegment && lhsDetails == rhsDetails && lhsIndex == rhsIndex
-    case (
+      case (
       .missingAttribute(let lhsSegment, let lhsAttr, let lhsIndex),
       .missingAttribute(let rhsSegment, let rhsAttr, let rhsIndex),
     ): lhsSegment == rhsSegment && lhsAttr == rhsAttr && lhsIndex == rhsIndex
-    case (
+      case (
       .resolutionTimeout(let lhsSegment, let lhsIndex),
-      .resolutionTimeout(let rhsSegment, let rhsIndex)
+      .resolutionTimeout(let rhsSegment, let rhsIndex),
     ):
-      lhsSegment == rhsSegment && lhsIndex == rhsIndex
-    case (
+        lhsSegment == rhsSegment && lhsIndex == rhsIndex
+      case (
       .insufficientPermissions(let lhsFeature, let lhsDetails),
       .insufficientPermissions(let rhsFeature, let rhsDetails),
     ): lhsFeature == rhsFeature && lhsDetails == rhsDetails
-    case (
+      case (
       .indexOutOfRange(let lhsIndex, let lhsCount, let lhsSegment),
-      .indexOutOfRange(let rhsIndex, let rhsCount, let rhsSegment)
+      .indexOutOfRange(let rhsIndex, let rhsCount, let rhsSegment),
     ): lhsIndex == rhsIndex && lhsCount == rhsCount && lhsSegment == rhsSegment
-    case (
+      case (
       .indexOutOfRangeEnhanced(let lhsMessage, let lhsIndex, let lhsCount, let lhsSegment),
-      .indexOutOfRangeEnhanced(let rhsMessage, let rhsIndex, let rhsCount, let rhsSegment)
+      .indexOutOfRangeEnhanced(let rhsMessage, let rhsIndex, let rhsCount, let rhsSegment),
     ):
-      lhsMessage == rhsMessage && lhsIndex == rhsIndex && lhsCount == rhsCount
-        && lhsSegment == rhsSegment
-    case (
+        lhsMessage == rhsMessage && lhsIndex == rhsIndex && lhsCount == rhsCount
+          && lhsSegment == rhsSegment
+      case (
       .ambiguousMatchNoIndex(let lhsSegment, let lhsCount, let lhsIndex),
-      .ambiguousMatchNoIndex(let rhsSegment, let rhsCount, let rhsIndex)
+      .ambiguousMatchNoIndex(let rhsSegment, let rhsCount, let rhsIndex),
     ): lhsSegment == rhsSegment && lhsCount == rhsCount && lhsIndex == rhsIndex
-    case (
+      case (
       .unnecessaryIndex(let lhsIndex, let lhsSegment),
-      .unnecessaryIndex(let rhsIndex, let rhsSegment)
+      .unnecessaryIndex(let rhsIndex, let rhsSegment),
     ):
-      lhsIndex == rhsIndex && lhsSegment == rhsSegment
-    case (
+        lhsIndex == rhsIndex && lhsSegment == rhsSegment
+      case (
       .validationWarning(let lhsMessage, let lhsSuggestion),
       .validationWarning(let rhsMessage, let rhsSuggestion),
     ): lhsMessage == rhsMessage && lhsSuggestion == rhsSuggestion
-    default: false
+      default: false
     }
   }
 }

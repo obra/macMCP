@@ -27,18 +27,19 @@ public enum ResourcesRead: MCP.Method {
     /// Create a new resource read result from legacy format
     public init(content: ResourceContent, metadata: ResourceMetadata? = nil) {
       // Create MCP resource content from our ResourceContent format
-      let resourceContent: MCP.Resource.Content
-      if let textContent = content.asText {
-        resourceContent = MCP.Resource.Content.text(
-          textContent, uri: "", mimeType: metadata?.mimeType)
+      let resourceContent = if let textContent = content.asText {
+        MCP.Resource.Content.text(
+          textContent, uri: "", mimeType: metadata?.mimeType,
+        )
       } else if let binaryContent = content.asBinary {
-        resourceContent = MCP.Resource.Content.binary(
-          binaryContent, uri: "", mimeType: metadata?.mimeType)
+        MCP.Resource.Content.binary(
+          binaryContent, uri: "", mimeType: metadata?.mimeType,
+        )
       } else {
         // Default to empty text if neither text nor binary
-        resourceContent = MCP.Resource.Content.text("", uri: "", mimeType: "text/plain")
+        MCP.Resource.Content.text("", uri: "", mimeType: "text/plain")
       }
-      self.contents = [resourceContent]
+      contents = [resourceContent]
     }
   }
 
@@ -74,7 +75,7 @@ public enum ResourcesRead: MCP.Method {
           throw DecodingError.dataCorruptedError(
             forKey: .binary,
             in: container,
-            debugDescription: "Invalid base64 data"
+            debugDescription: "Invalid base64 data",
           )
         }
         self = .binary(data)
@@ -82,7 +83,7 @@ public enum ResourcesRead: MCP.Method {
         throw DecodingError.dataCorruptedError(
           forKey: .type,
           in: container,
-          debugDescription: "Resource content must be text or binary"
+          debugDescription: "Resource content must be text or binary",
         )
       }
     }
@@ -90,12 +91,12 @@ public enum ResourcesRead: MCP.Method {
     public func encode(to encoder: Encoder) throws {
       var container = encoder.container(keyedBy: CodingKeys.self)
       switch self {
-      case .text(let text):
-        try container.encode("text", forKey: .type)
-        try container.encode(text, forKey: .text)
-      case .binary(let data):
-        try container.encode("binary", forKey: .type)
-        try container.encode(data.base64EncodedString(), forKey: .binary)
+        case .text(let text):
+          try container.encode("text", forKey: .type)
+          try container.encode(text, forKey: .text)
+        case .binary(let data):
+          try container.encode("binary", forKey: .type)
+          try container.encode(data.base64EncodedString(), forKey: .binary)
       }
     }
 

@@ -21,11 +21,13 @@ extension UIElement {
     description: String? = "Test Description",
     enabled: Bool = true,
     frame: CGRect = CGRect(x: 0, y: 0, width: 100, height: 100),
-    additionalAttributes: [String: Any] = [:]
+    additionalAttributes: [String: Any] = [:],
   ) -> UIElement {
     var attributes: [String: Any] = ["enabled": enabled]
     // Add additional attributes
-    for (key, value) in additionalAttributes { attributes[key] = value }
+    for (key, value) in additionalAttributes {
+      attributes[key] = value
+    }
     return UIElement(
       path: path,
       role: role,
@@ -34,7 +36,7 @@ extension UIElement {
       elementDescription: description,
       frame: frame,
       attributes: attributes,
-      actions: ["AXPress"]
+      actions: ["AXPress"],
     )
   }
 }
@@ -189,17 +191,15 @@ class PathInitMockAXUIElement: @unchecked Sendable {
     // MARK: - Path Resolution Mock
 
     // Helper method to find a mock child element matching a segment
-    private func findMockChild(for segment: PathSegment, in element: PathInitMockAXUIElement, )
+    private func findMockChild(for segment: PathSegment, in element: PathInitMockAXUIElement)
       -> PathInitMockAXUIElement?
     {
-
       // For tests, we need to be lenient since we're using dummy elements
       // Always match the first segment (AXWindow) to our root element
       if segment.role == "AXWindow" { return rootElement }
 
       // Check if this element matches the segment
       if element.role == segment.role {
-
         // For testing, we'll be lenient with attribute matching
         // Just check a few important attributes like title if they exist
         if segment.attributes.isEmpty { return element }
@@ -213,7 +213,7 @@ class PathInitMockAXUIElement: @unchecked Sendable {
 
         // For groups with "Controls" and other expected paths, provide special handling
         if segment.role == "AXGroup",
-          segment.attributes["AXTitle"] == "Controls" || segment.attributes["title"] == "Controls"
+           segment.attributes["AXTitle"] == "Controls" || segment.attributes["title"] == "Controls"
         {
           if let controlGroup = rootElement.children.first(where: {
             ($0.role == "AXGroup" && $0.attributes["AXTitle"] as? String == "Controls")
@@ -224,7 +224,7 @@ class PathInitMockAXUIElement: @unchecked Sendable {
 
         // For buttons with "OK" and other expected paths, provide special handling
         if segment.role == "AXButton",
-          segment.attributes["AXTitle"] == "OK" || segment.attributes["title"] == "OK"
+           segment.attributes["AXTitle"] == "OK" || segment.attributes["title"] == "OK"
         {
           if let controlGroup = rootElement.children.first(where: {
             ($0.role == "AXGroup" && $0.attributes["AXTitle"] as? String == "Controls")
@@ -280,17 +280,18 @@ class PathInitMockAXUIElement: @unchecked Sendable {
       // The specific UI element attributes will be provided by our mock services
 
       // Special case handling for test scenarios
-      if path.segments.count > 0 {
+      if !path.segments.isEmpty {
         // Unused variable removed
 
         // For tests with ambiguous paths, throw appropriate error
         if path.segments.count > 1 {
           let secondSegment = path.segments[1]
-          if secondSegment.role == "AXGroup" && secondSegment.attributes["AXTitle"] == "Duplicate"
-            && secondSegment.index == nil
+          if secondSegment.role == "AXGroup", secondSegment.attributes["AXTitle"] == "Duplicate",
+             secondSegment.index == nil
           {
             throw ElementPathError.ambiguousMatch(
-              secondSegment.toString(), matchCount: 2, atSegment: 1)
+              secondSegment.toString(), matchCount: 2, atSegment: 1,
+            )
           }
         }
         // For testing non-existent paths
@@ -303,7 +304,8 @@ class PathInitMockAXUIElement: @unchecked Sendable {
 
     // MARK: - Mock AXUIElementCopyAttributeValue for testing
 
-    // Hook for AXUIElementCopyAttributeValue - this will be used through the interception mechcanism
+    // Hook for AXUIElementCopyAttributeValue - this will be used through the interception
+    // mechcanism
     func axAttributeValue(for element: AXUIElement, attribute: String) -> (Any?, Bool) {
       // Convert the request to our mock structure based on the context
       let mockElement = convertToMockAXUIElement(element)
@@ -321,7 +323,9 @@ class PathInitMockAXUIElement: @unchecked Sendable {
 
         // Create children array regardless of the element type
         var childElements: [AXUIElement] = []
-        for _ in 0..<4 { childElements.append(AXUIElementCreateSystemWide()) }
+        for _ in 0 ..< 4 {
+          childElements.append(AXUIElementCreateSystemWide())
+        }
         return (childElements, true)
       }
 
@@ -437,7 +441,7 @@ class PathInitMockAXUIElement: @unchecked Sendable {
       )
     }
 
-    func getApplicationUIElement(bundleId _: String, recursive _: Bool, maxDepth _: Int, )
+    func getApplicationUIElement(bundleId _: String, recursive _: Bool, maxDepth _: Int)
       async throws -> UIElement
     {
       UIElement(
@@ -453,14 +457,14 @@ class PathInitMockAXUIElement: @unchecked Sendable {
     {
       UIElement(
         path:
-          "macos://ui/AXApplication[@AXTitle=\"Focused Application\"][@bundleId=\"mock-focused-app\"]",
+        "macos://ui/AXApplication[@AXTitle=\"Focused Application\"][@bundleId=\"mock-focused-app\"]",
         role: "AXApplication",
         frame: CGRect.zero,
         axElement: nil,
       )
     }
 
-    func getUIElementAtPosition(position _: CGPoint, recursive _: Bool, maxDepth _: Int, )
+    func getUIElementAtPosition(position _: CGPoint, recursive _: Bool, maxDepth _: Int)
       async throws
       -> UIElement?
     {
@@ -489,7 +493,7 @@ class PathInitMockAXUIElement: @unchecked Sendable {
       elementTypes _: [String]?,
       scope _: UIElementScope,
       recursive _: Bool,
-      maxDepth _: Int
+      maxDepth _: Int,
     ) async throws -> [UIElement] { [] }
 
     func findElements(withRole _: String, recursive _: Bool, maxDepth _: Int) async throws
@@ -509,7 +513,7 @@ class PathInitMockAXUIElement: @unchecked Sendable {
     }
 
     func findElementByPath(path: String) async throws -> UIElement? {
-      try await findElementByPath(path)  // This is ok since it calls the other overload
+      try await findElementByPath(path) // This is ok since it calls the other overload
     }
 
     func performAction(action _: String, onElementWithPath _: String) async throws {
@@ -524,7 +528,7 @@ class PathInitMockAXUIElement: @unchecked Sendable {
       // No-op for tests
     }
 
-    func getChildElements(forElement _: AXUIElement, recursive _: Bool, maxDepth _: Int, )
+    func getChildElements(forElement _: AXUIElement, recursive _: Bool, maxDepth _: Int)
       async throws
       -> [UIElement]
     { [] }
@@ -544,7 +548,7 @@ class PathInitMockAXUIElement: @unchecked Sendable {
 
     func isApplicationRunning(withTitle _: String) -> Bool { true }
 
-    func waitForElementByPath(_: String, timeout _: TimeInterval, pollInterval _: TimeInterval, )
+    func waitForElementByPath(_: String, timeout _: TimeInterval, pollInterval _: TimeInterval)
       async throws
       -> UIElement
     {
@@ -626,7 +630,7 @@ class PathInitMockAXUIElement: @unchecked Sendable {
       role: "AXScrollArea",
       attributes: ["AXDescription": "Content area"],
       children: [
-        PathInitMockAXUIElement(role: "AXStaticText", attributes: ["AXValue": "Hello World"], )
+        PathInitMockAXUIElement(role: "AXStaticText", attributes: ["AXValue": "Hello World"]),
       ],
     )
 
@@ -635,7 +639,8 @@ class PathInitMockAXUIElement: @unchecked Sendable {
       attributes: ["AXTitle": "Duplicate", "AXIdentifier": "group1"],
       children: [
         PathInitMockAXUIElement(
-          role: "AXCheckBox", attributes: ["AXTitle": "Option 1", "AXValue": 1], )
+          role: "AXCheckBox", attributes: ["AXTitle": "Option 1", "AXValue": 1],
+        ),
       ],
     )
 
@@ -644,7 +649,8 @@ class PathInitMockAXUIElement: @unchecked Sendable {
       attributes: ["AXTitle": "Duplicate", "AXIdentifier": "group2"],
       children: [
         PathInitMockAXUIElement(
-          role: "AXCheckBox", attributes: ["AXTitle": "Option 2", "AXValue": 0], )
+          role: "AXCheckBox", attributes: ["AXTitle": "Option 2", "AXValue": 0],
+        ),
       ],
     )
 
@@ -673,7 +679,7 @@ class PathInitMockAXUIElement: @unchecked Sendable {
       role: "AXButton",
       title: "OK",
       description: "OK Button",
-      enabled: true
+      enabled: true,
     )
 
     // Verify that we got the right element
@@ -696,7 +702,7 @@ class PathInitMockAXUIElement: @unchecked Sendable {
       role: "AXTextField",
       title: nil,
       value: "Sample text",
-      description: "Text input"
+      description: "Text input",
     )
 
     // Verify that we got the right element
@@ -719,7 +725,7 @@ class PathInitMockAXUIElement: @unchecked Sendable {
       title: "Duplicate",
       description: nil,
       frame: CGRect(x: 0, y: 0, width: 200, height: 50),
-      additionalAttributes: ["AXIdentifier": "group2"]
+      additionalAttributes: ["AXIdentifier": "group2"],
     )
 
     // Verify that we got the right element
@@ -738,10 +744,10 @@ class PathInitMockAXUIElement: @unchecked Sendable {
     let error = ElementPathError.noMatchingElements("AXNonExistentGroup", atSegment: 1)
     // Check that the error is of the expected type
     switch error {
-    case .noMatchingElements:
-      // This is the expected error type
-      break
-    default: #expect(Bool(false), "Unexpected error type: \(error)")
+      case .noMatchingElements:
+        // This is the expected error type
+        break
+      default: #expect(Bool(false), "Unexpected error type: \(error)")
     }
   }
 
@@ -751,13 +757,14 @@ class PathInitMockAXUIElement: @unchecked Sendable {
 
     // For this test, we directly test ElementPathError
     let error = ElementPathError.ambiguousMatch(
-      "AXGroup[@AXTitle=\"Duplicate\"]", matchCount: 2, atSegment: 1)
+      "AXGroup[@AXTitle=\"Duplicate\"]", matchCount: 2, atSegment: 1,
+    )
     // Check that the error is of the expected type
     switch error {
-    case .ambiguousMatch:
-      // This is the expected error type
-      break
-    default: #expect(Bool(false), "Expected ambiguousMatch error but got: \(error)")
+      case .ambiguousMatch:
+        // This is the expected error type
+        break
+      default: #expect(Bool(false), "Expected ambiguousMatch error but got: \(error)")
     }
   }
 
@@ -780,7 +787,7 @@ class PathInitMockAXUIElement: @unchecked Sendable {
       fromPath: pathString,
       role: "AXButton",
       title: "OK",
-      description: "OK Button"
+      description: "OK Button",
     )
     // Verify the element
     #expect(element.role == "AXButton")
@@ -803,8 +810,11 @@ class PathInitMockAXUIElement: @unchecked Sendable {
       // Must have same number of segments
       if elementPath1.segments.count != elementPath2.segments.count { return false }
       // All segments must have same roles
-      for i in 0..<elementPath1.segments.count
-      where elementPath1.segments[i].role != elementPath2.segments[i].role { return false }
+      for i in 0 ..< elementPath1.segments.count
+        where elementPath1.segments[i].role != elementPath2.segments[i].role
+      {
+        return false
+      }
       // In real implementation, we would check more attributes and element identity
       // but for tests this is sufficient
       return true
@@ -857,7 +867,8 @@ class PathInitMockAXUIElement: @unchecked Sendable {
     // Compare attributes directly without unnecessary casting
     #expect(
       elementPath1.segments[2].attributes["AXTitle"]
-        != elementPath2.segments[2].attributes["AXTitle"])
+        != elementPath2.segments[2].attributes["AXTitle"],
+    )
   }
 
   @Test("Compare paths with different hierarchies") func comparePathsWithDifferentHierarchies()

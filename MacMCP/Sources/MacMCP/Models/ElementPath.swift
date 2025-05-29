@@ -41,7 +41,7 @@ public struct ElementPath: Sendable {
   /// - Returns: An ElementPath instance
   /// - Throws: ElementPathError if the path syntax is invalid
   public static func parse(_ pathString: String) throws -> ElementPath {
-    return try ElementPathParser.parse(pathString)
+    try ElementPathParser.parse(pathString)
   }
 
   /// Generate a path string from this ElementPath
@@ -74,7 +74,7 @@ public struct ElementPath: Sendable {
   /// - Parameter string: The string to check
   /// - Returns: True if the string looks like an element path
   public static func isElementPath(_ string: String) -> Bool {
-    return ElementPathParser.isElementPath(string)
+    ElementPathParser.isElementPath(string)
   }
 
   /// Resolve an element ID (either a raw element path or an opaque ID) to a raw element path string
@@ -106,7 +106,8 @@ public struct ElementPath: Sendable {
   }
 
   /// Resolve this path to a UI element in the accessibility hierarchy
-  /// - Parameter accessibilityService: The AccessibilityService to use for accessing the accessibility API
+  /// - Parameter accessibilityService: The AccessibilityService to use for accessing the
+  /// accessibility API
   /// - Returns: The AXUIElement that matches this path, or nil if no match is found
   /// - Throws: ElementPathError if there's an error resolving the path
   public func resolve(using accessibilityService: AccessibilityServiceProtocol) async throws
@@ -120,13 +121,13 @@ public struct ElementPath: Sendable {
     let startSegmentIndex = skipFirstSegment ? 1 : 0
     // DIAGNOSTIC: Log application skipping logic
     logger.trace(
-      "DIAGNOSTIC: First segment role: \(segments[0].role), skipFirstSegment: \(skipFirstSegment), startSegmentIndex: \(startSegmentIndex)"
+      "DIAGNOSTIC: First segment role: \(segments[0].role), skipFirstSegment: \(skipFirstSegment), startSegmentIndex: \(startSegmentIndex)",
     )
 
     // For simple cases (only the application), return immediately
     if segments.count == 1 {
       logger.trace(
-        "DIAGNOSTIC: Simple case - returning start element directly (segments: \(segments.count), skipFirst: \(skipFirstSegment))"
+        "DIAGNOSTIC: Simple case - returning start element directly (segments: \(segments.count), skipFirst: \(skipFirstSegment))",
       )
       // Verify the start element
       var roleRef: CFTypeRef?
@@ -141,10 +142,11 @@ public struct ElementPath: Sendable {
 
     // Use simplified sequential resolution (like diagnostic method)
     logger.trace(
-      "DIAGNOSTIC: Starting sequential resolution with startIndex=\(startSegmentIndex), total segments=\(segments.count)"
+      "DIAGNOSTIC: Starting sequential resolution with startIndex=\(startSegmentIndex), total segments=\(segments.count)",
     )
     let result = try await resolveSequential(
-      startElement: startElement, startIndex: startSegmentIndex)
+      startElement: startElement, startIndex: startSegmentIndex,
+    )
     logger.trace("DIAGNOSTIC: Sequential resolution succeeded")
     return result
   }
@@ -160,7 +162,7 @@ public struct ElementPath: Sendable {
   {
     var currentElement = startElement
     // Process each segment sequentially
-    for i in startIndex..<segments.count {
+    for i in startIndex ..< segments.count {
       let segment = segments[i]
       logger.trace("DIAGNOSTIC: Processing segment \(i): \(segment.toString())")
       // Get children of current element
@@ -183,12 +185,16 @@ public struct ElementPath: Sendable {
           }
         }
         let errorMessage = """
-          Could not get children for segment '\(segment.toString())' at step \(i+1)/\(segments.count).
+        Could not get children for segment '\(segment.toString())' at step \(i + 1)/\(segments
+          .count
+        ).
 
-          Current element: \(currentElementInfo)
+        Current element: \(currentElementInfo)
 
-          The element may have become invalid or the UI may have changed. Requery with \(ToolNames.interfaceExplorer) to get updated element IDs.
-          """
+        The element may have become invalid or the UI may have changed. Requery with \(ToolNames
+          .interfaceExplorer
+        ) to get updated element IDs.
+        """
         throw ElementPathError.segmentResolutionFailed(errorMessage, atSegment: i)
       }
       // Find matching children
@@ -223,14 +229,14 @@ public struct ElementPath: Sendable {
           var childInfo = "[\(idx)]"
           var childRoleRef: CFTypeRef?
           if AXUIElementCopyAttributeValue(child, "AXRole" as CFString, &childRoleRef) == .success,
-            let childRole = childRoleRef as? String
+             let childRole = childRoleRef as? String
           {
             childInfo += " \(childRole)"
             // Add identifying attribute
             for attr in ["AXTitle", "AXDescription", "AXIdentifier"] {
               var attrRef: CFTypeRef?
               if AXUIElementCopyAttributeValue(child, attr as CFString, &attrRef) == .success,
-                let value = attrRef as? String, !value.isEmpty
+                 let value = attrRef as? String, !value.isEmpty
               {
                 childInfo += " \(attr)='\(value)'"
                 break
@@ -241,16 +247,19 @@ public struct ElementPath: Sendable {
         }
         let childrenInfo =
           children.count > 5
-          ? "\(availableChildrenSample.joined(separator: ", ")) ... and \(children.count - 5) more"
-          : availableChildrenSample.joined(separator: ", ")
+            ?
+            "\(availableChildrenSample.joined(separator: ", ")) ... and \(children.count - 5) more"
+            : availableChildrenSample.joined(separator: ", ")
         let errorMessage = """
-          No children match segment '\(segment.toString())' at step \(i+1)/\(segments.count).
+        No children match segment '\(segment.toString())' at step \(i + 1)/\(segments.count).
 
-          Current element: \(currentElementInfo)
-          Available children (\(children.count) total): \(childrenInfo)
+        Current element: \(currentElementInfo)
+        Available children (\(children.count) total): \(childrenInfo)
 
-          The UI may have changed since the element was discovered. Requery with \(ToolNames.interfaceExplorer) to get updated element IDs.
-          """
+        The UI may have changed since the element was discovered. Requery with \(ToolNames
+          .interfaceExplorer
+        ) to get updated element IDs.
+        """
         throw ElementPathError.noMatchingElements(errorMessage, atSegment: i)
       } else if matchingChildren.count == 1 {
         currentElement = matchingChildren[0]
@@ -258,24 +267,28 @@ public struct ElementPath: Sendable {
       } else {
         // Multiple matches - if segment has an index, use it
         if let index = segment.index {
-          if index >= 0 && index < matchingChildren.count {
+          if index >= 0, index < matchingChildren.count {
             currentElement = matchingChildren[index]
             logger.trace(
-              "DIAGNOSTIC: Selected match \(index) of \(matchingChildren.count) for segment \(i)"
+              "DIAGNOSTIC: Selected match \(index) of \(matchingChildren.count) for segment \(i)",
             )
           } else {
             let errorMessage = """
-              Index \(index) is out of range at step \(i+1)/\(segments.count).
+            Index \(index) is out of range at step \(i + 1)/\(segments.count).
 
-              Segment '\(segment.toString())' matched \(matchingChildren.count) elements (valid indices: 0-\(matchingChildren.count-1)).
+            Segment '\(segment.toString())' matched \(matchingChildren
+              .count
+            ) elements (valid indices: 0-\(matchingChildren.count - 1)).
 
-              The UI may have changed since the element was discovered. Requery with \(ToolNames.interfaceExplorer) to get updated element IDs.
-              """
+            The UI may have changed since the element was discovered. Requery with \(ToolNames
+              .interfaceExplorer
+            ) to get updated element IDs.
+            """
             throw ElementPathError.indexOutOfRangeEnhanced(
               errorMessage,
               index: index,
               availableCount: matchingChildren.count,
-              atSegment: i
+              atSegment: i,
             )
           }
         } else {
@@ -285,14 +298,14 @@ public struct ElementPath: Sendable {
             var matchInfo = "[\(idx)]"
             var roleRef: CFTypeRef?
             if AXUIElementCopyAttributeValue(match, "AXRole" as CFString, &roleRef) == .success,
-              let role = roleRef as? String
+               let role = roleRef as? String
             {
               matchInfo += " \(role)"
               // Add identifying attribute
               for attr in ["AXTitle", "AXDescription", "AXIdentifier"] {
                 var attrRef: CFTypeRef?
                 if AXUIElementCopyAttributeValue(match, attr as CFString, &attrRef) == .success,
-                  let value = attrRef as? String, !value.isEmpty
+                   let value = attrRef as? String, !value.isEmpty
                 {
                   matchInfo += " \(attr)='\(value)'"
                   break
@@ -303,19 +316,24 @@ public struct ElementPath: Sendable {
           }
           let matchesInfo =
             matchingChildren.count > 5
-            ? "\(matchDescriptions.joined(separator: ", ")) ... and \(matchingChildren.count - 5) more"
-            : matchDescriptions.joined(separator: ", ")
+              ?
+              "\(matchDescriptions.joined(separator: ", ")) ... and \(matchingChildren.count - 5) more"
+              : matchDescriptions.joined(separator: ", ")
           let errorMessage = """
-            Multiple elements (\(matchingChildren.count)) match segment '\(segment.toString())' at step \(i+1)/\(segments.count), but no index specified.
+          Multiple elements (\(matchingChildren.count)) match segment '\(segment
+            .toString()
+          )' at step \(i + 1)/\(segments.count), but no index specified.
 
-            Matching elements: \(matchesInfo)
+          Matching elements: \(matchesInfo)
 
-            The UI structure may have changed. Requery with \(ToolNames.interfaceExplorer) to get updated element information.
-            """
+          The UI structure may have changed. Requery with \(ToolNames
+            .interfaceExplorer
+          ) to get updated element information.
+          """
           throw ElementPathError.ambiguousMatchNoIndex(
             errorMessage,
             matchCount: matchingChildren.count,
-            atSegment: i
+            atSegment: i,
           )
         }
       }
@@ -337,10 +355,10 @@ public struct ElementPath: Sendable {
     // DIAGNOSTIC: Log first segment details
     let attributesDebug = firstSegment.attributes.map { key, value in "\(key)=\"\(value)\"" }
       .joined(
-        separator: ", "
+        separator: ", ",
       )
     logger.trace(
-      "DIAGNOSTIC: First segment role=\(firstSegment.role), attributes=[\(attributesDebug)], index=\(String(describing: firstSegment.index))"
+      "DIAGNOSTIC: First segment role=\(firstSegment.role), attributes=[\(attributesDebug)], index=\(String(describing: firstSegment.index))",
     )
 
     // For first segment, we need to get it differently depending on the role
@@ -353,7 +371,8 @@ public struct ElementPath: Sendable {
         logger.trace("DIAGNOSTIC: Trying to find application by bundleId: \(bundleId)")
         let apps = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId)
         logger.trace(
-          "DIAGNOSTIC: Found \(apps.count) running applications with bundleId: \(bundleId)")
+          "DIAGNOSTIC: Found \(apps.count) running applications with bundleId: \(bundleId)",
+        )
 
         guard let app = apps.first else {
           logger.trace("DIAGNOSTIC: No running applications found with bundleId: \(bundleId)")
@@ -375,13 +394,13 @@ public struct ElementPath: Sendable {
           throw ElementPathError.applicationNotFound(
             bundleId,
             details:
-              "Application with bundleId '\(bundleId)' is not running. Running applications are:\n"
+            "Application with bundleId '\(bundleId)' is not running. Running applications are:\n"
               + runningAppDetails.joined(separator: "\n"),
           )
         }
 
         logger.trace(
-          "DIAGNOSTIC: Successfully found application with bundleId: \(bundleId), pid: \(app.processIdentifier)"
+          "DIAGNOSTIC: Successfully found application with bundleId: \(bundleId), pid: \(app.processIdentifier)",
         )
         let appElement = AXUIElementCreateApplication(app.processIdentifier)
         // DIAGNOSTIC: Verify if the application element is valid by trying to get its role
@@ -391,7 +410,7 @@ public struct ElementPath: Sendable {
           logger.trace("DIAGNOSTIC: Created valid application element with role: \(role)")
         } else {
           logger.trace(
-            "DIAGNOSTIC: Warning - Created application element might not be valid, role fetch status: \(roleStatus)"
+            "DIAGNOSTIC: Warning - Created application element might not be valid, role fetch status: \(roleStatus)",
           )
         }
         return appElement
@@ -407,7 +426,7 @@ public struct ElementPath: Sendable {
         if let app = runningApps.first(where: { $0.localizedName == title }) {
           logger.debug("Found exact match for application title: \(title)")
           logger.trace(
-            "DIAGNOSTIC: Found exact match for application title: \(title), pid: \(app.processIdentifier)"
+            "DIAGNOSTIC: Found exact match for application title: \(title), pid: \(app.processIdentifier)",
           )
           let appElement = AXUIElementCreateApplication(app.processIdentifier)
           // DIAGNOSTIC: Verify if the application element is valid by trying to get its role
@@ -417,7 +436,7 @@ public struct ElementPath: Sendable {
             logger.trace("DIAGNOSTIC: Created valid application element with role: \(role)")
           } else {
             logger.trace(
-              "DIAGNOSTIC: Warning - Created application element might not be valid, role fetch status: \(roleStatus)"
+              "DIAGNOSTIC: Warning - Created application element might not be valid, role fetch status: \(roleStatus)",
             )
           }
           return appElement
@@ -446,10 +465,12 @@ public struct ElementPath: Sendable {
       // 3. Use focused application as fallback
       else {
         logger.trace(
-          "DIAGNOSTIC: No bundleId or title provided, using focused application as fallback")
+          "DIAGNOSTIC: No bundleId or title provided, using focused application as fallback",
+        )
         do {
           logger.trace(
-            "DIAGNOSTIC: Attempting to get focused application from accessibility service")
+            "DIAGNOSTIC: Attempting to get focused application from accessibility service",
+          )
           // Get the focused application from the accessibility service
           let focusedElement = try await accessibilityService.getFocusedApplicationUIElement(
             recursive: false,
@@ -474,22 +495,24 @@ public struct ElementPath: Sendable {
             logger.trace("DIAGNOSTIC: Focused application element has role: \(role)")
           } else {
             logger.trace(
-              "DIAGNOSTIC: Warning - Focused application element might not be valid, role fetch status: \(roleStatus)"
+              "DIAGNOSTIC: Warning - Focused application element might not be valid, role fetch status: \(roleStatus)",
             )
           }
           // DIAGNOSTIC: Try to get application title for verification
           var titleRef: CFTypeRef?
           if AXUIElementCopyAttributeValue(axElement, "AXTitle" as CFString, &titleRef) == .success,
-            let title = titleRef as? String
+             let title = titleRef as? String
           {
             logger.trace("DIAGNOSTIC: Focused application has title: \(title)")
           }
           return axElement
         } catch {
           logger.trace(
-            "DIAGNOSTIC: Failed to get focused application from accessibility service: \(error)")
+            "DIAGNOSTIC: Failed to get focused application from accessibility service: \(error)",
+          )
           logger.trace(
-            "DIAGNOSTIC: Trying to get frontmost application from NSWorkspace as fallback")
+            "DIAGNOSTIC: Trying to get frontmost application from NSWorkspace as fallback",
+          )
           // If that fails, try to get the frontmost application using NSWorkspace
           guard let frontApp = NSWorkspace.shared.frontmostApplication else {
             logger.trace("DIAGNOSTIC: Failed to get frontmost application from NSWorkspace")
@@ -500,7 +523,7 @@ public struct ElementPath: Sendable {
           }
 
           logger.trace(
-            "DIAGNOSTIC: Using frontmost application: \(frontApp.localizedName ?? "Unknown"), pid: \(frontApp.processIdentifier)"
+            "DIAGNOSTIC: Using frontmost application: \(frontApp.localizedName ?? "Unknown"), pid: \(frontApp.processIdentifier)",
           )
           let appElement = AXUIElementCreateApplication(frontApp.processIdentifier)
           // DIAGNOSTIC: Verify the frontmost application element
@@ -510,7 +533,7 @@ public struct ElementPath: Sendable {
             logger.trace("DIAGNOSTIC: Frontmost application element has role: \(role)")
           } else {
             logger.trace(
-              "DIAGNOSTIC: Warning - Frontmost application element might not be valid, role fetch status: \(roleStatus)"
+              "DIAGNOSTIC: Warning - Frontmost application element might not be valid, role fetch status: \(roleStatus)",
             )
           }
           return appElement
@@ -527,7 +550,7 @@ public struct ElementPath: Sendable {
     // For any other element type as the first segment
     else {
       logger.trace(
-        "DIAGNOSTIC: First segment has unexpected role: \(firstSegment.role), using system-wide element as fallback"
+        "DIAGNOSTIC: First segment has unexpected role: \(firstSegment.role), using system-wide element as fallback",
       )
       // Get the system-wide element as starting point for a broader search
       let sysElement = AXUIElementCreateSystemWide()
@@ -541,9 +564,9 @@ public struct ElementPath: Sendable {
   /// - Returns: Array of child elements, or nil if children couldn't be accessed
   private func getChildElements(of element: AXUIElement) async -> [AXUIElement]? {
     let maxRetries = 3
-    let baseDelay: UInt64 = 10_000_000  // 10ms in nanoseconds
+    let baseDelay: UInt64 = 10_000_000 // 10ms in nanoseconds
 
-    for attempt in 0..<maxRetries {
+    for attempt in 0 ..< maxRetries {
       var childrenRef: CFTypeRef?
       let status = AXUIElementCopyAttributeValue(element, "AXChildren" as CFString, &childrenRef)
 
@@ -572,7 +595,7 @@ public struct ElementPath: Sendable {
   {
     // Create a queue for BFS
     var queue = [
-      PathNode(element: startElement, segmentIndex: startIndex, pathSoFar: segments[0].toString(), )
+      PathNode(element: startElement, segmentIndex: startIndex, pathSoFar: segments[0].toString()),
     ]
 
     // Set to track visited elements and avoid cycles
@@ -592,7 +615,7 @@ public struct ElementPath: Sendable {
         "path": "\(toString())", "startIndex": "\(startIndex)",
         "totalSegments": "\(segments.count)",
         "initialSegment": "\(segments[0].toString())",
-      ]
+      ],
     )
 
     // Breadth-first search loop
@@ -600,7 +623,8 @@ public struct ElementPath: Sendable {
       // Track depth for timeout detection
       depth += 1
       logger.trace(
-        "BFS processing", metadata: ["depth": "\(depth)", "queueSize": "\(queue.count)"])
+        "BFS processing", metadata: ["depth": "\(depth)", "queueSize": "\(queue.count)"],
+      )
       if depth % 10 == 0 {
         logger.trace("DIAGNOSTIC: BFS processing depth \(depth) with queue size \(queue.count)")
       }
@@ -608,7 +632,7 @@ public struct ElementPath: Sendable {
       logger.trace("DIAGNOSTIC: BFS depth \(depth), queue size: \(queue.count)")
       for (i, queueNode) in queue.enumerated().prefix(3) {
         logger.trace(
-          "DIAGNOSTIC: Queue[\(i)]: segmentIndex=\(queueNode.segmentIndex), path=\(queueNode.pathSoFar)"
+          "DIAGNOSTIC: Queue[\(i)]: segmentIndex=\(queueNode.segmentIndex), path=\(queueNode.pathSoFar)",
         )
       }
 
@@ -627,9 +651,11 @@ public struct ElementPath: Sendable {
         ],
       )
       // DIAGNOSTIC: Add more detailed element logging for key points
-      if node.segmentIndex <= 2 || node.segmentIndex >= segments.count - 1 {  // First or last segments
+      if node.segmentIndex <= 2 || node.segmentIndex >= segments
+        .count - 1
+      { // First or last segments
         logger.trace(
-          "DIAGNOSTIC: Exploring element with role=\(role), segmentIndex=\(node.segmentIndex), depth=\(depth)"
+          "DIAGNOSTIC: Exploring element with role=\(role), segmentIndex=\(node.segmentIndex), depth=\(depth)",
         )
         // Try to get more identifying information
         var titleRef: CFTypeRef?
@@ -660,9 +686,9 @@ public struct ElementPath: Sendable {
         metadata: ["elementID": "\(elementID)", "totalVisited": "\(visited.count)"],
       )
       // DIAGNOSTIC: Log cycle detection for key elements
-      if node.segmentIndex <= 2 {  // First few segments
+      if node.segmentIndex <= 2 { // First few segments
         logger.trace(
-          "DIAGNOSTIC: Element ID=\(elementID) at segmentIndex=\(node.segmentIndex) marked as visited, cycle detection active"
+          "DIAGNOSTIC: Element ID=\(elementID) at segmentIndex=\(node.segmentIndex) marked as visited, cycle detection active",
         )
       }
 
@@ -671,7 +697,8 @@ public struct ElementPath: Sendable {
         logger.trace("SUCCESS - Reached end of path! All segments matched.")
         logger.trace("==== END BFS DEBUG ====\n")
         logger.trace(
-          "DIAGNOSTIC: Path resolution succeeded! Found matching element at depth \(depth)")
+          "DIAGNOSTIC: Path resolution succeeded! Found matching element at depth \(depth)",
+        )
         // DIAGNOSTIC: Get final element details
         var titleRef: CFTypeRef?
         if AXUIElementCopyAttributeValue(node.element, "AXTitle" as CFString, &titleRef)
@@ -693,7 +720,7 @@ public struct ElementPath: Sendable {
           CFGetTypeID(positionRef!) == AXValueGetTypeID()
         {
           var position = CGPoint.zero
-          AXValueGetValue(positionRef as! AXValue, .cgPoint, &position)
+          AXValueGetValue(positionRef! as! AXValue, .cgPoint, &position)
           logger.trace("DIAGNOSTIC: Final element position: (\(position.x), \(position.y))")
         }
         return node.element
@@ -726,14 +753,15 @@ public struct ElementPath: Sendable {
           // Get child role for debugging
           var childRoleRef: CFTypeRef?
           let childRoleStatus = AXUIElementCopyAttributeValue(
-            child, "AXRole" as CFString, &childRoleRef)
+            child, "AXRole" as CFString, &childRoleRef,
+          )
           _ = (childRoleStatus == .success) ? (childRoleRef as? String ?? "unknown") : "unknown"
 
           // print("DEBUG: Checking child: role info")
 
           if try await elementMatchesSegment(
-            child, segment: currentSegment, segmentIndex: node.segmentIndex)
-          {
+            child, segment: currentSegment, segmentIndex: node.segmentIndex,
+          ) {
             let newPath = node.pathSoFar + "/" + currentSegment.toString()
             matches.append((child, newPath))
             // print("DEBUG: MATCH FOUND! Child matches segment \(currentSegment.toString())")
@@ -782,7 +810,7 @@ public struct ElementPath: Sendable {
                 element: matchedElement,
                 segmentIndex: node.segmentIndex + 1,
                 pathSoFar: matchedPath,
-              )
+              ),
             )
           }
         } else {
@@ -796,26 +824,25 @@ public struct ElementPath: Sendable {
           // Get child role for debugging
           var childRoleRef: CFTypeRef?
           let childRoleStatus = AXUIElementCopyAttributeValue(
-            child, "AXRole" as CFString, &childRoleRef)
+            child, "AXRole" as CFString, &childRoleRef,
+          )
           _ = (childRoleStatus == .success) ? (childRoleRef as? String ?? "unknown") : "unknown"
 
           // These attribute fetching operations commented out since they're only used for debugging
           // Uncomment if needed for debugging in the future
-          /*
-          // Get other key attributes for debugging
-          var descRef: CFTypeRef?
-          let descStatus = AXUIElementCopyAttributeValue(
-            child, "AXDescription" as CFString, &descRef)
-          
-          var idRef: CFTypeRef?
-          let idStatus = AXUIElementCopyAttributeValue(child, "AXIdentifier" as CFString, &idRef)
-          */
+          // // Get other key attributes for debugging
+          // var descRef: CFTypeRef?
+          // let descStatus = AXUIElementCopyAttributeValue(
+          //  child, "AXDescription" as CFString, &descRef)
+          //
+          // var idRef: CFTypeRef?
+          // let idStatus = AXUIElementCopyAttributeValue(child, "AXIdentifier" as CFString, &idRef)
 
           // print("DEBUG: Checking child: role info available when debugging enabled")
 
           if try await elementMatchesSegment(
-            child, segment: currentSegment, segmentIndex: node.segmentIndex)
-          {
+            child, segment: currentSegment, segmentIndex: node.segmentIndex,
+          ) {
             matchCount += 1
             // Create path to this point for debugging
             let newPath = node.pathSoFar + "/" + currentSegment.toString()
@@ -831,7 +858,7 @@ public struct ElementPath: Sendable {
             // Otherwise, add child to queue with next segment index
             // print("DEBUG: Adding matched element to queue with next segment index \(node.segmentIndex + 1)")
             queue.append(
-              PathNode(element: child, segmentIndex: node.segmentIndex + 1, pathSoFar: newPath, )
+              PathNode(element: child, segmentIndex: node.segmentIndex + 1, pathSoFar: newPath),
             )
           }
         }
@@ -856,19 +883,21 @@ public struct ElementPath: Sendable {
     // Special error handling for generic containers like AXGroup
     let segment = segments[failedSegmentIndex]
     let isGenericContainer =
-      (segment.role == "AXGroup" || segment.role == "AXBox" || segment.role == "AXGeneric"
-        || segment.role == "AXSplitGroup")
+      (
+        segment.role == "AXGroup" || segment.role == "AXBox" || segment.role == "AXGeneric"
+          || segment.role == "AXSplitGroup",
+      )
     // Enhanced info for AXIdentifier-specific failures in generic containers
-    if isGenericContainer && segment.attributes.count == 1
-      && segment.attributes.keys.contains("AXIdentifier")
+    if isGenericContainer, segment.attributes.count == 1,
+       segment.attributes.keys.contains("AXIdentifier")
     {
       let expectedIdentifier = segment.attributes["AXIdentifier"]!
       logger.trace(
-        "DIAGNOSTIC: Failed to match AXIdentifier=\(expectedIdentifier) for \(segment.role) at index \(failedSegmentIndex)"
+        "DIAGNOSTIC: Failed to match AXIdentifier=\(expectedIdentifier) for \(segment.role) at index \(failedSegmentIndex)",
       )
       logger.trace("DIAGNOSTIC: This may be due to inconsistent identifier attribute naming.")
       logger.trace(
-        "DIAGNOSTIC: You may want to try a simpler path without AXIdentifier or use an index instead."
+        "DIAGNOSTIC: You may want to try a simpler path without AXIdentifier or use an index instead.",
       )
     }
 
@@ -883,20 +912,20 @@ public struct ElementPath: Sendable {
         // First log the failing segment details
         logger.trace("DETAILED DIAGNOSIS: Failing to match segment \(segment.toString())")
         let segmentAttributes = segment.attributes.map { key, value in "\(key)=\(value)" }.joined(
-          separator: ", "
+          separator: ", ",
         )
         logger.trace("DETAILED DIAGNOSIS: Segment attributes: \(segmentAttributes)")
         // Try to get detailed information about the element we're searching from
         var parentRoleRef: CFTypeRef?
         if AXUIElementCopyAttributeValue(element, "AXRole" as CFString, &parentRoleRef) == .success,
-          let parentRole = parentRoleRef as? String
+           let parentRole = parentRoleRef as? String
         {
           logger.trace("DETAILED DIAGNOSIS: Parent element role: \(parentRole)")
           // Get other identifying attributes for the parent
           for attr in ["AXTitle", "AXDescription", "AXIdentifier", "AXValue"] {
             var attrRef: CFTypeRef?
             if AXUIElementCopyAttributeValue(element, attr as CFString, &attrRef) == .success,
-              let value = attrRef as? String, !value.isEmpty
+               let value = attrRef as? String, !value.isEmpty
             {
               logger.trace("DETAILED DIAGNOSIS: Parent \(attr): \(value)")
             }
@@ -905,10 +934,10 @@ public struct ElementPath: Sendable {
         // Get the complete set of available attributes on the parent
         var parentAttrNamesRef: CFArray?
         if AXUIElementCopyAttributeNames(element, &parentAttrNamesRef) == .success,
-          let parentAttrNames = parentAttrNamesRef as? [String]
+           let parentAttrNames = parentAttrNamesRef as? [String]
         {
           logger.trace(
-            "DETAILED DIAGNOSIS: Parent has \(parentAttrNames.count) attributes: \(parentAttrNames.joined(separator: ", "))"
+            "DETAILED DIAGNOSIS: Parent has \(parentAttrNames.count) attributes: \(parentAttrNames.joined(separator: ", "))",
           )
         }
         // Now examine the children in detail
@@ -930,8 +959,10 @@ public struct ElementPath: Sendable {
               // When inspecting the first segment, or when looking for generic containers,
               // show all children to help with diagnosis
               let isRelevantForGroup =
-                (role == "AXGroup" || role == "AXBox" || role == "AXGeneric"
-                  || role == "AXSplitGroup")
+                (
+                  role == "AXGroup" || role == "AXBox" || role == "AXGeneric"
+                    || role == "AXSplitGroup",
+                )
               if isRelevantForGroup || failedSegmentIndex == 0 || (role == segment.role) {
                 var attributes: [String: String] = [:]
                 let attributesToCheck = [
@@ -954,14 +985,14 @@ public struct ElementPath: Sendable {
                     } else if attr == "AXPosition" || attr == "AXSize" {
                       // Special handling for geometry values
                       if let valueRef = attrRef, CFGetTypeID(valueRef) == AXValueGetTypeID() {
-                        let axValue = valueRef as! AXValue
+                        let axValue = valueRef
                         if attr == "AXPosition" {
                           var point = CGPoint.zero
-                          AXValueGetValue(axValue, .cgPoint, &point)
+                          AXValueGetValue(axValue as! AXValue, .cgPoint, &point)
                           attributes[attr] = "(\(point.x), \(point.y))"
                         } else if attr == "AXSize" {
                           var size = CGSize.zero
-                          AXValueGetValue(axValue, .cgSize, &size)
+                          AXValueGetValue(axValue as! AXValue, .cgSize, &size)
                           attributes[attr] = "(\(size.width), \(size.height))"
                         }
                       }
@@ -976,12 +1007,13 @@ public struct ElementPath: Sendable {
                 if isRelevantForGroup {
                   var groupChildrenRef: CFTypeRef?
                   if AXUIElementCopyAttributeValue(
-                    child, "AXChildren" as CFString, &groupChildrenRef)
+                    child, "AXChildren" as CFString, &groupChildrenRef,
+                  )
                     == .success, let groupChildren = groupChildrenRef as? [AXUIElement],
                     !groupChildren.isEmpty
                   {
                     logger.trace(
-                      "DETAILED DIAGNOSIS: AXGroup child \(i) has \(groupChildren.count) children"
+                      "DETAILED DIAGNOSIS: AXGroup child \(i) has \(groupChildren.count) children",
                     )
                     // Log the role of each child in the group
                     for (j, groupChild) in groupChildren.prefix(5).enumerated() {
@@ -989,10 +1021,10 @@ public struct ElementPath: Sendable {
                       if AXUIElementCopyAttributeValue(
                         groupChild,
                         "AXRole" as CFString,
-                        &groupChildRoleRef
+                        &groupChildRoleRef,
                       ) == .success, let groupChildRole = groupChildRoleRef as? String {
                         logger.trace(
-                          "DETAILED DIAGNOSIS:   Group \(i) child \(j) role: \(groupChildRole)"
+                          "DETAILED DIAGNOSIS:   Group \(i) child \(j) role: \(groupChildRole)",
                         )
                         // If the child is the right type, get detailed attributes
                         if groupChildRole == segment.role
@@ -1003,7 +1035,7 @@ public struct ElementPath: Sendable {
                             if AXUIElementCopyAttributeValue(
                               groupChild,
                               attr as CFString,
-                              &attrRef
+                              &attrRef,
                             ) == .success, let value = attrRef as? String, !value.isEmpty {
                               logger.trace("DETAILED DIAGNOSIS:     \(attr): \(value)")
                             }
@@ -1028,7 +1060,7 @@ public struct ElementPath: Sendable {
           let roleMatchingElements = potentialMatches.filter { $0.2 == segment.role }
           if !roleMatchingElements.isEmpty {
             logger.trace(
-              "DETAILED DIAGNOSIS: Found \(roleMatchingElements.count) elements with matching role '\(segment.role)'"
+              "DETAILED DIAGNOSIS: Found \(roleMatchingElements.count) elements with matching role '\(segment.role)'",
             )
             for (i, _, _, attrs) in roleMatchingElements.prefix(3) {
               let attrStr = attrs.map { key, value in "\(key)=\"\(value)\"" }.joined(
@@ -1037,11 +1069,13 @@ public struct ElementPath: Sendable {
             }
           } else {
             logger.trace(
-              "DETAILED DIAGNOSIS: No elements found with matching role '\(segment.role)'")
+              "DETAILED DIAGNOSIS: No elements found with matching role '\(segment.role)'",
+            )
             // Show what roles are available for reference
-            let availableRoles = Set(potentialMatches.map { $0.2 })
+            let availableRoles = Set(potentialMatches.map(\.2))
             logger.trace(
-              "DETAILED DIAGNOSIS: Available roles: \(availableRoles.joined(separator: ", "))")
+              "DETAILED DIAGNOSIS: Available roles: \(availableRoles.joined(separator: ", "))",
+            )
           }
         }
       }
@@ -1067,7 +1101,7 @@ public struct ElementPath: Sendable {
   ///   - segmentIndex: The index of the segment in the overall path (for error reporting)
   /// - Returns: The resolved element matching the segment, or nil if no match is found
   /// - Throws: ElementPathError if there's an error resolving the segment
-  public func resolveSegment(element: AXUIElement, segment: PathSegment, segmentIndex: Int, )
+  public func resolveSegment(element: AXUIElement, segment: PathSegment, segmentIndex: Int)
     async throws
     -> AXUIElement?
   {
@@ -1097,7 +1131,8 @@ public struct ElementPath: Sendable {
     var matches: [AXUIElement] = []
 
     for child in children
-    where try await elementMatchesSegment(child, segment: segment, segmentIndex: segmentIndex) {
+      where try await elementMatchesSegment(child, segment: segment, segmentIndex: segmentIndex)
+    {
       matches.append(child)
     }
 
@@ -1137,8 +1172,10 @@ public struct ElementPath: Sendable {
       }
       // Special handling for generic container errors
       let isGenericContainer =
-        (segment.role == "AXGroup" || segment.role == "AXBox" || segment.role == "AXGeneric"
-          || segment.role == "AXSplitGroup")
+        (
+          segment.role == "AXGroup" || segment.role == "AXBox" || segment.role == "AXGeneric"
+            || segment.role == "AXSplitGroup",
+        )
       let segmentString = segment.toString()
       var reason = "No elements match this segment. Available children are shown below."
       // Enhanced error for AXGroup elements
@@ -1148,11 +1185,13 @@ public struct ElementPath: Sendable {
         if containsAXIdentifier {
           reason =
             "No generic containers match this segment with the specified AXIdentifier. "
-            + "Consider simplifying the path by using the segment without AXIdentifier or using an index instead."
+              +
+              "Consider simplifying the path by using the segment without AXIdentifier or using an index instead."
         } else if segment.attributes.isEmpty {
           reason =
             "No generic containers match this segment. "
-            + "Generic containers like AXGroup often require an index (e.g., AXGroup[0]) for reliable resolution."
+              +
+              "Generic containers like AXGroup often require an index (e.g., AXGroup[0]) for reliable resolution."
         }
       }
       throw ElementPathError.resolutionFailed(
@@ -1171,7 +1210,8 @@ public struct ElementPath: Sendable {
       // Validate the index is in range
       if index < 0 || index >= matches.count {
         throw ElementPathError.indexOutOfRange(
-          index, availableCount: matches.count, atSegment: segmentIndex)
+          index, availableCount: matches.count, atSegment: segmentIndex,
+        )
       }
 
       // Return the element at the specified index
@@ -1213,7 +1253,7 @@ public struct ElementPath: Sendable {
       throw ElementPathError.ambiguousMatchNoIndex(
         segmentString,
         matchCount: matches.count,
-        atSegment: segmentIndex
+        atSegment: segmentIndex,
       )
     }
   }
@@ -1224,7 +1264,7 @@ public struct ElementPath: Sendable {
   ///   - segment: The path segment to match against
   /// - Returns: True if the element matches the segment
   private func elementMatchesSegment(
-    _ element: AXUIElement, segment: PathSegment, segmentIndex: Int? = nil
+    _ element: AXUIElement, segment: PathSegment, segmentIndex: Int? = nil,
   )
     async throws -> Bool
   {
@@ -1238,7 +1278,7 @@ public struct ElementPath: Sendable {
     logger.trace("Matching element \(elementID) against segment \(segment.toString())")
     if enableDetailedDebug {
       logger.trace(
-        "DETAILED PATH RESOLUTION: Testing element \(elementID) against segment \(segment.toString())"
+        "DETAILED PATH RESOLUTION: Testing element \(elementID) against segment \(segment.toString())",
       )
     }
 
@@ -1250,7 +1290,7 @@ public struct ElementPath: Sendable {
       logger.trace("Element has no role or couldn't access role")
       if enableDetailedDebug {
         logger.trace(
-          "DETAILED PATH RESOLUTION: Element has no role or couldn't access role, status: \(getAXErrorName(roleStatus))"
+          "DETAILED PATH RESOLUTION: Element has no role or couldn't access role, status: \(getAXErrorName(roleStatus))",
         )
       }
       return false
@@ -1267,33 +1307,34 @@ public struct ElementPath: Sendable {
     logger.trace("Element role = \(role), segment role = \(segment.role)")
     if enableDetailedDebug {
       logger.trace(
-        "DETAILED PATH RESOLUTION: Element role = \(role), segment role = \(segment.role)")
+        "DETAILED PATH RESOLUTION: Element role = \(role), segment role = \(segment.role)",
+      )
       // Get other key attributes for additional context
       var elementDescription = ""
       var titleRef: CFTypeRef?
       if AXUIElementCopyAttributeValue(element, "AXTitle" as CFString, &titleRef) == .success,
-        let title = titleRef as? String, !title.isEmpty
+         let title = titleRef as? String, !title.isEmpty
       {
         elementDescription += " title=\"\(title)\""
       }
       var descRef: CFTypeRef?
       if AXUIElementCopyAttributeValue(element, "AXDescription" as CFString, &descRef) == .success,
-        let desc = descRef as? String, !desc.isEmpty
+         let desc = descRef as? String, !desc.isEmpty
       {
         elementDescription += " desc=\"\(desc)\""
       }
       var idRef: CFTypeRef?
       if AXUIElementCopyAttributeValue(element, "AXIdentifier" as CFString, &idRef) == .success,
-        let id = idRef as? String, !id.isEmpty
+         let id = idRef as? String, !id.isEmpty
       {
         elementDescription += " id=\"\(id)\""
       }
       var positionRef: CFTypeRef?
       if AXUIElementCopyAttributeValue(element, "AXPosition" as CFString, &positionRef) == .success,
-        CFGetTypeID(positionRef!) == AXValueGetTypeID()
+         CFGetTypeID(positionRef!) == AXValueGetTypeID()
       {
         var position = CGPoint.zero
-        AXValueGetValue(positionRef as! AXValue, .cgPoint, &position)
+        AXValueGetValue(positionRef! as! AXValue, .cgPoint, &position)
         elementDescription += " pos=(\(position.x), \(position.y))"
       }
       if !elementDescription.isEmpty {
@@ -1309,14 +1350,15 @@ public struct ElementPath: Sendable {
       logger.trace("ROLE MISMATCH - Element role doesn't match segment role")
       logger.trace("Element: \(role), Segment: \(segment.role)")
       logger.trace(
-        "Normalized Element: \(normalizedElementRole), Normalized Segment: \(normalizedSegmentRole)"
+        "Normalized Element: \(normalizedElementRole), Normalized Segment: \(normalizedSegmentRole)",
       )
       if enableDetailedDebug {
         logger.trace("DETAILED PATH RESOLUTION: ROLE MISMATCH")
         logger.trace(
-          "DETAILED PATH RESOLUTION: Element role: \(role), Segment role: \(segment.role)")
+          "DETAILED PATH RESOLUTION: Element role: \(role), Segment role: \(segment.role)",
+        )
         logger.trace(
-          "DETAILED PATH RESOLUTION: Normalized Element: \(normalizedElementRole), Normalized Segment: \(normalizedSegmentRole)"
+          "DETAILED PATH RESOLUTION: Normalized Element: \(normalizedElementRole), Normalized Segment: \(normalizedSegmentRole)",
         )
       }
       return false
@@ -1346,14 +1388,14 @@ public struct ElementPath: Sendable {
     // Log special segment checks to help with troubleshooting
     if enableDetailedDebug && (isSegmentOfInterest || isButtonSegment) {
       logger.trace(
-        "DETAILED PATH RESOLUTION: Special segment of interest at index \(segmentIndex ?? -1), isButtonSegment=\(isButtonSegment)"
+        "DETAILED PATH RESOLUTION: Special segment of interest at index \(segmentIndex ?? -1), isButtonSegment=\(isButtonSegment)",
       )
     }
     for (name, expectedValue) in segment.attributes {
       logger.trace("Checking attribute \(name) with expected value \"\(expectedValue)\"")
       if enableDetailedDebug {
         logger.trace(
-          "DETAILED PATH RESOLUTION: Checking attribute \(name) with expected value \"\(expectedValue)\""
+          "DETAILED PATH RESOLUTION: Checking attribute \(name) with expected value \"\(expectedValue)\"",
         )
       }
 
@@ -1371,7 +1413,7 @@ public struct ElementPath: Sendable {
 
       if isGenericContainer || enableAttributeMatchingDebug {
         logger.trace(
-          "DIAGNOSTIC: Processing \(isGenericContainer ? "generic container" : "regular") element \(role) with attributes: \(segment.attributes)"
+          "DIAGNOSTIC: Processing \(isGenericContainer ? "generic container" : "regular") element \(role) with attributes: \(segment.attributes)",
         )
         // Dump all available attributes on this element for diagnostic purposes
         var attrNamesRef: CFArray?
@@ -1402,7 +1444,7 @@ public struct ElementPath: Sendable {
             let attrValueResult = AXUIElementCopyAttributeValue(
               element,
               attrName as CFString,
-              &attrValueRef
+              &attrValueRef,
             )
             var valueDesc = "<failed to read value>"
             var isAttributeOfInterest = false
@@ -1435,7 +1477,7 @@ public struct ElementPath: Sendable {
                   valueDesc += " [MATCH WITH EXPECTED VALUE]"
                 }
               } else if attrName == "AXPosition" || attrName == "AXSize",
-                CFGetTypeID(attrValue) == AXValueGetTypeID()
+                        CFGetTypeID(attrValue) == AXValueGetTypeID()
               {
                 if attrName == "AXPosition" {
                   var point = CGPoint.zero
@@ -1450,7 +1492,7 @@ public struct ElementPath: Sendable {
                 let fullDesc = String(describing: attrValue)
                 valueDesc =
                   fullDesc.count > 100
-                  ? "Object: \(fullDesc.prefix(100))..." : "Object: \(fullDesc)"
+                    ? "Object: \(fullDesc.prefix(100))..." : "Object: \(fullDesc)"
               }
             }
             // Log attributes with special formatting for ones we're interested in
@@ -1465,14 +1507,16 @@ public struct ElementPath: Sendable {
           }
         } else {
           logger.trace(
-            "DIAGNOSTIC: Failed to get attribute names, error: \(getAXErrorName(attrNamesResult))")
+            "DIAGNOSTIC: Failed to get attribute names, error: \(getAXErrorName(attrNamesResult))",
+          )
         }
         // For generic containers, also look at children to help diagnose issues
         if isGenericContainer {
           // Try to get children information for this container
           var childrenRef: CFTypeRef?
           let childrenResult = AXUIElementCopyAttributeValue(
-            element, "AXChildren" as CFString, &childrenRef)
+            element, "AXChildren" as CFString, &childrenRef,
+          )
           if childrenResult == .success, let children = childrenRef as? [AXUIElement] {
             logger.trace("DIAGNOSTIC: Generic container has \(children.count) children")
             // Log details of the first few children
@@ -1487,14 +1531,14 @@ public struct ElementPath: Sendable {
                 for attr in ["AXDescription", "AXTitle", "AXIdentifier", "AXValue"] {
                   var attrRef: CFTypeRef?
                   if AXUIElementCopyAttributeValue(child, attr as CFString, &attrRef) == .success,
-                    let value = attrRef as? String, !value.isEmpty
+                     let value = attrRef as? String, !value.isEmpty
                   {
                     logger.trace("DIAGNOSTIC:     - \(attr): \(value)")
                   }
                 }
                 // For buttons, look deeper for calculator buttons
-                if childRole == "AXButton" && segmentIndex != nil
-                  && (segmentIndex == 3 || segmentIndex == 4)
+                if childRole == "AXButton", segmentIndex != nil,
+                   segmentIndex == 3 || segmentIndex == 4
                 {
                   logger.trace("DIAGNOSTIC:     [Button in AXGroup - potential calculator button]")
                   // This is a critical debug point for calculator buttons - check position
@@ -1511,7 +1555,7 @@ public struct ElementPath: Sendable {
             }
           } else {
             logger.trace(
-              "DIAGNOSTIC: Failed to get children of generic container, error: \(getAXErrorName(childrenResult))"
+              "DIAGNOSTIC: Failed to get children of generic container, error: \(getAXErrorName(childrenResult))",
             )
           }
         }
@@ -1520,13 +1564,14 @@ public struct ElementPath: Sendable {
       // Get the actual value for detailed logging
       var attributeRef: CFTypeRef?
       let attributeStatus = AXUIElementCopyAttributeValue(
-        element, normalizedName as CFString, &attributeRef)
+        element, normalizedName as CFString, &attributeRef,
+      )
 
       if attributeStatus != .success || attributeRef == nil {
         logger.trace("No value for attribute \(normalizedName)")
         if enableDetailedDebug {
           logger.trace(
-            "DETAILED PATH RESOLUTION: Failed to get attribute \(normalizedName), status: \(getAXErrorName(attributeStatus))"
+            "DETAILED PATH RESOLUTION: Failed to get attribute \(normalizedName), status: \(getAXErrorName(attributeStatus))",
           )
           // Try different prefix variants as diagnostic info
           if normalizedName.hasPrefix("AX") {
@@ -1534,10 +1579,11 @@ public struct ElementPath: Sendable {
             let withoutAXPrefix = String(normalizedName.dropFirst(2))
             var altAttrRef: CFTypeRef?
             let altResult = AXUIElementCopyAttributeValue(
-              element, withoutAXPrefix as CFString, &altAttrRef)
+              element, withoutAXPrefix as CFString, &altAttrRef,
+            )
             if altResult == .success, altAttrRef != nil {
               logger.trace(
-                "DETAILED PATH RESOLUTION: Found value with alternate attribute name WITHOUT AX prefix: \(withoutAXPrefix)"
+                "DETAILED PATH RESOLUTION: Found value with alternate attribute name WITHOUT AX prefix: \(withoutAXPrefix)",
               )
             }
           } else {
@@ -1545,10 +1591,11 @@ public struct ElementPath: Sendable {
             let withAXPrefix = "AX\(normalizedName)"
             var altAttrRef: CFTypeRef?
             let altResult = AXUIElementCopyAttributeValue(
-              element, withAXPrefix as CFString, &altAttrRef)
+              element, withAXPrefix as CFString, &altAttrRef,
+            )
             if altResult == .success, altAttrRef != nil {
               logger.trace(
-                "DETAILED PATH RESOLUTION: Found value with alternate attribute name WITH AX prefix: \(withAXPrefix)"
+                "DETAILED PATH RESOLUTION: Found value with alternate attribute name WITH AX prefix: \(withAXPrefix)",
               )
             }
           }
@@ -1556,12 +1603,13 @@ public struct ElementPath: Sendable {
 
         // Special handling for failing to find attributes on generic containers
         if isGenericContainer, segment.attributes.count == 1 {
-          // For generic containers with only one attribute, if it fails to match, check if this might be
+          // For generic containers with only one attribute, if it fails to match, check if this
+          // might be
           // a structural container element that should match just based on role
           logger.trace("Generic container match consideration - may need position-based matching")
           if enableDetailedDebug {
             logger.trace(
-              "DETAILED PATH RESOLUTION: Generic container match consideration - may need position-based matching"
+              "DETAILED PATH RESOLUTION: Generic container match consideration - may need position-based matching",
             )
           }
 
@@ -1570,7 +1618,7 @@ public struct ElementPath: Sendable {
             logger.trace("Has index - will use position-based matching")
             if enableDetailedDebug {
               logger.trace(
-                "DETAILED PATH RESOLUTION: Generic container has index - will use position-based matching"
+                "DETAILED PATH RESOLUTION: Generic container has index - will use position-based matching",
               )
             }
             return true
@@ -1580,17 +1628,18 @@ public struct ElementPath: Sendable {
           if segment.attributes.keys.contains("AXIdentifier") {
             let expectedIdentifier = segment.attributes["AXIdentifier"]!
             logger.trace(
-              "DETAILED PATH RESOLUTION: Trying alternate identifier matching for \(expectedIdentifier)"
+              "DETAILED PATH RESOLUTION: Trying alternate identifier matching for \(expectedIdentifier)",
             )
             // Try using different variations of identifier attribute names
             for altIdAttr in ["identifier", "Identifier"] {
               var altIdRef: CFTypeRef?
               let altIdStatus = AXUIElementCopyAttributeValue(
-                element, altIdAttr as CFString, &altIdRef)
+                element, altIdAttr as CFString, &altIdRef,
+              )
               if altIdStatus == .success, let altIdValue = altIdRef as? String {
                 if altIdValue == expectedIdentifier {
                   logger.trace(
-                    "DETAILED PATH RESOLUTION: Found match on alternate identifier attribute '\(altIdAttr)' with value '\(altIdValue)'"
+                    "DETAILED PATH RESOLUTION: Found match on alternate identifier attribute '\(altIdAttr)' with value '\(altIdValue)'",
                   )
                   return true
                 }
@@ -1607,7 +1656,7 @@ public struct ElementPath: Sendable {
               // This is a generic container that directly contains interactive elements
               // Such containers are often structural and we should be more lenient in matching
               logger.trace(
-                "DETAILED PATH RESOLUTION: More lenient matching for generic container that holds interactive elements"
+                "DETAILED PATH RESOLUTION: More lenient matching for generic container that holds interactive elements",
               )
               return true
             }
@@ -1634,21 +1683,24 @@ public struct ElementPath: Sendable {
       logger.trace("Found value: \"\(actualValue)\"")
       if enableDetailedDebug {
         logger.trace(
-          "DETAILED PATH RESOLUTION: Found value for \(normalizedName): \"\(actualValue)\"")
+          "DETAILED PATH RESOLUTION: Found value for \(normalizedName): \"\(actualValue)\"",
+        )
       }
 
       // Exact match check
       if actualValue == expectedValue {
         logger.trace(
-          "ATTRIBUTE MATCH OK ✓ \(normalizedName)=\"\(actualValue)\" matches \"\(expectedValue)\"")
+          "ATTRIBUTE MATCH OK ✓ \(normalizedName)=\"\(actualValue)\" matches \"\(expectedValue)\"",
+        )
         if enableDetailedDebug {
           logger.trace(
-            "DETAILED PATH RESOLUTION: ATTRIBUTE MATCH OK ✓ \(normalizedName)=\"\(actualValue)\" matches \"\(expectedValue)\""
+            "DETAILED PATH RESOLUTION: ATTRIBUTE MATCH OK ✓ \(normalizedName)=\"\(actualValue)\" matches \"\(expectedValue)\"",
           )
         }
       } else {
         logger.trace(
-          "ATTRIBUTE MISMATCH ✗ \(normalizedName)=\"\(actualValue)\" != \"\(expectedValue)\"")
+          "ATTRIBUTE MISMATCH ✗ \(normalizedName)=\"\(actualValue)\" != \"\(expectedValue)\"",
+        )
         logger.trace("FAILED - Attribute \(normalizedName) did not match ✗")
         if enableDetailedDebug {
           logger.trace("DETAILED PATH RESOLUTION: ATTRIBUTE MISMATCH ✗")
@@ -1663,15 +1715,19 @@ public struct ElementPath: Sendable {
     logger.trace("ALL ATTRIBUTES MATCHED ✓ - Element matches segment successfully")
     if enableDetailedDebug {
       logger.trace(
-        "DETAILED PATH RESOLUTION: ALL ATTRIBUTES MATCHED ✓ - Element matches segment successfully")
+        "DETAILED PATH RESOLUTION: ALL ATTRIBUTES MATCHED ✓ - Element matches segment successfully",
+      )
     }
     // DIAGNOSTIC: Log detailed segment match success information
     // Only log for special cases to avoid excessive output
     let isGenericContainer =
-      (segment.role == "AXGroup" || segment.role == "AXBox" || segment.role == "AXGeneric"
-        || segment.role == "AXSplitGroup")
+      (
+        segment.role == "AXGroup" || segment.role == "AXBox" || segment.role == "AXGeneric"
+          || segment.role == "AXSplitGroup",
+      )
     let isApplicationMatch = segment.role == "AXApplication"
-    let isFirstSegmentAfterApp = (segmentIndex != nil && segmentIndex == 1)  // First child after application
+    let isFirstSegmentAfterApp =
+      (segmentIndex != nil && segmentIndex == 1) // First child after application
 
     if isGenericContainer || isApplicationMatch || isFirstSegmentAfterApp || enableDetailedDebug {
       let segmentDesc = segment.toString()
@@ -1679,7 +1735,7 @@ public struct ElementPath: Sendable {
       // Show detailed information about the element position for special cases
       var positionRef: CFTypeRef?
       if AXUIElementCopyAttributeValue(element, "AXPosition" as CFString, &positionRef) == .success,
-        CFGetTypeID(positionRef!) == AXValueGetTypeID()
+         CFGetTypeID(positionRef!) == AXValueGetTypeID()
       {
         var position = CGPoint.zero
         AXValueGetValue(positionRef as! AXValue, .cgPoint, &position)
@@ -1695,13 +1751,13 @@ public struct ElementPath: Sendable {
           separator: ", ")
         let matchMessage = """
 
-          === MATCHED ELEMENT FOR SEGMENT \(segmentIndex ?? -1) ===
-          Segment: \(segmentInfo)
-          Role: \(roleStr)
-          Attributes: \(attrStr)
-          ElementID: \(elementID)
+        === MATCHED ELEMENT FOR SEGMENT \(segmentIndex ?? -1) ===
+        Segment: \(segmentInfo)
+        Role: \(roleStr)
+        Attributes: \(attrStr)
+        ElementID: \(elementID)
 
-          """
+        """
         if let data = matchMessage.data(using: .utf8) {
           do {
             let fileHandle = try FileHandle(forWritingTo: URL(fileURLWithPath: diagPath))
@@ -1714,26 +1770,27 @@ public struct ElementPath: Sendable {
     }
     return true
   }
+
   /// Get a human-readable name for an AXError code
   private func getAXErrorName(_ error: AXError) -> String {
     switch error {
-    case .success: "Success"
-    case .failure: "Failure"
-    case .illegalArgument: "Illegal Argument"
-    case .invalidUIElement: "Invalid UI Element"
-    case .invalidUIElementObserver: "Invalid UI Element Observer"
-    case .cannotComplete: "Cannot Complete"
-    case .attributeUnsupported: "Attribute Unsupported"
-    case .actionUnsupported: "Action Unsupported"
-    case .notificationUnsupported: "Notification Unsupported"
-    case .notImplemented: "Not Implemented"
-    case .notificationAlreadyRegistered: "Notification Already Registered"
-    case .notificationNotRegistered: "Notification Not Registered"
-    case .apiDisabled: "API Disabled"
-    case .noValue: "No Value"
-    case .parameterizedAttributeUnsupported: "Parameterized Attribute Unsupported"
-    case .notEnoughPrecision: "Not Enough Precision"
-    default: "Unknown Error (\(error.rawValue))"
+      case .success: "Success"
+      case .failure: "Failure"
+      case .illegalArgument: "Illegal Argument"
+      case .invalidUIElement: "Invalid UI Element"
+      case .invalidUIElementObserver: "Invalid UI Element Observer"
+      case .cannotComplete: "Cannot Complete"
+      case .attributeUnsupported: "Attribute Unsupported"
+      case .actionUnsupported: "Action Unsupported"
+      case .notificationUnsupported: "Notification Unsupported"
+      case .notImplemented: "Not Implemented"
+      case .notificationAlreadyRegistered: "Notification Already Registered"
+      case .notificationNotRegistered: "Notification Not Registered"
+      case .apiDisabled: "API Disabled"
+      case .noValue: "No Value"
+      case .parameterizedAttributeUnsupported: "Parameterized Attribute Unsupported"
+      case .notEnoughPrecision: "Not Enough Precision"
+      default: "Unknown Error (\(error.rawValue))"
     }
   }
 
@@ -1776,7 +1833,7 @@ public struct ElementPath: Sendable {
     // Try with normalized attribute name
     let normalizedName = getNormalizedAttributeName(name)
     if normalizedName != name,
-      tryAttributeMatch(element, attributeName: normalizedName, expectedValue: expectedValue, )
+       tryAttributeMatch(element, attributeName: normalizedName, expectedValue: expectedValue)
     {
       return true
     }
@@ -1811,12 +1868,13 @@ public struct ElementPath: Sendable {
   /// to avoid repetition in the main attributeMatchesValue method, which needs to try
   /// multiple name variants.
   private func tryAttributeMatch(
-    _ element: AXUIElement, attributeName: String, expectedValue: String
+    _ element: AXUIElement, attributeName: String, expectedValue: String,
   ) -> Bool {
     // Get the attribute value
     var attributeRef: CFTypeRef?
     let attributeStatus = AXUIElementCopyAttributeValue(
-      element, attributeName as CFString, &attributeRef)
+      element, attributeName as CFString, &attributeRef,
+    )
 
     // If we couldn't get the attribute, it doesn't match
     if attributeStatus != .success || attributeRef == nil { return false }
@@ -1845,9 +1903,9 @@ extension ElementPath {
   ///   - strict: Whether to use strict validation (more checks)
   /// - Returns: A tuple containing a boolean indicating success and an array of validation warnings
   /// - Throws: ElementPathError if validation fails
-  public static func validatePath(_ pathString: String, strict: Bool = false, ) throws -> (
+  public static func validatePath(_ pathString: String, strict: Bool = false) throws -> (
     isValid: Bool, warnings: [ElementPathError]
-  ) { return try ElementPathParser.validatePath(pathString, strict: strict) }
+  ) { try ElementPathParser.validatePath(pathString, strict: strict) }
 }
 
 extension ElementPath {
@@ -1907,7 +1965,7 @@ extension ElementPath {
     }
 
     // Now try each segment in sequence
-    for (i, segment) in path.segments.enumerated().dropFirst() {  // Skip first segment (app)
+    for (i, segment) in path.segments.enumerated().dropFirst() { // Skip first segment (app)
       diagnosis += "Segment \(i): \(segment.toString())\n"
 
       guard let element = currentElement else {
@@ -2043,7 +2101,8 @@ extension ElementPath {
         for attr in ["AXTitle", "AXDescription", "AXIdentifier", "AXValue"] {
           var attrRef: CFTypeRef?
           let status = AXUIElementCopyAttributeValue(
-            matchingChildren[0], attr as CFString, &attrRef)
+            matchingChildren[0], attr as CFString, &attrRef,
+          )
           if status == .success, let value = attrRef as? String, !value.isEmpty {
             diagnosis += ", \(attr)=\"\(value)\""
           }

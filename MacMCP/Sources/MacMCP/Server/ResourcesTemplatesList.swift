@@ -73,13 +73,14 @@ public enum ListResourceTemplates: MCP.Method {
       self.parameters = parameters
       self.metadata = metadata
     }
+
     /// Convert to MCP Resource.Template
     public func toMCPTemplate() -> MCP.Resource.Template {
-      return MCP.Resource.Template(
+      MCP.Resource.Template(
         uriTemplate: uriTemplate,
         name: name,
         description: description,
-        mimeType: mimeType
+        mimeType: mimeType,
       )
     }
   }

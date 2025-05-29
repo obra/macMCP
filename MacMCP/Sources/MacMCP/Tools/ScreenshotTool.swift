@@ -12,24 +12,24 @@ public struct ScreenshotTool {
 
   /// Description of the tool
   public let description = """
-    Capture screenshots of macOS screen, windows, or UI elements for visual inspection and analysis.
+  Capture screenshots of macOS screen, windows, or UI elements for visual inspection and analysis.
 
-    IMPORTANT: For element screenshots, use InterfaceExplorerTool first to discover element IDs.
+  IMPORTANT: For element screenshots, use InterfaceExplorerTool first to discover element IDs.
 
-    Region types and requirements:
-    - full: Capture entire screen (no additional parameters)
-    - area: Capture specific coordinates (requires x, y, width, height)
-    - window: Capture application window (requires bundleId)
-    - element: Capture UI element (requires id from InterfaceExplorerTool)
+  Region types and requirements:
+  - full: Capture entire screen (no additional parameters)
+  - area: Capture specific coordinates (requires x, y, width, height)
+  - window: Capture application window (requires bundleId)
+  - element: Capture UI element (requires id from InterfaceExplorerTool)
 
-    Common use cases:
-    - Debugging UI layout issues
-    - Documenting current application state
-    - Capturing specific UI elements for analysis
-    - Visual verification during testing
+  Common use cases:
+  - Debugging UI layout issues
+  - Documenting current application state
+  - Capturing specific UI elements for analysis
+  - Visual verification during testing
 
-    Coordinate system: Screen coordinates start at (0,0) in top-left corner.
-    """
+  Coordinate system: Screen coordinates start at (0,0) in top-left corner.
+  """
 
   /// Input schema for the tool
   public var inputSchema: Value
@@ -63,8 +63,10 @@ public struct ScreenshotTool {
     // IMPORTANT: For element screenshots, first use InterfaceExplorerTool to discover element IDs.
     //
     // Best practices:
-    // - For window screenshots, use the window region with app's bundle ID (e.g., com.apple.calculator)
-    // - For UI elements, first use InterfaceExplorerTool to get the element ID, then capture with element region
+    // - For window screenshots, use the window region with app's bundle ID (e.g.,
+    // com.apple.calculator)
+    // - For UI elements, first use InterfaceExplorerTool to get the element ID, then capture with
+    // element region
     // - Full screen screenshots are useful for overall context, but may be large
 
     annotations = .init(
@@ -72,7 +74,7 @@ public struct ScreenshotTool {
       readOnlyHint: true,
       destructiveHint: false,
       idempotentHint: true,
-      openWorldHint: true
+      openWorldHint: true,
     )
 
     // Set schema to empty initially, then assign the real value
@@ -89,20 +91,20 @@ public struct ScreenshotTool {
         "region": .object([
           "type": .string("string"),
           "description": .string(
-            "Screenshot region type: 'full' for entire screen, 'area' for coordinates, 'window' for app window, 'element' for UI element"
+            "Screenshot region type: 'full' for entire screen, 'area' for coordinates, 'window' for app window, 'element' for UI element",
           ),
           "enum": .array([.string("full"), .string("area"), .string("window"), .string("element")]),
         ]),
         "x": .object([
           "type": .string("number"),
           "description": .string(
-            "X coordinate in screen pixels (required for 'area' region, top-left origin)"
+            "X coordinate in screen pixels (required for 'area' region, top-left origin)",
           ),
         ]),
         "y": .object([
           "type": .string("number"),
           "description": .string(
-            "Y coordinate in screen pixels (required for 'area' region, top-left origin)"
+            "Y coordinate in screen pixels (required for 'area' region, top-left origin)",
           ),
         ]),
         "width": .object([
@@ -116,7 +118,7 @@ public struct ScreenshotTool {
         "bundleId": .object([
           "type": .string("string"),
           "description": .string(
-            "Application bundle identifier (required for 'window' region) - e.g., 'com.apple.calculator'"
+            "Application bundle identifier (required for 'window' region) - e.g., 'com.apple.calculator'",
           ),
         ]),
         "id": .object([
@@ -141,7 +143,8 @@ public struct ScreenshotTool {
     // Create services - we do this in the handler to avoid initialization issues
     // and to make sure we're running in the right context
     let accessibilityService = AccessibilityService(
-      logger: Logger(label: "mcp.tool.screenshot.accessibility"), )
+      logger: Logger(label: "mcp.tool.screenshot.accessibility"),
+    )
     let screenshotService = ScreenshotService(
       accessibilityService: accessibilityService,
       logger: Logger(label: "mcp.tool.screenshot"),
@@ -164,7 +167,7 @@ public struct ScreenshotTool {
   /// 6. Result is returned as base64-encoded PNG with metadata
   private func processRequest(_ params: [String: Value]?) async throws -> [Tool.Content] {
     guard let params else {
-      throw createScreenshotError(message: "Parameters are required", context: ["toolName": name], )
+      throw createScreenshotError(message: "Parameters are required", context: ["toolName": name])
         .asMCPError
     }
 
@@ -179,68 +182,67 @@ public struct ScreenshotTool {
     let result: ScreenshotResult
 
     switch regionValue {
-    case "full":
-      // Capture full screen
-      result = try await screenshotService.captureFullScreen()
+      case "full":
+        // Capture full screen
+        result = try await screenshotService.captureFullScreen()
 
-    case "area":
-      // Extract required coordinates
-      guard let x = params["x"]?.intValue, let y = params["y"]?.intValue,
-        let width = params["width"]?.intValue,
-        let height = params["height"]?.intValue
-      else {
+      case "area":
+        // Extract required coordinates
+        guard let x = params["x"]?.intValue, let y = params["y"]?.intValue,
+              let width = params["width"]?.intValue,
+              let height = params["height"]?.intValue
+        else {
+          throw createScreenshotError(
+            message: "Area screenshots require x, y, width, and height parameters",
+            context: [
+              "toolName": name, "region": regionValue,
+              "providedParams": "\(params.keys.joined(separator: ", "))",
+              "x": params["x"]?.intValue.map { "\($0)" } ?? "missing",
+              "y": params["y"]?.intValue.map { "\($0)" } ?? "missing",
+              "width": params["width"]?.intValue.map { "\($0)" } ?? "missing",
+              "height": params["height"]?.intValue.map { "\($0)" } ?? "missing",
+            ],
+          ).asMCPError
+        }
+
+        result = try await screenshotService.captureArea(x: x, y: y, width: width, height: height)
+
+      case "window":
+        // Extract required bundle ID
+        guard let bundleId = params["bundleId"]?.stringValue else {
+          throw createScreenshotError(
+            message: "Window screenshots require a bundleId parameter",
+            context: [
+              "toolName": name, "region": regionValue,
+              "providedParams": "\(params.keys.joined(separator: ", "))",
+            ],
+          ).asMCPError
+        }
+
+        result = try await screenshotService.captureWindow(bundleId: bundleId)
+
+      case "element":
+        // Extract required element ID
+        guard let elementId = params["id"]?.stringValue else {
+          throw createScreenshotError(
+            message: "Element screenshots require an id parameter",
+            context: [
+              "toolName": name, "region": regionValue,
+              "providedParams": "\(params.keys.joined(separator: ", "))",
+            ],
+          ).asMCPError
+        }
+
+        result = try await screenshotService.captureElementByPath(elementPath: elementId)
+
+      default:
         throw createScreenshotError(
-          message: "Area screenshots require x, y, width, and height parameters",
+          message: "Invalid region: \(regionValue). Must be one of: full, area, window, element",
           context: [
-            "toolName": name, "region": regionValue,
-            "providedParams": "\(params.keys.joined(separator: ", "))",
-            "x": params["x"]?.intValue != nil ? "\(params["x"]!.intValue!)" : "missing",
-            "y": params["y"]?.intValue != nil ? "\(params["y"]!.intValue!)" : "missing",
-            "width": params["width"]?.intValue != nil ? "\(params["width"]!.intValue!)" : "missing",
-            "height": params["height"]?.intValue != nil
-              ? "\(params["height"]!.intValue!)" : "missing",
+            "toolName": name, "providedRegion": regionValue,
+            "validRegions": "full, area, window, element",
           ],
         ).asMCPError
-      }
-
-      result = try await screenshotService.captureArea(x: x, y: y, width: width, height: height, )
-
-    case "window":
-      // Extract required bundle ID
-      guard let bundleId = params["bundleId"]?.stringValue else {
-        throw createScreenshotError(
-          message: "Window screenshots require a bundleId parameter",
-          context: [
-            "toolName": name, "region": regionValue,
-            "providedParams": "\(params.keys.joined(separator: ", "))",
-          ],
-        ).asMCPError
-      }
-
-      result = try await screenshotService.captureWindow(bundleId: bundleId, )
-
-    case "element":
-      // Extract required element ID
-      guard let elementId = params["id"]?.stringValue else {
-        throw createScreenshotError(
-          message: "Element screenshots require an id parameter",
-          context: [
-            "toolName": name, "region": regionValue,
-            "providedParams": "\(params.keys.joined(separator: ", "))",
-          ],
-        ).asMCPError
-      }
-
-      result = try await screenshotService.captureElementByPath(elementPath: elementId, )
-
-    default:
-      throw createScreenshotError(
-        message: "Invalid region: \(regionValue). Must be one of: full, area, window, element",
-        context: [
-          "toolName": name, "providedRegion": regionValue,
-          "validRegions": "full, area, window, element",
-        ],
-      ).asMCPError
     }
 
     // Convert to base64 string

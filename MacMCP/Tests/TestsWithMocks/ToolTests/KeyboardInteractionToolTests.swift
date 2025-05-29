@@ -26,7 +26,8 @@ import Testing
     // Create the tool
     let mockAccessibilityService = MockAccessibilityService()
     let changeDetectionService = UIChangeDetectionService(
-      accessibilityService: mockAccessibilityService)
+      accessibilityService: mockAccessibilityService,
+    )
     keyboardInteractionTool = KeyboardInteractionTool(
       interactionService: interactionService,
       accessibilityService: mockAccessibilityService,
@@ -56,7 +57,7 @@ import Testing
 
   // MARK: - Type Text Tests
 
-  @Test("Test type text") mutating func testTypeText() async throws {
+  @Test("Test type text") mutating func typeText() async throws {
     try await setupTest()
     // Prepare test data
     let text = "Hello"
@@ -66,16 +67,17 @@ import Testing
     _ = try await keyboardInteractionTool.handler(params)
 
     // Verify the correct keys were pressed
-    try await Task.sleep(for: .seconds(0.5))  // Allow events to be processed
+    try await Task.sleep(for: .seconds(0.5)) // Allow events to be processed
 
     // Verify with the stub service
     let interactionStub = interactionService!
     #expect(
-      interactionStub.keyPressCount == text.count, "Should have pressed one key for each character")
+      interactionStub.keyPressCount == text.count, "Should have pressed one key for each character",
+    )
     try await cleanupTest()
   }
 
-  @Test("Test type text special characters") mutating func testTypeTextSpecialCharacters()
+  @Test("Test type text special characters") mutating func typeTextSpecialCharacters()
     async throws
   {
     try await setupTest()
@@ -87,12 +89,13 @@ import Testing
     _ = try await keyboardInteractionTool.handler(params)
 
     // Verify the correct keys were pressed
-    try await Task.sleep(for: .seconds(0.5))  // Allow events to be processed
+    try await Task.sleep(for: .seconds(0.5)) // Allow events to be processed
 
     // Verify with the stub service
     let interactionStub = interactionService!
     #expect(
-      interactionStub.keyPressCount == text.count, "Should have pressed one key for each character")
+      interactionStub.keyPressCount == text.count, "Should have pressed one key for each character",
+    )
 
     // Check for modifiers on special characters
     #expect(interactionStub.usedModifiers, "Should have used modifiers for special characters")
@@ -101,7 +104,7 @@ import Testing
 
   // MARK: - Key Sequence Tests
 
-  @Test("Test key sequence simple tap") mutating func testKeySequenceSimpleTap() async throws {
+  @Test("Test key sequence simple tap") mutating func keySequenceSimpleTap() async throws {
     try await setupTest()
     // Test a simple key tap
     let params: [String: Value] = [
@@ -118,7 +121,7 @@ import Testing
     try await cleanupTest()
   }
 
-  @Test("Test key sequence with modifiers") mutating func testKeySequenceWithModifiers()
+  @Test("Test key sequence with modifiers") mutating func keySequenceWithModifiers()
     async throws
   {
     try await setupTest()
@@ -126,7 +129,7 @@ import Testing
     let params: [String: Value] = [
       "action": .string("key_sequence"),
       "sequence": .array([
-        .object(["tap": .string("s"), "modifiers": .array([.string("command")])])
+        .object(["tap": .string("s"), "modifiers": .array([.string("command")])]),
       ]),
     ]
 
@@ -140,8 +143,7 @@ import Testing
     try await cleanupTest()
   }
 
-  @Test("Test key sequence press release") mutating func testKeySequencePressRelease() async throws
-  {
+  @Test("Test key sequence press release") mutating func keySequencePressRelease() async throws {
     try await setupTest()
     // Test separate press and release events
     let params: [String: Value] = [
@@ -161,7 +163,7 @@ import Testing
     try await cleanupTest()
   }
 
-  @Test("Test complex key sequence") mutating func testComplexKeySequence() async throws {
+  @Test("Test complex key sequence") mutating func complexKeySequence() async throws {
     try await setupTest()
     // Test a complex key sequence
     let params: [String: Value] = [
@@ -239,7 +241,7 @@ enum KeyCode: Int {
   case return_key = 0x24
   case tab = 0x30
   case space = 0x31
-  case delete = 0x33  // Backspace
+  case delete = 0x33 // Backspace
   case escape = 0x35
   case forwardDelete = 0x75
   case home = 0x73
@@ -270,7 +272,7 @@ enum KeyCode: Int {
   // Modifier keys
   case command = 0x37
   case shift = 0x38
-  case option = 0x3A  // Alt key
+  case option = 0x3A // Alt key
   case control = 0x3B
   case rightCommand = 0x36
   case rightShift = 0x3C
@@ -279,17 +281,17 @@ enum KeyCode: Int {
   case capsLock = 0x39
 
   // Symbol keys
-  case minus = 0x1B  // -
-  case equal = 0x18  // =
-  case leftBracket = 0x21  // [
-  case rightBracket = 0x1E  // ]
-  case backslash = 0x2A  // \
-  case semicolon = 0x29  // ;
-  case quote = 0x27  // '
-  case comma = 0x2B  // ,
-  case period = 0x2F  // .
-  case slash = 0x2C  // /
-  case grave = 0x32  // ` (backtick)
+  case minus = 0x1B // -
+  case equal = 0x18 // =
+  case leftBracket = 0x21 // [
+  case rightBracket = 0x1E // ]
+  case backslash = 0x2A // \
+  case semicolon = 0x29 // ;
+  case quote = 0x27 // '
+  case comma = 0x2B // ,
+  case period = 0x2F // .
+  case slash = 0x2C // /
+  case grave = 0x32 // ` (backtick)
 }
 
 /// A stub implementation of the UIInteractionServiceProtocol for testing

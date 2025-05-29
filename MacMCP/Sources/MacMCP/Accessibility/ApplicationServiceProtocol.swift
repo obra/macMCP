@@ -157,13 +157,13 @@ public protocol ApplicationServiceProtocol: Sendable {
   ///   - timeout: Timeout in seconds for waiting for termination completion
   /// - Returns: Whether the application was successfully terminated
   /// - Throws: MacMCPErrorInfo if the application could not be terminated
-  func terminateApplication(bundleId: String, timeout: TimeInterval, ) async throws -> Bool
+  func terminateApplication(bundleId: String, timeout: TimeInterval) async throws -> Bool
 
   /// Force terminate an application by its bundle identifier
   /// - Parameter bundleId: The bundle identifier of the application to force terminate
   /// - Returns: Whether the application was successfully terminated
   /// - Throws: MacMCPErrorInfo if the application could not be terminated
-  func forceTerminateApplication(bundleId: String, ) async throws -> Bool
+  func forceTerminateApplication(bundleId: String) async throws -> Bool
 
   /// Activates an already running application by bringing it to the foreground.
   /// - Parameter bundleId: The bundle identifier of the application to activate
@@ -175,19 +175,19 @@ public protocol ApplicationServiceProtocol: Sendable {
   /// - Parameter bundleId: The bundle identifier of the application to hide
   /// - Returns: Whether the application was successfully hidden
   /// - Throws: MacMCPErrorInfo if the application could not be hidden
-  func hideApplication(bundleId: String, ) async throws -> Bool
+  func hideApplication(bundleId: String) async throws -> Bool
 
   /// Unhide an application
   /// - Parameter bundleId: The bundle identifier of the application to unhide
   /// - Returns: Whether the application was successfully unhidden
   /// - Throws: MacMCPErrorInfo if the application could not be unhidden
-  func unhideApplication(bundleId: String, ) async throws -> Bool
+  func unhideApplication(bundleId: String) async throws -> Bool
 
   /// Hide all applications except the specified one
   /// - Parameter exceptBundleIdentifier: The bundle identifier of the application to keep visible
   /// - Returns: Whether the operation was successful
   /// - Throws: MacMCPErrorInfo if the operation fails
-  func hideOtherApplications(exceptBundleIdentifier: String?, ) async throws -> Bool
+  func hideOtherApplications(exceptBundleIdentifier: String?) async throws -> Bool
 
   /// Returns a dictionary of running applications.
   /// - Returns: A dictionary mapping bundle identifiers to application names
@@ -195,7 +195,8 @@ public protocol ApplicationServiceProtocol: Sendable {
   func getRunningApplications() async throws -> [String: String]
 
   /// Get information about the frontmost (active) application
-  /// - Returns: Application state information for the frontmost application, or nil if none is active
+  /// - Returns: Application state information for the frontmost application, or nil if none is
+  /// active
   /// - Throws: MacMCPErrorInfo if the information could not be retrieved
   func getFrontmostApplication() async throws -> ApplicationStateInfo?
 

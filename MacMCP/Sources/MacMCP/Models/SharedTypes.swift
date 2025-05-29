@@ -207,8 +207,7 @@ public struct MenuItemDescriptor: Codable, Sendable, Identifiable {
   ///   - element: The UIElement to convert
   ///   - includeSubmenu: Whether to include submenu items (default false)
   /// - Returns: A MenuItemDescriptor
-  public static func from(element: UIElement, includeSubmenu: Bool = false, ) -> MenuItemDescriptor?
-  {
+  public static func from(element: UIElement, includeSubmenu: Bool = false) -> MenuItemDescriptor? {
     // More permissive approach for menu items - almost any element can be a menu item
     // We just filter out obvious containers and non-interactive elements
     let nonMenuRoles = [

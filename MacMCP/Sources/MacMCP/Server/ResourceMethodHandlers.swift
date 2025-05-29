@@ -19,6 +19,7 @@ public struct ResourcesReadMethodHandler: Sendable {
     self.registry = registry
     self.logger = logger
   }
+
   /// Handle a resources/read request
   /// - Parameter params: The request parameters
   /// - Returns: The resources/read result
@@ -32,17 +33,19 @@ public struct ResourcesReadMethodHandler: Sendable {
       let handler = try registry.handlerFor(uri: params.uri)
       // Handle the read request
       let (content, metadata) = try await handler.handleRead(
-        uri: params.uri, components: components)
+        uri: params.uri, components: components,
+      )
       // Convert to MCP Resource.Content
       let resourceContent: MCP.Resource.Content
       if let textContent = content.asText {
         resourceContent = MCP.Resource.Content.text(
-          textContent, uri: params.uri, mimeType: metadata?.mimeType)
+          textContent, uri: params.uri, mimeType: metadata?.mimeType,
+        )
       } else if let binaryContent = content.asBinary {
         resourceContent = MCP.Resource.Content.binary(
           binaryContent,
           uri: params.uri,
-          mimeType: metadata?.mimeType
+          mimeType: metadata?.mimeType,
         )
       } else {
         throw MCPError.internalError("Invalid content type")
@@ -79,11 +82,12 @@ public struct ResourcesTemplatesListMethodHandler: Sendable {
     self.registry = registry
     self.logger = logger
   }
+
   /// Handle a resources/templates/list request
   /// - Parameter params: The request parameters
   /// - Returns: The resources/templates/list result
   /// - Throws: MCPError if an error occurs
-  public func handle(_ params: ListResourceTemplates.Parameters) async throws
+  public func handle(_: ListResourceTemplates.Parameters) async throws
     -> ListResourceTemplates.Result
   {
     logger.debug("Handling resources/templates/list request")
@@ -108,6 +112,7 @@ public struct ResourcesListMethodHandler: Sendable {
     self.registry = registry
     self.logger = logger
   }
+
   /// Handle a resources/list request
   /// - Parameter params: The request parameters
   /// - Returns: The resources/list result

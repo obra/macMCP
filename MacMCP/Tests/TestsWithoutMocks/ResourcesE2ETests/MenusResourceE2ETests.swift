@@ -18,12 +18,14 @@ import Testing
     let isRunning = try await helper.ensureAppIsRunning()
     #expect(isRunning, "TextEdit should be running for menu tests")
   }
+
   /// Reset TextEdit state after tests
   @MainActor private func tearDown() async {
     let helper = TextEditTestHelper.shared()
     try? await helper.resetAppState()
   }
-  @Test("Test application menus resource shows TextEdit menus") func testApplicationMenusResource()
+
+  @Test("Test application menus resource shows TextEdit menus") func applicationMenusResource()
     async throws
   {
     try await setUp()
@@ -32,18 +34,19 @@ import Testing
     let menuNavigationService = helper.toolChain.menuNavigationService
     let logger = Logger(label: "test.menus")
     let handler = ApplicationMenusResourceHandler(
-      menuNavigationService: menuNavigationService, logger: logger)
+      menuNavigationService: menuNavigationService, logger: logger,
+    )
     // Create the resource URI
     let resourceURI = "macos://applications/\(textEditBundleId)/menus"
     let components = ResourceURIComponents(
       scheme: "macos",
       path: "/applications/\(textEditBundleId)/menus",
-      queryParameters: [:]
+      queryParameters: [:],
     )
     // Call the handler directly
     let (content, metadata) = try await handler.handleRead(uri: resourceURI, components: components)
     // Verify the content
-    if case let .text(jsonString) = content {
+    if case .text(let jsonString) = content {
       // Verify basic menu structure
       #expect(jsonString.contains("File"), "Response should include File menu")
       #expect(jsonString.contains("Edit"), "Response should include Edit menu")
@@ -53,7 +56,7 @@ import Testing
       #expect(metadata?.mimeType == "application/json", "MIME type should be application/json")
       // Verify menu count in metadata
       if let menuCountValue = metadata?.additionalMetadata?["menuCount"] {
-        if case let .int(count) = menuCountValue {
+        if case .int(let count) = menuCountValue {
           #expect(count > 0, "Menu count should be greater than 0")
         }
       }
@@ -62,43 +65,45 @@ import Testing
     }
     await tearDown()
   }
+
   @Test("Test specific menu items resource for TextEdit File menu")
-  func testSpecificMenuItemsResource() async throws {
+  func specificMenuItemsResource() async throws {
     try await setUp()
     // Get shared helper and create handler
     let helper = await TextEditTestHelper.shared()
     let menuNavigationService = helper.toolChain.menuNavigationService
     let logger = Logger(label: "test.menus")
     let handler = ApplicationMenusResourceHandler(
-      menuNavigationService: menuNavigationService, logger: logger)
+      menuNavigationService: menuNavigationService, logger: logger,
+    )
     // Create the resource URI with query param for specific menu
     let resourceURI = "macos://applications/\(textEditBundleId)/menus"
     let components = ResourceURIComponents(
       scheme: "macos",
       path: "/applications/\(textEditBundleId)/menus",
-      queryParameters: ["menuTitle": "File"]
+      queryParameters: ["menuTitle": "File"],
     )
     // Call the handler directly
     let (content, metadata) = try await handler.handleRead(uri: resourceURI, components: components)
     // Verify the content
-    if case let .text(jsonString) = content {
+    if case .text(let jsonString) = content {
       // Verify File menu items
       #expect(jsonString.contains("New"), "Response should include New item")
       #expect(jsonString.contains("Open"), "Response should include Open item")
       #expect(jsonString.contains("Save"), "Response should include Save item")
       // Verify metadata
       #expect(metadata != nil, "Metadata should be provided")
-      if let metadata = metadata {
+      if let metadata {
         #expect(metadata.mimeType == "application/json", "MIME type should be application/json")
         // Check the menu title in metadata
         if let menuTitleValue = metadata.additionalMetadata?["menuTitle"] {
-          if case let .string(menuTitle) = menuTitleValue {
+          if case .string(let menuTitle) = menuTitleValue {
             #expect(menuTitle == "File", "Menu title should be File")
           }
         }
         // Verify item count
         if let itemCountValue = metadata.additionalMetadata?["itemCount"] {
-          if case let .int(count) = itemCountValue {
+          if case .int(let count) = itemCountValue {
             #expect(count > 0, "Item count should be greater than 0")
           }
         }
@@ -108,25 +113,27 @@ import Testing
     }
     await tearDown()
   }
-  @Test("Test menu items with submenus included") func testMenuItemsWithSubmenus() async throws {
+
+  @Test("Test menu items with submenus included") func menuItemsWithSubmenus() async throws {
     try await setUp()
     // Get shared helper and create handler
     let helper = await TextEditTestHelper.shared()
     let menuNavigationService = helper.toolChain.menuNavigationService
     let logger = Logger(label: "test.menus")
     let handler = ApplicationMenusResourceHandler(
-      menuNavigationService: menuNavigationService, logger: logger)
+      menuNavigationService: menuNavigationService, logger: logger,
+    )
     // Create the resource URI with query params for specific menu and include submenus
     let resourceURI = "macos://applications/\(textEditBundleId)/menus"
     let components = ResourceURIComponents(
       scheme: "macos",
       path: "/applications/\(textEditBundleId)/menus",
-      queryParameters: ["menuTitle": "Format", "includeSubmenus": "true"]
+      queryParameters: ["menuTitle": "Format", "includeSubmenus": "true"],
     )
     // Call the handler directly
     let (content, metadata) = try await handler.handleRead(uri: resourceURI, components: components)
     // Verify the content
-    if case let .text(jsonString) = content {
+    if case .text(let jsonString) = content {
       // Format menu typically has Font submenu
       #expect(jsonString.contains("Font"), "Response should include Font item")
       // Since we requested includeSubmenus=true, we should see Font submenu items
@@ -134,15 +141,15 @@ import Testing
       // Look for common Font submenu items
       #expect(
         jsonString.contains("Bold") || jsonString.contains("Italic"),
-        "Response should include Font submenu items like Bold or Italic"
+        "Response should include Font submenu items like Bold or Italic",
       )
       // Verify metadata
       #expect(metadata != nil, "Metadata should be provided")
-      if let metadata = metadata {
+      if let metadata {
         #expect(metadata.mimeType == "application/json", "MIME type should be application/json")
         // Check the menu title in metadata
         if let menuTitleValue = metadata.additionalMetadata?["menuTitle"] {
-          if case let .string(menuTitle) = menuTitleValue {
+          if case .string(let menuTitle) = menuTitleValue {
             #expect(menuTitle == "Format", "Menu title should be Format")
           }
         }

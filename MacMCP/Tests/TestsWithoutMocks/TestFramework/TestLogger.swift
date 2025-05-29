@@ -31,7 +31,7 @@ public class TestLogger {
     }
     // Set default log level from environment if available
     if let logLevelString = ProcessInfo.processInfo.environment["MCP_TEST_LOG_LEVEL"],
-      let logLevel = Logger.Level(rawValue: logLevelString.lowercased())
+       let logLevel = Logger.Level(rawValue: logLevelString.lowercased())
     {
       // We can't modify the logger's log level directly, but this will be read
       logger.debug("Setting log level to \(logLevel) from environment")
@@ -40,6 +40,7 @@ public class TestLogger {
     logger.debug("Initialized logging to file: \(logFileURL.path)")
     return (logger, logFileURL)
   }
+
   /// Sets up common environment variables for enhanced test logging
   public static func configureEnvironment(logger: Logger) {
     // Enable trace level logging
@@ -55,6 +56,7 @@ public class TestLogger {
     setenv("MCP_FULL_HIERARCHY_DEBUG", "true", 1)
     logger.debug("Set MCP_FULL_HIERARCHY_DEBUG=true for full hierarchy diagnostics")
   }
+
   /// Creates a diagnostic log file for detailed accessibility info
   public static func createDiagnosticLog(testName: String, logger: Logger) -> String? {
     // Create a unique log file
@@ -90,6 +92,7 @@ public struct FileLogHandler: LogHandler {
     get { metadata[metadataKey] }
     set { metadata[metadataKey] = newValue }
   }
+
   public init(logFile: URL) {
     self.logFile = logFile
     // Create an empty file if it doesn't exist
@@ -105,13 +108,14 @@ public struct FileLogHandler: LogHandler {
       if let data = header.data(using: .utf8) { fileHandle.write(data) }
     } catch { fatalError("Failed to open log file: \(error)") }
   }
+
   public func log(
     level: Logger.Level,
     message: Logger.Message,
     metadata metadataOverride: Logger.Metadata?,
     file: String,
     function: String,
-    line: UInt
+    line: UInt,
   ) {
     // Merge metadata
     let mergedMeta = mergedMetadata(metadataOverride)
@@ -126,6 +130,7 @@ public struct FileLogHandler: LogHandler {
     // Write to file
     if let data = logMessage.data(using: .utf8) { fileHandle.write(data) }
   }
+
   // Support the new log method signature with source parameter
   public func log(
     level: Logger.Level,
@@ -134,19 +139,24 @@ public struct FileLogHandler: LogHandler {
     source: String,
     file: String,
     function: String,
-    line: UInt
+    line: UInt,
   ) {
     log(
-      level: level, message: message, metadata: metadata, file: file, function: function, line: line
+      level: level, message: message, metadata: metadata, file: file, function: function,
+      line: line,
     )
   }
+
   private func mergedMetadata(_ metadataOverride: Logger.Metadata?) -> Logger.Metadata {
-    var mergedMetadata = self.metadata
-    if let metadataOverride = metadataOverride {
-      for (key, value) in metadataOverride { mergedMetadata[key] = value }
+    var mergedMetadata = metadata
+    if let metadataOverride {
+      for (key, value) in metadataOverride {
+        mergedMetadata[key] = value
+      }
     }
     return mergedMetadata
   }
+
   private func prettify(_ metadata: Logger.Metadata) -> String? {
     if metadata.isEmpty { return nil }
     return metadata.map { "\($0)=\($1)" }.joined(separator: " ")

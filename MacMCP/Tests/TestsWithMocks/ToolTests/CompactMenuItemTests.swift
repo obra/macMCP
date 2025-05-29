@@ -7,7 +7,7 @@ import Testing
 @testable import MacMCP
 
 @Suite("CompactMenuItem Tests", .serialized) struct CompactMenuItemTests {
-  @Test("CompactMenuItem initializes correctly") func testInitialization() async throws {
+  @Test("CompactMenuItem initializes correctly") func initialization() async throws {
     let item = CompactMenuItem(
       path: "File > Save",
       title: "Save",
@@ -15,7 +15,7 @@ import Testing
       shortcut: "⌘S",
       hasSubmenu: false,
       children: nil,
-      elementPath: "element-123"
+      elementPath: "element-123",
     )
     #expect(item.path == "File > Save")
     #expect(item.title == "Save")
@@ -25,21 +25,25 @@ import Testing
     #expect(item.children == nil)
     #expect(item.elementPath == "element-123")
   }
-  @Test("CompactMenuItem calculates depth correctly") func testDepthCalculation() async throws {
+
+  @Test("CompactMenuItem calculates depth correctly") func depthCalculation() async throws {
     let topLevel = CompactMenuItem(
-      path: "File", title: "File", enabled: true, elementPath: "element-1")
+      path: "File", title: "File", enabled: true, elementPath: "element-1",
+    )
     #expect(topLevel.depth == 0)
     let firstLevel = CompactMenuItem(
-      path: "File > Save", title: "Save", enabled: true, elementPath: "element-2")
+      path: "File > Save", title: "Save", enabled: true, elementPath: "element-2",
+    )
     #expect(firstLevel.depth == 1)
     let secondLevel = CompactMenuItem(
       path: "Format > Font > Bold",
       title: "Bold",
       enabled: true,
-      elementPath: "element-3"
+      elementPath: "element-3",
     )
     #expect(secondLevel.depth == 2)
   }
+
   @Test("findChild locates correct child by path") func testFindChild() async throws {
     let hierarchy = createTestMenuHierarchy()
     // Test finding self
@@ -57,6 +61,7 @@ import Testing
     let notFound = hierarchy.findChild(withPath: "Nonexistent > Menu")
     #expect(notFound == nil)
   }
+
   @Test("allDescendantPaths returns all paths in hierarchy") func testAllDescendantPaths()
     async throws
   {
@@ -71,7 +76,8 @@ import Testing
     // Should have 6 total paths
     #expect(allPaths.count == 6)
   }
-  @Test("CompactMenuItem serialization works correctly") func testSerialization() async throws {
+
+  @Test("CompactMenuItem serialization works correctly") func serialization() async throws {
     let originalItem = CompactMenuItem(
       path: "File > Save As...",
       title: "Save As...",
@@ -79,7 +85,7 @@ import Testing
       shortcut: "⌘⇧S",
       hasSubmenu: false,
       children: nil,
-      elementPath: "element-save-as"
+      elementPath: "element-save-as",
     )
     // Test encoding
     let encoder = JSONEncoder()
@@ -95,7 +101,8 @@ import Testing
     #expect(decodedItem.hasSubmenu == originalItem.hasSubmenu)
     #expect(decodedItem.elementPath == originalItem.elementPath)
   }
-  @Test("CompactMenuItem with children serializes correctly") func testSerializationWithChildren()
+
+  @Test("CompactMenuItem with children serializes correctly") func serializationWithChildren()
     async throws
   {
     let hierarchy = createTestMenuHierarchy()
@@ -113,28 +120,30 @@ import Testing
     let foundChild = decodedHierarchy.findChild(withPath: "File > Export > PDF")
     #expect(foundChild?.title == "PDF")
   }
-  @Test("CompactMenuItem handles special characters") func testSpecialCharacters() async throws {
+
+  @Test("CompactMenuItem handles special characters") func specialCharacters() async throws {
     let item = CompactMenuItem(
       path: "Format > Text & Formatting > Align Center…",
       title: "Align Center…",
       enabled: true,
       shortcut: "⌘⌥C",
       hasSubmenu: false,
-      elementPath: "element-align-center"
+      elementPath: "element-align-center",
     )
     #expect(item.path.contains("&"))
     #expect(item.path.contains("…"))
     #expect(item.title == "Align Center…")
     #expect(item.depth == 2)
   }
-  @Test("CompactMenuItem handles unicode characters") func testUnicodeCharacters() async throws {
+
+  @Test("CompactMenuItem handles unicode characters") func unicodeCharacters() async throws {
     let item = CompactMenuItem(
       path: "文件 > 保存为...",
       title: "保存为...",
       enabled: true,
       shortcut: "⌘⇧S",
       hasSubmenu: false,
-      elementPath: "element-save-as-unicode"
+      elementPath: "element-save-as-unicode",
     )
     #expect(item.path == "文件 > 保存为...")
     #expect(item.title == "保存为...")
@@ -147,17 +156,19 @@ import Testing
     #expect(decoded.path == item.path)
     #expect(decoded.title == item.title)
   }
+
   // MARK: - Helper Methods
 
   private func createTestMenuHierarchy() -> CompactMenuItem {
     let exportChildren = [
       CompactMenuItem(
-        path: "File > Export > PDF", title: "PDF", enabled: true, elementPath: "element-pdf"),
+        path: "File > Export > PDF", title: "PDF", enabled: true, elementPath: "element-pdf",
+      ),
       CompactMenuItem(
         path: "File > Export > Web Page",
         title: "Web Page",
         enabled: true,
-        elementPath: "element-webpage"
+        elementPath: "element-webpage",
       ),
     ]
     let fileChildren = [
@@ -166,14 +177,14 @@ import Testing
         title: "New",
         enabled: true,
         shortcut: "⌘N",
-        elementPath: "element-new"
+        elementPath: "element-new",
       ),
       CompactMenuItem(
         path: "File > Save",
         title: "Save",
         enabled: true,
         shortcut: "⌘S",
-        elementPath: "element-save"
+        elementPath: "element-save",
       ),
       CompactMenuItem(
         path: "File > Export",
@@ -181,7 +192,7 @@ import Testing
         enabled: true,
         hasSubmenu: true,
         children: exportChildren,
-        elementPath: "element-export"
+        elementPath: "element-export",
       ),
     ]
     return CompactMenuItem(
@@ -190,7 +201,7 @@ import Testing
       enabled: true,
       hasSubmenu: true,
       children: fileChildren,
-      elementPath: "element-file"
+      elementPath: "element-file",
     )
   }
 }

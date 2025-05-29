@@ -22,12 +22,12 @@ import Testing
 
   // MARK: - Tool Configuration Tests
 
-  @Test("Test tool name") mutating func testToolName() async throws {
+  @Test("Test tool name") mutating func toolName() async throws {
     try await setupTest()
     #expect(tool.name == ToolNames.clipboardManagement)
   }
 
-  @Test("Test tool description") mutating func testToolDescription() async throws {
+  @Test("Test tool description") mutating func toolDescription() async throws {
     try await setupTest()
     #expect(!tool.description.isEmpty, "Tool should have a description")
   }
@@ -64,7 +64,7 @@ import Testing
 
   // MARK: - Action Validation Tests
 
-  @Test("Test execute with invalid action") mutating func testExecuteWithInvalidAction()
+  @Test("Test execute with invalid action") mutating func executeWithInvalidAction()
     async throws
   {
     try await setupTest()
@@ -83,7 +83,7 @@ import Testing
     } catch { #expect(Bool(false), "Unexpected error: \(error)") }
   }
 
-  @Test("Test execute with missing action") mutating func testExecuteWithMissingAction()
+  @Test("Test execute with missing action") mutating func executeWithMissingAction()
     async throws
   {
     try await setupTest()
@@ -104,7 +104,7 @@ import Testing
 
   // MARK: - GetInfo Tests
 
-  @Test("Test getInfo") mutating func testGetInfo() async throws {
+  @Test("Test getInfo") mutating func getInfo() async throws {
     try await setupTest()
     let input = ["action": "getInfo"]
 
@@ -113,7 +113,7 @@ import Testing
 
     // Configure mock with 3 types
     await mockClipboardService.setInfoToReturn(
-      ClipboardContentInfo(availableTypes: [.text, .image, .files], isEmpty: false, )
+      ClipboardContentInfo(availableTypes: [.text, .image, .files], isEmpty: false),
     )
 
     // Execute
@@ -133,7 +133,7 @@ import Testing
     #expect(result["isEmpty"] as? Bool == false, "isEmpty should be false")
   }
 
-  @Test("Test getInfo error") mutating func testGetInfoError() async throws {
+  @Test("Test getInfo error") mutating func getInfoError() async throws {
     try await setupTest()
     let input = ["action": "getInfo"]
 
@@ -158,7 +158,7 @@ import Testing
 
   // MARK: - GetText Tests
 
-  @Test("Test getText") mutating func testGetText() async throws {
+  @Test("Test getText") mutating func getText() async throws {
     try await setupTest()
     let input = ["action": "getText"]
 
@@ -176,7 +176,7 @@ import Testing
     #expect(result["text"] as? String == "Test clipboard text")
   }
 
-  @Test("Test getText error") mutating func testGetTextError() async throws {
+  @Test("Test getText error") mutating func getTextError() async throws {
     try await setupTest()
     let input = ["action": "getText"]
 
@@ -195,7 +195,7 @@ import Testing
 
   // MARK: - SetText Tests
 
-  @Test("Test setText") mutating func testSetText() async throws {
+  @Test("Test setText") mutating func setText() async throws {
     try await setupTest()
     let input: [String: Any] = ["action": "setText", "text": "New clipboard text"]
 
@@ -212,7 +212,7 @@ import Testing
     #expect(result["success"] as? Bool == true)
   }
 
-  @Test("Test setText missing text") mutating func testSetTextMissingText() async throws {
+  @Test("Test setText missing text") mutating func setTextMissingText() async throws {
     try await setupTest()
     let input = ["action": "setText"]
 
@@ -233,7 +233,7 @@ import Testing
     } catch { #expect(Bool(false), "Unexpected error: \(error)") }
   }
 
-  @Test("Test setText error") mutating func testSetTextError() async throws {
+  @Test("Test setText error") mutating func setTextError() async throws {
     try await setupTest()
     let input: [String: Any] = ["action": "setText", "text": "Test text"]
 
@@ -252,7 +252,7 @@ import Testing
 
   // MARK: - GetImage Tests
 
-  @Test("Test getImage") mutating func testGetImage() async throws {
+  @Test("Test getImage") mutating func getImage() async throws {
     try await setupTest()
     let input = ["action": "getImage"]
 
@@ -271,7 +271,7 @@ import Testing
     #expect(result["imageData"] as? String == base64Image)
   }
 
-  @Test("Test getImage error") mutating func testGetImageError() async throws {
+  @Test("Test getImage error") mutating func getImageError() async throws {
     try await setupTest()
     let input = ["action": "getImage"]
 
@@ -290,7 +290,7 @@ import Testing
 
   // MARK: - SetImage Tests
 
-  @Test("Test setImage") mutating func testSetImage() async throws {
+  @Test("Test setImage") mutating func setImage() async throws {
     try await setupTest()
     let base64Image = "base64EncodedImageData"
     let input: [String: Any] = ["action": "setImage", "imageData": base64Image]
@@ -308,8 +308,7 @@ import Testing
     #expect(result["success"] as? Bool == true)
   }
 
-  @Test("Test setImage missing imageData") mutating func testSetImageMissingImageData() async throws
-  {
+  @Test("Test setImage missing imageData") mutating func setImageMissingImageData() async throws {
     try await setupTest()
     let input = ["action": "setImage"]
 
@@ -330,7 +329,7 @@ import Testing
     } catch { #expect(Bool(false), "Unexpected error: \(error)") }
   }
 
-  @Test("Test setImage error") mutating func testSetImageError() async throws {
+  @Test("Test setImage error") mutating func setImageError() async throws {
     try await setupTest()
     let input: [String: Any] = ["action": "setImage", "imageData": "testImageData"]
 
@@ -349,7 +348,7 @@ import Testing
 
   // MARK: - GetFiles Tests
 
-  @Test("Test getFiles") mutating func testGetFiles() async throws {
+  @Test("Test getFiles") mutating func getFiles() async throws {
     try await setupTest()
     let input = ["action": "getFiles"]
 
@@ -370,7 +369,7 @@ import Testing
     #expect(resultPaths == filePaths)
   }
 
-  @Test("Test getFiles error") mutating func testGetFilesError() async throws {
+  @Test("Test getFiles error") mutating func getFilesError() async throws {
     try await setupTest()
     let input = ["action": "getFiles"]
 
@@ -389,7 +388,7 @@ import Testing
 
   // MARK: - SetFiles Tests
 
-  @Test("Test setFiles") mutating func testSetFiles() async throws {
+  @Test("Test setFiles") mutating func setFiles() async throws {
     try await setupTest()
     let filePaths = ["/path/to/file1.txt", "/path/to/file2.txt"]
     let input: [String: Any] = ["action": "setFiles", "filePaths": filePaths]
@@ -407,8 +406,7 @@ import Testing
     #expect(result["success"] as? Bool == true)
   }
 
-  @Test("Test setFiles missing filePaths") mutating func testSetFilesMissingFilePaths() async throws
-  {
+  @Test("Test setFiles missing filePaths") mutating func setFilesMissingFilePaths() async throws {
     try await setupTest()
     let input = ["action": "setFiles"]
 
@@ -429,7 +427,7 @@ import Testing
     } catch { #expect(Bool(false), "Unexpected error: \(error)") }
   }
 
-  @Test("Test setFiles empty array") mutating func testSetFilesEmptyArray() async throws {
+  @Test("Test setFiles empty array") mutating func setFilesEmptyArray() async throws {
     try await setupTest()
     let input: [String: Any] = ["action": "setFiles", "filePaths": []]
 
@@ -453,7 +451,7 @@ import Testing
     } catch { #expect(Bool(false), "Unexpected error: \(error)") }
   }
 
-  @Test("Test setFiles error") mutating func testSetFilesError() async throws {
+  @Test("Test setFiles error") mutating func setFilesError() async throws {
     try await setupTest()
     let input: [String: Any] = ["action": "setFiles", "filePaths": ["/path/to/file.txt"]]
 
@@ -472,7 +470,7 @@ import Testing
 
   // MARK: - Clear Tests
 
-  @Test("Test clear") mutating func testClear() async throws {
+  @Test("Test clear") mutating func clear() async throws {
     try await setupTest()
     let input = ["action": "clear"]
 
@@ -487,7 +485,7 @@ import Testing
     #expect(result["success"] as? Bool == true)
   }
 
-  @Test("Test clear error") mutating func testClearError() async throws {
+  @Test("Test clear error") mutating func clearError() async throws {
     try await setupTest()
     let input = ["action": "clear"]
 

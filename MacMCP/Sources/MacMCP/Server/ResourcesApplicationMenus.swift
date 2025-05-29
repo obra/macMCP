@@ -25,6 +25,7 @@ open class ApplicationMenusResourceHandler: ResourceHandler, @unchecked Sendable
     self.menuNavigationService = menuNavigationService
     self.logger = logger
   }
+
   /// Handle a read request for this resource
   /// - Parameters:
   ///   - uri: The resource URI
@@ -46,12 +47,12 @@ open class ApplicationMenusResourceHandler: ResourceHandler, @unchecked Sendable
     let menuTitle = queryParams.custom["menuTitle"]
     do {
       // If a specific menu title is provided, get that menu's items
-      if let menuTitle = menuTitle {
+      if let menuTitle {
         // Get specific menu items
         let menuItems = try await menuNavigationService.getMenuItems(
           bundleId: bundleId,
           menuTitle: menuTitle,
-          includeSubmenus: includeSubmenus
+          includeSubmenus: includeSubmenus,
         )
         // Encode the menu items as JSON
         let encoder = JSONConfiguration.encoder
@@ -66,7 +67,7 @@ open class ApplicationMenusResourceHandler: ResourceHandler, @unchecked Sendable
           additionalMetadata: [
             "bundleId": .string(bundleId), "menuTitle": .string(menuTitle),
             "itemCount": .double(Double(menuItems.count)),
-          ]
+          ],
         )
         return (.text(jsonString), metadata)
       } else {
@@ -84,25 +85,26 @@ open class ApplicationMenusResourceHandler: ResourceHandler, @unchecked Sendable
           size: jsonString.count,
           additionalMetadata: [
             "bundleId": .string(bundleId), "menuCount": .double(Double(menus.count)),
-          ]
+          ],
         )
         return (.text(jsonString), metadata)
       }
     } catch {
       logger.error(
         "Failed to get application menus",
-        metadata: ["bundleId": "\(bundleId)", "error": "\(error.localizedDescription)"]
+        metadata: ["bundleId": "\(bundleId)", "error": "\(error.localizedDescription)"],
       )
       if let navigationError = error as? MenuNavigationError {
         throw MCPError.internalError("Menu navigation error: \(navigationError.description)")
       } else if let axError = error as? AccessibilityPermissions.Error {
         let permissionError = createPermissionError(
-          message: "Accessibility permission denied: \(axError.localizedDescription)"
+          message: "Accessibility permission denied: \(axError.localizedDescription)",
         )
         throw permissionError.asMCPError
       } else {
         throw MCPError.internalError(
-          "Failed to get application menus: \(error.localizedDescription)")
+          "Failed to get application menus: \(error.localizedDescription)",
+        )
       }
     }
   }

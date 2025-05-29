@@ -7,7 +7,7 @@ import Testing
 @testable import MacMCP
 
 @Suite("MenuCacheService Tests", .serialized) struct MenuCacheServiceTests {
-  @Test("MenuCacheService stores and retrieves hierarchies") func testStoreAndRetrieve()
+  @Test("MenuCacheService stores and retrieves hierarchies") func storeAndRetrieve()
     async throws
   {
     let cache = MenuCacheService()
@@ -20,14 +20,16 @@ import Testing
     #expect(retrieved?.application == "com.test.app1")
     #expect(retrieved?.totalItems == hierarchy.totalItems)
   }
-  @Test("MenuCacheService returns nil for non-existent entries") func testMissingEntry()
+
+  @Test("MenuCacheService returns nil for non-existent entries") func missingEntry()
     async throws
   {
     let cache = MenuCacheService()
     let result = await cache.getHierarchy(for: "com.nonexistent.app")
     #expect(result == nil)
   }
-  @Test("MenuCacheService respects TTL expiration") func testTTLExpiration() async throws {
+
+  @Test("MenuCacheService respects TTL expiration") func tTLExpiration() async throws {
     let cache = MenuCacheService()
     // Create hierarchy with short timeout
     let hierarchy = MenuHierarchy(
@@ -35,7 +37,7 @@ import Testing
       menus: ["File": ["File > New"]],
       totalItems: 1,
       exploredDepth: 1,
-      cacheTimeout: 0.5
+      cacheTimeout: 0.5,
     )
     await cache.setHierarchy(hierarchy, for: "com.test.app")
     // Should be available immediately
@@ -47,7 +49,8 @@ import Testing
     let expired = await cache.getHierarchy(for: "com.test.app")
     #expect(expired == nil)
   }
-  @Test("MenuCacheService tracks hit and miss statistics") func testStatistics() async throws {
+
+  @Test("MenuCacheService tracks hit and miss statistics") func statistics() async throws {
     let cache = MenuCacheService()
     await cache.resetStatistics()
     let hierarchy = createTestHierarchy(bundleId: "com.test.app")
@@ -60,10 +63,10 @@ import Testing
     let stats = await cache.getStatistics()
     #expect(stats.hitCount == 2)
     #expect(stats.missCount == 1)
-    #expect(abs(stats.hitRate - (2.0 / 3.0)) < 0.001)  // Should be ~0.667
+    #expect(abs(stats.hitRate - (2.0 / 3.0)) < 0.001) // Should be ~0.667
   }
-  @Test("MenuCacheService invalidates specific entries") func testInvalidateSpecific() async throws
-  {
+
+  @Test("MenuCacheService invalidates specific entries") func invalidateSpecific() async throws {
     let cache = MenuCacheService()
     let hierarchy1 = createTestHierarchy(bundleId: "com.test.app1")
     let hierarchy2 = createTestHierarchy(bundleId: "com.test.app2")
@@ -78,6 +81,7 @@ import Testing
     #expect(await cache.getHierarchy(for: "com.test.app1") == nil)
     #expect(await cache.getHierarchy(for: "com.test.app2") != nil)
   }
+
   @Test("MenuCacheService invalidates all entries") func testInvalidateAll() async throws {
     let cache = MenuCacheService()
     let hierarchy1 = createTestHierarchy(bundleId: "com.test.app1")
@@ -97,6 +101,7 @@ import Testing
     #expect(await cache.getHierarchy(for: "com.test.app1") == nil)
     #expect(await cache.getHierarchy(for: "com.test.app2") == nil)
   }
+
   @Test("MenuCacheService performs cleanup of expired entries") func testCleanup() async throws {
     let cache = MenuCacheService()
     await cache.resetStatistics()
@@ -106,7 +111,7 @@ import Testing
       menus: ["File": ["File > New"]],
       totalItems: 1,
       exploredDepth: 1,
-      cacheTimeout: 0.5
+      cacheTimeout: 0.5,
     )
     // Create hierarchy with long timeout
     let longTimeout = createTestHierarchy(bundleId: "com.test.long")
@@ -123,12 +128,12 @@ import Testing
     let stats = await cache.getStatistics()
     #expect(stats.expiredCount >= 1)
   }
-  @Test("MenuCacheService enforces maximum cache size with LRU") func testLRUEviction() async throws
-  {
+
+  @Test("MenuCacheService enforces maximum cache size with LRU") func lRUEviction() async throws {
     // Create cache with small max size
     let cache = MenuCacheService(maxCacheSize: 3)
     // Fill cache to capacity
-    for i in 1...3 {
+    for i in 1 ... 3 {
       let hierarchy = createTestHierarchy(bundleId: "com.test.app\(i)")
       await cache.setHierarchy(hierarchy, for: "com.test.app\(i)")
     }
@@ -144,7 +149,8 @@ import Testing
     #expect(await cache.getHierarchy(for: "com.test.app3") != nil)
     #expect(await cache.getHierarchy(for: "com.test.app4") != nil)
   }
-  @Test("MenuCacheService updates LRU order on access") func testLRUOrderUpdate() async throws {
+
+  @Test("MenuCacheService updates LRU order on access") func lRUOrderUpdate() async throws {
     let cache = MenuCacheService(maxCacheSize: 2)
     let hierarchy1 = createTestHierarchy(bundleId: "com.test.app1")
     let hierarchy2 = createTestHierarchy(bundleId: "com.test.app2")
@@ -159,7 +165,8 @@ import Testing
     #expect(await cache.getHierarchy(for: "com.test.app2") == nil)
     #expect(await cache.getHierarchy(for: "com.test.app3") != nil)
   }
-  @Test("MenuCacheService provides detailed cache info") func testCacheInfo() async throws {
+
+  @Test("MenuCacheService provides detailed cache info") func cacheInfo() async throws {
     let cache = MenuCacheService(maxCacheSize: 10, defaultTimeout: 600)
     let hierarchy = createTestHierarchy(bundleId: "com.test.app")
     await cache.setHierarchy(hierarchy, for: "com.test.app")
@@ -171,6 +178,7 @@ import Testing
     #expect(info.entries["com.test.app"] != nil)
     #expect(info.entries["com.test.app"]?.application == "com.test.app")
   }
+
   // MARK: - Helper Methods
 
   private func createTestHierarchy(bundleId: String, timeout: TimeInterval = 300) -> MenuHierarchy {
@@ -180,7 +188,7 @@ import Testing
       menus: menus,
       totalItems: 4,
       exploredDepth: 2,
-      cacheTimeout: timeout
+      cacheTimeout: timeout,
     )
   }
 }

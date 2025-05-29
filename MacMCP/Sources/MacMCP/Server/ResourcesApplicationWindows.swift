@@ -25,6 +25,7 @@ open class ApplicationWindowsResourceHandler: ResourceHandler, @unchecked Sendab
     self.accessibilityService = accessibilityService
     self.logger = logger
   }
+
   /// Handle a read request for this resource
   /// - Parameters:
   ///   - uri: The resource URI
@@ -48,7 +49,7 @@ open class ApplicationWindowsResourceHandler: ResourceHandler, @unchecked Sendab
       let appElement = try await accessibilityService.getApplicationUIElement(
         bundleId: bundleId,
         recursive: true,
-        maxDepth: 2  // Only need shallow depth for windows
+        maxDepth: 2, // Only need shallow depth for windows
       )
       // Find all window elements
       var windows: [WindowDescriptor] = []
@@ -71,22 +72,23 @@ open class ApplicationWindowsResourceHandler: ResourceHandler, @unchecked Sendab
         size: jsonString.count,
         additionalMetadata: [
           "bundleId": .string(bundleId), "windowCount": .double(Double(windows.count)),
-        ]
+        ],
       )
       return (.text(jsonString), metadata)
     } catch {
       logger.error(
         "Failed to get application windows",
-        metadata: ["bundleId": "\(bundleId)", "error": "\(error.localizedDescription)"]
+        metadata: ["bundleId": "\(bundleId)", "error": "\(error.localizedDescription)"],
       )
       if let axError = error as? AccessibilityPermissions.Error {
         let permissionError = createPermissionError(
-          message: "Accessibility permission denied: \(axError.localizedDescription)"
+          message: "Accessibility permission denied: \(axError.localizedDescription)",
         )
         throw permissionError.asMCPError
       } else {
         throw MCPError.internalError(
-          "Failed to get application windows: \(error.localizedDescription)")
+          "Failed to get application windows: \(error.localizedDescription)",
+        )
       }
     }
   }

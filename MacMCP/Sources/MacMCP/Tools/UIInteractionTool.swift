@@ -12,30 +12,30 @@ public struct UIInteractionTool {
 
   /// Description of the tool
   public let description = """
-    Interact with UI elements on macOS through clicking, dragging, scrolling, and coordinate-based actions.
+  Interact with UI elements on macOS through clicking, dragging, scrolling, and coordinate-based actions.
 
-    IMPORTANT: Use InterfaceExplorerTool first to discover element IDs.
+  IMPORTANT: Use InterfaceExplorerTool first to discover element IDs.
 
-    Available actions:
-    - click: Single click on element or coordinates
-    - double_click: Double click on element or coordinates  
-    - right_click: Right click on element or coordinates to open context menus
-    - drag: Drag from one element to another (file operations, selections)
-    - scroll: Scroll within scrollable elements or views
+  Available actions:
+  - click: Single click on element or coordinates
+  - double_click: Double click on element or coordinates  
+  - right_click: Right click on element or coordinates to open context menus
+  - drag: Drag from one element to another (file operations, selections)
+  - scroll: Scroll within scrollable elements or views
 
-    Interaction methods:
-    1. Element-based: Use id from InterfaceExplorerTool (preferred for reliability)
-    2. Coordinate-based: Use x, y coordinates for direct positioning (when elements unavailable)
+  Interaction methods:
+  1. Element-based: Use id from InterfaceExplorerTool (preferred for reliability)
+  2. Coordinate-based: Use x, y coordinates for direct positioning (when elements unavailable)
 
-    Common workflows:
-    1. Explore UI: InterfaceExplorerTool → find element id
-    2. Click element: Use id from InterfaceExplorerTool
-    3. Drag operations: Use source id + target targetId  
-    4. Scroll content: Use container id + direction + amount
-    5. Coordinate fallback: Use x, y coordinates when element detection fails
+  Common workflows:
+  1. Explore UI: InterfaceExplorerTool → find element id
+  2. Click element: Use id from InterfaceExplorerTool
+  3. Drag operations: Use source id + target targetId  
+  4. Scroll content: Use container id + direction + amount
+  5. Coordinate fallback: Use x, y coordinates when element detection fails
 
-    Coordinate system: Screen pixels, (0,0) = top-left corner.
-    """
+  Coordinate system: Screen pixels, (0,0) = top-left corner.
+  """
 
   /// Input schema for the tool
   public private(set) var inputSchema: Value
@@ -79,8 +79,9 @@ public struct UIInteractionTool {
     self.accessibilityService = accessibilityService
     self.applicationService = applicationService
     self.changeDetectionService = changeDetectionService
-    self.interactionWrapper = InteractionWithChangeDetection(
-      changeDetectionService: changeDetectionService)
+    interactionWrapper = InteractionWithChangeDetection(
+      changeDetectionService: changeDetectionService,
+    )
     self.logger = logger ?? Logger(label: "mcp.tool.ui_interact")
 
     // Set tool annotations first
@@ -89,7 +90,7 @@ public struct UIInteractionTool {
       readOnlyHint: false,
       destructiveHint: true,
       idempotentHint: false,
-      openWorldHint: true
+      openWorldHint: true,
     )
 
     // Initialize inputSchema with an empty object first
@@ -105,7 +106,7 @@ public struct UIInteractionTool {
       "action": .object([
         "type": .string("string"),
         "description": .string(
-          "UI interaction type: click/double_click/right_click for buttons/links, drag for file ops, scroll for navigation"
+          "UI interaction type: click/double_click/right_click for buttons/links, drag for file ops, scroll for navigation",
         ),
         "enum": .array([
           .string("click"), .string("double_click"), .string("right_click"), .string("drag"),
@@ -115,7 +116,7 @@ public struct UIInteractionTool {
       "id": .object([
         "type": .string("string"),
         "description": .string(
-          "Element ID from \(ToolNames.interfaceExplorer) - preferred method for reliability"
+          "Element ID from \(ToolNames.interfaceExplorer) - preferred method for reliability",
         ),
       ]),
       "appBundleId": .object([
@@ -126,13 +127,13 @@ public struct UIInteractionTool {
       "x": .object([
         "type": .string("number"),
         "description": .string(
-          "X coordinate in screen pixels (0 = left edge) - use when element ID unavailable"
+          "X coordinate in screen pixels (0 = left edge) - use when element ID unavailable",
         ),
       ]),
       "y": .object([
         "type": .string("number"),
         "description": .string(
-          "Y coordinate in screen pixels (0 = top edge) - use when element ID unavailable"
+          "Y coordinate in screen pixels (0 = top edge) - use when element ID unavailable",
         ),
       ]),
       "targetId": .object([
@@ -149,7 +150,7 @@ public struct UIInteractionTool {
       "amount": .object([
         "type": .string("number"),
         "description": .string(
-          "Scroll distance: 0.0 (minimal) to 1.0 (full page) - required for scroll action"
+          "Scroll distance: 0.0 (minimal) to 1.0 (full page) - required for scroll action",
         ), "minimum": .double(0.0), "maximum": .double(1.0),
       ]),
     ]
@@ -185,15 +186,18 @@ public struct UIInteractionTool {
     let handlerLogger = Logger(label: "mcp.tool.ui_interact")
 
     let accessibilityService = AccessibilityService(
-      logger: Logger(label: "mcp.tool.ui_interact.accessibility"), )
+      logger: Logger(label: "mcp.tool.ui_interact.accessibility"),
+    )
     let applicationService = ApplicationService(
-      logger: Logger(label: "mcp.tool.ui_interact.application"))
+      logger: Logger(label: "mcp.tool.ui_interact.application"),
+    )
     let interactionService = UIInteractionService(
       accessibilityService: accessibilityService,
       logger: Logger(label: "mcp.tool.ui_interact.interaction"),
     )
     let changeDetectionService = UIChangeDetectionService(
-      accessibilityService: accessibilityService)
+      accessibilityService: accessibilityService,
+    )
     let tool = UIInteractionTool(
       interactionService: interactionService,
       accessibilityService: accessibilityService,
@@ -227,7 +231,7 @@ public struct UIInteractionTool {
           "error": "\(error.localizedDescription)", "domain": "\(nsError.domain)",
           "code": "\(nsError.code)",
           "info": "\(nsError.userInfo)",
-        ]
+        ],
       )
       throw error
     }
@@ -245,26 +249,26 @@ public struct UIInteractionTool {
 
     // Get the action
     guard let actionValue = params["action"]?.stringValue else {
-      throw createInteractionError(message: "Action is required", context: ["toolName": name], )
+      throw createInteractionError(message: "Action is required", context: ["toolName": name])
         .asMCPError
     }
 
     // Process based on action type
     switch actionValue {
-    case "click": return try await handleClick(params)
-    case "double_click": return try await handleDoubleClick(params)
-    case "right_click": return try await handleRightClick(params)
-    case "drag": return try await handleDrag(params)
-    case "scroll": return try await handleScroll(params)
-    default:
-      throw createInteractionError(
-        message:
+      case "click": return try await handleClick(params)
+      case "double_click": return try await handleDoubleClick(params)
+      case "right_click": return try await handleRightClick(params)
+      case "drag": return try await handleDrag(params)
+      case "scroll": return try await handleScroll(params)
+      default:
+        throw createInteractionError(
+          message:
           "Invalid action: \(actionValue). Must be one of: click, double_click, right_click, drag, scroll",
-        context: [
-          "toolName": name, "providedAction": actionValue,
-          "validActions": "click, double_click, right_click, drag, scroll",
-        ],
-      ).asMCPError
+          context: [
+            "toolName": name, "providedAction": actionValue,
+            "validActions": "click, double_click, right_click, drag, scroll",
+          ],
+        ).asMCPError
     }
   }
 
@@ -284,6 +288,7 @@ public struct UIInteractionTool {
     } catch { logger.debug("Could not parse element ID to extract bundleId: \(error)") }
     return nil
   }
+
   /// Ensure application is focused before interaction
   private func ensureApplicationFocus(bundleId: String) async throws {
     do {
@@ -299,16 +304,17 @@ public struct UIInteractionTool {
     } catch {
       logger.warning(
         "Error activating application",
-        metadata: ["bundleId": "\(bundleId)", "error": "\(error.localizedDescription)"]
-      )  // Don't fail the entire interaction if activation fails
+        metadata: ["bundleId": "\(bundleId)", "error": "\(error.localizedDescription)"],
+      ) // Don't fail the entire interaction if activation fails
     }
   }
+
   /// Generic helper for element-based interactions
   private func performElementInteraction(
     elementId: String,
     action: String,
     interactionMethod: (String, String?) async throws -> Void,
-    params: [String: Value]
+    params: [String: Value],
   ) async throws -> [Tool.Content] {
     let (detectChanges, delay) = ChangeDetectionHelper.extractChangeDetectionParams(params)
     // Resolve the element ID (handles both opaque IDs and raw paths)
@@ -332,17 +338,18 @@ public struct UIInteractionTool {
         let firstSegment = path.segments[0]
         pathSpecifiesApp =
           firstSegment.role == "AXApplication"
-          && (firstSegment.attributes["bundleId"] != nil
-            || firstSegment.attributes["AXTitle"] != nil)
+            && (firstSegment.attributes["bundleId"] != nil
+              || firstSegment.attributes["AXTitle"] != nil
+            )
       } else {
         pathSpecifiesApp = false
       }
 
       // If path doesn't specify an app but appBundleId is provided, log a message
-      if !pathSpecifiesApp, appBundleId != nil {
+      if !pathSpecifiesApp, let bundleId = appBundleId {
         logger.info(
           "Using provided appBundleId alongside element ID",
-          metadata: ["appBundleId": "\(appBundleId!)"],
+          metadata: ["appBundleId": "\(bundleId)"],
         )
       }
 
@@ -368,23 +375,26 @@ public struct UIInteractionTool {
 
     do {
       // Determine scope for change detection
-      let scope: UIElementScope =
-        appBundleId != nil ? .application(bundleId: appBundleId!) : .focusedApplication
+      let scope: UIElementScope = if let bundleId = appBundleId {
+        .application(bundleId: bundleId)
+      } else {
+        .focusedApplication
+      }
       let result = try await interactionWrapper.performWithChangeDetection(
         scope: scope,
         detectChanges: detectChanges,
         delay: delay,
-        maxDepth: 15
+        maxDepth: 15,
       ) {
         try await interactionMethod(resolvedElementId, appBundleId)
-        let bundleIdInfo = appBundleId != nil ? " in app \(appBundleId!)" : ""
+        let bundleIdInfo = appBundleId.map { " in app \($0)" } ?? ""
         return "Successfully \(action) element with ID: \(resolvedElementId)\(bundleIdInfo)"
       }
 
       return ChangeDetectionHelper.formatResponse(
         message: result.result,
         uiChanges: result.uiChanges,
-        logger: logger
+        logger: logger,
       )
     } catch {
       let nsError = error as NSError
@@ -394,33 +404,34 @@ public struct UIInteractionTool {
           "error": "\(error.localizedDescription)", "domain": "\(nsError.domain)",
           "code": "\(nsError.code)",
           "elementId": "\(resolvedElementId)",
-        ]
+        ],
       )
       // Create a more informative error that includes the actual ID
       let enhancedError = createInteractionError(
         message:
-          "Failed to \(action) element with ID: \(resolvedElementId). \(error.localizedDescription)",
+        "Failed to \(action) element with ID: \(resolvedElementId). \(error.localizedDescription)",
         context: [
           "toolName": name, "action": action, "originalElementId": elementId,
           "resolvedElementId": resolvedElementId, "originalError": error.localizedDescription,
-        ]
+        ],
       )
       throw enhancedError.asMCPError
     }
   }
+
   /// Generic helper for position-based interactions
   private func performPositionInteraction(
     x: Double,
     y: Double,
     action: String,
     interactionMethod: (CGPoint) async throws -> Void,
-    params: [String: Value]
+    params: [String: Value],
   ) async throws -> [Tool.Content] {
     let (detectChanges, delay) = ChangeDetectionHelper.extractChangeDetectionParams(params)
     do {
       let result = try await interactionWrapper.performWithChangeDetection(
         detectChanges: detectChanges,
-        delay: delay
+        delay: delay,
       ) {
         try await interactionMethod(CGPoint(x: x, y: y))
         return "Successfully \(action) at position (\(x), \(y))"
@@ -429,11 +440,12 @@ public struct UIInteractionTool {
       return ChangeDetectionHelper.formatResponse(
         message: result.result,
         uiChanges: result.uiChanges,
-        logger: logger
+        logger: logger,
       )
     } catch {
       logger.error(
-        "Position \(action) operation failed", metadata: ["error": "\(error.localizedDescription)"])
+        "Position \(action) operation failed", metadata: ["error": "\(error.localizedDescription)"],
+      )
       throw error
     }
   }
@@ -448,7 +460,7 @@ public struct UIInteractionTool {
         interactionMethod: { path, bundleId in
           try await interactionService.clickElementByPath(path: path, appBundleId: bundleId)
         },
-        params: params
+        params: params,
       )
     }
 
@@ -462,7 +474,7 @@ public struct UIInteractionTool {
         interactionMethod: { position in
           try await interactionService.clickAtPosition(position: position)
         },
-        params: params
+        params: params,
       )
     } else if let xInt = params["x"]?.intValue, let yInt = params["y"]?.intValue {
       return try await performPositionInteraction(
@@ -472,7 +484,7 @@ public struct UIInteractionTool {
         interactionMethod: { position in
           try await interactionService.clickAtPosition(position: position)
         },
-        params: params
+        params: params,
       )
     }
 
@@ -499,7 +511,7 @@ public struct UIInteractionTool {
         interactionMethod: { path, bundleId in
           try await interactionService.doubleClickElementByPath(path: path, appBundleId: bundleId)
         },
-        params: params
+        params: params,
       )
     }
 
@@ -513,7 +525,7 @@ public struct UIInteractionTool {
         interactionMethod: { position in
           try await interactionService.doubleClickAtPosition(position: position)
         },
-        params: params
+        params: params,
       )
     } else if let xInt = params["x"]?.intValue, let yInt = params["y"]?.intValue {
       return try await performPositionInteraction(
@@ -523,7 +535,7 @@ public struct UIInteractionTool {
         interactionMethod: { position in
           try await interactionService.doubleClickAtPosition(position: position)
         },
-        params: params
+        params: params,
       )
     }
 
@@ -550,7 +562,7 @@ public struct UIInteractionTool {
         interactionMethod: { path, bundleId in
           try await interactionService.rightClickElementByPath(path: path, appBundleId: bundleId)
         },
-        params: params
+        params: params,
       )
     }
 
@@ -564,7 +576,7 @@ public struct UIInteractionTool {
         interactionMethod: { position in
           try await interactionService.rightClickAtPosition(position: position)
         },
-        params: params
+        params: params,
       )
     } else if let xInt = params["x"]?.intValue, let yInt = params["y"]?.intValue {
       return try await performPositionInteraction(
@@ -574,7 +586,7 @@ public struct UIInteractionTool {
         interactionMethod: { position in
           try await interactionService.rightClickAtPosition(position: position)
         },
-        params: params
+        params: params,
       )
     }
 
@@ -626,8 +638,8 @@ public struct UIInteractionTool {
     )
     return [
       .text(
-        "Successfully dragged from element \(sourceResolvedElementId) to element \(targetResolvedElementId)"
-      )
+        "Successfully dragged from element \(sourceResolvedElementId) to element \(targetResolvedElementId)",
+      ),
     ]
   }
 
@@ -646,7 +658,7 @@ public struct UIInteractionTool {
     let resolvedElementId = ElementPath.resolveElementId(elementID)
 
     guard let directionString = params["direction"]?.stringValue,
-      let direction = ScrollDirection(rawValue: directionString)
+          let direction = ScrollDirection(rawValue: directionString)
     else {
       throw createInteractionError(
         message: "Scroll action requires valid direction (up, down, left, right)",
@@ -664,8 +676,7 @@ public struct UIInteractionTool {
         context: [
           "toolName": name, "action": "scroll", "id": resolvedElementId,
           "direction": directionString,
-          "providedAmount": params["amount"]?.doubleValue != nil
-            ? "\(params["amount"]!.doubleValue!)" : "nil",
+          "providedAmount": params["amount"]?.doubleValue.map { "\($0)" } ?? "nil",
         ],
       ).asMCPError
     }
@@ -680,7 +691,9 @@ public struct UIInteractionTool {
       appBundleId: appBundleId,
     )
     return [
-      .text("Successfully scrolled element \(resolvedElementId) in direction \(direction.rawValue)")
+      .text(
+        "Successfully scrolled element \(resolvedElementId) in direction \(direction.rawValue)",
+      ),
     ]
   }
 }

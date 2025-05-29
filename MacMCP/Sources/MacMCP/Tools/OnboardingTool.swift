@@ -12,29 +12,29 @@ public struct OnboardingTool: @unchecked Sendable {
 
   /// Description of the tool
   public let description = """
-    Provides comprehensive guidance and best practices for AI assistants working with macOS applications through MCP.
+  Provides comprehensive guidance and best practices for AI assistants working with macOS applications through MCP.
 
-    IMPORTANT: This tool provides expert guidance for effective macOS automation workflows.
+  IMPORTANT: This tool provides expert guidance for effective macOS automation workflows.
 
-    Available topics:
-    - general: Core principles and recommended workflows for all macOS apps
-    - exploration: Best practices for discovering and understanding UI elements
-    - interaction: Techniques for reliable clicking, typing, and UI manipulation
-    - keynote: Specific guidance for Apple Keynote presentation software
-    - pages: Specific guidance for Apple Pages word processing
-    - finder: Specific guidance for macOS Finder file management
-    - safari: Specific guidance for Safari web browser automation
-    - complex_apps: Strategies for working with professional/complex applications
+  Available topics:
+  - general: Core principles and recommended workflows for all macOS apps
+  - exploration: Best practices for discovering and understanding UI elements
+  - interaction: Techniques for reliable clicking, typing, and UI manipulation
+  - keynote: Specific guidance for Apple Keynote presentation software
+  - pages: Specific guidance for Apple Pages word processing
+  - finder: Specific guidance for macOS Finder file management
+  - safari: Specific guidance for Safari web browser automation
+  - complex_apps: Strategies for working with professional/complex applications
 
-    When to use this tool:
-    - Starting work with a new application type
-    - Encountering automation challenges or failures
-    - Need app-specific workflow recommendations
-    - Want to understand best practices for UI exploration
-    - Planning complex multi-step automation tasks
+  When to use this tool:
+  - Starting work with a new application type
+  - Encountering automation challenges or failures
+  - Need app-specific workflow recommendations
+  - Want to understand best practices for UI exploration
+  - Planning complex multi-step automation tasks
 
-    Each topic provides detailed workflows, code examples, and troubleshooting guidance tailored for AI assistants using MacMCP tools.
-    """
+  Each topic provides detailed workflows, code examples, and troubleshooting guidance tailored for AI assistants using MacMCP tools.
+  """
 
   /// Input schema for the tool
   public private(set) var inputSchema: Value
@@ -47,7 +47,7 @@ public struct OnboardingTool: @unchecked Sendable {
 
   /// Tool handler function
   public var handler: @Sendable ([String: Value]?) async throws -> [Tool.Content] {
-    { [self] params in return try await self.processRequest(params) }
+    { [self] params in try await self.processRequest(params) }
   }
 
   /// Create a new onboarding tool
@@ -61,7 +61,7 @@ public struct OnboardingTool: @unchecked Sendable {
       readOnlyHint: true,
       destructiveHint: false,
       idempotentHint: true,
-      openWorldHint: false
+      openWorldHint: false,
     )
 
     // Initialize inputSchema with an empty object first
@@ -79,7 +79,7 @@ public struct OnboardingTool: @unchecked Sendable {
         "topic": .object([
           "type": .string("string"),
           "description": .string(
-            "Guidance topic: 'general' for core principles, app names for specific guidance, 'exploration'/'interaction' for techniques"
+            "Guidance topic: 'general' for core principles, app names for specific guidance, 'exploration'/'interaction' for techniques",
           ),
           "enum": .array([
             .string("general"), .string("exploration"), .string("interaction"), .string("keynote"),
@@ -130,16 +130,16 @@ public struct OnboardingTool: @unchecked Sendable {
   /// - Returns: Guidance text
   private func getGuidance(topic: String, specific: String?) -> String {
     switch topic {
-    case "general": generalGuidance(specific: specific)
-    case "exploration": ExplorationGuidance.guidance(specific: specific)
-    case "interaction": InteractionGuidance.guidance(specific: specific)
-    case "keynote": KeynoteGuidance.guidance(specific: specific)
-    case "pages": pagesGuidance(specific: specific)
-    case "finder": finderGuidance(specific: specific)
-    case "safari": safariGuidance(specific: specific)
-    case "complex_apps": complexAppsGuidance(specific: specific)
-    default:
-      "Topic not recognized. Please use one of the following: general, exploration, interaction, keynote, pages, finder, safari, or complex_apps."
+      case "general": generalGuidance(specific: specific)
+      case "exploration": ExplorationGuidance.guidance(specific: specific)
+      case "interaction": InteractionGuidance.guidance(specific: specific)
+      case "keynote": KeynoteGuidance.guidance(specific: specific)
+      case "pages": pagesGuidance(specific: specific)
+      case "finder": finderGuidance(specific: specific)
+      case "safari": safariGuidance(specific: specific)
+      case "complex_apps": complexAppsGuidance(specific: specific)
+      default:
+        "Topic not recognized. Please use one of the following: general, exploration, interaction, keynote, pages, finder, safari, or complex_apps."
     }
   }
 

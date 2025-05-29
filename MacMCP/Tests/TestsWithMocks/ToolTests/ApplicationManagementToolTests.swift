@@ -280,7 +280,7 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
   // MARK: - Test Methods
 
   /// Test launching an application by bundle identifier
-  @Test("Launch by bundle identifier") mutating func testLaunchByBundleIdentifier() async throws {
+  @Test("Launch by bundle identifier") mutating func launchByBundleIdentifier() async throws {
     try await setUp()
     // Setup
     let params: [String: Value] = [
@@ -306,9 +306,11 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
       // Basic validation of JSON format
       #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
       #expect(
-        jsonString.contains("\"processIdentifier\": 12345"), "Response should include process ID")
+        jsonString.contains("\"processIdentifier\": 12345"), "Response should include process ID",
+      )
       #expect(
-        jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID")
+        jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID",
+      )
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -316,7 +318,7 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
   }
 
   /// Test launching an application by name
-  @Test("Launch by application name") mutating func testLaunchByApplicationName() async throws {
+  @Test("Launch by application name") mutating func launchByApplicationName() async throws {
     try await setUp()
     // Setup
     let params: [String: Value] = [
@@ -349,7 +351,7 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
   }
 
   /// Test terminating an application
-  @Test("Terminate application") mutating func testTerminate() async throws {
+  @Test("Terminate application") mutating func terminate() async throws {
     try await setUp()
     // Setup
     let params: [String: Value] = [
@@ -373,7 +375,8 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
       // Basic validation of JSON format
       #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
       #expect(
-        jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID")
+        jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID",
+      )
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -381,7 +384,7 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
   }
 
   /// Test force terminating an application
-  @Test("Force terminate application") mutating func testForceTerminate() async throws {
+  @Test("Force terminate application") mutating func forceTerminate() async throws {
     try await setUp()
     // Setup
     let params: [String: Value] = [
@@ -397,7 +400,8 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
     // Verify the service was called correctly
     #expect(
       mockApplicationService.forceTerminateApplicationCalled,
-      "Should call forceTerminateApplication")
+      "Should call forceTerminateApplication",
+    )
     #expect(mockApplicationService.forceTerminateLastBundleIdentifier == "com.test.app")
 
     // Verify the result content
@@ -405,7 +409,8 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
       // Basic validation of JSON format
       #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
       #expect(
-        jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID")
+        jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID",
+      )
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -437,7 +442,8 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
       // Basic validation of JSON format
       #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
       #expect(
-        jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID")
+        jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID",
+      )
       #expect(jsonString.contains("\"isRunning\": true"), "Response should include running status")
     } else {
       #expect(Bool(false), "Result should be text content")
@@ -460,29 +466,31 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
 
     // Verify the service was called correctly
     #expect(
-      mockApplicationService.getRunningApplicationsCalled, "Should call getRunningApplications")
+      mockApplicationService.getRunningApplicationsCalled, "Should call getRunningApplications",
+    )
 
     // Verify the result content
     if case .text(let jsonString) = result[0] {
       // Basic validation of JSON format
       #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
       #expect(
-        jsonString.contains("\"applications\":"), "Response should include applications array")
+        jsonString.contains("\"applications\":"), "Response should include applications array",
+      )
       #expect(
         jsonString.contains("\"bundleId\": \"com.test.app1\""),
-        "Response should include first app bundle ID"
+        "Response should include first app bundle ID",
       )
       #expect(
         jsonString.contains("\"applicationName\": \"Test App 1\""),
-        "Response should include first app name"
+        "Response should include first app name",
       )
       #expect(
         jsonString.contains("\"bundleId\": \"com.test.app2\""),
-        "Response should include second app bundle ID"
+        "Response should include second app bundle ID",
       )
       #expect(
         jsonString.contains("\"applicationName\": \"Test App 2\""),
-        "Response should include second app name"
+        "Response should include second app name",
       )
     } else {
       #expect(Bool(false), "Result should be text content")
@@ -513,7 +521,8 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
       // Basic validation of JSON format
       #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
       #expect(
-        jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID")
+        jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID",
+      )
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -543,7 +552,8 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
       // Basic validation of JSON format
       #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
       #expect(
-        jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID")
+        jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID",
+      )
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -573,7 +583,8 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
       // Basic validation of JSON format
       #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
       #expect(
-        jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID")
+        jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID",
+      )
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -604,7 +615,7 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
       #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
       #expect(
         jsonString.contains("\"exceptBundleIdentifier\": \"com.test.app\""),
-        "Response should include except bundle ID"
+        "Response should include except bundle ID",
       )
     } else {
       #expect(Bool(false), "Result should be text content")
@@ -627,7 +638,8 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
 
     // Verify the service was called correctly
     #expect(
-      mockApplicationService.getFrontmostApplicationCalled, "Should call getFrontmostApplication")
+      mockApplicationService.getFrontmostApplicationCalled, "Should call getFrontmostApplication",
+    )
 
     // Verify the result content
     if case .text(let jsonString) = result[0] {
@@ -635,16 +647,19 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
       #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
       #expect(
         jsonString.contains("\"bundleId\": \"com.test.frontmost\""),
-        "Response should include bundle ID")
+        "Response should include bundle ID",
+      )
       #expect(
         jsonString.contains("\"applicationName\": \"Frontmost App\""),
-        "Response should include app name")
+        "Response should include app name",
+      )
       #expect(
-        jsonString.contains("\"processIdentifier\": 12345"), "Response should include process ID")
+        jsonString.contains("\"processIdentifier\": 12345"), "Response should include process ID",
+      )
       #expect(jsonString.contains("\"isActive\": true"), "Response should include active status")
       #expect(
         jsonString.contains("\"isFinishedLaunching\": true"),
-        "Response should include finished launching status"
+        "Response should include finished launching status",
       )
     } else {
       #expect(Bool(false), "Result should be text content")
@@ -654,7 +669,7 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
 
   /// Test the case when there is no frontmost application
   @Test("Get frontmost application when none exists")
-  mutating func testGetFrontmostApplicationNone() async throws {
+  mutating func getFrontmostApplicationNone() async throws {
     try await setUp()
     // Setup - override the mock to return nil
     mockApplicationService.frontmostApplicationToReturn = nil
@@ -669,7 +684,8 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
 
     // Verify the service was called correctly
     #expect(
-      mockApplicationService.getFrontmostApplicationCalled, "Should call getFrontmostApplication")
+      mockApplicationService.getFrontmostApplicationCalled, "Should call getFrontmostApplication",
+    )
 
     // Verify the result content
     if case .text(let jsonString) = result[0] {
@@ -677,7 +693,7 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
       #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
       #expect(
         jsonString.contains("\"hasFrontmostApplication\": false"),
-        "Response should indicate no frontmost app"
+        "Response should indicate no frontmost app",
       )
     } else {
       #expect(Bool(false), "Result should be text content")
@@ -686,7 +702,7 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
   }
 
   /// Test error handling for failures
-  @Test("Error handling") mutating func testErrorHandling() async throws {
+  @Test("Error handling") mutating func errorHandling() async throws {
     try await setUp()
     // Setup - configure mock to fail
     mockApplicationService.shouldFailOperations = true
@@ -704,19 +720,19 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
     } catch let error as MCPError {
       // Verify it's the correct error type
       switch error {
-      case .internalError(let message):
-        #expect(
-          message?.contains("Test error message") == true,
-          "Error message should include the original error details"
-        )
-      default: #expect(Bool(false), "Wrong error type: \(error)")
+        case .internalError(let message):
+          #expect(
+            message?.contains("Test error message") == true,
+            "Error message should include the original error details",
+          )
+        default: #expect(Bool(false), "Wrong error type: \(error)")
       }
     } catch { #expect(Bool(false), "Unexpected error type: \(error)") }
     try await tearDown()
   }
 
   /// Test validation errors for missing parameters
-  @Test("Validation errors") mutating func testValidationErrors() async throws {
+  @Test("Validation errors") mutating func validationErrors() async throws {
     try await setUp()
     // Test missing bundleId for an action that requires it
     let params: [String: Value] = ["action": .string("terminate")]
@@ -727,11 +743,12 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
       #expect(Bool(false), "Should throw an error for missing bundleId")
     } catch let error as MCPError {
       switch error {
-      case .invalidParams(let message):
-        #expect(
-          message?.contains("bundleId is required") == true,
-          "Error should indicate missing bundleId")
-      default: #expect(Bool(false), "Wrong error type: \(error)")
+        case .invalidParams(let message):
+          #expect(
+            message?.contains("bundleId is required") == true,
+            "Error should indicate missing bundleId",
+          )
+        default: #expect(Bool(false), "Wrong error type: \(error)")
       }
     } catch { #expect(Bool(false), "Unexpected error type: \(error)") }
 
@@ -743,12 +760,12 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
       #expect(Bool(false), "Should throw an error for missing both applicationName and bundleId")
     } catch let error as MCPError {
       switch error {
-      case .invalidParams(let message):
-        #expect(
-          message?.contains("Either applicationName or bundleId is required") == true,
-          "Error should indicate missing identifiers"
-        )
-      default: #expect(Bool(false), "Wrong error type: \(error)")
+        case .invalidParams(let message):
+          #expect(
+            message?.contains("Either applicationName or bundleId is required") == true,
+            "Error should indicate missing identifiers",
+          )
+        default: #expect(Bool(false), "Wrong error type: \(error)")
       }
     } catch { #expect(Bool(false), "Unexpected error type: \(error)") }
 
@@ -762,11 +779,12 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
       #expect(Bool(false), "Should throw an error for invalid action")
     } catch let error as MCPError {
       switch error {
-      case .invalidParams(let message):
-        #expect(
-          message?.contains("Valid action is required") == true,
-          "Error should indicate invalid action")
-      default: #expect(Bool(false), "Wrong error type: \(error)")
+        case .invalidParams(let message):
+          #expect(
+            message?.contains("Valid action is required") == true,
+            "Error should indicate invalid action",
+          )
+        default: #expect(Bool(false), "Wrong error type: \(error)")
       }
     } catch { #expect(Bool(false), "Unexpected error type: \(error)") }
     try await tearDown()

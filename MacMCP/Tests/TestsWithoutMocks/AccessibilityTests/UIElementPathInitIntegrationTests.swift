@@ -33,7 +33,8 @@ import Testing
 
     // Create a UIElement from the path
     let windowElement = try await UIElement(
-      fromPath: windowPath, accessibilityService: accessibilityService)
+      fromPath: windowPath, accessibilityService: accessibilityService,
+    )
 
     // Verify properties of the created UIElement
     #expect(windowElement.role == "AXWindow")
@@ -45,7 +46,7 @@ import Testing
 
     // Ensure all Calculator processes are terminated
     if let app = NSRunningApplication.runningApplications(
-      withBundleIdentifier: "com.apple.calculator"
+      withBundleIdentifier: "com.apple.calculator",
     ).first {
       app.terminate()
     }
@@ -83,11 +84,11 @@ import Testing
     _ = try await ElementPath.diagnosePathResolutionIssue(buttonPath, using: accessibilityService)
     // Create a UIElement from the path
     let buttonElement = try await UIElement(
-      fromPath: buttonPath, accessibilityService: accessibilityService)
+      fromPath: buttonPath, accessibilityService: accessibilityService,
+    )
 
     // Check if the AXUIElement is a valid reference
     if let axElement = buttonElement.axElement {
-
       // Try to get role directly from AXUIElement (double-check)
       var roleRef: CFTypeRef?
       _ = AXUIElementCopyAttributeValue(axElement, AXAttribute.role as CFString, &roleRef)
@@ -99,10 +100,11 @@ import Testing
       // Try to get actions directly from AXUIElement
       var actionsArrayRef: CFTypeRef?
       _ = AXUIElementCopyAttributeValue(
-        axElement, AXAttribute.actions as CFString, &actionsArrayRef)
+        axElement, AXAttribute.actions as CFString, &actionsArrayRef,
+      )
     } else {
       print(
-        "2. AXUIElement resolved: NO (nil reference) - This indicates the path did not resolve to a real UI element"
+        "2. AXUIElement resolved: NO (nil reference) - This indicates the path did not resolve to a real UI element",
       )
     }
 
@@ -118,7 +120,7 @@ import Testing
 
     // Ensure all Calculator processes are terminated
     if let app = NSRunningApplication.runningApplications(
-      withBundleIdentifier: "com.apple.calculator"
+      withBundleIdentifier: "com.apple.calculator",
     ).first {
       app.terminate()
     }
@@ -154,7 +156,7 @@ import Testing
     let areSame = try await UIElement.areSameElement(
       path1: path1,
       path2: path2,
-      accessibilityService: accessibilityService
+      accessibilityService: accessibilityService,
     )
 
     // Verify the paths resolve to the same element
@@ -165,7 +167,7 @@ import Testing
 
     // Ensure all Calculator processes are terminated
     if let app = NSRunningApplication.runningApplications(
-      withBundleIdentifier: "com.apple.calculator"
+      withBundleIdentifier: "com.apple.calculator",
     ).first {
       app.terminate()
     }
@@ -203,7 +205,7 @@ import Testing
     let areSame = try await UIElement.areSameElement(
       path1: windowPath,
       path2: buttonPath,
-      accessibilityService: accessibilityService
+      accessibilityService: accessibilityService,
     )
 
     // Verify the paths resolve to different elements
@@ -214,7 +216,7 @@ import Testing
 
     // Ensure all Calculator processes are terminated
     if let app = NSRunningApplication.runningApplications(
-      withBundleIdentifier: "com.apple.calculator"
+      withBundleIdentifier: "com.apple.calculator",
     ).first {
       app.terminate()
     }
@@ -252,10 +254,10 @@ import Testing
     } catch let error as ElementPathError {
       // Verify we got an appropriate error
       switch error {
-      case .noMatchingElements, .segmentResolutionFailed:
-        // These are the expected error types
-        break
-      default: #expect(Bool(false), "Unexpected error type: \(error)")
+        case .noMatchingElements, .segmentResolutionFailed:
+          // These are the expected error types
+          break
+        default: #expect(Bool(false), "Unexpected error type: \(error)")
       }
     } catch { #expect(Bool(false), "Unexpected error: \(error)") }
 
@@ -264,7 +266,7 @@ import Testing
 
     // Ensure all Calculator processes are terminated
     if let app = NSRunningApplication.runningApplications(
-      withBundleIdentifier: "com.apple.calculator"
+      withBundleIdentifier: "com.apple.calculator",
     ).first {
       app.terminate()
     }
@@ -297,7 +299,7 @@ private class CalculatorApp {
         throw NSError(
           domain: "com.macos.mcp.test",
           code: 1,
-          userInfo: [NSLocalizedDescriptionKey: "Calculator app not found"]
+          userInfo: [NSLocalizedDescriptionKey: "Calculator app not found"],
         )
       }
 

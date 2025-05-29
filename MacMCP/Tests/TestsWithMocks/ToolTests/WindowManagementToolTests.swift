@@ -91,7 +91,7 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
     return mockSystemUIElement ?? createMockUIElement(role: "AXApplication", title: "System")
   }
 
-  func getApplicationUIElement(bundleId: String, recursive _: Bool, maxDepth _: Int, ) async throws
+  func getApplicationUIElement(bundleId: String, recursive _: Bool, maxDepth _: Int) async throws
     -> UIElement
   {
     getApplicationUIElementCalled = true
@@ -108,7 +108,7 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
     if shouldFailOperations { throw errorToThrow ?? MCPError.internalError("Mock error") }
 
     return mockFocusedApplicationUIElement
-      ?? createMockUIElement(role: "AXApplication", title: "Focused Application", )
+      ?? createMockUIElement(role: "AXApplication", title: "Focused Application")
   }
 
   func getUIElementAtPosition(position _: CGPoint, recursive _: Bool, maxDepth _: Int) async throws
@@ -196,7 +196,7 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
   }
 
   func setWindowOrder(
-    withPath path: String, orderMode: WindowOrderMode, referenceWindowPath: String?
+    withPath path: String, orderMode: WindowOrderMode, referenceWindowPath: String?,
   ) async throws {
     setWindowOrderCalled = true
     setWindowOrderIdentifier = path
@@ -272,7 +272,7 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
   private let secondWindowPath =
     "macos://ui/AXWindow[@AXTitle=\"Second Window\"][@AXDescription=\"Second Window\"]"
 
-  @Test("Test getting application windows") mutating func testGetApplicationWindows() async throws {
+  @Test("Test getting application windows") mutating func getApplicationWindows() async throws {
     // Setup mock window
     let window1 = UIElement(
       path: "macos://ui/AXWindow[@AXTitle=\"Test Window 1\"][@AXDescription=\"Test Window 1\"]",
@@ -341,7 +341,8 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
 
     // Verify the service was called correctly
     #expect(
-      mockAccessibilityService.getApplicationUIElementCalled, "Should call getApplicationUIElement")
+      mockAccessibilityService.getApplicationUIElementCalled, "Should call getApplicationUIElement",
+    )
 
     // Parse the result JSON to verify content
     if case .text(let jsonString) = result[0] {
@@ -357,32 +358,34 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
       #expect(
         firstWindow["id"] as? String
           == "macos://ui/AXWindow[@AXTitle=\"Test Window 1\"][@AXDescription=\"Test Window 1\"]",
-        "First window should have the correct ID"
+        "First window should have the correct ID",
       )
       #expect(
         firstWindow["title"] as? String == "Test Window 1",
-        "First window should have the correct title")
+        "First window should have the correct title",
+      )
 
       // Verify second window
       let secondWindow = json[1]
       #expect(
         secondWindow["id"] as? String
           == "macos://ui/AXWindow[@AXTitle=\"Test Window 2\"][@AXDescription=\"Test Window 2\"]",
-        "Second window should have the correct ID"
+        "Second window should have the correct ID",
       )
       #expect(
         secondWindow["title"] as? String == "Test Window 2",
-        "Second window should have the correct title")
+        "Second window should have the correct title",
+      )
     } else {
       #expect(Bool(false), "Result should be text content")
     }
   }
 
-  @Test("Test getting active window") mutating func testGetActiveWindow() async throws {
+  @Test("Test getting active window") mutating func getActiveWindow() async throws {
     // Setup mock window
     let window = UIElement(
       path:
-        "macos://ui/AXWindow[@AXTitle=\"Active Window\"][@AXDescription=\"Active Test Window\"]",
+      "macos://ui/AXWindow[@AXTitle=\"Active Window\"][@AXDescription=\"Active Test Window\"]",
       role: AXAttribute.Role.window,
       title: "Active Window",
       value: nil,
@@ -430,7 +433,7 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
     // Verify the service was called correctly
     #expect(
       mockAccessibilityService.getFocusedApplicationUIElementCalled,
-      "Should call getFocusedApplicationUIElement"
+      "Should call getFocusedApplicationUIElement",
     )
 
     // Parse the result JSON to verify content
@@ -445,12 +448,14 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
       let activeWindow = json[0]
       #expect(
         activeWindow["id"] as? String
-          == "macos://ui/AXWindow[@AXTitle=\"Active Window\"][@AXDescription=\"Active Test Window\"]",
-        "Active window should have the correct ID"
+          ==
+          "macos://ui/AXWindow[@AXTitle=\"Active Window\"][@AXDescription=\"Active Test Window\"]",
+        "Active window should have the correct ID",
       )
       #expect(
         activeWindow["title"] as? String == "Active Window",
-        "Active window should have the correct title")
+        "Active window should have the correct title",
+      )
       #expect(activeWindow["isMain"] as? Bool == true, "Active window should be the main window")
     } else {
       #expect(Bool(false), "Result should be text content")
@@ -495,11 +500,14 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
     #expect(mockAccessibilityService.moveWindowCalled, "Should call moveWindow")
     #expect(
       mockAccessibilityService.moveWindowIdentifier == testWindowPath,
-      "Should use the correct window ID")
+      "Should use the correct window ID",
+    )
     #expect(
-      mockAccessibilityService.moveWindowPoint?.x == 200, "Should move to the correct x coordinate")
+      mockAccessibilityService.moveWindowPoint?.x == 200, "Should move to the correct x coordinate",
+    )
     #expect(
-      mockAccessibilityService.moveWindowPoint?.y == 300, "Should move to the correct y coordinate")
+      mockAccessibilityService.moveWindowPoint?.y == 300, "Should move to the correct y coordinate",
+    )
 
     // Use simple string contains validation instead of JSON parsing
     if case .text(let jsonString) = result[0] {
@@ -553,13 +561,16 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
     #expect(mockAccessibilityService.resizeWindowCalled, "Should call resizeWindow")
     #expect(
       mockAccessibilityService.resizeWindowIdentifier == testWindowPath,
-      "Should use the correct window ID")
+      "Should use the correct window ID",
+    )
     #expect(
-      mockAccessibilityService.resizeWindowSize?.width == 1000, "Should resize to the correct width"
+      mockAccessibilityService.resizeWindowSize?.width == 1000,
+      "Should resize to the correct width",
     )
     #expect(
       mockAccessibilityService.resizeWindowSize?.height == 800,
-      "Should resize to the correct height")
+      "Should resize to the correct height",
+    )
 
     // Use simple string contains validation instead of JSON parsing
     if case .text(let jsonString) = result[0] {
@@ -611,7 +622,8 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
     #expect(mockAccessibilityService.minimizeWindowCalled, "Should call minimizeWindow")
     #expect(
       mockAccessibilityService.minimizeWindowIdentifier == testWindowPath,
-      "Should use the correct window ID")
+      "Should use the correct window ID",
+    )
 
     // Use simple string contains validation instead of JSON parsing
     if case .text(let jsonString) = result[0] {
@@ -660,7 +672,8 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
     #expect(mockAccessibilityService.maximizeWindowCalled, "Should call maximizeWindow")
     #expect(
       mockAccessibilityService.maximizeWindowIdentifier == testWindowPath,
-      "Should use the correct window ID")
+      "Should use the correct window ID",
+    )
 
     // Use simple string contains validation instead of JSON parsing
     if case .text(let jsonString) = result[0] {
@@ -709,7 +722,8 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
     #expect(mockAccessibilityService.closeWindowCalled, "Should call closeWindow")
     #expect(
       mockAccessibilityService.closeWindowIdentifier == testWindowPath,
-      "Should use the correct window ID")
+      "Should use the correct window ID",
+    )
 
     // Use simple string contains validation instead of JSON parsing
     if case .text(let jsonString) = result[0] {
@@ -758,7 +772,8 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
     #expect(mockAccessibilityService.activateWindowCalled, "Should call activateWindow")
     #expect(
       mockAccessibilityService.activateWindowIdentifier == testWindowPath,
-      "Should use the correct window ID")
+      "Should use the correct window ID",
+    )
 
     // Use simple string contains validation instead of JSON parsing
     if case .text(let jsonString) = result[0] {
@@ -808,13 +823,16 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
     #expect(mockAccessibilityService.setWindowOrderCalled, "Should call setWindowOrder")
     #expect(
       mockAccessibilityService.setWindowOrderIdentifier == testWindowPath,
-      "Should use the correct window ID")
+      "Should use the correct window ID",
+    )
     #expect(
       mockAccessibilityService.setWindowOrderMode?.rawValue == "front",
-      "Should use the correct order mode")
+      "Should use the correct order mode",
+    )
     #expect(
       mockAccessibilityService.setWindowOrderReferenceWindowId == nil,
-      "Should not have a reference window")
+      "Should not have a reference window",
+    )
 
     // Use simple string contains validation instead of JSON parsing
     if case .text(let jsonString) = result[0] {
@@ -827,7 +845,7 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
     }
   }
 
-  @Test("Test setting window order with reference") mutating func testSetWindowOrderWithReference()
+  @Test("Test setting window order with reference") mutating func setWindowOrderWithReference()
     async throws
   {
     // Setup mock element for findElement
@@ -868,13 +886,15 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
     #expect(mockAccessibilityService.setWindowOrderCalled, "Should call setWindowOrder")
     #expect(
       mockAccessibilityService.setWindowOrderIdentifier == testWindowPath,
-      "Should use the correct window ID")
+      "Should use the correct window ID",
+    )
     #expect(
       mockAccessibilityService.setWindowOrderMode?.rawValue == "above",
-      "Should use the correct order mode")
+      "Should use the correct order mode",
+    )
     #expect(
       mockAccessibilityService.setWindowOrderReferenceWindowId == secondWindowPath,
-      "Should have the correct reference window"
+      "Should have the correct reference window",
     )
 
     // Use simple string contains validation instead of JSON parsing
@@ -884,7 +904,8 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
       #expect(jsonString.contains("\"windowId\""), "Response should include window ID")
       #expect(jsonString.contains("\"orderMode\""), "Response should include order mode")
       #expect(
-        jsonString.contains("\"referenceWindowId\""), "Response should include reference window ID")
+        jsonString.contains("\"referenceWindowId\""), "Response should include reference window ID",
+      )
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -927,7 +948,8 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
     #expect(mockAccessibilityService.focusWindowCalled, "Should call focusWindow")
     #expect(
       mockAccessibilityService.focusWindowIdentifier == testWindowPath,
-      "Should use the correct window ID")
+      "Should use the correct window ID",
+    )
 
     // Use simple string contains validation instead of JSON parsing
     if case .text(let jsonString) = result[0] {
@@ -939,7 +961,7 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
     }
   }
 
-  @Test("Test error handling") mutating func testErrorHandling() async throws {
+  @Test("Test error handling") mutating func errorHandling() async throws {
     // Setup mock element for findElement but set failure flag
     let window = UIElement(
       path: testWindowPath,
@@ -976,17 +998,17 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
     } catch let error as MCPError {
       // Verify it's the correct error type
       switch error {
-      case .internalError(let message):
-        #expect(
-          message?.contains("Test error message") ?? false,
-          "Error message should include the original error details"
-        )
-      default: #expect(Bool(false), "Wrong error type: \(error)")
+        case .internalError(let message):
+          #expect(
+            message?.contains("Test error message") ?? false,
+            "Error message should include the original error details",
+          )
+        default: #expect(Bool(false), "Wrong error type: \(error)")
       }
     } catch { #expect(Bool(false), "Unexpected error type: \(error)") }
   }
 
-  @Test("Test validation errors") mutating func testValidationErrors() async throws {
+  @Test("Test validation errors") mutating func validationErrors() async throws {
     setupTest()
     // Test missing windowId
     let params: [String: Value] = [
@@ -999,11 +1021,12 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
       #expect(Bool(false), "Should throw an error for missing windowId")
     } catch let error as MCPError {
       switch error {
-      case .invalidParams(let message):
-        #expect(
-          message?.contains("windowId is required") ?? false,
-          "Error should indicate missing windowId")
-      default: #expect(Bool(false), "Wrong error type: \(error)")
+        case .invalidParams(let message):
+          #expect(
+            message?.contains("windowId is required") ?? false,
+            "Error should indicate missing windowId",
+          )
+        default: #expect(Bool(false), "Wrong error type: \(error)")
       }
     } catch { #expect(Bool(false), "Unexpected error type: \(error)") }
 
@@ -1017,14 +1040,16 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
       #expect(Bool(false), "Should throw an error for invalid action")
     } catch let error as MCPError {
       switch error {
-      case .invalidParams(let message):
-        #expect(
-          message?.contains("Valid action is required") ?? false,
-          "Error should indicate invalid action")
-      default: #expect(Bool(false), "Wrong error type: \(error)")
+        case .invalidParams(let message):
+          #expect(
+            message?.contains("Valid action is required") ?? false,
+            "Error should indicate invalid action",
+          )
+        default: #expect(Bool(false), "Wrong error type: \(error)")
       }
     } catch { #expect(Bool(false), "Unexpected error type: \(error)") }
   }
+
   // MARK: - Helper Methods
 
   private mutating func setupTest() {

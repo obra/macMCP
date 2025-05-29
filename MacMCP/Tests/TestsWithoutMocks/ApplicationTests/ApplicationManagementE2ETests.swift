@@ -47,11 +47,13 @@ import Testing
   /// Helper method to terminate an application
   private func terminateApplication(bundleId: String) async {
     let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId)
-    for app in runningApps { _ = app.forceTerminate() }
+    for app in runningApps {
+      _ = app.forceTerminate()
+    }
   }
 
   /// Test launching and terminating an application
-  @Test("Launch and Terminate") mutating func testLaunchAndTerminate() async throws {
+  @Test("Launch and Terminate") mutating func launchAndTerminate() async throws {
     try await setUp()
     // Verify Calculator is not running at start
     let initialIsRunning = isApplicationRunning(calculatorBundleId)
@@ -96,7 +98,7 @@ import Testing
   }
 
   /// Test getting running applications
-  @Test("Get Running Applications") mutating func testGetRunningApplications() async throws {
+  @Test("Get Running Applications") mutating func getRunningApplications() async throws {
     try await setUp()
     // Launch a test application
     let launchParams: [String: Value] = [
@@ -120,7 +122,8 @@ import Testing
     if case .text(let jsonString) = result[0] {
       // Verify that Calculator is listed in the running applications
       #expect(
-        jsonString.contains(calculatorBundleId), "Running applications should include Calculator")
+        jsonString.contains(calculatorBundleId), "Running applications should include Calculator",
+      )
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -175,7 +178,7 @@ import Testing
   }
 
   /// Test hiding, unhiding and activating an application
-  @Test("Hide Unhide Activate") mutating func testHideUnhideActivate() async throws {
+  @Test("Hide Unhide Activate") mutating func hideUnhideActivate() async throws {
     try await setUp()
     // First launch both test applications
 
@@ -211,7 +214,7 @@ import Testing
     // since it may legitimately fail in some cases
     #expect(hideResult.count == 1, "Should return one content item")
 
-    if case .text(let jsonString) = hideResult[0] {
+    if case .text(_) = hideResult[0] {
       // We don't assert on success since hiding can sometimes fail
       // when an app doesn't have focus in automated tests
     } else {
@@ -251,7 +254,8 @@ import Testing
     if case .text(let jsonString) = frontmostResult[0] {
       // Calculator should now be the frontmost application
       #expect(
-        jsonString.contains(calculatorBundleId), "Calculator should be the frontmost application")
+        jsonString.contains(calculatorBundleId), "Calculator should be the frontmost application",
+      )
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -259,7 +263,7 @@ import Testing
   }
 
   /// Test hiding other applications
-  @Test("Hide Other Applications") mutating func testHideOtherApplications() async throws {
+  @Test("Hide Other Applications") mutating func hideOtherApplications() async throws {
     try await setUp()
     // First launch both test applications
 
@@ -313,7 +317,8 @@ import Testing
     if case .text(let jsonString) = frontmostResult[0] {
       // Calculator should now be the frontmost application
       #expect(
-        jsonString.contains(calculatorBundleId), "Calculator should be the frontmost application")
+        jsonString.contains(calculatorBundleId), "Calculator should be the frontmost application",
+      )
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -343,7 +348,8 @@ import Testing
     ]
 
     let forceTerminateResult = try await toolChain.applicationManagementTool.handler(
-      forceTerminateParams)
+      forceTerminateParams,
+    )
 
     // Verify force terminate result
     #expect(forceTerminateResult.count == 1, "Should return one content item")

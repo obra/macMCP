@@ -8,7 +8,8 @@ import Testing
 
 @Suite("Opaque ID Workflow Tests") struct OpaqueIDWorkflowTests {
   @Test("End-to-end opaque ID workflow") func endToEndOpaqueIDWorkflow() throws {
-    // 1. Create an EnhancedElementDescriptor with a complex path (the problematic one from the user)
+    // 1. Create an EnhancedElementDescriptor with a complex path (the problematic one from the
+    // user)
     let originalPath =
       #"macos://ui/AXApplication[@AXTitle="Calculator"][@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="All Clear"]"#
     let descriptor = EnhancedElementDescriptor(
@@ -21,7 +22,7 @@ import Testing
       props: ["Enabled", "Visible", "clickable"],
       actions: ["AXPress"],
       attributes: [:],
-      children: nil
+      children: nil,
     )
     // 2. Encode to JSON (should use opaque ID in output)
     let encoder = JSONConfiguration.encoder
@@ -44,6 +45,7 @@ import Testing
     #expect(!jsonString.contains("\\\""), "JSON should not contain escaped quotes")
     #expect(!jsonString.contains("\\/"), "JSON should not contain escaped slashes")
   }
+
   @Test("Opaque ID vs raw path JSON comparison") func opaqueIDVsRawPathComparison() throws {
     let problematicPath =
       #"macos://ui/AXApplication[@AXTitle="Calculator"][@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="All Clear"]"#
@@ -58,7 +60,7 @@ import Testing
       props: ["Enabled", "Visible", "clickable"],
       actions: ["AXPress"],
       attributes: [:],
-      children: nil
+      children: nil,
     )
     let jsonData = try JSONConfiguration.encoder.encode(descriptor)
     let jsonString = String(data: jsonData, encoding: .utf8)!

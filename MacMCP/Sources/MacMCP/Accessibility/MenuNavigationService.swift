@@ -17,14 +17,14 @@ public enum MenuNavigationError: Error, CustomStringConvertible {
 
   public var description: String {
     switch self {
-    case .menuBarNotFound: "Could not find menu bar in application"
-    case .menuItemsNotFound: "Could not find menu items in menu bar"
-    case .menuItemNotFound(let item): "Could not find menu item: \(item)"
-    case .invalidMenuPath(let path): "Invalid menu path: \(path)"
-    case .invalidMenuItemFormat: "Menu items not in expected format"
-    case .timeoutWaitingForMenu: "Timeout waiting for menu to open"
-    case .navigationFailed(let path, let error):
-      "Failed to navigate menu path: \(path), error: \(error)"
+      case .menuBarNotFound: "Could not find menu bar in application"
+      case .menuItemsNotFound: "Could not find menu items in menu bar"
+      case .menuItemNotFound(let item): "Could not find menu item: \(item)"
+      case .invalidMenuPath(let path): "Invalid menu path: \(path)"
+      case .invalidMenuItemFormat: "Menu items not in expected format"
+      case .timeoutWaitingForMenu: "Timeout waiting for menu to open"
+      case .navigationFailed(let path, let error):
+        "Failed to navigate menu path: \(path), error: \(error)"
     }
   }
 }
@@ -59,7 +59,7 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
   /// - Parameters:
   ///   - elementPath: The ElementPath URI to the menu item
   ///   - bundleId: The bundle identifier of the application (for validation)
-  public func navigateToMenuElement(elementPath: String, in bundleId: String) async throws {
+  public func navigateToMenuElement(elementPath: String, in _: String) async throws {
     // Parse and resolve the element ID (handles both opaque IDs and raw paths)
     let parsedPath = try ElementPath.parseElementId(elementPath)
     let axElement = try await accessibilityService.run {
@@ -77,7 +77,7 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
     let appElement = try await accessibilityService.getApplicationUIElement(
       bundleId: bundleId,
       recursive: true,
-      maxDepth: 3,  // We only need shallow depth for menu bar
+      maxDepth: 3, // We only need shallow depth for menu bar
     )
 
     // Find the menu bar
@@ -102,7 +102,7 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
   ///   - menuTitle: The title of the menu to get items from
   ///   - includeSubmenus: Whether to include submenus in the results
   /// - Returns: An array of menu item descriptors
-  public func getMenuItems(bundleId: String, menuTitle: String, includeSubmenus: Bool, )
+  public func getMenuItems(bundleId: String, menuTitle: String, includeSubmenus: Bool)
     async throws
     -> [MenuItemDescriptor]
   {
@@ -110,7 +110,7 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
     let appElement = try await accessibilityService.getApplicationUIElement(
       bundleId: bundleId,
       recursive: true,
-      maxDepth: 10,  // Need deeper traversal for menu items
+      maxDepth: 10, // Need deeper traversal for menu items
     )
 
     // Find the menu bar
@@ -126,7 +126,7 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
         metadata: [
           "menuTitle": .string(menuTitle),
           "availableMenus": .string(menuBar.children.compactMap(\.title).joined(separator: ", ")),
-        ]
+        ],
       )
       throw MenuNavigationError.menuItemNotFound(menuTitle)
     }
@@ -142,7 +142,7 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
       needToActivateMenu = false
       logger.info(
         "Found menu items without activation",
-        metadata: ["menuTitle": .string(menuTitle), "itemCount": .string("\(menuItems.count)")]
+        metadata: ["menuTitle": .string(menuTitle), "itemCount": .string("\(menuItems.count)")],
       )
     }
 
@@ -152,10 +152,11 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
 
       // We need to activate the menu before we can see its items
       try await accessibilityService.performAction(
-        action: "AXPress", onElementWithPath: menuBarItem.path, )
+        action: "AXPress", onElementWithPath: menuBarItem.path,
+      )
 
       // Wait for the menu to open
-      try await Task.sleep(nanoseconds: 300_000_000)  // 300ms
+      try await Task.sleep(nanoseconds: 300_000_000) // 300ms
 
       // Get a fresh view of the application after opening the menu
       let updatedAppElement = try await accessibilityService.getApplicationUIElement(
@@ -186,7 +187,8 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
 
       // Always dismiss the menu by pressing Escape
       try? await accessibilityService.performAction(
-        action: "AXCancel", onElementWithPath: updatedMenuItem.path, )
+        action: "AXCancel", onElementWithPath: updatedMenuItem.path,
+      )
     }
 
     // Convert menu items to descriptors
@@ -207,7 +209,7 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
   ///   - bundleId: The bundle identifier of the application
   ///   - elementPath: ElementPath URI to the menu item to activate (e.g. "macos://ui/...")
   /// - Returns: Boolean indicating success
-  public func activateMenuItem(bundleId: String, elementPath: String, ) async throws -> Bool {
+  public func activateMenuItem(bundleId: String, elementPath: String) async throws -> Bool {
     // Delegate to our internal method
     try await navigateToMenuElement(elementPath: elementPath, in: bundleId)
     // If we get here, the navigation was successful
@@ -232,14 +234,14 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
       if let cached = await cacheService.getHierarchy(for: bundleId) {
         logger.info(
           "Using cached menu hierarchy",
-          metadata: ["bundleId": .string(bundleId), "depth": .string("\(cached.exploredDepth)")]
+          metadata: ["bundleId": .string(bundleId), "depth": .string("\(cached.exploredDepth)")],
         )
         return cached
       }
     }
     logger.info(
       "Building complete menu hierarchy",
-      metadata: ["bundleId": .string(bundleId), "maxDepth": .string("\(validDepth)")]
+      metadata: ["bundleId": .string(bundleId), "maxDepth": .string("\(validDepth)")],
     )
     // Build hierarchy from scratch
     let hierarchy = try await buildMenuHierarchy(bundleId: bundleId, maxDepth: validDepth)
@@ -266,13 +268,13 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
       metadata: [
         "bundleId": .string(bundleId), "menuPath": .string(menuPath),
         "components": .string("\(pathComponents.count)"),
-      ]
+      ],
     )
     // Navigate to the menu item and build its details
     return try await navigateAndBuildMenuItem(
       bundleId: bundleId,
       pathComponents: pathComponents,
-      includeSubmenus: includeSubmenus
+      includeSubmenus: includeSubmenus,
     )
   }
 
@@ -287,7 +289,7 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
     }
     logger.info(
       "Activating menu item by path",
-      metadata: ["bundleId": .string(bundleId), "menuPath": .string(menuPath)]
+      metadata: ["bundleId": .string(bundleId), "menuPath": .string(menuPath)],
     )
     // Try to resolve path using cached hierarchy first
     if let cached = await cacheService.getHierarchy(for: bundleId) {
@@ -325,7 +327,7 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
     let appElement = try await accessibilityService.getApplicationUIElement(
       bundleId: bundleId,
       recursive: true,
-      maxDepth: 3
+      maxDepth: 3,
     )
     guard let menuBar = appElement.children.first(where: { $0.role == "AXMenuBar" }) else {
       throw MenuNavigationError.menuBarNotFound
@@ -342,16 +344,19 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
         menuBarItem: menuBarItem,
         parentPath: menuTitle,
         currentDepth: 1,
-        maxDepth: maxDepth
+        maxDepth: maxDepth,
       )
-      for item in menuItems { menuPaths.append(contentsOf: item.allDescendantPaths) }
+      for item in menuItems {
+        menuPaths.append(contentsOf: item.allDescendantPaths)
+      }
       if !menuPaths.isEmpty {
         allMenus[menuTitle] = menuPaths
         totalItems += menuPaths.count
       }
     }
     return MenuHierarchy(
-      application: bundleId, menus: allMenus, totalItems: totalItems, exploredDepth: maxDepth)
+      application: bundleId, menus: allMenus, totalItems: totalItems, exploredDepth: maxDepth,
+    )
   }
 
   /// Recursively explore menu items using non-intrusive approach (like InterfaceExplorerTool)
@@ -367,14 +372,14 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
     menuBarItem: UIElement,
     parentPath: String,
     currentDepth: Int,
-    maxDepth: Int
+    maxDepth: Int,
   ) async throws -> [CompactMenuItem] {
     guard currentDepth <= maxDepth else { return [] }
     // Use non-intrusive approach - get full accessibility tree like InterfaceExplorerTool does
     let appElement = try await accessibilityService.getApplicationUIElement(
       bundleId: bundleId,
       recursive: true,
-      maxDepth: 15  // Deep enough to capture menu structure
+      maxDepth: 15, // Deep enough to capture menu structure
     )
     // Find the menu bar
     guard let menuBar = appElement.children.first(where: { $0.role == "AXMenuBar" }) else {
@@ -384,21 +389,21 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
     guard let targetMenuItem = menuBar.children.first(where: { $0.title == menuBarItem.title })
     else { return [] }
     // Look for menu children in the accessibility tree (without physical activation)
-    let menuItems = targetMenuItem.children.filter { $0.role == "AXMenu" }.flatMap { $0.children }
+    let menuItems = targetMenuItem.children.filter { $0.role == "AXMenu" }.flatMap(\.children)
     var compactItems: [CompactMenuItem] = []
     // Process each menu item and filter out non-actionable items
     for menuItem in menuItems where isActionableMenuItem(menuItem) {
       let itemPath = MenuPathResolver.buildPath(from: [parentPath, menuItem.title ?? ""])
-      var children: [CompactMenuItem]? = nil
+      var children: [CompactMenuItem]?
       let hasSubmenu = menuItem.children.contains { $0.role == "AXMenu" }
       // Recursively explore submenus if we haven't reached max depth
-      if hasSubmenu && currentDepth < maxDepth {
+      if hasSubmenu, currentDepth < maxDepth {
         children = try await exploreSubmenuItems(
           bundleId: bundleId,
           menuItem: menuItem,
           parentPath: itemPath,
           currentDepth: currentDepth + 1,
-          maxDepth: maxDepth
+          maxDepth: maxDepth,
         )
       }
       let compactItem = CompactMenuItem(
@@ -408,7 +413,7 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
         shortcut: extractShortcut(from: menuItem),
         hasSubmenu: hasSubmenu,
         children: children,
-        elementPath: menuItem.path
+        elementPath: menuItem.path,
       )
       compactItems.append(compactItem)
     }
@@ -421,8 +426,8 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
   private func isActionableMenuItem(_ menuItem: UIElement) -> Bool {
     // Filter out separators and dividers based on role
     let nonActionableRoles = [
-      "AXSeparator", "AXDivider", "AXMenuSeparator", "AXGroup",  // Often used for visual grouping
-      "AXUnknown",  // Unknown elements are usually not actionable
+      "AXSeparator", "AXDivider", "AXMenuSeparator", "AXGroup", // Often used for visual grouping
+      "AXUnknown", // Unknown elements are usually not actionable
     ]
     if nonActionableRoles.contains(menuItem.role) { return false }
     // Filter out items with empty or separator-like titles
@@ -430,12 +435,12 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
       let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
       // Common separator patterns
       let separatorPatterns = [
-        "",  // Empty title
-        "-",  // Single dash
-        "—",  // Em dash
-        "–",  // En dash
-        "___",  // Underscores
-        "...",  // Ellipsis-only items are usually placeholders
+        "", // Empty title
+        "-", // Single dash
+        "—", // Em dash
+        "–", // En dash
+        "___", // Underscores
+        "...", // Ellipsis-only items are usually placeholders
       ]
       if separatorPatterns.contains(trimmedTitle)
         || trimmedTitle.allSatisfy({ $0 == "-" || $0 == "_" || $0 == " " })
@@ -444,7 +449,7 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
       }
     }
     // Items without titles that aren't clearly actionable are likely separators
-    if (menuItem.title?.isEmpty ?? true) && menuItem.role != "AXMenuItem" { return false }
+    if menuItem.title?.isEmpty ?? true, menuItem.role != "AXMenuItem" { return false }
     return true
   }
 
@@ -461,25 +466,25 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
     menuItem: UIElement,
     parentPath: String,
     currentDepth: Int,
-    maxDepth: Int
+    maxDepth: Int,
   ) async throws -> [CompactMenuItem] {
     guard currentDepth <= maxDepth else { return [] }
     // Look for submenu children in the current accessibility tree
-    let submenuItems = menuItem.children.filter { $0.role == "AXMenu" }.flatMap { $0.children }
+    let submenuItems = menuItem.children.filter { $0.role == "AXMenu" }.flatMap(\.children)
     var compactItems: [CompactMenuItem] = []
     // Process each submenu item and filter out non-actionable items
     for subMenuItem in submenuItems where isActionableMenuItem(subMenuItem) {
       let itemPath = MenuPathResolver.buildPath(from: [parentPath, subMenuItem.title ?? ""])
-      var children: [CompactMenuItem]? = nil
+      var children: [CompactMenuItem]?
       let hasSubmenu = subMenuItem.children.contains { $0.role == "AXMenu" }
       // Recursively explore deeper submenus if we haven't reached max depth
-      if hasSubmenu && currentDepth < maxDepth {
+      if hasSubmenu, currentDepth < maxDepth {
         children = try await exploreSubmenuItems(
           bundleId: bundleId,
           menuItem: subMenuItem,
           parentPath: itemPath,
           currentDepth: currentDepth + 1,
-          maxDepth: maxDepth
+          maxDepth: maxDepth,
         )
       }
       let compactItem = CompactMenuItem(
@@ -489,7 +494,7 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
         shortcut: extractShortcut(from: subMenuItem),
         hasSubmenu: hasSubmenu,
         children: children,
-        elementPath: subMenuItem.path
+        elementPath: subMenuItem.path,
       )
       compactItems.append(compactItem)
     }
@@ -503,7 +508,7 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
   ///   - includeSubmenus: Whether to include submenus
   /// - Returns: Compact menu item
   private func navigateAndBuildMenuItem(
-    bundleId: String, pathComponents: [String], includeSubmenus: Bool
+    bundleId: String, pathComponents: [String], includeSubmenus: Bool,
   )
     async throws -> CompactMenuItem
   {
@@ -514,7 +519,7 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
     let menuItems = try await getMenuItems(
       bundleId: bundleId,
       menuTitle: topLevelMenu,
-      includeSubmenus: includeSubmenus
+      includeSubmenus: includeSubmenus,
     )
     if pathComponents.count == 1 {
       // Return the top-level menu as a CompactMenuItem
@@ -530,16 +535,17 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
             enabled: descriptor.isEnabled,
             shortcut: descriptor.shortcut,
             hasSubmenu: descriptor.hasSubmenu,
-            elementPath: descriptor.id
+            elementPath: descriptor.id,
           )
         },
-        elementPath: topLevelMenu
+        elementPath: topLevelMenu,
       )
     } else {
       // Find the specific menu item in the hierarchy
       let targetTitle = pathComponents[1]
       guard
-        let foundItem = menuItems.first(where: { $0.title == targetTitle || $0.name == targetTitle }
+        let foundItem = menuItems.first(
+          where: { $0.title == targetTitle || $0.name == targetTitle },
         )
       else {
         throw MenuNavigationError.menuItemNotFound(targetTitle)
@@ -550,7 +556,7 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
         enabled: foundItem.isEnabled,
         shortcut: foundItem.shortcut,
         hasSubmenu: foundItem.hasSubmenu,
-        elementPath: foundItem.id
+        elementPath: foundItem.id,
       )
     }
   }
@@ -570,7 +576,8 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
     // Use existing logic to get menu items and find the target
     let topLevelMenu = pathComponents[0]
     let menuItems = try await getMenuItems(
-      bundleId: bundleId, menuTitle: topLevelMenu, includeSubmenus: false)
+      bundleId: bundleId, menuTitle: topLevelMenu, includeSubmenus: false,
+    )
     let targetTitle = pathComponents[1]
     guard
       let targetItem = menuItems.first(where: { $0.title == targetTitle || $0.name == targetTitle })

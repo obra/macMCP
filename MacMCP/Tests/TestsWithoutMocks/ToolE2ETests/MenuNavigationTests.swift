@@ -37,13 +37,14 @@ private struct TextEditAppInfo {
     let frontmost = try await getFrontmostApp()
     #expect(frontmost?.bundleId == "com.apple.TextEdit")
   }
+
   // Shared teardown method
   private mutating func tearDown() async throws {
     if helper != nil { _ = try await helper.closeWindowAndDiscardChanges() }
   }
 
   /// Test basic menu navigation: open a new document and close it
-  @Test("Menu Navigation Basic Operations") mutating func testMenuNavigationBasic() async throws {
+  @Test("Menu Navigation Basic Operations") mutating func menuNavigationBasic() async throws {
     try await setUp()
     // Get initial count of windows
     let initialWindows = try await getTextEditWindowCount()
@@ -65,7 +66,8 @@ private struct TextEditAppInfo {
       // Verify a new window was opened
       #expect(
         afterOpenWindows == initialWindows + 1,
-        "Opening a new document should increase window count by 1")
+        "Opening a new document should increase window count by 1",
+      )
 
       // Only try to close if we verified window count increased
       if afterOpenWindows == initialWindows + 1 {
@@ -82,7 +84,7 @@ private struct TextEditAppInfo {
         // Verify the window was closed
         #expect(
           afterCloseWindows == initialWindows,
-          "Closing the document should return to initial window count"
+          "Closing the document should return to initial window count",
         )
       }
     }
@@ -113,11 +115,11 @@ private struct TextEditAppInfo {
 
     // Parse the response to get application info
     if let content = result.first, case .text(let text) = content {
-
       // Extract application info from the JSON response
       if let data = text.data(using: .utf8),
-        let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-        let bundleId = json["bundleId"] as? String, let appName = json["applicationName"] as? String
+         let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+         let bundleId = json["bundleId"] as? String,
+         let appName = json["applicationName"] as? String
       {
         return TextEditAppInfo(bundleId: bundleId, applicationName: appName)
       }
@@ -138,10 +140,9 @@ private struct TextEditAppInfo {
 
     // Extract window count from result
     if let content = result.first, case .text(let text) = content {
-
       // Parse the JSON for window information
       if let data = text.data(using: .utf8),
-        let json = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]
+         let json = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]
       {
         // The result directly contains an array of window descriptors
         return json.count

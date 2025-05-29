@@ -59,12 +59,12 @@ public enum ServerInfo: MCP.Method {
     public let platform: String
 
     /// Operating system information
-    public let os: String
+    public let operatingSystem: String
 
     /// Create new server info details
-    public init(platform: String, os: String) {
+    public init(platform: String, os operatingSystem: String) {
       self.platform = platform
-      self.os = os
+      self.operatingSystem = operatingSystem
     }
   }
 }

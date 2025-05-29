@@ -84,13 +84,13 @@ import Testing
         action: "click",
         targetId: "button-123",
         success: true,
-      )
+      ),
     )
 
     logService.addLogEntry(
       ActionLogEntry(
         timestamp: Date(), category: "screenshot", action: "capture", targetId: nil, success: true,
-      )
+      ),
     )
 
     // Retrieve filtered logs by category
@@ -126,7 +126,7 @@ import Testing
         action: "click",
         targetId: "button-123",
         success: true,
-      )
+      ),
     )
 
     logService.addLogEntry(
@@ -136,7 +136,7 @@ import Testing
         action: "type",
         targetId: "textfield-456",
         success: true,
-      )
+      ),
     )
 
     // Retrieve filtered logs by action
@@ -177,7 +177,7 @@ import Testing
         action: "click",
         targetId: "old-button",
         success: true,
-      )
+      ),
     )
 
     logService.addLogEntry(
@@ -187,7 +187,7 @@ import Testing
         action: "click",
         targetId: "new-button",
         success: true,
-      )
+      ),
     )
 
     // Retrieve filtered logs by time range (last minute)
@@ -287,7 +287,7 @@ struct ActionLogTool: @unchecked Sendable {
     let since = params?["since"]?.intValue.map { Date(timeIntervalSince1970: TimeInterval($0)) }
 
     // Get filtered logs
-    let logs = logService.getLogs(limit: limit, category: category, action: action, since: since, )
+    let logs = logService.getLogs(limit: limit, category: category, action: action, since: since)
 
     // Convert to JSON
     let encoder = JSONEncoder()

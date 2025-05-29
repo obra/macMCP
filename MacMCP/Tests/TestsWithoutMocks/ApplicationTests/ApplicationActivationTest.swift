@@ -29,6 +29,7 @@ struct ApplicationInfo {
     // Wait briefly to ensure cleanup is complete
     try await Task.sleep(for: .milliseconds(1000))
   }
+
   // Shared teardown method
   private mutating func tearDown() async throws {
     // Clean up - terminate grapher if it's still running
@@ -38,7 +39,7 @@ struct ApplicationInfo {
   }
 
   /// Basic test for application launch and activation flow
-  @Test("Basic App Activation") mutating func testBasicAppActivation() async throws {
+  @Test("Basic App Activation") mutating func basicAppActivation() async throws {
     try await setUp()
     // Launch grapher
     let launchSuccess = try await launchApp(bundleId: "com.apple.grapher")
@@ -62,7 +63,8 @@ struct ApplicationInfo {
     let frontmostAfterSwitch = try await getFrontmostApp()
     #expect(
       frontmostAfterSwitch?.bundleId == "com.apple.finder",
-      "Finder should be frontmost after activation")
+      "Finder should be frontmost after activation",
+    )
 
     // Switch back to grapher
     let switchBackSuccess = try await activateApp(bundleId: "com.apple.grapher")
@@ -76,7 +78,7 @@ struct ApplicationInfo {
 
     #expect(
       frontmostAfterSwitchBack?.bundleId == "com.apple.grapher",
-      "grapher should be frontmost after activation"
+      "grapher should be frontmost after activation",
     )
 
     // Test window counting with WindowManagementTool
@@ -146,8 +148,9 @@ struct ApplicationInfo {
     if let content = result.first, case .text(let text) = content {
       // Extract application info from the JSON response
       if let data = text.data(using: .utf8),
-        let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-        let bundleId = json["bundleId"] as? String, let appName = json["applicationName"] as? String
+         let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+         let bundleId = json["bundleId"] as? String,
+         let appName = json["applicationName"] as? String
       {
         return ApplicationInfo(bundleId: bundleId, applicationName: appName)
       }
@@ -170,7 +173,7 @@ struct ApplicationInfo {
     if let content = result.first, case .text(let text) = content {
       // Parse the JSON for window information
       if let data = text.data(using: .utf8),
-        let json = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]
+         let json = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]]
       {
         // The result directly contains an array of window descriptors
         return json.count

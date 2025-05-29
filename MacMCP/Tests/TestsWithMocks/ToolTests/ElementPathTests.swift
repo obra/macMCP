@@ -2,7 +2,8 @@
 // ABOUTME: Part of MacMCP allowing LLMs to interact with macOS applications.
 
 import AppKit
-// TODO - remove mock diagnostic output and the key canonnicaliation for the non-ax versions
+
+// TODO: - remove mock diagnostic output and the key canonnicaliation for the non-ax versions
 import Foundation
 import MacMCPUtilities
 import Testing
@@ -30,7 +31,7 @@ import Testing
     #expect(simpleSegment.toString() == "AXButton")
 
     // Segment with attributes
-    let attributeSegment = PathSegment(role: "AXButton", attributes: ["AXName": "Test Button"], )
+    let attributeSegment = PathSegment(role: "AXButton", attributes: ["AXName": "Test Button"])
     #expect(attributeSegment.toString() == "AXButton[@AXName=\"Test Button\"]")
 
     // Segment with multiple attributes (should be sorted alphabetically)
@@ -40,20 +41,21 @@ import Testing
     )
     #expect(
       multiAttributeSegment.toString()
-        == "AXButton[@AXDescription=\"A test button\"][@AXName=\"Test Button\"]"
+        == "AXButton[@AXDescription=\"A test button\"][@AXName=\"Test Button\"]",
     )
 
     // Segment with index
-    let indexSegment = PathSegment(role: "AXButton", index: 2, )
+    let indexSegment = PathSegment(role: "AXButton", index: 2)
     #expect(indexSegment.toString() == "AXButton#2")
 
     // Segment with attributes and index
-    let fullSegment = PathSegment(role: "AXButton", attributes: ["name": "Test Button"], index: 2, )
+    let fullSegment = PathSegment(role: "AXButton", attributes: ["name": "Test Button"], index: 2)
     #expect(fullSegment.toString() == "AXButton[@name=\"Test Button\"]#2")
 
     // Test escaping quotes in attribute values
     let escapedSegment = PathSegment(
-      role: "AXButton", attributes: ["AXName": "Button with \"quotes\""], )
+      role: "AXButton", attributes: ["AXName": "Button with \"quotes\""],
+    )
     #expect(escapedSegment.toString() == "AXButton[@AXName=\"Button with \\\"quotes\\\"\"]")
   }
 
@@ -97,7 +99,8 @@ import Testing
 
     #expect(
       pathString
-        == "macos://ui/AXWindow/AXGroup[@AXName=\"Controls\"]/AXButton[@AXDescription=\"Submit\"]")
+        == "macos://ui/AXWindow/AXGroup[@AXName=\"Controls\"]/AXButton[@AXDescription=\"Submit\"]",
+    )
   }
 
   @Test("ElementPath parsing simple path") func elementPathParsing() throws {
@@ -136,6 +139,7 @@ import Testing
     // The canonical format should definitely work
     #expect(ElementPath.isElementPath(unescapedPath) == true)
   }
+
   @Test("ElementPath parsing with different slash formats")
   func elementPathParsingWithDifferentSlashFormats() throws {
     // Test what actually parses vs throws errors
@@ -236,13 +240,15 @@ import Testing
     // The key test: Both should produce the SAME attribute values
     #expect(
       pathUnescaped.segments[0].attributes["AXTitle"]
-        == pathEscaped.segments[0].attributes["AXTitle"])
+        == pathEscaped.segments[0].attributes["AXTitle"],
+    )
     #expect(
       pathUnescaped.segments[0].attributes["bundleId"]
-        == pathEscaped.segments[0].attributes["bundleId"])
+        == pathEscaped.segments[0].attributes["bundleId"],
+    )
     #expect(
       pathUnescaped.segments[1].attributes["AXDescription"]
-        == pathEscaped.segments[1].attributes["AXDescription"]
+        == pathEscaped.segments[1].attributes["AXDescription"],
     )
     // Both should contain the plain value without quotes
     #expect(pathUnescaped.segments[0].attributes["AXTitle"] == "Calculator")
@@ -332,7 +338,8 @@ import Testing
       // Step 2: Regenerate path string from parsed path
       let regeneratedPath = parsedPath.toString()
       #expect(regeneratedPath == originalPath, "Initial round-trip failed for: \(originalPath)")
-      // Step 3: Try to resolve the path (this may fail for some test paths, but parsing should work)
+      // Step 3: Try to resolve the path (this may fail for some test paths, but parsing should
+      // work)
       let resolveResult = mockResolvePathForTest(service: mockService, path: parsedPath)
       if resolveResult != nil {
         // Resolution succeeded - test that we can parse the regenerated path again
@@ -350,7 +357,8 @@ import Testing
 
   @Test("Round-trip with complex attribute combinations") func roundTripComplexAttributes() throws {
     // Test round-trip with various attribute combinations and index placements
-    // NOTE: Attributes will be sorted alphabetically during generation, so we use expected sorted forms
+    // NOTE: Attributes will be sorted alphabetically during generation, so we use expected sorted
+    // forms
     let complexPaths = [
       // Multiple attributes with index (sorted: AXTitle comes before bundleId)
       "macos://ui/AXApplication[@AXTitle=\"Test App\"][@bundleId=\"com.test\"]/AXWindow#2",
@@ -373,7 +381,8 @@ import Testing
         let segmentString = segment.toString()
         // This indirectly tests that the segment can be parsed back if needed
         #expect(
-          !segmentString.isEmpty, "Segment \(i) generated empty string for path: \(originalPath)")
+          !segmentString.isEmpty, "Segment \(i) generated empty string for path: \(originalPath)",
+        )
       }
     }
   }
@@ -400,14 +409,15 @@ import Testing
     // All different input orders should produce the same normalized output
     #expect(
       normalizedResults[0] == normalizedResults[1],
-      "Different attribute orders should normalize to same result"
+      "Different attribute orders should normalize to same result",
     )
     // The normalized result should have attributes in alphabetical order
     let expectedNormalized =
       "macos://ui/AXApplication[@AXTitle=\"Test App\"][@bundleId=\"com.test\"]"
     #expect(
       normalizedResults[0] == expectedNormalized,
-      "Normalized result should be alphabetically sorted")
+      "Normalized result should be alphabetically sorted",
+    )
   }
 
   @Test("Original user failing scenario - Calculator button click")
@@ -503,7 +513,11 @@ import Testing
 
   @Test("ElementPath isElementPath check") func testIsElementPath() {
     #expect(ElementPath.isElementPath("macos://ui/AXWindow/AXGroup/AXButton") == true)
-    #expect(ElementPath.isElementPath("macos://ui/") == true)  // Empty path is still an element path (will fail on parse)
+    #expect(
+      ElementPath
+        .isElementPath("macos://ui/") ==
+        true,
+    ) // Empty path is still an element path (will fail on parse)
     #expect(ElementPath.isElementPath("somestring") == false)
     #expect(ElementPath.isElementPath("") == false)
   }
@@ -580,7 +594,7 @@ import Testing
       )
     }
 
-    func getApplicationUIElement(bundleId _: String, recursive _: Bool, maxDepth _: Int, )
+    func getApplicationUIElement(bundleId _: String, recursive _: Bool, maxDepth _: Int)
       async throws -> UIElement
     {
       UIElement(
@@ -602,7 +616,7 @@ import Testing
       )
     }
 
-    func getUIElementAtPosition(position _: CGPoint, recursive _: Bool, maxDepth _: Int, )
+    func getUIElementAtPosition(position _: CGPoint, recursive _: Bool, maxDepth _: Int)
       async throws
       -> UIElement?
     {
@@ -631,7 +645,7 @@ import Testing
       elementTypes _: [String]?,
       scope _: UIElementScope,
       recursive _: Bool,
-      maxDepth _: Int
+      maxDepth _: Int,
     ) async throws -> [UIElement] { [] }
 
     func findElements(withRole _: String, recursive _: Bool, maxDepth _: Int) async throws
@@ -674,7 +688,7 @@ import Testing
       // No-op for tests
     }
 
-    func getChildElements(forElement _: AXUIElement, recursive _: Bool, maxDepth _: Int, )
+    func getChildElements(forElement _: AXUIElement, recursive _: Bool, maxDepth _: Int)
       async throws
       -> [UIElement]
     { [] }
@@ -694,7 +708,7 @@ import Testing
 
     func isApplicationRunning(withTitle _: String) -> Bool { false }
 
-    func waitForElementByPath(_: String, timeout _: TimeInterval, pollInterval _: TimeInterval, )
+    func waitForElementByPath(_: String, timeout _: TimeInterval, pollInterval _: TimeInterval)
       async throws
       -> UIElement
     {
@@ -775,14 +789,14 @@ import Testing
     let contentArea = MockAXUIElement(
       role: "AXScrollArea",
       attributes: ["AXDescription": "Content area"],
-      children: [MockAXUIElement(role: "AXStaticText", attributes: ["AXValue": "Hello World"], )],
+      children: [MockAXUIElement(role: "AXStaticText", attributes: ["AXValue": "Hello World"])],
     )
 
     let duplicateGroup1 = MockAXUIElement(
       role: "AXGroup",
       attributes: ["AXTitle": "Duplicate", "AXIdentifier": "group1"],
       children: [
-        MockAXUIElement(role: "AXCheckBox", attributes: ["AXTitle": "Option 1", "AXValue": 1], )
+        MockAXUIElement(role: "AXCheckBox", attributes: ["AXTitle": "Option 1", "AXValue": 1]),
       ],
     )
 
@@ -790,7 +804,7 @@ import Testing
       role: "AXGroup",
       attributes: ["AXTitle": "Duplicate", "AXIdentifier": "group2"],
       children: [
-        MockAXUIElement(role: "AXCheckBox", attributes: ["AXTitle": "Option 2", "AXValue": 0], )
+        MockAXUIElement(role: "AXCheckBox", attributes: ["AXTitle": "Option 2", "AXValue": 0]),
       ],
     )
 
@@ -856,22 +870,25 @@ import Testing
     let pathHighIndex = try ElementPath.parse(pathStringHighIndex)
 
     let highIndexError = mockResolvePathWithExceptionForTest(
-      service: mockService, path: pathHighIndex)
+      service: mockService, path: pathHighIndex,
+    )
     #expect(highIndexError != nil)
     if case .indexOutOfRange(let index, let availableCount, let segmentIndex)? = highIndexError {
       #expect(index == 5)
-      #expect(availableCount == 2)  // We have 2 duplicate groups in mock hierarchy
+      #expect(availableCount == 2) // We have 2 duplicate groups in mock hierarchy
       #expect(segmentIndex == 1)
     } else {
       #expect(
-        Bool(false), "Expected indexOutOfRange error but got \(String(describing: highIndexError))")
+        Bool(false), "Expected indexOutOfRange error but got \(String(describing: highIndexError))",
+      )
     }
     // Test with negative index
     let pathStringNegativeIndex = "macos://ui/AXWindow/AXGroup[@AXTitle=\"Duplicate\"]#-1"
     let pathNegativeIndex = try ElementPath.parse(pathStringNegativeIndex)
 
     let negativeIndexError = mockResolvePathWithExceptionForTest(
-      service: mockService, path: pathNegativeIndex)
+      service: mockService, path: pathNegativeIndex,
+    )
     #expect(negativeIndexError != nil)
     if case .indexOutOfRange(let index, let availableCount, let segmentIndex)? = negativeIndexError
     {
@@ -881,7 +898,8 @@ import Testing
     } else {
       #expect(
         Bool(false),
-        "Expected indexOutOfRange error but got \(String(describing: negativeIndexError))")
+        "Expected indexOutOfRange error but got \(String(describing: negativeIndexError))",
+      )
     }
   }
 
@@ -951,7 +969,7 @@ import Testing
     let ambiguousError = ElementPathError.ambiguousMatchNoIndex(
       "AXButton[@AXTitle=\"Save\"]",
       matchCount: 4,
-      atSegment: 3
+      atSegment: 3,
     )
     let expectedAmbiguous =
       "Ambiguous match at segment 3: 4 elements match 'AXButton[@AXTitle=\"Save\"]' but no index specified. Use #0, #1, #2, etc. to select a specific element."
@@ -1013,7 +1031,8 @@ import Testing
               String(describing: elementValue)
             }
 
-          // The matching logic is built into mockAttributeMatches and doesn't need the type explicitly
+          // The matching logic is built into mockAttributeMatches and doesn't need the type
+          // explicitly
           let doesMatch = mockAttributeMatches(expected: value, actual: elementValueString)
 
           if doesMatch {
@@ -1069,7 +1088,7 @@ import Testing
     // Create test elements and check if they match
 
     // Element with title
-    let buttonWithTitle = MockAXUIElement(role: "AXButton", attributes: ["AXTitle": "OK Button"], )
+    let buttonWithTitle = MockAXUIElement(role: "AXButton", attributes: ["AXTitle": "OK Button"])
 
     // Check exact match
     let exactPathSegment = PathSegment(role: "AXButton", attributes: ["AXTitle": "OK Button"])
@@ -1095,7 +1114,8 @@ import Testing
     // Test ambiguous match with enhanced error
     let ambiguousPath = try ElementPath.parse("macos://ui/AXWindow/AXGroup[@AXTitle=\"Duplicate\"]")
     let ambiguousError = mockResolvePathWithExceptionForTest(
-      service: mockService, path: ambiguousPath)
+      service: mockService, path: ambiguousPath,
+    )
     #expect(ambiguousError != nil)
 
     if case .ambiguousMatchNoIndex(let segment, let matchCount, let segmentIndex)? = ambiguousError
@@ -1106,13 +1126,15 @@ import Testing
     } else {
       #expect(
         Bool(false),
-        "Expected ambiguousMatchNoIndex error but got \(String(describing: ambiguousError))")
+        "Expected ambiguousMatchNoIndex error but got \(String(describing: ambiguousError))",
+      )
     }
 
     // Test no matching elements with enhanced error
     let nonExistentPath = try ElementPath.parse("macos://ui/AXWindow/AXNonExistentElement")
     let nonExistentError = mockResolvePathWithExceptionForTest(
-      service: mockService, path: nonExistentPath)
+      service: mockService, path: nonExistentPath,
+    )
     #expect(nonExistentError != nil)
 
     if case .noMatchingElements(let message, let atSegment)? = nonExistentError {
@@ -1121,7 +1143,8 @@ import Testing
     } else {
       #expect(
         Bool(false),
-        "Expected noMatchingElements error but got \(String(describing: nonExistentError))")
+        "Expected noMatchingElements error but got \(String(describing: nonExistentError))",
+      )
     }
   }
 
@@ -1144,7 +1167,7 @@ import Testing
   }
 
   // Internal implementation that throws errors
-  private func mockResolvePathInternal(service: MockAccessibilityService, path: ElementPath, )
+  private func mockResolvePathInternal(service: MockAccessibilityService, path: ElementPath)
     throws
     -> MockAXUIElement
   {
@@ -1173,13 +1196,13 @@ import Testing
       if matches.isEmpty {
         throw ElementPathError.noMatchingElements(
           "No children match segment: \(segment.toString())",
-          atSegment: index
+          atSegment: index,
         )
       } else if matches.count > 1, segment.index == nil {
         throw ElementPathError.ambiguousMatchNoIndex(
           segment.toString(),
           matchCount: matches.count,
-          atSegment: index
+          atSegment: index,
         )
       } else {
         if let segmentIndex = segment.index {
@@ -1188,7 +1211,7 @@ import Testing
             throw ElementPathError.indexOutOfRange(
               segmentIndex,
               availableCount: matches.count,
-              atSegment: index
+              atSegment: index,
             )
           }
           current = matches[segmentIndex]
@@ -1250,9 +1273,10 @@ import Testing
       // Create children for this level
       var children: [MockAXUIElement] = []
 
-      for _ in 0..<breadth {
+      for _ in 0 ..< breadth {
         children.append(
-          createDeepHierarchy(depth: depth, breadth: breadth, currentDepth: currentDepth + 1, ))
+          createDeepHierarchy(depth: depth, breadth: breadth, currentDepth: currentDepth + 1),
+        )
       }
 
       // Create a group at this level
@@ -1297,48 +1321,48 @@ import Testing
 
     // Create a simple mock diagnostic result for testing
     let mockDiagnosticOutput = """
-      Path Resolution Diagnosis for: \(pathString)
-      ================================================================================
+    Path Resolution Diagnosis for: \(pathString)
+    ================================================================================
 
-      Path syntax validation: ✅ No syntax warnings
+    Path syntax validation: ✅ No syntax warnings
 
-      ✅ Successfully resolved application element
+    ✅ Successfully resolved application element
 
-      Segment 1: AXWindow
-      ✅ One child matches this segment
-        Match details: role=AXWindow, AXTitle="Main Window"
+    Segment 1: AXWindow
+    ✅ One child matches this segment
+      Match details: role=AXWindow, AXTitle="Main Window"
 
-      Segment 2: AXGroup[@AXTitle="Controls"]
-      ✅ One child matches this segment
-        Match details: role=AXGroup, AXTitle="Controls"
+    Segment 2: AXGroup[@AXTitle="Controls"]
+    ✅ One child matches this segment
+      Match details: role=AXGroup, AXTitle="Controls"
 
-      Segment 3: AXButton[@AXTitle="OK"]
-      ❌ No children match this segment
-      Available children (sample):
-        Child 0: role=AXButton, AXTitle="Cancel"
-          ⚠️ This child has the right role but didn't match other criteria
-          - Attribute AXTitle: actual="Cancel", expected="OK" ❌ NO MATCH
-        Child 1: role=AXButton, AXTitle="Apply"
-          ⚠️ This child has the right role but didn't match other criteria
-          - Attribute AXTitle: actual="Apply", expected="OK" ❌ NO MATCH
-        Child 2: role=AXTextField, AXValue="Input text"
+    Segment 3: AXButton[@AXTitle="OK"]
+    ❌ No children match this segment
+    Available children (sample):
+      Child 0: role=AXButton, AXTitle="Cancel"
+        ⚠️ This child has the right role but didn't match other criteria
+        - Attribute AXTitle: actual="Cancel", expected="OK" ❌ NO MATCH
+      Child 1: role=AXButton, AXTitle="Apply"
+        ⚠️ This child has the right role but didn't match other criteria
+        - Attribute AXTitle: actual="Apply", expected="OK" ❌ NO MATCH
+      Child 2: role=AXTextField, AXValue="Input text"
 
-      Possible solutions:
-        1. Check if the role is correct (case-sensitive: AXButton)
-        2. Verify attribute names and values match exactly
-        3. Consider using the mcp-ax-inspector tool to see the exact element structure
-        4. Try simplifying the path or using an index if there are many similar elements
+    Possible solutions:
+      1. Check if the role is correct (case-sensitive: AXButton)
+      2. Verify attribute names and values match exactly
+      3. Consider using the mcp-ax-inspector tool to see the exact element structure
+      4. Try simplifying the path or using an index if there are many similar elements
 
-      Final result: ❌ Failed to resolve complete path
-      Try using the mcp-ax-inspector tool to examine the actual UI hierarchy
-      """
+    Final result: ❌ Failed to resolve complete path
+    Try using the mcp-ax-inspector tool to examine the actual UI hierarchy
+    """
 
     // Test that our diagnostic output has the expected format sections
     // These checks focus on the content format, not actual resolution
     #expect(mockDiagnosticOutput.contains("Path Resolution Diagnosis for:"))
     #expect(
       mockDiagnosticOutput.contains(
-        "================================================================================"
+        "================================================================================",
       ),
     )
 
@@ -1350,7 +1374,8 @@ import Testing
 
     // Check for the enhanced diagnostic information we added
     #expect(
-      mockDiagnosticOutput.contains("This child has the right role but didn't match other criteria")
+      mockDiagnosticOutput
+        .contains("This child has the right role but didn't match other criteria"),
     )
     #expect(mockDiagnosticOutput.contains("actual="))
     #expect(mockDiagnosticOutput.contains("expected="))
@@ -1428,7 +1453,7 @@ import Testing
 
     #expect(path.segments.count == 2)
     #expect(path.segments[1].role == "AXButton")
-    #expect(path.segments[1].index == 999999)
+    #expect(path.segments[1].index == 999_999)
   }
 
   // NOTE: Resolution tests with mock services are temporarily commented out

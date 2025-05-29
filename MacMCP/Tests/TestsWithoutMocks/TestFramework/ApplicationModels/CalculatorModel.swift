@@ -90,7 +90,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
   /// Create a new Calculator model
   /// - Parameter toolChain: ToolChain instance for interacting with the calculator
   public init(toolChain: ToolChain) {
-    super.init(bundleId: "com.apple.calculator", appName: "Calculator", toolChain: toolChain, )
+    super.init(bundleId: "com.apple.calculator", appName: "Calculator", toolChain: toolChain)
   }
 
   /// Override to provide more robust window detection for Calculator
@@ -115,7 +115,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
     // Approach 2: Get the application element and assume it's the main container
     let appElement = try await toolChain.accessibilityService.getApplicationUIElement(
       bundleId: bundleId,
-      recursive: false,  // Don't get children
+      recursive: false, // Don't get children
     )
 
     return appElement
@@ -145,7 +145,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
     // Look for the scroll area with description "Input"
     let scrollAreaCriteria = UIElementCriteria(
       role: "AXScrollArea",
-      description: "Input",  // AXDescription attribute
+      description: "Input", // AXDescription attribute
     )
 
     if let scrollArea = try await toolChain.findElement(
@@ -170,11 +170,11 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
     // Search for scroll area with description "Input"
     let scrollAreaCriteria = UIElementCriteria(
       role: "AXScrollArea",
-      descriptionContains: "Input",  // Use contains for more flexible matching of AXDescription
+      descriptionContains: "Input", // Use contains for more flexible matching of AXDescription
     )
 
     // If that doesn't work, try a broader search
-    let staticTextCriteria = UIElementCriteria(role: "AXStaticText", )
+    let staticTextCriteria = UIElementCriteria(role: "AXStaticText")
 
     // First try with the scroll area
     if let scrollArea = try await toolChain.findElement(
@@ -191,7 +191,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
 
             // Clean up the string - remove invisible characters and whitespace
             let cleanValue = stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
-              .replacingOccurrences(of: "‎", with: "")  // Remove invisible character
+              .replacingOccurrences(of: "‎", with: "") // Remove invisible character
 
             // If the value looks like a number, return it
             if !cleanValue.isEmpty { return cleanValue }
@@ -199,7 +199,8 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
         }
       }
 
-      // Even if we don't find a value in the children, try getting the value from the scroll area itself
+      // Even if we don't find a value in the children, try getting the value from the scroll area
+      // itself
       if let areaValue = scrollArea.value {
         let stringValue = String(describing: areaValue)
 
@@ -207,8 +208,8 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
         let cleanValue = stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
           .replacingOccurrences(
             of: "‎",
-            with: ""
-          )  // Remove invisible character
+            with: "",
+          ) // Remove invisible character
 
         if !cleanValue.isEmpty { return cleanValue }
       }
@@ -229,7 +230,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
         let cleanValue = stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
           .replacingOccurrences(
             of: "‎",
-            with: ""
+            with: "",
           )
 
         // Check if it looks like a number
@@ -252,8 +253,8 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
       let cleanValue = stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         .replacingOccurrences(
           of: "‎",
-          with: ""
-        )  // Remove invisible character
+          with: "",
+        ) // Remove invisible character
 
       // Validate that it looks like a number (optional)
       if !cleanValue.isEmpty, Double(cleanValue) != nil || cleanValue == "0" { return cleanValue }
@@ -278,7 +279,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
     // This works because Calculator buttons consistently have descriptions like "1", "2", "+", etc.
     let descCriteria = UIElementCriteria(
       role: "AXButton",
-      description: button,  // Matches AXDescription attribute
+      description: button, // Matches AXDescription attribute
     )
 
     if let element = try await toolChain.findElement(
@@ -291,7 +292,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
     }
 
     // APPROACH 2: Try exact ID match
-    let idCriteria = UIElementCriteria(role: "AXButton", path: exactId, )
+    let idCriteria = UIElementCriteria(role: "AXButton", path: exactId)
 
     if let element = try await toolChain.findElement(
       matching: idCriteria,
@@ -307,7 +308,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
       let parts = exactId.split(separator: ":")
       if parts.count > 1 {
         let partialId = String(parts[1])
-        let partialCriteria = UIElementCriteria(role: "AXButton", pathContains: partialId, )
+        let partialCriteria = UIElementCriteria(role: "AXButton", pathContains: partialId)
 
         if let element = try await toolChain.findElement(
           matching: partialCriteria,
@@ -323,7 +324,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
     // APPROACH 4: Try to find by using broader criteria with case-insensitive matching
     let broadCriteria = UIElementCriteria(
       role: "AXButton",
-      descriptionContains: button,  // Case-insensitive matching of AXDescription
+      descriptionContains: button, // Case-insensitive matching of AXDescription
     )
 
     if let element = try await toolChain.findElement(
@@ -374,7 +375,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
   /// - Returns: The keypad view element, or nil if not found
   private func findCalculatorKeypadView() async throws -> UIElement? {
     // Look for the group with identifier "CalculatorKeypadView"
-    let criteria = UIElementCriteria(role: "AXGroup", pathContains: "CalculatorKeypadView", )
+    let criteria = UIElementCriteria(role: "AXGroup", pathContains: "CalculatorKeypadView")
 
     return try await toolChain.findElement(
       matching: criteria,
@@ -426,11 +427,11 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
       // Map special characters if needed
       let mappedId: String =
         switch char {
-        case "×": Button.multiply
-        case "÷": Button.divide
-        case "-": Button.minus
-        case "−": Button.minus
-        default: buttonId
+          case "×": Button.multiply
+          case "÷": Button.divide
+          case "-": Button.minus
+          case "−": Button.minus
+          default: buttonId
         }
 
       if try await !pressButton(mappedId) { return false }
@@ -478,7 +479,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
     // Use the direct approach for clicking with path
     do {
       // Use toolChain.interactionService.clickElementByPath directly
-      try await toolChain.interactionService.clickElementByPath(path: path, appBundleId: bundleId, )
+      try await toolChain.interactionService.clickElementByPath(path: path, appBundleId: bundleId)
 
       // Give the UI time to update after the click
       try await Task.sleep(for: .milliseconds(300))
@@ -502,7 +503,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
           // Check for success message in the result
           return text.contains("success") || text.contains("clicked") || text.contains("true")
         } else if !result.isEmpty {
-          return true  // Assume success if we got any result
+          return true // Assume success if we got any result
         }
 
         return false
@@ -555,7 +556,8 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
     if !appTerminated {
       // Terminate any existing calculator instances - use force if needed
       for app in NSRunningApplication.runningApplications(withBundleIdentifier: bundleId)
-      where !app.terminate() {
+        where !app.terminate()
+      {
         _ = app.forceTerminate()
       }
 
@@ -583,7 +585,7 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
   /// - Parameter digit: The digit to type
   /// - Returns: True if the key was successfully pressed
   public func typeDigit(_ digit: String) async throws -> Bool {
-    guard digit.count == 1, let char = digit.first, ("0"..."9").contains(String(char)) else {
+    guard digit.count == 1, let char = digit.first, ("0" ... "9").contains(String(char)) else {
       throw NSError(
         domain: "CalculatorModel",
         code: 1002,
@@ -611,7 +613,8 @@ public final class CalculatorModel: BaseApplicationModel, @unchecked Sendable {
   }
 
   /// Execute a sequence of keystrokes
-  /// - Parameter sequence: The sequence to execute (e.g., [{"tap": "1"}, {"tap": "+"}, {"tap": "2"}])
+  /// - Parameter sequence: The sequence to execute (e.g., [{"tap": "1"}, {"tap": "+"}, {"tap":
+  /// "2"}])
   /// - Returns: True if the sequence was successfully executed
   public func executeKeySequence(_ sequence: [[String: Value]]) async throws -> Bool {
     try await toolChain.executeKeySequence(sequence: sequence)

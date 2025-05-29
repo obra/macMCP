@@ -47,24 +47,25 @@ class MCPElementPrinter {
     // Create a more informative header for interactive elements
     let headerText
 
-    // For elements that typically have meaningful descriptions (buttons, etc.)
-    =
-      if element.role == "AXButton" || element.role == "AXCheckBox" || element.role == "AXMenuItem"
-      {
-        if let description = element.description, !description.isEmpty {
-          // If the element has a description, show it in the header
-          "[\(element.index)] \(element.role): \(description)"
-        } else if let title = element.title, !title.isEmpty {
-          // Fall back to title if available
-          "[\(element.index)] \(element.role): \(title)"
+      // For elements that typically have meaningful descriptions (buttons, etc.)
+      =
+        if element.role == "AXButton" || element.role == "AXCheckBox" || element
+          .role == "AXMenuItem"
+        {
+          if let description = element.description, !description.isEmpty {
+            // If the element has a description, show it in the header
+            "[\(element.index)] \(element.role): \(description)"
+          } else if let title = element.title, !title.isEmpty {
+            // Fall back to title if available
+            "[\(element.index)] \(element.role): \(title)"
+          } else {
+            // Last resort
+            "[\(element.index)] \(element.role): Untitled"
+          }
         } else {
-          // Last resort
-          "[\(element.index)] \(element.role): Untitled"
+          // For other elements, use the standard header format
+          "[\(element.index)] \(element.role): \(element.title ?? "Untitled")"
         }
-      } else {
-        // For other elements, use the standard header format
-        "[\(element.index)] \(element.role): \(element.title ?? "Untitled")"
-      }
     if showColor {
       let color = MCPElementPrinter.roleColors[element.role] ?? .white
       output += "\(color.rawValue)\(headerText)\(TerminalColor.reset.rawValue)\n"
@@ -180,13 +181,13 @@ class MCPElementPrinter {
       "AXSize",
       "AXFrame", "AXIdentifier",
       // Additional commonly redundant attributes
-      "application",  // Remove application attribute which is added to all elements
-      "enabled",  // Already shown in state section
-      "focused",  // Already shown in state section
-      "selected",  // Already shown in state section
-      "clickable",  // Already shown in state section
-      "visible",  // Already shown in state section
-      "path",  // Already shown in path section
+      "application", // Remove application attribute which is added to all elements
+      "enabled", // Already shown in state section
+      "focused", // Already shown in state section
+      "selected", // Already shown in state section
+      "clickable", // Already shown in state section
+      "visible", // Already shown in state section
+      "path", // Already shown in path section
     ])
 
     // Filter attributes to find non-excluded ones
@@ -215,46 +216,46 @@ class MCPElementPrinter {
   /// - Returns: A string representation of the value
   private func formatValue(_ value: Any) -> String {
     switch value {
-    case let stringValue as String: return stringValue
-    case let numberValue as NSNumber: return numberValue.stringValue
-    case let arrayValue as [Any]:
-      if arrayValue.isEmpty {
-        return "[]"
-      } else {
-        return "[Array with \(arrayValue.count) elements]"
-      }
-    case let pointValue as NSValue where String(cString: pointValue.objCType) == "{CGPoint=dd}":
-      var point = CGPoint.zero
-      pointValue.getValue(&point)
-      return "(\(Int(point.x)), \(Int(point.y)))"
-    case let sizeValue as NSValue where String(cString: sizeValue.objCType) == "{CGSize=dd}":
-      var size = CGSize.zero
-      sizeValue.getValue(&size)
-      return "(\(Int(size.width))×\(Int(size.height)))"
-    case let rectValue as NSValue
-    where String(cString: rectValue.objCType) == "{CGRect={CGPoint=dd}{CGSize=dd}}":
-      var rect = CGRect.zero
-      rectValue.getValue(&rect)
-      return
-        "(x:\(Int(rect.origin.x)), y:\(Int(rect.origin.y)), w:\(Int(rect.size.width)), h:\(Int(rect.size.height)))"
-    case let boolValue as Bool: return boolValue ? "Yes" : "No"
-    case let dictValue as [String: Any]:
-      if dictValue.isEmpty {
-        return "{}"
-      } else {
-        return "{Dictionary with \(dictValue.count) entries}"
-      }
-    case let urlValue as URL: return urlValue.absoluteString
-    case let dateValue as Date:
-      let formatter = DateFormatter()
-      formatter.dateStyle = .medium
-      formatter.timeStyle = .medium
-      return formatter.string(from: dateValue)
-    case let colorValue as NSColor:
-      return
-        "Color(r:\(Int(colorValue.redComponent * 255)), g:\(Int(colorValue.greenComponent * 255)), b:\(Int(colorValue.blueComponent * 255)))"
-    case let error as NSError: return "Error: \(error.localizedDescription)"
-    case let unknown: return "[Type: \(type(of: unknown))]"
+      case let stringValue as String: return stringValue
+      case let numberValue as NSNumber: return numberValue.stringValue
+      case let arrayValue as [Any]:
+        if arrayValue.isEmpty {
+          return "[]"
+        } else {
+          return "[Array with \(arrayValue.count) elements]"
+        }
+      case let pointValue as NSValue where String(cString: pointValue.objCType) == "{CGPoint=dd}":
+        var point = CGPoint.zero
+        pointValue.getValue(&point)
+        return "(\(Int(point.x)), \(Int(point.y)))"
+      case let sizeValue as NSValue where String(cString: sizeValue.objCType) == "{CGSize=dd}":
+        var size = CGSize.zero
+        sizeValue.getValue(&size)
+        return "(\(Int(size.width))×\(Int(size.height)))"
+      case let rectValue as NSValue
+      where String(cString: rectValue.objCType) == "{CGRect={CGPoint=dd}{CGSize=dd}}":
+        var rect = CGRect.zero
+        rectValue.getValue(&rect)
+        return
+          "(x:\(Int(rect.origin.x)), y:\(Int(rect.origin.y)), w:\(Int(rect.size.width)), h:\(Int(rect.size.height)))"
+      case let boolValue as Bool: return boolValue ? "Yes" : "No"
+      case let dictValue as [String: Any]:
+        if dictValue.isEmpty {
+          return "{}"
+        } else {
+          return "{Dictionary with \(dictValue.count) entries}"
+        }
+      case let urlValue as URL: return urlValue.absoluteString
+      case let dateValue as Date:
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .medium
+        return formatter.string(from: dateValue)
+      case let colorValue as NSColor:
+        return
+          "Color(r:\(Int(colorValue.redComponent * 255)), g:\(Int(colorValue.greenComponent * 255)), b:\(Int(colorValue.blueComponent * 255)))"
+      case let error as NSError: return "Error: \(error.localizedDescription)"
+      case let unknown: return "[Type: \(type(of: unknown))]"
     }
   }
 }

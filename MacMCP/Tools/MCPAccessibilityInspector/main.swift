@@ -5,7 +5,7 @@ import ArgumentParser
 import Dispatch
 import Foundation
 import Logging
-import MCP  // Import MCP for Value type
+import MCP // Import MCP for Value type
 
 // Configure a logger for the inspector
 let logger = Logger(label: "com.fsck.mac-mcp.mcp-ax-inspector")
@@ -76,7 +76,8 @@ let logger = Logger(label: "com.fsck.mac-mcp.mcp-ax-inspector")
 
     // Call the MCP server
     let (content, isError) = try await client.callTool(
-      name: "macos_explore_ui", arguments: arguments, )
+      name: "macos_explore_ui", arguments: arguments,
+    )
 
     if let isError, isError {
       throw InspectionError.unexpectedError("Error from MCP tool: \(content)")
@@ -85,26 +86,28 @@ let logger = Logger(label: "com.fsck.mac-mcp.mcp-ax-inspector")
     // Extract the JSON content
     guard let firstContent = content.first, case .text(let jsonString) = firstContent else {
       throw InspectionError.unexpectedError(
-        "Invalid response format from MCP: missing text content")
+        "Invalid response format from MCP: missing text content",
+      )
     }
 
     // Try to pretty-print the JSON for better readability
     do {
       // Parse the JSON into an object
       guard let jsonData = jsonString.data(using: .utf8) else {
-        return jsonString  // Return the original if conversion fails
+        return jsonString // Return the original if conversion fails
       }
 
       let jsonObject = try JSONSerialization.jsonObject(with: jsonData, options: [])
 
       // Convert back to a pretty-printed JSON string
       let prettyData = try JSONSerialization.data(
-        withJSONObject: jsonObject, options: [.prettyPrinted])
+        withJSONObject: jsonObject, options: [.prettyPrinted],
+      )
 
       if let prettyString = String(data: prettyData, encoding: .utf8) {
         return prettyString
       } else {
-        return jsonString  // Return the original if conversion fails
+        return jsonString // Return the original if conversion fails
       }
     } catch {
       // If pretty-printing fails, return the original JSON string
@@ -117,7 +120,7 @@ let logger = Logger(label: "com.fsck.mac-mcp.mcp-ax-inspector")
 /// This solves the issue of capturing state in Task closures
 @available(macOS 12.0, *) final class AsyncInspectionTask: @unchecked Sendable {
   private let inspector: MCPInspector
-  private let onComplete: (MCPUIElementNode, String) -> Void  // Added additional output parameter
+  private let onComplete: (MCPUIElementNode, String) -> Void // Added additional output parameter
   private let onError: (Swift.Error) -> Void
   private let showMenuDetail: Bool
   private let menuPath: String?
@@ -161,7 +164,7 @@ let logger = Logger(label: "com.fsck.mac-mcp.mcp-ax-inspector")
         rootElement = try await inspector.inspectElementByPath(
           bundleId: appId,
           path: path,
-          maxDepth: 15,  // Use smaller depth for path inspection
+          maxDepth: 15, // Use smaller depth for path inspection
         )
         print("Successfully retrieved element at path: \(path)")
       } else if let filter = pathFilter, inspector.appId != nil {
@@ -220,7 +223,7 @@ let logger = Logger(label: "com.fsck.mac-mcp.mcp-ax-inspector")
               if let isError = menuItemsError, isError {
                 additionalOutput += "Error fetching menu items: \(menuItemsContent)\n"
               } else if let firstContent = menuItemsContent.first,
-                case .text(let menuItemsText) = firstContent
+                        case .text(let menuItemsText) = firstContent
               {
                 additionalOutput += "Menu Items:\n\(menuItemsText)\n"
               } else {
@@ -278,7 +281,7 @@ let logger = Logger(label: "com.fsck.mac-mcp.mcp-ax-inspector")
               if let isError = windowDetailsError, isError {
                 additionalOutput += "Error fetching window details: \(windowDetailsContent)\n"
               } else if let firstContent = windowDetailsContent.first,
-                case .text(let windowDetailsText) = firstContent
+                        case .text(let windowDetailsText) = firstContent
               {
                 additionalOutput += "Window Details:\n\(windowDetailsText)\n"
               } else {
@@ -307,67 +310,67 @@ struct MCPAccessibilityInspector: ParsableCommand {
   static let configuration = CommandConfiguration(
     commandName: "mcp-ax-inspector",
     abstract:
-      "A utility for inspecting the accessibility tree of macOS applications using MCP tools",
+    "A utility for inspecting the accessibility tree of macOS applications using MCP tools",
     discussion: """
-      The MCP Accessibility Tree Inspector provides detailed visualization and inspection
-      of UI element hierarchies in macOS applications. This implementation uses the MacMCP's
-      InterfaceExplorerTool for enhanced element information including state and capabilities,
-      along with MenuNavigationTool and WindowManagementTool for menu and window inspection.
+    The MCP Accessibility Tree Inspector provides detailed visualization and inspection
+    of UI element hierarchies in macOS applications. This implementation uses the MacMCP's
+    InterfaceExplorerTool for enhanced element information including state and capabilities,
+    along with MenuNavigationTool and WindowManagementTool for menu and window inspection.
 
-      Examples:
-        # Inspect Calculator with default settings
-        mcp-ax-inspector --app-id com.apple.calculator
+    Examples:
+      # Inspect Calculator with default settings
+      mcp-ax-inspector --app-id com.apple.calculator
 
-        # Filter to show only button elements
-        mcp-ax-inspector --app-id com.apple.calculator --filter "role=AXButton"
+      # Filter to show only button elements
+      mcp-ax-inspector --app-id com.apple.calculator --filter "role=AXButton"
 
-        # Find elements with specific description
-        mcp-ax-inspector --app-id com.apple.calculator --filter "description=1"
+      # Find elements with specific description
+      mcp-ax-inspector --app-id com.apple.calculator --filter "description=1"
 
-        # Show only window content elements (exclude menus and controls)
-        mcp-ax-inspector --app-id com.apple.calculator --show-window-contents
+      # Show only window content elements (exclude menus and controls)
+      mcp-ax-inspector --app-id com.apple.calculator --show-window-contents
 
-        # Save the output to a file
-        mcp-ax-inspector --app-id com.apple.calculator --save output.txt
+      # Save the output to a file
+      mcp-ax-inspector --app-id com.apple.calculator --save output.txt
 
-        # Limit tree depth for large applications (improves performance)
-        mcp-ax-inspector --app-id com.apple.TextEdit --max-depth 10
+      # Limit tree depth for large applications (improves performance)
+      mcp-ax-inspector --app-id com.apple.TextEdit --max-depth 10
 
-        # Show detailed menu structure and window information
-        mcp-ax-inspector --app-id com.apple.TextEdit --menu-detail --window-detail
+      # Show detailed menu structure and window information
+      mcp-ax-inspector --app-id com.apple.TextEdit --menu-detail --window-detail
 
-        # Get details for a specific menu
-        mcp-ax-inspector --app-id com.apple.TextEdit --menu-path "File"
+      # Get details for a specific menu
+      mcp-ax-inspector --app-id com.apple.TextEdit --menu-path "File"
 
-      Path-related features:
-        # Show element paths for all UI elements
-        mcp-ax-inspector --app-id com.apple.calculator --show-paths
+    Path-related features:
+      # Show element paths for all UI elements
+      mcp-ax-inspector --app-id com.apple.calculator --show-paths
 
-        # Highlight paths to make them more visible
-        mcp-ax-inspector --app-id com.apple.calculator --highlight-paths
+      # Highlight paths to make them more visible
+      mcp-ax-inspector --app-id com.apple.calculator --highlight-paths
 
-        # Show paths only for interactive elements
-        mcp-ax-inspector --app-id com.apple.calculator --interactive-paths
+      # Show paths only for interactive elements
+      mcp-ax-inspector --app-id com.apple.calculator --interactive-paths
 
-        # Filter elements by path pattern
-        mcp-ax-inspector --app-id com.apple.calculator --path-filter "AXButton[@AXDescription=\\"1\\"]"
+      # Filter elements by path pattern
+      mcp-ax-inspector --app-id com.apple.calculator --path-filter "AXButton[@AXDescription=\\"1\\"]"
 
-        # Show full hierarchical paths (default behavior)
-        mcp-ax-inspector --app-id com.apple.calculator
+      # Show full hierarchical paths (default behavior)
+      mcp-ax-inspector --app-id com.apple.calculator
 
-        # Disable full path display (show only path segments)
-        mcp-ax-inspector --app-id com.apple.calculator --hide-full-paths
+      # Disable full path display (show only path segments)
+      mcp-ax-inspector --app-id com.apple.calculator --hide-full-paths
 
-        # Inspect a specific element directly by its path
-        mcp-ax-inspector --app-id com.apple.calculator --inspect-path "macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow/AXButton[@AXDescription=\"1\"]"
+      # Inspect a specific element directly by its path
+      mcp-ax-inspector --app-id com.apple.calculator --inspect-path "macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow/AXButton[@AXDescription=\"1\"]"
 
-      Output options:
-        # Output raw JSON response instead of tree visualization
-        mcp-ax-inspector --app-id com.apple.calculator --raw-json
+    Output options:
+      # Output raw JSON response instead of tree visualization
+      mcp-ax-inspector --app-id com.apple.calculator --raw-json
 
-        # Output raw JSON for a specific element path
-        mcp-ax-inspector --app-id com.apple.calculator --inspect-path "macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow" --raw-json
-      """,
+      # Output raw JSON for a specific element path
+      mcp-ax-inspector --app-id com.apple.calculator --inspect-path "macos://ui/AXApplication[@AXTitle=\"Calculator\"]/AXWindow" --raw-json
+    """,
   )
 
   // Application targeting options
@@ -388,7 +391,8 @@ struct MCPAccessibilityInspector: ParsableCommand {
   @Option(name: [.customLong("save")], help: "Save output to file") var saveToFile: String?
 
   @Option(
-    name: [.customLong("filter")], help: "Filter elements by property (format: property=value)")
+    name: [.customLong("filter")], help: "Filter elements by property (format: property=value)",
+  )
   var filter: [String] = []
 
   @Flag(name: [.customLong("hide-invisible")], help: "Hide invisible elements") var hideInvisible:
@@ -399,7 +403,8 @@ struct MCPAccessibilityInspector: ParsableCommand {
 
   @Flag(
     name: [.customLong("show-menus")],
-    help: "Only show menu-related elements (menu bar, menus, menu items)")
+    help: "Only show menu-related elements (menu bar, menus, menu items)",
+  )
   var showMenus: Bool = false
 
   @Flag(
@@ -419,7 +424,8 @@ struct MCPAccessibilityInspector: ParsableCommand {
 
   // Menu interaction options
   @Flag(
-    name: [.customLong("menu-detail")], help: "Show detailed menu structure for the application")
+    name: [.customLong("menu-detail")], help: "Show detailed menu structure for the application",
+  )
   var showMenuDetail: Bool = false
 
   @Option(name: [.customLong("menu-path")], help: "Get items for a specific menu (e.g., 'File')")
@@ -428,7 +434,8 @@ struct MCPAccessibilityInspector: ParsableCommand {
   // Window interaction options
   @Flag(
     name: [.customLong("window-detail")],
-    help: "Show detailed window information for the application")
+    help: "Show detailed window information for the application",
+  )
   var showWindowDetail: Bool = false
 
   @Option(name: [.customLong("window-id")], help: "Get details for a specific window ID")
@@ -453,19 +460,21 @@ struct MCPAccessibilityInspector: ParsableCommand {
 
   @Flag(
     name: [.customLong("hide-full-paths")],
-    help: "Hide full hierarchical paths and show only path segments")
+    help: "Hide full hierarchical paths and show only path segments",
+  )
   var hideFullPaths: Bool = false
 
   @Option(
     name: [.customLong("inspect-path")],
     help:
-      "Directly inspect an element by its full path (e.g., \"macos://ui/AXApplication[@AXTitle=\\\"Calculator\\\"]/AXWindow/AXButton\")",
+    "Directly inspect an element by its full path (e.g., \"macos://ui/AXApplication[@AXTitle=\\\"Calculator\\\"]/AXWindow/AXButton\")",
   ) var inspectPath: String?
 
   // Raw output option
   @Flag(
     name: [.customLong("raw-json")],
-    help: "Output the raw JSON response instead of rendering the tree")
+    help: "Output the raw JSON response instead of rendering the tree",
+  )
   var rawJson: Bool = false
 
   // Need to implement a synchronous wrapper to execute async code
@@ -508,7 +517,8 @@ struct MCPAccessibilityInspector: ParsableCommand {
 
     // Create inspector and run
     let inspector = MCPInspector(
-      appId: appId, pid: pid, maxDepth: maxDepth, mcpPath: executablePath)
+      appId: appId, pid: pid, maxDepth: maxDepth, mcpPath: executablePath,
+    )
 
     // Parse filters
     var filterDict = [String: String]()
@@ -518,9 +528,10 @@ struct MCPAccessibilityInspector: ParsableCommand {
         filterDict[String(parts[0])] = String(parts[1])
       } else {
         logger.warning(
-          "Ignoring invalid filter format: \(filterString). Expected format: property=value")
+          "Ignoring invalid filter format: \(filterString). Expected format: property=value",
+        )
         print(
-          "Warning: Ignoring invalid filter format: \(filterString). Expected format: property=value"
+          "Warning: Ignoring invalid filter format: \(filterString). Expected format: property=value",
         )
       }
     }
@@ -533,7 +544,7 @@ struct MCPAccessibilityInspector: ParsableCommand {
         metadata: [
           "appId": .string(appId ?? ""), "pid": .stringConvertible(pid ?? 0),
           "mcpPath": .string(mcpPath ?? "default"),
-        ]
+        ],
       )
 
       // Check if app ID is required but not provided
@@ -554,7 +565,7 @@ struct MCPAccessibilityInspector: ParsableCommand {
       // with capturing state in the Task
       // Only use pathFilter as inspectPath if it's a full UI path
       let effectiveInspectPath = inspectPath
-      let pathFilterValue = pathFilter  // Keep the original path filter for filtering
+      let pathFilterValue = pathFilter // Keep the original path filter for filtering
 
       let asyncTask = AsyncInspectionTask(
         inspector: inspector,
@@ -563,7 +574,7 @@ struct MCPAccessibilityInspector: ParsableCommand {
         showWindowDetail: showWindowDetail,
         windowId: windowId,
         inspectPath: effectiveInspectPath,
-        pathFilter: pathFilterValue,  // Pass the path filter
+        pathFilter: pathFilterValue, // Pass the path filter
         onComplete: { root, additionalInfo in
           resultRootElement = root
           additionalOutput = additionalInfo
@@ -637,8 +648,8 @@ struct MCPAccessibilityInspector: ParsableCommand {
 
       // Create visualizer options
       var visualizerOptions = MCPTreeVisualizer.Options()
-      visualizerOptions.showDetails = true  // Always show details
-      visualizerOptions.showAllAttributes = true  // Always show all attributes
+      visualizerOptions.showDetails = true // Always show details
+      visualizerOptions.showAllAttributes = true // Always show all attributes
 
       // Apply path-related options
       visualizerOptions.highlightPaths = highlightPaths || showPaths
@@ -653,7 +664,8 @@ struct MCPAccessibilityInspector: ParsableCommand {
       // Generate the visualization
       print("Generating visualization...")
       let output = visualizer.visualize(
-        rootElement, withFilters: filterDict, pathPattern: pathFilter)
+        rootElement, withFilters: filterDict, pathPattern: pathFilter,
+      )
 
       // Note: additionalOutput is already populated by the AsyncInspectionTask
 
@@ -730,7 +742,7 @@ struct MCPAccessibilityInspector: ParsableCommand {
       for location in possibleLocations {
         let resolvedPath = URL(fileURLWithPath: fileManager.currentDirectoryPath)
           .appendingPathComponent(
-            location
+            location,
           ).path
         if fileManager.fileExists(atPath: resolvedPath) {
           print("Found MCP executable at: \(resolvedPath)")
@@ -764,7 +776,8 @@ struct MCPAccessibilityInspector: ParsableCommand {
     do {
       // First get all application menus
       let (content, isError) = try await mcpClient.callTool(
-        name: "macos_menu_navigation", arguments: arguments, )
+        name: "macos_menu_navigation", arguments: arguments,
+      )
 
       if let isError, isError { return "Error fetching menu structure: \(content)\n" }
 
@@ -794,7 +807,7 @@ struct MCPAccessibilityInspector: ParsableCommand {
         if let isError = menuItemsError, isError {
           result += "Error fetching menu items: \(menuItemsContent)\n"
         } else if let firstContent = menuItemsContent.first,
-          case .text(let menuItemsText) = firstContent
+                  case .text(let menuItemsText) = firstContent
         {
           result += "Menu Items for \(menuTitle):\n\(menuItemsText)\n"
         } else {
@@ -854,7 +867,7 @@ struct MCPAccessibilityInspector: ParsableCommand {
         if let isError = windowDetailsError, isError {
           result += "Error fetching window details: \(windowDetailsContent)\n"
         } else if let firstContent = windowDetailsContent.first,
-          case .text(let windowDetailsText) = firstContent
+                  case .text(let windowDetailsText) = firstContent
         {
           result += "Window Details for \(windowId):\n\(windowDetailsText)\n"
         } else {

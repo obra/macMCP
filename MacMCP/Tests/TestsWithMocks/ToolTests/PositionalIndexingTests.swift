@@ -23,10 +23,11 @@ import Testing
     let indexed3 = AccessibilityElement.insertPositionalIndex(1, into: multipleAttrs)
     #expect(
       indexed3 == "AXButton#1[@AXTitle=\"Save\"][@AXDescription=\"Save Document\"]",
-      "Should insert #1 after role before first attribute"
+      "Should insert #1 after role before first attribute",
     )
   }
-  @Test("Positional indexing algorithm - expected behavior") func testPositionalIndexingAlgorithm()
+
+  @Test("Positional indexing algorithm - expected behavior") func positionalIndexingAlgorithm()
     throws
   {
     // Simulate the example from documentation:
@@ -37,19 +38,19 @@ import Testing
     // Position 5: AXButton[@AXDescription="Add"]     → Duplicate, show #5
 
     let mockChildData = [
-      ("AXButton", ["AXDescription": "Save"]),  // Position 1, unique
-      ("AXButton", ["AXDescription": "Add"]),  // Position 2, duplicate
-      ("AXButton", ["AXDescription": "Add"]),  // Position 3, duplicate
-      ("AXButton", ["AXDescription": "Cancel"]),  // Position 4, unique
-      ("AXButton", ["AXDescription": "Add"]),  // Position 5, duplicate
+      ("AXButton", ["AXDescription": "Save"]), // Position 1, unique
+      ("AXButton", ["AXDescription": "Add"]), // Position 2, duplicate
+      ("AXButton", ["AXDescription": "Add"]), // Position 3, duplicate
+      ("AXButton", ["AXDescription": "Cancel"]), // Position 4, unique
+      ("AXButton", ["AXDescription": "Add"]), // Position 5, duplicate
     ]
     // Expected results: indices only for duplicates
     let expectedIndices = [
-      nil,  // Position 1: Unique, no index
-      2,  // Position 2: Duplicate, show #2
-      3,  // Position 3: Duplicate, show #3
-      nil,  // Position 4: Unique, no index
-      5,  // Position 5: Duplicate, show #5
+      nil, // Position 1: Unique, no index
+      2, // Position 2: Duplicate, show #2
+      3, // Position 3: Duplicate, show #3
+      nil, // Position 4: Unique, no index
+      5, // Position 5: Duplicate, show #5
     ]
     // Test the algorithm logic (we can't easily test the full function with AXUIElement)
     // So we'll test the algorithm steps manually
@@ -62,20 +63,26 @@ import Testing
     }
     // Step 2: Count duplicates
     var pathCounts: [String: Int] = [:]
-    for path in basePaths { pathCounts[path, default: 0] += 1 }
+    for path in basePaths {
+      pathCounts[path, default: 0] += 1
+    }
     // Step 3: Assign indices
     var actualIndices: [Int?] = []
     for (position, basePath) in basePaths.enumerated() {
       if pathCounts[basePath]! > 1 {
-        actualIndices.append(position + 1)  // 1-based position
+        actualIndices.append(position + 1) // 1-based position
       } else {
         actualIndices.append(nil)
       }
     }
     print("Base paths:")
-    for (i, path) in basePaths.enumerated() { print("  [\(i+1)]: \(path)") }
+    for (i, path) in basePaths.enumerated() {
+      print("  [\(i + 1)]: \(path)")
+    }
     print("Path counts:")
-    for (path, count) in pathCounts { print("  \(path): \(count)") }
+    for (path, count) in pathCounts {
+      print("  \(path): \(count)")
+    }
     print("Expected indices: \(expectedIndices)")
     print("Actual indices: \(actualIndices)")
     #expect(actualIndices == expectedIndices, "Algorithm should produce correct positional indices")
@@ -86,7 +93,8 @@ import Testing
     #expect(actualIndices[3] == nil, "Position 4 (Cancel) should have no index (unique)")
     #expect(actualIndices[4] == 5, "Position 5 (Add) should have index 5")
   }
-  @Test("Generated path formats with positional indexing") func testGeneratedPathFormats() throws {
+
+  @Test("Generated path formats with positional indexing") func generatedPathFormats() throws {
     // Test that the final paths look correct
     let testCases = [
       (

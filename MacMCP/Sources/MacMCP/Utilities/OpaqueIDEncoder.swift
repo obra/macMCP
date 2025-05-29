@@ -11,8 +11,9 @@ public enum OpaqueIDEncoder {
   /// - Returns: Compact opaque ID string
   /// - Throws: Error if encoding fails
   public static func encode(_ path: String) throws -> String {
-    return OpaqueIDMapper.shared.opaqueID(for: path)
+    OpaqueIDMapper.shared.opaqueID(for: path)
   }
+
   /// Decode an opaque ID back to an element path string
   /// - Parameter opaqueID: The opaque ID to decode
   /// - Returns: Original element path string
@@ -31,8 +32,8 @@ public enum OpaqueIDError: Error, LocalizedError {
   case decodingFailed(String)
   public var errorDescription: String? {
     switch self {
-    case .encodingFailed(let message): return "Opaque ID encoding failed: \(message)"
-    case .decodingFailed(let message): return "Opaque ID decoding failed: \(message)"
+      case .encodingFailed(let message): "Opaque ID encoding failed: \(message)"
+      case .decodingFailed(let message): "Opaque ID decoding failed: \(message)"
     }
   }
 }
@@ -40,34 +41,41 @@ public enum OpaqueIDError: Error, LocalizedError {
 /// Extension to add compression support
 extension Data {
   func compressed(using algorithm: NSData.CompressionAlgorithm) throws -> Data {
-    return try self.withUnsafeBytes { bytes in
+    try withUnsafeBytes { bytes in
       let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: count)
       defer { buffer.deallocate() }
+      guard let baseAddress = bytes.bindMemory(to: UInt8.self).baseAddress else {
+        throw OpaqueIDError.encodingFailed("Failed to get buffer base address")
+      }
       let compressedSize = compression_encode_buffer(
         buffer,
         count,
-        bytes.bindMemory(to: UInt8.self).baseAddress!,
+        baseAddress,
         count,
         nil,
-        algorithm.rawValue
+        algorithm.rawValue,
       )
       guard compressedSize > 0 else { throw OpaqueIDError.encodingFailed("Compression failed") }
       return Data(bytes: buffer, count: compressedSize)
     }
   }
+
   func decompressed(using algorithm: NSData.CompressionAlgorithm) throws -> Data {
-    return try self.withUnsafeBytes { bytes in
+    try withUnsafeBytes { bytes in
       // Estimate decompressed size (4x compressed size should be safe)
       let estimatedSize = count * 4
       let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: estimatedSize)
       defer { buffer.deallocate() }
+      guard let baseAddress = bytes.bindMemory(to: UInt8.self).baseAddress else {
+        throw OpaqueIDError.decodingFailed("Failed to get buffer base address")
+      }
       let decompressedSize = compression_decode_buffer(
         buffer,
         estimatedSize,
-        bytes.bindMemory(to: UInt8.self).baseAddress!,
+        baseAddress,
         count,
         nil,
-        algorithm.rawValue
+        algorithm.rawValue,
       )
       guard decompressedSize > 0 else { throw OpaqueIDError.decodingFailed("Decompression failed") }
       return Data(bytes: buffer, count: decompressedSize)
@@ -78,11 +86,11 @@ extension Data {
 extension NSData.CompressionAlgorithm {
   var rawValue: compression_algorithm {
     switch self {
-    case .lzfse: return COMPRESSION_LZFSE
-    case .lz4: return COMPRESSION_LZ4
-    case .lzma: return COMPRESSION_LZMA
-    case .zlib: return COMPRESSION_ZLIB
-    @unknown default: return COMPRESSION_ZLIB
+      case .lzfse: return COMPRESSION_LZFSE
+      case .lz4: return COMPRESSION_LZ4
+      case .lzma: return COMPRESSION_LZMA
+      case .zlib: return COMPRESSION_ZLIB
+      @unknown default: return COMPRESSION_ZLIB
     }
   }
 }

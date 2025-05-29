@@ -18,6 +18,7 @@ import Testing
     let emptyPath = MenuPathResolver.buildPath(from: emptyComponents)
     #expect(emptyPath == "")
   }
+
   @Test("parsePath correctly splits path into components") func testParsePath() async throws {
     let path = "File > Save As..."
     let components = MenuPathResolver.parsePath(path)
@@ -32,6 +33,7 @@ import Testing
     let emptyComponents = MenuPathResolver.parsePath(emptyPath)
     #expect(emptyComponents.isEmpty)
   }
+
   @Test("validatePath correctly validates path format") func testValidatePath() async throws {
     #expect(MenuPathResolver.validatePath("File > Save"))
     #expect(MenuPathResolver.validatePath("Help"))
@@ -41,6 +43,7 @@ import Testing
     #expect(!MenuPathResolver.validatePath("File > "))
     #expect(!MenuPathResolver.validatePath(" > Save"))
   }
+
   @Test("findMatches returns exact matches") func testFindMatches() async throws {
     let hierarchy = createTestHierarchy()
     let exactMatches = MenuPathResolver.findMatches("File > Save", in: hierarchy)
@@ -50,6 +53,7 @@ import Testing
     let multipleMatches = MenuPathResolver.findMatches("Edit > Copy", in: hierarchy)
     #expect(multipleMatches == ["Edit > Copy"])
   }
+
   @Test("findPartialMatches returns relevant partial matches") func testFindPartialMatches()
     async throws
   {
@@ -65,6 +69,7 @@ import Testing
     let caseMatches = MenuPathResolver.findPartialMatches("file", in: hierarchy)
     #expect(!caseMatches.isEmpty)
   }
+
   @Test("suggestSimilar provides good suggestions") func testSuggestSimilar() async throws {
     let hierarchy = createTestHierarchy()
     let suggestions = MenuPathResolver.suggestSimilar("Save", in: hierarchy, maxSuggestions: 3)
@@ -73,22 +78,25 @@ import Testing
     #expect(suggestions.count <= 3)
     let typoSuggestions = MenuPathResolver.suggestSimilar("Sav", in: hierarchy, maxSuggestions: 2)
     #expect(!typoSuggestions.isEmpty)
-    let noSuggestions = MenuPathResolver.suggestSimilar("XyzNonexistent", in: hierarchy)
+    _ = MenuPathResolver.suggestSimilar("XyzNonexistent", in: hierarchy)
     // Should still work, just might be empty or low relevance
   }
-  @Test("path parsing handles special characters") func testSpecialCharacters() async throws {
+
+  @Test("path parsing handles special characters") func specialCharacters() async throws {
     let specialPath = "Format > Text & Formatting > Align Center…"
     let components = MenuPathResolver.parsePath(specialPath)
     #expect(components == ["Format", "Text & Formatting", "Align Center…"])
     let rebuiltPath = MenuPathResolver.buildPath(from: components)
     #expect(rebuiltPath == specialPath)
   }
-  @Test("path parsing handles unicode characters") func testUnicodeCharacters() async throws {
+
+  @Test("path parsing handles unicode characters") func unicodeCharacters() async throws {
     let unicodePath = "文件 > 保存为..."
     #expect(MenuPathResolver.validatePath(unicodePath))
     let components = MenuPathResolver.parsePath(unicodePath)
     #expect(components == ["文件", "保存为..."])
   }
+
   // MARK: - Helper Methods
 
   private func createTestHierarchy() -> MenuHierarchy {
@@ -105,8 +113,8 @@ import Testing
     return MenuHierarchy(
       application: "com.test.app",
       menus: menus,
-      totalItems: menus.values.flatMap { $0 }.count,
-      exploredDepth: 3
+      totalItems: menus.values.flatMap(\.self).count,
+      exploredDepth: 3,
     )
   }
 }

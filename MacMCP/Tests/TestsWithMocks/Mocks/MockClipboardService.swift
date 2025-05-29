@@ -2,8 +2,8 @@
 // ABOUTME: Part of MacMCP allowing LLMs to interact with macOS applications.
 
 import Foundation
-import MCP
 import MacMCP
+import MCP
 
 /// Mock implementation of ClipboardServiceProtocol for testing
 public actor MockClipboardService: ClipboardServiceProtocol {
@@ -27,7 +27,8 @@ public actor MockClipboardService: ClipboardServiceProtocol {
   private var _imageToReturn: String = "Mock base64 image data"
   private var _filesToReturn: [String] = ["/path/to/file1.txt", "/path/to/file2.txt"]
   private var _infoToReturn: ClipboardContentInfo = .init(
-    availableTypes: [.text, .image], isEmpty: false, )
+    availableTypes: [.text, .image], isEmpty: false,
+  )
 
   // Error simulation - private variables
   private var _shouldThrowOnGetText = false

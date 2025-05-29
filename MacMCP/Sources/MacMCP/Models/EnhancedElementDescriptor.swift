@@ -82,7 +82,8 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     self.showCoordinates = showCoordinates
   }
 
-  /// Convert a UIElement to an EnhancedElementDescriptor with detailed state and capability information
+  /// Convert a UIElement to an EnhancedElementDescriptor with detailed state and capability
+  /// information
   /// - Parameters:
   ///   - element: The UIElement to convert
   ///   - maxDepth: Maximum depth of the hierarchy to traverse
@@ -93,9 +94,8 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     element: UIElement,
     maxDepth: Int = 10,
     currentDepth: Int = 0,
-    showCoordinates: Bool = false
+    showCoordinates: Bool = false,
   ) -> EnhancedElementDescriptor {
-
     // Create the frame
     let frame = ElementFrame(
       x: element.frame.origin.x,
@@ -124,10 +124,13 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     // First check if the element already has a path set
     path = element.path
     elementDescriptorLogger.debug(
-      "Using path on element", metadata: ["path": .string(path ?? "<nil>")])
+      "Using path on element", metadata: ["path": .string(path ?? "<nil>")],
+    )
 
     // Always generate a more detailed path if the current one isn't fully qualified
-    if path == nil || !path!.contains("/") {  // Generate full path if missing or incomplete
+    if path == nil ||
+      !(path?.contains("/") ?? false)
+    { // Generate full path if missing or incomplete
       // No pre-existing path, so we need to generate one
       do {
         // Generate a fully qualified path
@@ -153,7 +156,8 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
       children = element.children.map {
         from(
           element: $0, maxDepth: maxDepth, currentDepth: currentDepth + 1,
-          showCoordinates: showCoordinates)
+          showCoordinates: showCoordinates,
+        )
       }
     } else {
       children = nil
@@ -163,7 +167,7 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     let finalPath = path ?? (try? element.generatePath()) ?? element.path
 
     return EnhancedElementDescriptor(
-      id: finalPath,  // Always use fully qualified path for id
+      id: finalPath, // Always use fully qualified path for id
       role: element.role,
       title: element.title,
       value: element.value,
@@ -175,9 +179,10 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
       actions: element.actions,
       attributes: filteredAttributes,
       children: children,
-      showCoordinates: showCoordinates
+      showCoordinates: showCoordinates,
     )
   }
+
   /// Custom encoding to output compact format with coalesced fields
   public func encode(to encoder: Encoder) throws {
     var container = encoder.container(keyedBy: CodingKeys.self)
@@ -186,23 +191,24 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     try container.encode(opaqueID, forKey: .id)
     // Encode pure role for filtering
     try container.encode(role, forKey: .role)
-    // Create el field with descriptive parts (without duplicating role): "{{identifier? identifier." "}}{{ title ? title. " "}}{{ description ? description}}"
+    // Create el field with descriptive parts (without duplicating role): "{{identifier?
+    // identifier." "}}{{ title ? title. " "}}{{ description ? description}}"
     var elParts: [String] = []
-    if let identifier = identifier, !identifier.isEmpty { elParts.append("\(identifier).") }
-    if let title = title, !title.isEmpty { elParts.append("\(title).") }
-    if let description = description, !description.isEmpty { elParts.append(description) }
+    if let identifier, !identifier.isEmpty { elParts.append("\(identifier).") }
+    if let title, !title.isEmpty { elParts.append("\(title).") }
+    if let description, !description.isEmpty { elParts.append(description) }
     if !elParts.isEmpty {
       var elValue = elParts.joined(separator: " ")
       // Remove trailing "." if we only had identifier/title but no description
-      if elValue.hasSuffix(".") && description?.isEmpty != false {
+      if elValue.hasSuffix("."), description?.isEmpty != false {
         elValue = String(elValue.dropLast(1))
       }
-      try container.encode(elValue, forKey: .el)
+      try container.encode(elValue, forKey: .element)
     }
     // Include value if present
-    if let value = value, !value.isEmpty { try container.encode(value, forKey: .value) }
+    if let value, !value.isEmpty { try container.encode(value, forKey: .value) }
     // Include help if present
-    if let help = help, !help.isEmpty { try container.encode(help, forKey: .help) }
+    if let help, !help.isEmpty { try container.encode(help, forKey: .help) }
     // Only include frame/coordinates if requested
     if showCoordinates { try container.encode(frame, forKey: .frame) }
     // Convert props array to comma-separated string
@@ -225,26 +231,27 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     }
     if children?.isEmpty == false { try container.encodeIfPresent(children, forKey: .children) }
   }
+
   /// Simple decode implementation for tests (only handles fields we actually encode)
   public init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
-    self.id = try container.decode(String.self, forKey: .id)
-    self.role = try container.decode(String.self, forKey: .role)
-    self.title = try container.decodeIfPresent(String.self, forKey: .title)
-    self.value = try container.decodeIfPresent(String.self, forKey: .value)
-    self.description = try container.decodeIfPresent(String.self, forKey: .description)
-    self.help = try container.decodeIfPresent(String.self, forKey: .help)
-    self.identifier = try container.decodeIfPresent(String.self, forKey: .identifier)
-    self.frame =
+    id = try container.decode(String.self, forKey: .id)
+    role = try container.decode(String.self, forKey: .role)
+    title = try container.decodeIfPresent(String.self, forKey: .title)
+    value = try container.decodeIfPresent(String.self, forKey: .value)
+    description = try container.decodeIfPresent(String.self, forKey: .description)
+    help = try container.decodeIfPresent(String.self, forKey: .help)
+    identifier = try container.decodeIfPresent(String.self, forKey: .identifier)
+    frame =
       try container.decodeIfPresent(ElementFrame.self, forKey: .frame)
-      ?? ElementFrame(x: 0, y: 0, width: 0, height: 0)
+        ?? ElementFrame(x: 0, y: 0, width: 0, height: 0)
     // Handle props as comma-separated string (new format only)
     if let propsString = try? container.decode(String.self, forKey: .props) {
-      self.props = propsString.components(separatedBy: ", ").map {
+      props = propsString.components(separatedBy: ", ").map {
         $0.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
       }
     } else {
-      self.props = []
+      props = []
     }
     // Handle actions as comma-separated string (new format only)
     if let actionsString = try? container.decode(String.self, forKey: .actions) {
@@ -252,9 +259,9 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
       let rawActions = actionsString.components(separatedBy: ", ").map {
         $0.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
       }
-      self.actions = rawActions.map { action in action.hasPrefix("AX") ? action : "AX\(action)" }
+      actions = rawActions.map { action in action.hasPrefix("AX") ? action : "AX\(action)" }
     } else {
-      self.actions = []
+      actions = []
     }
     // Handle attributes as comma-separated string (new format only)
     if let attributesString = try? container.decode(String.self, forKey: .attributes) {
@@ -268,19 +275,20 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
           attributesDict[key] = value
         }
       }
-      self.attributes = attributesDict
+      attributes = attributesDict
     } else {
-      self.attributes = [:]
+      attributes = [:]
     }
-    self.children = try container.decodeIfPresent(
-      [EnhancedElementDescriptor].self, forKey: .children)
+    children = try container.decodeIfPresent(
+      [EnhancedElementDescriptor].self, forKey: .children,
+    )
     // These are not encoded/decoded
-    self.showCoordinates = false
+    showCoordinates = false
   }
 
   /// Coding keys for custom Codable implementation
   private enum CodingKeys: String, CodingKey {
-    case id, role, el, title, value, description, help, identifier, frame
+    case id, role, element, title, value, description, help, identifier, frame
     case props, actions, attributes, children
   }
 }

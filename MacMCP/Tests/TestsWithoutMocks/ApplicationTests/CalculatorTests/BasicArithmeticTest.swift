@@ -23,9 +23,10 @@ import Testing
   private mutating func setUp() async throws {
     // Set up standardized logging
     (logger, logFileURL) = TestLogger.create(
-      label: "mcp.test.calculator", testName: "BasicArithmeticTest")
+      label: "mcp.test.calculator", testName: "BasicArithmeticTest",
+    )
     TestLogger.configureEnvironment(logger: logger)
-    let _ = TestLogger.createDiagnosticLog(testName: "BasicArithmeticTest", logger: logger)
+    _ = TestLogger.createDiagnosticLog(testName: "BasicArithmeticTest", logger: logger)
     logger.debug("Setting up BasicArithmeticTest")
     // Get the shared calculator helper
     calculatorHelper = await CalculatorTestHelper.sharedHelper()
@@ -33,11 +34,12 @@ import Testing
 
     // Ensure app is running and reset state
     logger.debug("Ensuring Calculator app is running")
-    let _ = try await calculatorHelper.ensureAppIsRunning()
+    _ = try await calculatorHelper.ensureAppIsRunning()
     logger.debug("Resetting application state")
     await calculatorHelper.resetAppState()
     logger.debug("Setup complete")
   }
+
   // Shared teardown method
   private mutating func tearDown() async throws {
     logger.debug("Tearing down BasicArithmeticTest")
@@ -50,7 +52,7 @@ import Testing
   }
 
   /// Test simple direct UI inspection of Calculator
-  @Test("UI Inspection of Calculator") mutating func testUIInspection() async throws {
+  @Test("UI Inspection of Calculator") mutating func uIInspection() async throws {
     try await setUp()
     // Look for window elements
     logger.debug("Finding window elements")
@@ -58,7 +60,7 @@ import Testing
       matching: UIElementCriteria(role: "AXWindow"),
       scope: "application",
       bundleId: "com.apple.calculator",
-      maxDepth: 5
+      maxDepth: 5,
     )
 
     // Simple assertion - should have found at least one window
@@ -69,7 +71,7 @@ import Testing
       matching: UIElementCriteria(role: "AXButton"),
       scope: "application",
       bundleId: "com.apple.calculator",
-      maxDepth: 10
+      maxDepth: 10,
     )
 
     // Simple assertion - should have found buttons
@@ -80,7 +82,7 @@ import Testing
       matching: UIElementCriteria(role: "AXStaticText"),
       scope: "application",
       bundleId: "com.apple.calculator",
-      maxDepth: 10
+      maxDepth: 10,
     )
 
     // Should find at least one text element (the display)
@@ -99,7 +101,7 @@ import Testing
   }
 
   /// Test sequential UI interactions like entering a series of button presses
-  @Test("Sequential UI Interactions") mutating func testSequentialUIInteractions() async throws {
+  @Test("Sequential UI Interactions") mutating func sequentialUIInteractions() async throws {
     try await setUp()
     // Enter a sequence of button presses
     let sequenceSuccess = try await calculatorHelper.app.enterSequence("123")
@@ -110,12 +112,13 @@ import Testing
 
     // Verify the result shows the correct sequence
     try await calculatorHelper.assertDisplayValue(
-      "123", message: "Display should show the entered sequence '123'")
+      "123", message: "Display should show the entered sequence '123'",
+    )
     try await tearDown()
   }
 
   /// Test calculator operations using keyboard input
-  @Test("Keyboard Input Operations") mutating func testKeyboardInput() async throws {
+  @Test("Keyboard Input Operations") mutating func keyboardInput() async throws {
     try await setUp()
     // Use the keyboard interaction tool to type a simple calculation
     let typingSuccess = try await calculatorHelper.app.typeText("123+456=")
@@ -126,7 +129,8 @@ import Testing
 
     // Verify the result is 579 (123+456)
     try await calculatorHelper.assertDisplayValue(
-      "579", message: "Display should show the result '579'")
+      "579", message: "Display should show the result '579'",
+    )
 
     // Test with different calculation
     await calculatorHelper.resetAppState()
@@ -140,7 +144,8 @@ import Testing
 
     // Verify the result is 100 (50*2)
     try await calculatorHelper.assertDisplayValue(
-      "100", message: "Display should show the result '100'")
+      "100", message: "Display should show the result '100'",
+    )
 
     // Now test more complex key sequences
     await calculatorHelper.resetAppState()
@@ -177,7 +182,8 @@ import Testing
 
     // Verify the result is 26 (5*4+6)
     try await calculatorHelper.assertDisplayValue(
-      "26", message: "Display should show the result '26'")
+      "26", message: "Display should show the result '26'",
+    )
     try await tearDown()
   }
 }

@@ -29,9 +29,9 @@ class MCPUIElementNode {
   let isEnabled: Bool
   let isClickable: Bool
   let isVisible: Bool
-  let elementPath: String?  // Element path segment from server
-  var parentPath: String?  // Path of parent element (populated during traversal)
-  var fullPath: String?  // Complete path including all ancestors (calculated during traversal)
+  let elementPath: String? // Element path segment from server
+  var parentPath: String? // Path of parent element (populated during traversal)
+  var fullPath: String? // Complete path including all ancestors (calculated during traversal)
 
   init(jsonElement: [String: Any], index: Int) {
     self.index = index
@@ -123,7 +123,7 @@ class MCPUIElementNode {
     // Compute children count - check first for array of full elements, then for references
     if let childrenArray = jsonElement["children"] as? [[String: Any]] {
       childrenCount = childrenArray.count
-      hasParent = true  // If it has children, it's likely a parent
+      hasParent = true // If it has children, it's likely a parent
     } else {
       childrenCount = 0
       // Relationship properties (infer from JSON structure)
@@ -136,7 +136,9 @@ class MCPUIElementNode {
     } else if let attrDict = jsonElement["attributes"] as? [String: String] {
       // Convert string-to-string dictionary to string-to-any
       var convertedDict: [String: Any] = [:]
-      for (key, value) in attrDict { convertedDict[key] = value }
+      for (key, value) in attrDict {
+        convertedDict[key] = value
+      }
       attributes = convertedDict
     } else {
       attributes = [:]
@@ -167,7 +169,8 @@ class MCPUIElementNode {
   func populateChildren(from jsonElement: [String: Any], startingIndex: Int) -> Int {
     var nextIndex = startingIndex
 
-    // Process children array if it exists - the InterfaceExplorerTool returns children as an array of objects
+    // Process children array if it exists - the InterfaceExplorerTool returns children as an array
+    // of objects
     if let childrenArray = jsonElement["children"] as? [[String: Any]] {
       for childJSON in childrenArray {
         let childNode = MCPUIElementNode(jsonElement: childJSON, index: nextIndex)
@@ -179,7 +182,7 @@ class MCPUIElementNode {
 
         // Before calculating paths, ensure parent relationship is set
         // The parent-child relationship is critical for building fully qualified paths
-        childNode.parentPath = fullPath  // Use the parent's FULL path, not just elementPath
+        childNode.parentPath = fullPath // Use the parent's FULL path, not just elementPath
 
         // Now calculate the full path based on the parent-child relationship
         childNode.calculateFullPath(parentNode: self)
@@ -195,7 +198,8 @@ class MCPUIElementNode {
   /// Set the full path for this node by walking up the parent chain
   func calculateFullPath(parentNode: MCPUIElementNode?) {
     // Log entry info
-    // print( "PATH DEBUG - calculateFullPath for \(role) with title \(title ?? "nil") and description \(description ?? "nil")",)
+    // print( "PATH DEBUG - calculateFullPath for \(role) with title \(title ?? "nil") and
+    // description \(description ?? "nil")",)
     // print("PATH DEBUG - incoming server path: \(elementPath ?? "nil")")
     // print("PATH DEBUG - parent provided: \(parentNode != nil ? "yes" : "no")")
     // print("PATH DEBUG - parent fullPath: \(parentNode?.fullPath ?? "nil")")
@@ -210,11 +214,12 @@ class MCPUIElementNode {
       let newPath: String =
         if parentPath.hasSuffix("/") { parentPath + segment } else { parentPath + "/" + segment }
 
-      fullPath = newPath  // print("PATH DEBUG - calculated path: \(newPath)")
+      fullPath = newPath // print("PATH DEBUG - calculated path: \(newPath)")
     } else {
       // If we're at the root level (no parent) and we got a path from the server, use it
       if let pathFromServer = elementPath {
-        fullPath = pathFromServer  // print("PATH DEBUG - using server path as root: \(pathFromServer)")
+        fullPath =
+          pathFromServer // print("PATH DEBUG - using server path as root: \(pathFromServer)")
       } else {
         // We can't generate a valid fully qualified path
         // print("ERROR: Unable to generate a fully qualified path for element: \(role)")
@@ -227,10 +232,11 @@ class MCPUIElementNode {
   /// Generate a path segment for this element
   func generatePathSegment() -> String {
     // Get the path provided by the MCP server directly if available
-    if let elementPath, !elementPath.hasPrefix("macos://ui/"),  // It shouldn't be a full path already
-      !elementPath.contains("/")
-    {  // It shouldn't contain path separators
-      return elementPath  // Return the server-provided segment as-is
+    if let elementPath, !elementPath.hasPrefix("macos://ui/"),
+       // It shouldn't be a full path already
+       !elementPath.contains("/")
+    { // It shouldn't contain path separators
+      return elementPath // Return the server-provided segment as-is
     }
 
     // Otherwise, create a segment for this element

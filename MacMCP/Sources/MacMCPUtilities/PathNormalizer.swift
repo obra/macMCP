@@ -4,7 +4,7 @@
 import Foundation
 
 #if canImport(AppKit)
-  import AppKit
+import AppKit
 #endif
 
 /// Utility class for normalizing element paths to ensure consistency
@@ -148,8 +148,8 @@ public class PathNormalizer {
 
     if let attrChild = mirror.children.first(where: { $0.label == "attributes" }) {
       if let attributes = attrChild.value as? [String: Any],
-        let identifier = attributes["identifier"] as? String,
-        !identifier.isEmpty
+         let identifier = attributes["identifier"] as? String,
+         !identifier.isEmpty
       {
         path += "[@AXIdentifier=\"\(identifier)\"]"
       }

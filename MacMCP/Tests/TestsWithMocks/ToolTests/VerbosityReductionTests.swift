@@ -8,7 +8,7 @@ import Testing
 
 @Suite("Verbosity Reduction Tests") struct VerbosityReductionTests {
   @Test("UIElement getStateArray only shows exceptional states")
-  func testStateArrayVerbosityReduction() async throws {
+  func stateArrayVerbosityReduction() async throws {
     // Create a UIElement with normal states (enabled, visible, unfocused, unselected)
     let normalElement = UIElement(
       path: "test://button",
@@ -18,17 +18,18 @@ import Testing
       frame: CGRect(x: 0, y: 0, width: 100, height: 30),
       children: [],
       attributes: [
-        "AXEnabled": true,  // Normal case - should not appear
-        "AXFocused": false,  // Normal case - should not appear
-        "AXSelected": false,  // Normal case - should not appear
-        "visible": true,  // Normal case - should not appear
-      ]
+        "AXEnabled": true, // Normal case - should not appear
+        "AXFocused": false, // Normal case - should not appear
+        "AXSelected": false, // Normal case - should not appear
+        "visible": true, // Normal case - should not appear
+      ],
     )
     let states = normalElement.getStateArray()
     // Should be empty since all states are "normal" cases
     #expect(states.isEmpty, "Normal states should not be included in state array")
   }
-  @Test("UIElement getStateArray shows exceptional states") func testStateArrayExceptionalStates()
+
+  @Test("UIElement getStateArray shows exceptional states") func stateArrayExceptionalStates()
     async throws
   {
     // Create a UIElement with exceptional states
@@ -40,11 +41,11 @@ import Testing
       frame: CGRect(x: 0, y: 0, width: 100, height: 30),
       children: [],
       attributes: [
-        "AXEnabled": false,  // Exceptional - should appear
-        "AXFocused": true,  // Exceptional - should appear
-        "AXSelected": true,  // Exceptional - should appear
-        "visible": false,  // Exceptional - should appear
-      ]
+        "AXEnabled": false, // Exceptional - should appear
+        "AXFocused": true, // Exceptional - should appear
+        "AXSelected": true, // Exceptional - should appear
+        "visible": false, // Exceptional - should appear
+      ],
     )
     let states = exceptionalElement.getStateArray()
     // Should contain only the exceptional states
@@ -58,17 +59,18 @@ import Testing
     #expect(!states.contains("unfocused"), "Unfocused state should not be included")
     #expect(!states.contains("unselected"), "Unselected state should not be included")
   }
+
   @Test("EnhancedElementDescriptor skips name when it matches role")
-  func testNameDeduplicationWithRole() async throws {
+  func nameDeduplicationWithRole() async throws {
     // Create element where name would match role
     let element = UIElement(
       path: "test://role-match",
       role: "AXButton",
-      title: "AXButton",  // Name will be derived from title, which matches role
+      title: "AXButton", // Name will be derived from title, which matches role
       elementDescription: nil,
       frame: CGRect(x: 0, y: 0, width: 100, height: 30),
       children: [],
-      attributes: [:]
+      attributes: [:],
     )
     let descriptor = EnhancedElementDescriptor.from(element: element)
     // Encode to JSON to check what fields are included
@@ -79,8 +81,9 @@ import Testing
     #expect(!jsonString.contains("\"name\""), "Name field should be omitted when it matches role")
     #expect(jsonString.contains("\"role\":\"AXButton\""), "Role should be present")
   }
+
   @Test("EnhancedElementDescriptor skips name when it matches identifier")
-  func testNameDeduplicationWithIdentifier()
+  func nameDeduplicationWithIdentifier()
     async throws
   {
     // Create element where name would match identifier
@@ -92,8 +95,8 @@ import Testing
       frame: CGRect(x: 0, y: 0, width: 100, height: 30),
       children: [],
       attributes: [
-        "AXIdentifier": "Save"  // Name will be "Save", same as identifier
-      ]
+        "AXIdentifier": "Save", // Name will be "Save", same as identifier
+      ],
     )
     let descriptor = EnhancedElementDescriptor.from(element: element)
     // Encode to JSON to check what fields are included
@@ -102,22 +105,24 @@ import Testing
     let jsonString = String(data: jsonData, encoding: .utf8)!
     // Should not include name field since it matches identifier
     #expect(
-      !jsonString.contains("\"name\""), "Name field should be omitted when it matches identifier")
+      !jsonString.contains("\"name\""), "Name field should be omitted when it matches identifier",
+    )
     #expect(jsonString.contains("\"identifier\":\"Save\""), "Identifier should be present")
   }
+
   @Test("EnhancedElementDescriptor includes name when it differs from role and identifier")
-  func testNameIncludedWhenUnique() async throws {
+  func nameIncludedWhenUnique() async throws {
     // Create element where name is unique
     let element = UIElement(
       path: "test://unique-name",
       role: "AXButton",
-      title: "Click Me",  // Unique name
+      title: "Click Me", // Unique name
       elementDescription: nil,
       frame: CGRect(x: 0, y: 0, width: 100, height: 30),
       children: [],
       attributes: [
-        "AXIdentifier": "button1"  // Different from name
-      ]
+        "AXIdentifier": "button1", // Different from name
+      ],
     )
     let descriptor = EnhancedElementDescriptor.from(element: element)
     // Encode to JSON to check what fields are included
@@ -126,25 +131,27 @@ import Testing
     let jsonString = String(data: jsonData, encoding: .utf8)!
     // Should include name field since it's unique
     #expect(
-      jsonString.contains("\"name\":\"Click Me\""), "Name field should be included when unique")
+      jsonString.contains("\"name\":\"Click Me\""), "Name field should be included when unique",
+    )
     #expect(jsonString.contains("\"role\":\"AXButton\""), "Role should be present")
     #expect(jsonString.contains("\"identifier\":\"button1\""), "Identifier should be present")
   }
-  @Test("Token reduction is significant") func testTokenReduction() async throws {
+
+  @Test("Token reduction is significant") func tokenReduction() async throws {
     // Create element with verbose output (old style)
     let element = UIElement(
       path: "test://token-reduction",
       role: "AXButton",
-      title: "AXButton",  // Would duplicate role
-      elementDescription: "AXButton",  // Would duplicate role
+      title: "AXButton", // Would duplicate role
+      elementDescription: "AXButton", // Would duplicate role
       frame: CGRect(x: 100, y: 200, width: 80, height: 30),
       children: [],
       attributes: [
-        "AXEnabled": true,  // Normal case
-        "AXFocused": false,  // Normal case
-        "AXSelected": false,  // Normal case
-        "AXIdentifier": "test", "visible": true,  // Normal case
-      ]
+        "AXEnabled": true, // Normal case
+        "AXFocused": false, // Normal case
+        "AXSelected": false, // Normal case
+        "AXIdentifier": "test", "visible": true, // Normal case
+      ],
     )
     let descriptor = EnhancedElementDescriptor.from(element: element)
     // Encode to JSON and measure size
@@ -161,7 +168,8 @@ import Testing
     // Rough estimate: should be under 300 characters instead of 500+
     #expect(
       jsonString.count < 400,
-      "JSON output should be significantly reduced: \(jsonString.count) chars")
+      "JSON output should be significantly reduced: \(jsonString.count) chars",
+    )
     print("Reduced JSON output (\(jsonString.count) chars): \(jsonString)")
   }
 }

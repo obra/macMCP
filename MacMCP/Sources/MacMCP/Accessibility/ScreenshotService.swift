@@ -60,7 +60,7 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
   {
     logger.debug(
       "Capturing area screenshot",
-      metadata: ["x": "\(x)", "y": "\(y)", "width": "\(width)", "height": "\(height)"]
+      metadata: ["x": "\(x)", "y": "\(y)", "width": "\(width)", "height": "\(height)"],
     )
 
     // Sanitize input values
@@ -93,7 +93,7 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
         metadata: [
           "original": "(\(x), \(y), \(width), \(height))",
           "adjusted": "(\(sanitizedX), \(sanitizedY), \(sanitizedWidth), \(sanitizedHeight))",
-        ]
+        ],
       )
     }
 
@@ -162,7 +162,7 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
 
     // Capture the window
     let cgImage = try CGWindowListCreateImage(
-      .null,  // Use the window's bounds
+      .null, // Use the window's bounds
       .optionIncludingWindow,
       windowID,
       [.nominalResolution, .boundsIgnoreFraming],
@@ -176,7 +176,8 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
   /// - Returns: Screenshot result
   public func captureElementByPath(elementPath: String) async throws -> ScreenshotResult {
     logger.debug(
-      "Capturing element screenshot by path", metadata: ["elementPath": "\(elementPath)"])
+      "Capturing element screenshot by path", metadata: ["elementPath": "\(elementPath)"],
+    )
 
     // Use the element ID to find the element
     do {
@@ -208,19 +209,21 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
             "frame":
               "(\(frame.origin.x), \(frame.origin.y), \(frame.size.width), \(frame.size.height))",
             "paddedFrame": "(\(paddedX), \(paddedY), \(paddedWidth), \(paddedHeight))",
-          ]
+          ],
         )
 
         return try await captureArea(
-          x: paddedX, y: paddedY, width: paddedWidth, height: paddedHeight, )
+          x: paddedX, y: paddedY, width: paddedWidth, height: paddedHeight,
+        )
       } else {
         logger.debug(
-          "Element found but has invalid frame", metadata: ["elementPath": "\(elementPath)"])
+          "Element found but has invalid frame", metadata: ["elementPath": "\(elementPath)"],
+        )
         throw NSError(
           domain: "com.macos.mcp.screenshot",
           code: 1005,
           userInfo: [
-            NSLocalizedDescriptionKey: "Element found but has invalid frame: \(elementPath)"
+            NSLocalizedDescriptionKey: "Element found but has invalid frame: \(elementPath)",
           ],
         )
       }
@@ -228,26 +231,26 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
       // If there's a path resolution error, we get specific information
       logger.debug(
         "Path resolution error",
-        metadata: ["elementPath": "\(elementPath)", "error": "\(pathError.description)"]
+        metadata: ["elementPath": "\(elementPath)", "error": "\(pathError.description)"],
       )
       throw NSError(
         domain: "com.macos.mcp.screenshot",
         code: 1005,
         userInfo: [
-          NSLocalizedDescriptionKey: "Failed to resolve element path: \(pathError.description)"
+          NSLocalizedDescriptionKey: "Failed to resolve element path: \(pathError.description)",
         ],
       )
     } catch {
       // For other errors
       logger.debug(
         "Error finding element by path",
-        metadata: ["elementPath": "\(elementPath)", "error": "\(error.localizedDescription)"]
+        metadata: ["elementPath": "\(elementPath)", "error": "\(error.localizedDescription)"],
       )
       throw NSError(
         domain: "com.macos.mcp.screenshot",
         code: 1005,
         userInfo: [
-          NSLocalizedDescriptionKey: "Failed to find element by path: \(error.localizedDescription)"
+          NSLocalizedDescriptionKey: "Failed to find element by path: \(error.localizedDescription)",
         ],
       )
     }
@@ -281,7 +284,7 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
     }
 
     // Return the result with scale 1.0 for regular DPI
-    return ScreenshotResult(data: pngData, width: width, height: height, scale: 1.0, )
+    return ScreenshotResult(data: pngData, width: width, height: height, scale: 1.0)
   }
 
   /// Flip a rectangle for screen coordinates
@@ -293,7 +296,7 @@ public actor ScreenshotService: ScreenshotServiceProtocol {
     let screenHeight = mainScreen.frame.height
     let flippedY = screenHeight - (rect.origin.y + rect.height)
 
-    return CGRect(x: rect.origin.x, y: flippedY, width: rect.width, height: rect.height, )
+    return CGRect(x: rect.origin.x, y: flippedY, width: rect.width, height: rect.height)
   }
 }
 

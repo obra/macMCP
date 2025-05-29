@@ -38,11 +38,12 @@ class JSONFormatter: OutputFormatter {
     // Serialize to string
     do {
       let jsonData = try JSONSerialization.data(
-        withJSONObject: jsonObject, options: [.prettyPrinted])
+        withJSONObject: jsonObject, options: [.prettyPrinted],
+      )
       if let jsonString = String(data: jsonData, encoding: .utf8) { return jsonString }
     } catch { return "Error serializing to JSON: \(error.localizedDescription)" }
 
-    return "{}"  // Default empty object if serialization fails
+    return "{}" // Default empty object if serialization fails
   }
 
   /// Converts a UI element to a JSON-compatible dictionary
@@ -110,10 +111,10 @@ class JSONFormatter: OutputFormatter {
   /// Checks if a value is JSON-compatible
   private func isJSONCompatible(_ value: Any) -> Bool {
     switch value {
-    case is String, is NSNumber, is Bool, is NSNull: true
-    case let array as [Any]: array.allSatisfy { isJSONCompatible($0) }
-    case let dict as [String: Any]: dict.values.allSatisfy { isJSONCompatible($0) }
-    default: false
+      case is String, is NSNumber, is Bool, is NSNull: true
+      case let array as [Any]: array.allSatisfy { isJSONCompatible($0) }
+      case let dict as [String: Any]: dict.values.allSatisfy { isJSONCompatible($0) }
+      default: false
     }
   }
 
@@ -126,45 +127,45 @@ class JSONFormatter: OutputFormatter {
     return elements.filter { element in
       for (key, value) in withFilters {
         switch key.lowercased() {
-        case "role": if !element.role.lowercased().contains(value.lowercased()) { return false }
-        case "title":
-          if let title = element.title, !title.lowercased().contains(value.lowercased()) {
-            return false
-          } else if element.title == nil {
-            return false
-          }
-        case "id", "identifier":
-          if let identifier = element.identifier,
-            !identifier.lowercased().contains(value.lowercased())
-          {
-            return false
-          } else if element.identifier == nil {
-            return false
-          }
-        case "enabled":
-          let isEnabled = element.isEnabled
-          let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
-          if isEnabled != valueAsBool { return false }
-        case "clickable":
-          let isClickable = element.isClickable
-          let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
-          if isClickable != valueAsBool { return false }
-        default:
-          if let attrValue = element.attributes[key] {
-            if let stringValue = attrValue as? String,
-              !stringValue.lowercased().contains(value.lowercased())
-            {
+          case "role": if !element.role.lowercased().contains(value.lowercased()) { return false }
+          case "title":
+            if let title = element.title, !title.lowercased().contains(value.lowercased()) {
               return false
-            } else if let numberValue = attrValue as? NSNumber,
-              !numberValue.stringValue.contains(value)
-            {
-              return false
-            } else if !(attrValue is String), !(attrValue is NSNumber) {
+            } else if element.title == nil {
               return false
             }
-          } else {
-            return false
-          }
+          case "id", "identifier":
+            if let identifier = element.identifier,
+               !identifier.lowercased().contains(value.lowercased())
+            {
+              return false
+            } else if element.identifier == nil {
+              return false
+            }
+          case "enabled":
+            let isEnabled = element.isEnabled
+            let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
+            if isEnabled != valueAsBool { return false }
+          case "clickable":
+            let isClickable = element.isClickable
+            let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
+            if isClickable != valueAsBool { return false }
+          default:
+            if let attrValue = element.attributes[key] {
+              if let stringValue = attrValue as? String,
+                 !stringValue.lowercased().contains(value.lowercased())
+              {
+                return false
+              } else if let numberValue = attrValue as? NSNumber,
+                        !numberValue.stringValue.contains(value)
+              {
+                return false
+              } else if !(attrValue is String), !(attrValue is NSNumber) {
+                return false
+              }
+            } else {
+              return false
+            }
         }
       }
       return true
@@ -184,7 +185,7 @@ class XMLFormatter: OutputFormatter {
 
   /// Formats a UI element as XML
   private func formatElementAsXML(
-    _ element: UIElementNode, withFilters: [String: String], indent: String
+    _ element: UIElementNode, withFilters: [String: String], indent: String,
   ) -> String {
     var output = indent + "<element"
     output += " index=\"\(element.index)\""
@@ -277,14 +278,14 @@ class XMLFormatter: OutputFormatter {
   /// Formats a value for XML output
   private func formatValueForXML(_ value: Any) -> String {
     switch value {
-    case let stringValue as String: escapeXML(stringValue)
-    case let numberValue as NSNumber: escapeXML(numberValue.stringValue)
-    case let boolValue as Bool: escapeXML(boolValue ? "true" : "false")
-    case let arrayValue as [Any]:
-      if arrayValue.isEmpty { "[]" } else { "[Array with \(arrayValue.count) elements]" }
-    case let dictValue as [String: Any]:
-      if dictValue.isEmpty { "{}" } else { "{Dictionary with \(dictValue.count) entries}" }
-    default: "[Type: \(type(of: value))]"
+      case let stringValue as String: escapeXML(stringValue)
+      case let numberValue as NSNumber: escapeXML(numberValue.stringValue)
+      case let boolValue as Bool: escapeXML(boolValue ? "true" : "false")
+      case let arrayValue as [Any]:
+        if arrayValue.isEmpty { "[]" } else { "[Array with \(arrayValue.count) elements]" }
+      case let dictValue as [String: Any]:
+        if dictValue.isEmpty { "{}" } else { "{Dictionary with \(dictValue.count) entries}" }
+      default: "[Type: \(type(of: value))]"
     }
   }
 
@@ -297,45 +298,45 @@ class XMLFormatter: OutputFormatter {
     return elements.filter { element in
       for (key, value) in withFilters {
         switch key.lowercased() {
-        case "role": if !element.role.lowercased().contains(value.lowercased()) { return false }
-        case "title":
-          if let title = element.title, !title.lowercased().contains(value.lowercased()) {
-            return false
-          } else if element.title == nil {
-            return false
-          }
-        case "id", "identifier":
-          if let identifier = element.identifier,
-            !identifier.lowercased().contains(value.lowercased())
-          {
-            return false
-          } else if element.identifier == nil {
-            return false
-          }
-        case "enabled":
-          let isEnabled = element.isEnabled
-          let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
-          if isEnabled != valueAsBool { return false }
-        case "clickable":
-          let isClickable = element.isClickable
-          let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
-          if isClickable != valueAsBool { return false }
-        default:
-          if let attrValue = element.attributes[key] {
-            if let stringValue = attrValue as? String,
-              !stringValue.lowercased().contains(value.lowercased())
-            {
+          case "role": if !element.role.lowercased().contains(value.lowercased()) { return false }
+          case "title":
+            if let title = element.title, !title.lowercased().contains(value.lowercased()) {
               return false
-            } else if let numberValue = attrValue as? NSNumber,
-              !numberValue.stringValue.contains(value)
-            {
-              return false
-            } else if !(attrValue is String), !(attrValue is NSNumber) {
+            } else if element.title == nil {
               return false
             }
-          } else {
-            return false
-          }
+          case "id", "identifier":
+            if let identifier = element.identifier,
+               !identifier.lowercased().contains(value.lowercased())
+            {
+              return false
+            } else if element.identifier == nil {
+              return false
+            }
+          case "enabled":
+            let isEnabled = element.isEnabled
+            let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
+            if isEnabled != valueAsBool { return false }
+          case "clickable":
+            let isClickable = element.isClickable
+            let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
+            if isClickable != valueAsBool { return false }
+          default:
+            if let attrValue = element.attributes[key] {
+              if let stringValue = attrValue as? String,
+                 !stringValue.lowercased().contains(value.lowercased())
+              {
+                return false
+              } else if let numberValue = attrValue as? NSNumber,
+                        !numberValue.stringValue.contains(value)
+              {
+                return false
+              } else if !(attrValue is String), !(attrValue is NSNumber) {
+                return false
+              }
+            } else {
+              return false
+            }
         }
       }
       return true

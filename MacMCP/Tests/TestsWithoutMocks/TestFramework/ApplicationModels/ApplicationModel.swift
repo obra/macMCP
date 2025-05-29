@@ -76,7 +76,7 @@ open class BaseApplicationModel: ApplicationModel, @unchecked Sendable {
   ///   - arguments: Optional command line arguments
   ///   - hideOthers: Whether to hide other applications
   /// - Returns: True if the application was successfully launched
-  open func launch(arguments: [String]? = nil, hideOthers: Bool = false, ) async throws -> Bool {
+  open func launch(arguments: [String]? = nil, hideOthers: Bool = false) async throws -> Bool {
     // Check if the application is already running
     if try await isRunning() {
       // If it's already running, try to terminate it, but don't fail if we can't
@@ -94,7 +94,8 @@ open class BaseApplicationModel: ApplicationModel, @unchecked Sendable {
 
     // Launch the application using the tool chain
     let success = try await toolChain.openApp(
-      bundleId: bundleId, arguments: arguments, hideOthers: hideOthers, )
+      bundleId: bundleId, arguments: arguments, hideOthers: hideOthers,
+    )
 
     if !success {
       throw NSError(
@@ -157,7 +158,7 @@ open class BaseApplicationModel: ApplicationModel, @unchecked Sendable {
   ///   - criteria: Criteria to match against UI elements
   ///   - timeout: Maximum time to wait
   /// - Returns: Matching UI element if found
-  open func waitForElement(matching criteria: UIElementCriteria, timeout: TimeInterval, )
+  open func waitForElement(matching criteria: UIElementCriteria, timeout: TimeInterval)
     async throws -> UIElement?
   {
     let startTime = Date()

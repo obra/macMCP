@@ -39,6 +39,7 @@ public struct CacheStatistics: Sendable {
     let total = hitCount + missCount
     return total > 0 ? Double(hitCount) / Double(total) : 0.0
   }
+
   /// Number of expired entries removed during cleanup
   public let expiredCount: Int
   public init(entryCount: Int, hitCount: Int, missCount: Int, expiredCount: Int) {

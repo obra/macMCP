@@ -9,7 +9,7 @@ import Testing
 
 @Suite(.serialized) struct PathCollisionTests {
   @Test("Path generation algorithm - demonstrates collision scenario")
-  func testPathGenerationCollisions() throws {
+  func pathGenerationCollisions() throws {
     // Test the core path generation algorithm that creates collisions
     // This demonstrates the problem: same role + attributes = same path
 
@@ -31,20 +31,23 @@ import Testing
     // All paths are the same: AXButton[@AXDescription="Add"]
     // When stored in dictionary[path] = element, later elements overwrite earlier ones
   }
+
   @Test("Dictionary collision simulation - demonstrates data loss")
-  func testDictionaryCollisionSimulation() throws {
+  func dictionaryCollisionSimulation() throws {
     // Simulate what happens in UIChangeDetectionService.swift:64
     // snapshot[element.path] = element
 
-    var snapshot: [String: String] = [:]  // Using String instead of UIElement for simplicity
+    var snapshot: [String: String] = [:] // Using String instead of UIElement for simplicity
     let elements = [
       ("AXButton[@AXDescription=\"Add\"]", "Element1"),
       ("AXButton[@AXDescription=\"Add\"]", "Element2"),
       ("AXButton[@AXDescription=\"Add\"]", "Element3"),
-      ("AXButton[@AXDescription=\"Subtract\"]", "Element4"),  // Different path, no collision
+      ("AXButton[@AXDescription=\"Subtract\"]", "Element4"), // Different path, no collision
     ]
     // Store elements by path - this causes overwrites
-    for (path, element) in elements { snapshot[path] = element }
+    for (path, element) in elements {
+      snapshot[path] = element
+    }
     print("Original elements: \(elements.count)")
     print("Dictionary entries: \(snapshot.count)")
     print("Lost due to collisions: \(elements.count - snapshot.count)")
@@ -52,19 +55,21 @@ import Testing
     #expect(snapshot.count == 2, "Dictionary should only have 2 entries due to path collisions")
     #expect(
       snapshot["AXButton[@AXDescription=\"Add\"]"] == "Element3",
-      "Last element should overwrite earlier ones"
+      "Last element should overwrite earlier ones",
     )
     #expect(
       snapshot["AXButton[@AXDescription=\"Subtract\"]"] == "Element4",
-      "Non-colliding element should remain")
+      "Non-colliding element should remain",
+    )
   }
-  @Test("Sibling indexing algorithm design") func testSiblingIndexingAlgorithm() throws {
+
+  @Test("Sibling indexing algorithm design") func siblingIndexingAlgorithm() throws {
     // Test the designed solution: add [1], [2], etc. for colliding siblings
 
     let siblings = [
-      ("AXButton", ["AXDescription": "Add"]), ("AXButton", ["AXDescription": "Add"]),  // Collision
-      ("AXButton", ["AXDescription": "Add"]),  // Collision
-      ("AXButton", ["AXDescription": "Subtract"]),  // No collision
+      ("AXButton", ["AXDescription": "Add"]), ("AXButton", ["AXDescription": "Add"]), // Collision
+      ("AXButton", ["AXDescription": "Add"]), // Collision
+      ("AXButton", ["AXDescription": "Subtract"]), // No collision
     ]
     // Expected output after implementing fix:
     let expectedPaths = [
@@ -72,9 +77,13 @@ import Testing
       "AXButton[@AXDescription=\"Add\"][2]", "AXButton[@AXDescription=\"Subtract\"]",
     ]
     print("Input siblings:")
-    for (i, (role, attrs)) in siblings.enumerated() { print("  [\(i)]: \(role) with \(attrs)") }
+    for (i, (role, attrs)) in siblings.enumerated() {
+      print("  [\(i)]: \(role) with \(attrs)")
+    }
     print("\nExpected unique paths after fix:")
-    for (i, path) in expectedPaths.enumerated() { print("  [\(i)]: \(path)") }
+    for (i, path) in expectedPaths.enumerated() {
+      print("  [\(i)]: \(path)")
+    }
     // This test documents the expected behavior
     // When we implement the fix, we'll generate these paths
     #expect(expectedPaths.count == siblings.count, "Should have one unique path per sibling")

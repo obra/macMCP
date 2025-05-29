@@ -21,7 +21,7 @@ import Testing
 
     // Path with attributes
     let attributePath = try ElementPath.parse(
-      "macos://ui/AXApplication[@bundleId=\"com.test\"]/AXWindow[@AXTitle=\"Title\"]"
+      "macos://ui/AXApplication[@bundleId=\"com.test\"]/AXWindow[@AXTitle=\"Title\"]",
     )
     #expect(attributePath.segments.count == 2)
     #expect(attributePath.segments[0].attributes["bundleId"] == "com.test")
@@ -41,10 +41,10 @@ import Testing
       #expect(Bool(false), "Expected an error but none was thrown")
     } catch let error as ElementPathError {
       switch error {
-      case .invalidPathPrefix:
-        // This is expected
-        break
-      default: #expect(Bool(false), "Expected invalidPathPrefix error but got: \(error)")
+        case .invalidPathPrefix:
+          // This is expected
+          break
+        default: #expect(Bool(false), "Expected invalidPathPrefix error but got: \(error)")
       }
     }
 
@@ -54,10 +54,10 @@ import Testing
       #expect(Bool(false), "Expected an error but none was thrown")
     } catch let error as ElementPathError {
       switch error {
-      case .emptyPath:
-        // This is expected
-        break
-      default: #expect(Bool(false), "Expected emptyPath error but got: \(error)")
+        case .emptyPath:
+          // This is expected
+          break
+        default: #expect(Bool(false), "Expected emptyPath error but got: \(error)")
       }
     }
   }
@@ -97,7 +97,8 @@ import Testing
       attributes: ["AXTitle": "OK", "AXDescription": "Button"],
     )
     #expect(
-      multiAttributeSegment.toString() == "AXButton[@AXDescription=\"Button\"][@AXTitle=\"OK\"]")
+      multiAttributeSegment.toString() == "AXButton[@AXDescription=\"Button\"][@AXTitle=\"OK\"]",
+    )
 
     // Segment with index
     let indexSegment = PathSegment(role: "AXButton", attributes: [:], index: 2)
@@ -116,7 +117,7 @@ import Testing
 
     // Complex path
     let complexPath = try ElementPath.parse(
-      "macos://ui/AXApplication[@bundleId=\"com.test\"]/AXWindow[@AXTitle=\"Title\"][1]"
+      "macos://ui/AXApplication[@bundleId=\"com.test\"]/AXWindow[@AXTitle=\"Title\"][1]",
     )
     #expect(
       complexPath.toString()

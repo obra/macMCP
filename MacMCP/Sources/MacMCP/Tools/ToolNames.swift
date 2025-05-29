@@ -37,5 +37,4 @@ public enum ToolNames {
 
   /// Onboarding tool for AI assistants
   public static let onboarding = "\(prefix)_onboarding"
-
 }

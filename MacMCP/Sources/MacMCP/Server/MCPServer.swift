@@ -29,7 +29,8 @@ public actor MCPServer {
 
   /// The screenshot service
   private lazy var screenshotService = ScreenshotService(
-    accessibilityService: accessibilityService, logger: logger, )
+    accessibilityService: accessibilityService, logger: logger,
+  )
 
   /// The UI interaction service
   private lazy var interactionService = UIInteractionService(
@@ -67,9 +68,9 @@ public actor MCPServer {
       version: version,
       capabilities: Server.Capabilities(
         // We have a minimal resources implementation to pass validation
-        resources: .init(subscribe: false, listChanged: false, ),
+        resources: .init(subscribe: false, listChanged: false),
         // We fully support tools
-        tools: .init(listChanged: true, ),
+        tools: .init(listChanged: true),
       ),
       configuration: .strict,
     )
@@ -90,7 +91,8 @@ public actor MCPServer {
 
     logger.info(
       "Starting macOS MCP Server",
-      metadata: ["name": "\(server.name)", "version": "\(server.version)"])
+      metadata: ["name": "\(server.name)", "version": "\(server.version)"],
+    )
 
     // Before starting, ensure we have accessibility permissions
     try await checkAccessibilityPermissions()
@@ -105,7 +107,7 @@ public actor MCPServer {
       // Log client connection
       logger.info(
         "Client connected",
-        metadata: ["clientName": "\(clientInfo.name)", "clientVersion": "\(clientInfo.version)"]
+        metadata: ["clientName": "\(clientInfo.name)", "clientVersion": "\(clientInfo.version)"],
       )
     }
 
@@ -146,7 +148,8 @@ public actor MCPServer {
     }
 
     // Continue without throwing an error, even if permissions aren't granted
-    // This allows the server to start and register tools, even if some tools won't work without permissions
+    // This allows the server to start and register tools, even if some tools won't work without
+    // permissions
   }
 
   /// Register all the tools the server provides
@@ -158,24 +161,26 @@ public actor MCPServer {
     // Register application windows resource handler
     let windowsResourceHandler = ApplicationWindowsResourceHandler(
       accessibilityService: accessibilityService,
-      logger: logger
+      logger: logger,
     )
     resourceRegistry.register(windowsResourceHandler)
     // Register application menus resource handler
     let menusResourceHandler = ApplicationMenusResourceHandler(
       menuNavigationService: menuNavigationService,
-      logger: logger
+      logger: logger,
     )
     resourceRegistry.register(menusResourceHandler)
     // Register applications resource handler
     let applicationsResourceHandler = ApplicationsResourceHandler(
       applicationService: applicationService,
-      logger: logger
+      logger: logger,
     )
     resourceRegistry.register(applicationsResourceHandler)
     // Register resource templates
     let templates = ResourceTemplateFactory.createTemplates()
-    for template in templates { resourceRegistry.registerTemplate(template) }
+    for template in templates {
+      resourceRegistry.registerTemplate(template)
+    }
     logger.info("Registered \(templates.count) resource templates")
     // Register server info handler
     await server.withMethodHandler(ServerInfo.self) { [weak self] _ in
@@ -185,26 +190,28 @@ public actor MCPServer {
 
       // Detect the platform and OS
       let platform: String
-      let os: String
+      let operatingSystem: String
 
       #if os(macOS)
-        platform = "macOS"
-        let version = ProcessInfo.processInfo.operatingSystemVersion
-        os = "macOS \(version.majorVersion).\(version.minorVersion).\(version.patchVersion)"
+      platform = "macOS"
+      let version = ProcessInfo.processInfo.operatingSystemVersion
+      operatingSystem =
+        "macOS \(version.majorVersion).\(version.minorVersion).\(version.patchVersion)"
       #elseif os(iOS)
-        platform = "iOS"
-        let version = ProcessInfo.processInfo.operatingSystemVersion
-        os = "iOS \(version.majorVersion).\(version.minorVersion).\(version.patchVersion)"
+      platform = "iOS"
+      let version = ProcessInfo.processInfo.operatingSystemVersion
+      operatingSystem =
+        "iOS \(version.majorVersion).\(version.minorVersion).\(version.patchVersion)"
       #else
-        platform = "Unknown"
-        os = "Unknown"
+      platform = "Unknown"
+      operatingSystem = "Unknown"
       #endif
 
       return ServerInfo.Result(
         name: server.name,
         version: server.version,
-        capabilities: ServerInfo.Capabilities(apiExplorer: false, ),
-        info: ServerInfo.ServerInfoDetails(platform: platform, os: os, ),
+        capabilities: ServerInfo.Capabilities(apiExplorer: false),
+        info: ServerInfo.ServerInfoDetails(platform: platform, os: operatingSystem),
         supportedVersions: ["2025-03-26", "2024-11-05"],
       )
     }
@@ -218,7 +225,7 @@ public actor MCPServer {
       // Schedule shutdown after response is sent
       Task {
         // Brief delay to ensure response is sent
-        try? await Task.sleep(nanoseconds: 100_000_000)  // 100ms
+        try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
         await self.stop()
       }
 
@@ -227,14 +234,16 @@ public actor MCPServer {
 
     // Register resources/read handler
     let resourcesReadHandler = ResourcesReadMethodHandler(
-      registry: resourceRegistry, logger: logger)
+      registry: resourceRegistry, logger: logger,
+    )
     await server.withMethodHandler(ResourcesRead.self) { params in
       try await resourcesReadHandler.handle(params)
     }
 
     // Register resource listing handler
     let resourcesListHandler = ResourcesListMethodHandler(
-      registry: resourceRegistry, logger: logger)
+      registry: resourceRegistry, logger: logger,
+    )
     await server.withMethodHandler(ListResources.self) { params in
       try await resourcesListHandler.handle(params)
     }
@@ -298,7 +307,7 @@ public actor MCPServer {
         "type": "object", "properties": [:], "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#",
       ]),
-      annotations: .init(title: "Ping", readOnlyHint: true, ),
+      annotations: .init(title: "Ping", readOnlyHint: true),
       handler: { _ in
         // Return a simple ping response
         [Tool.Content.text("Pong from macOS MCP server")]
@@ -317,7 +326,8 @@ public actor MCPServer {
 
     // Register the UI interaction tool
     let changeDetectionService = UIChangeDetectionService(
-      accessibilityService: accessibilityService)
+      accessibilityService: accessibilityService,
+    )
     let interactionTool = UIInteractionTool(
       interactionService: interactionService,
       accessibilityService: accessibilityService,
@@ -335,7 +345,8 @@ public actor MCPServer {
 
     // Register the window management tool
     let windowManagementTool = WindowManagementTool(
-      accessibilityService: accessibilityService, logger: logger, )
+      accessibilityService: accessibilityService, logger: logger,
+    )
     await registerTool(
       name: windowManagementTool.name,
       description: windowManagementTool.description,
@@ -361,7 +372,8 @@ public actor MCPServer {
 
     // Register the interface explorer tool (consolidated UI exploration tool)
     let interfaceExplorerTool = InterfaceExplorerTool(
-      accessibilityService: accessibilityService, logger: logger, )
+      accessibilityService: accessibilityService, logger: logger,
+    )
     await registerTool(
       name: interfaceExplorerTool.name,
       description: interfaceExplorerTool.description,
@@ -386,7 +398,7 @@ public actor MCPServer {
     )
 
     // Register the clipboard management tool
-    let clipboardManagementTool = ClipboardManagementTool(clipboardService: clipboardService, )
+    let clipboardManagementTool = ClipboardManagementTool(clipboardService: clipboardService)
     await registerTool(
       name: clipboardManagementTool.name,
       description: clipboardManagementTool.description,
@@ -431,7 +443,8 @@ public actor MCPServer {
   ) async {
     // Define the tool
     let tool = Tool(
-      name: name, description: description, inputSchema: inputSchema, annotations: annotations, )
+      name: name, description: description, inputSchema: inputSchema, annotations: annotations,
+    )
 
     // Add to our tools list
     tools.append(tool)

@@ -24,10 +24,10 @@ import Testing
     // Set up standardized logging
     (logger, logFileURL) = TestLogger.create(
       label: "mcp.test.windowmanagement",
-      testName: "WindowManagementE2ETests"
+      testName: "WindowManagementE2ETests",
     )
     TestLogger.configureEnvironment(logger: logger)
-    let _ = TestLogger.createDiagnosticLog(testName: "WindowManagementE2ETests", logger: logger)
+    _ = TestLogger.createDiagnosticLog(testName: "WindowManagementE2ETests", logger: logger)
     logger.debug("Setting up WindowManagementE2ETests")
 
     // Create the test components
@@ -35,7 +35,7 @@ import Testing
     dictionaryApp = BaseApplicationModel(
       bundleId: "com.apple.TextEdit",
       appName: "Dictionary",
-      toolChain: toolChain
+      toolChain: toolChain,
     )
 
     // Force terminate any existing Dictionary instances
@@ -71,7 +71,7 @@ import Testing
   }
 
   /// Test getting application windows
-  @Test("Get application windows") mutating func testGetApplicationWindows() async throws {
+  @Test("Get application windows") mutating func getApplicationWindows() async throws {
     try await setUp()
     // Create parameters
     let params: [String: Value] = [
@@ -106,7 +106,7 @@ import Testing
   }
 
   /// Test moving a window
-  @Test("Move window") mutating func testMoveWindow() async throws {
+  @Test("Move window") mutating func moveWindow() async throws {
     try await setUp()
     // First ensure we have the dictionary window ID
     guard let windowId = try await getDictionaryWindowId() else {
@@ -159,7 +159,7 @@ import Testing
   }
 
   /// Test resizing a window
-  @Test("Resize window") mutating func testResizeWindow() async throws {
+  @Test("Resize window") mutating func resizeWindow() async throws {
     try await setUp()
     // First ensure we have the dictionary window ID
     guard let windowId = try await getDictionaryWindowId() else {
@@ -212,7 +212,7 @@ import Testing
   }
 
   /// Test minimizing and activating a window
-  @Test("Minimize and activate window") mutating func testMinimizeAndActivateWindow() async throws {
+  @Test("Minimize and activate window") mutating func minimizeAndActivateWindow() async throws {
     try await setUp()
     // First ensure we have the dictionary window ID
     guard let windowId = try await getDictionaryWindowId() else {
@@ -293,7 +293,7 @@ import Testing
       let json = try JSONSerialization.jsonObject(with: jsonData) as! [[String: Any]]
 
       // Get the first window ID
-      if json.count > 0, let windowId = json[0]["id"] as? String { return windowId }
+      if !json.isEmpty, let windowId = json[0]["id"] as? String { return windowId }
     }
 
     return nil
@@ -315,7 +315,9 @@ import Testing
       let json = try JSONSerialization.jsonObject(with: jsonData) as! [[String: Any]]
 
       // Find the window with the matching ID
-      for window in json { if let id = window["id"] as? String, id == windowId { return window } }
+      for window in json {
+        if let id = window["id"] as? String, id == windowId { return window }
+      }
     }
 
     return nil
@@ -332,8 +334,9 @@ import Testing
     // If we can't find the window, assume it's not visible
     return false
   }
+
   /// Test specifically for the ElementPath segment counting bug that was fixed
-  @Test("ElementPath resolution regression test") mutating func testElementPathResolutionBug()
+  @Test("ElementPath resolution regression test") mutating func elementPathResolutionBug()
     async throws
   {
     try await setUp()
@@ -349,7 +352,8 @@ import Testing
     }
     logger.debug("Testing ElementPath resolution with 2-segment path: \(windowId)")
     // The windowId is a 2-segment ElementPath like:
-    // "macos://ui/AXApplication[@AXTitle="TextEdit"][@bundleId="com.apple.TextEdit"]/AXWindow[@AXTitle="Untitled X"]"
+    // "macos://ui/AXApplication[@AXTitle="TextEdit"][@bundleId="com.apple.TextEdit"]/AXWindow[@AXTitle="Untitled
+    // X"]"
 
     // Verify this is indeed a 2-segment path
     #expect(windowId.contains("/AXWindow"), "Window ID should contain AXWindow segment")
@@ -358,7 +362,8 @@ import Testing
     let elementPath = try ElementPath.parse(windowId)
     #expect(elementPath.segments.count == 2, "Should be exactly 2 segments (app + window)")
     #expect(
-      elementPath.segments[0].role == "AXApplication", "First segment should be AXApplication")
+      elementPath.segments[0].role == "AXApplication", "First segment should be AXApplication",
+    )
     #expect(elementPath.segments[1].role == "AXWindow", "Second segment should be AXWindow")
     // The critical test: Try to move the window using this ElementPath
     // With the old bug, this would fail because ElementPath.resolve() would return
@@ -377,7 +382,7 @@ import Testing
       #expect(jsonString.contains("\"success\": true"), "Should indicate success in response")
       logger.debug("ElementPath resolution test passed - window move succeeded")
       // Verify the window actually moved by checking its position
-      try await Task.sleep(for: .milliseconds(500))  // Allow time for UI update
+      try await Task.sleep(for: .milliseconds(500)) // Allow time for UI update
 
       let windowInfo = try await getWindowPosition(windowId: windowId)
       #expect(windowInfo != nil, "Should be able to get window position after move")
@@ -391,7 +396,8 @@ import Testing
         #expect(xDiff <= 20, "X position should be approximately 300, got \(x)")
         #expect(yDiff <= 20, "Y position should be approximately 300, got \(y)")
         logger.debug(
-          "Window successfully moved to (\(x), \(y)) - ElementPath resolution working correctly")
+          "Window successfully moved to (\(x), \(y)) - ElementPath resolution working correctly",
+        )
       }
     } else {
       #expect(Bool(false), "Result should be text content")

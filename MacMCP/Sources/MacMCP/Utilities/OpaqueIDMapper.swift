@@ -36,6 +36,7 @@ public final class OpaqueIDMapper: @unchecked Sendable {
     accessOrder.append(newID)
     return compactEncode(newID)
   }
+
   /// Resolve opaque ID back to element path
   /// Returns nil if ID not found in cache
   public func elementPath(for opaqueID: String) -> String? {
@@ -47,6 +48,7 @@ public final class OpaqueIDMapper: @unchecked Sendable {
     updateAccessOrder(uuid)
     return path
   }
+
   /// Clear all mappings
   public func clearAll() {
     lock.lock()
@@ -55,23 +57,27 @@ public final class OpaqueIDMapper: @unchecked Sendable {
     idToPath.removeAll()
     accessOrder.removeAll()
   }
+
   /// Get current cache size
   public var cacheSize: Int {
     lock.lock()
     defer { lock.unlock() }
     return pathToID.count
   }
+
   // MARK: - Private Implementation
 
   private func updateAccessOrder(_ uuid: UUID) {
     if let index = accessOrder.firstIndex(of: uuid) { accessOrder.remove(at: index) }
     accessOrder.append(uuid)
   }
+
   private func evictOldest() {
     guard let oldestID = accessOrder.first else { return }
     accessOrder.removeFirst()
     if let path = idToPath.removeValue(forKey: oldestID) { pathToID.removeValue(forKey: path) }
   }
+
   /// Encode UUID as compact base64url string (22 chars)
   private func compactEncode(_ uuid: UUID) -> String {
     var bytes = [UInt8](repeating: 0, count: 16)
@@ -81,9 +87,10 @@ public final class OpaqueIDMapper: @unchecked Sendable {
     return Data(bytes).base64EncodedString().replacingOccurrences(of: "+", with: "-")
       .replacingOccurrences(
         of: "/",
-        with: "_"
+        with: "_",
       ).replacingOccurrences(of: "=", with: "")
   }
+
   /// Decode compact base64url string back to UUID
   private func compactDecode(_ encoded: String) -> UUID? {
     // Add padding back
@@ -92,7 +99,7 @@ public final class OpaqueIDMapper: @unchecked Sendable {
     let base64 = padded.replacingOccurrences(of: "-", with: "+").replacingOccurrences(
       of: "_", with: "/")
     guard let data = Data(base64Encoded: base64), data.count == 16 else { return nil }
-    return data.withUnsafeBytes { (bytes: UnsafeRawBufferPointer) -> UUID in
+    return data.withUnsafeBytes { bytes in
       bytes.load(as: UUID.self)
     }
   }

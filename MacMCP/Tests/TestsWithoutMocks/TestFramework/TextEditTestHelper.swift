@@ -40,13 +40,14 @@ extension UIElementCriteria: @unchecked Sendable {}
 
     // Create a temporary directory for test files
     tempDirectory = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(
-      "textedit_tests_\(UUID().uuidString)"
+      "textedit_tests_\(UUID().uuidString)",
     )
 
     // Create the directory if it doesn't exist
     do {
       try FileManager.default.createDirectory(
-        at: tempDirectory, withIntermediateDirectories: true, )
+        at: tempDirectory, withIntermediateDirectories: true,
+      )
     } catch {
       print("Warning: Failed to create temp directory: \(error)")
     }
@@ -84,7 +85,7 @@ extension UIElementCriteria: @unchecked Sendable {}
 
     // Ensure TextEdit is frontmost application regardless of whether we just launched it
     if let textEditApp = NSRunningApplication.runningApplications(
-      withBundleIdentifier: "com.apple.TextEdit"
+      withBundleIdentifier: "com.apple.TextEdit",
     ).first {
       let activateSuccess = textEditApp.activate(options: [])
       if !activateSuccess { print("Warning: Failed to activate TextEdit as frontmost app") }
@@ -126,10 +127,10 @@ extension UIElementCriteria: @unchecked Sendable {}
     let actualText = try await app.getText()
 
     // Use the custom message if provided, otherwise create a default message
-    let _ =
+    _ =
       message.isEmpty
-      ? "TextEdit document should contain '\(expectedText)' but found '\(actualText ?? "nil")'"
-      : message
+        ? "TextEdit document should contain '\(expectedText)' but found '\(actualText ?? "nil")'"
+        : message
 
     // Assert the text is contained in the document using Swift Testing framework
     #expect(actualText?.contains(expectedText) ?? false)
@@ -192,12 +193,13 @@ extension UIElementCriteria: @unchecked Sendable {}
   /// the window close differently than the regular TextEditModel approach
   @MainActor func closeWindowAndDiscardChanges() async throws -> Bool {
     // Use the internal accessibilityService from the app
-    return try await closeWindowAndDiscardChanges(using: app.toolChain.accessibilityService)
+    try await closeWindowAndDiscardChanges(using: app.toolChain.accessibilityService)
   }
+
   /// Close window and click "Delete" button on save dialog with a specific accessibilityService
   /// This is specifically for ElementPath testing where we need to handle
   /// the window close differently than the regular TextEditModel approach
-  @MainActor func closeWindowAndDiscardChanges(using accessibilityService: AccessibilityService, )
+  @MainActor func closeWindowAndDiscardChanges(using accessibilityService: AccessibilityService)
     async throws
     -> Bool
   {
@@ -236,8 +238,8 @@ extension UIElementCriteria: @unchecked Sendable {}
             if let role = try? AccessibilityElement.getAttribute(child, attribute: "AXRole")
               as? String,
               role == "AXButton",
-              let childTitle = try? AccessibilityElement.getAttribute(child, attribute: "AXTitle", )
-                as? String, childTitle == title
+              let childTitle = try? AccessibilityElement.getAttribute(child, attribute: "AXTitle")
+              as? String, childTitle == title
             {
               return child
             }
@@ -261,7 +263,7 @@ extension UIElementCriteria: @unchecked Sendable {}
   }
 
   /// Perform common text operation and verify result
-  func performTextOperation(operation: () async throws -> Bool, verificationText: String, )
+  func performTextOperation(operation: () async throws -> Bool, verificationText: String)
     async throws -> Bool
   {
     // Reset document state

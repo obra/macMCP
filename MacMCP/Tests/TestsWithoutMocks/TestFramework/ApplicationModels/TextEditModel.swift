@@ -44,7 +44,7 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
   /// Create a new TextEdit model
   /// - Parameter toolChain: ToolChain instance for interacting with TextEdit
   public init(toolChain: ToolChain) {
-    super.init(bundleId: "com.apple.TextEdit", appName: "TextEdit", toolChain: toolChain, )
+    super.init(bundleId: "com.apple.TextEdit", appName: "TextEdit", toolChain: toolChain)
 
     // Ensure that KeyboardInteractionTool is available for use in TextEditModel
     // Note: This is now a non-optional property in ToolChain
@@ -61,7 +61,7 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
       "sequence": .array([
         .object([
           "tap": .string("w"), "modifiers": .array([.string("command"), .string("option")]),
-        ])
+        ]),
       ]),
     ]
 
@@ -69,7 +69,7 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
     try await Task.sleep(for: .milliseconds(1000))
 
     // If any dialogs appear asking to save, press "Don't Save" button by looking for it
-    let dontSaveCriteria = UIElementCriteria(role: "AXButton", title: "Don't Save", )
+    let dontSaveCriteria = UIElementCriteria(role: "AXButton", title: "Don't Save")
 
     if let dontSaveButton = try await toolChain.findElement(
       matching: dontSaveCriteria,
@@ -89,7 +89,7 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
     let newDocParams: [String: Value] = [
       "action": .string("key_sequence"),
       "sequence": .array([
-        .object(["tap": .string("n"), "modifiers": .array([.string("command")])])
+        .object(["tap": .string("n"), "modifiers": .array([.string("command")])]),
       ]),
     ]
 
@@ -110,7 +110,7 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
   /// Get the text area element from TextEdit
   /// - Returns: The text area element, or nil if not found
   public func getTextArea() async throws -> UIElement? {
-    let textAreaCriteria = UIElementCriteria(role: "AXTextArea", )
+    let textAreaCriteria = UIElementCriteria(role: "AXTextArea")
 
     let result = try await toolChain.findElement(
       matching: textAreaCriteria,
@@ -129,7 +129,7 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
     let selectAllParams: [String: Value] = [
       "action": .string("key_sequence"),
       "sequence": .array([
-        .object(["tap": .string("a"), "modifiers": .array([.string("command")])])
+        .object(["tap": .string("a"), "modifiers": .array([.string("command")])]),
       ]),
     ]
 
@@ -183,7 +183,7 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
     let selectAllParams: [String: Value] = [
       "action": .string("key_sequence"),
       "sequence": .array([
-        .object(["tap": .string("a"), "modifiers": .array([.string("command")])])
+        .object(["tap": .string("a"), "modifiers": .array([.string("command")])]),
       ]),
     ]
 
@@ -211,7 +211,7 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
     let boldParams: [String: Value] = [
       "action": .string("key_sequence"),
       "sequence": .array([
-        .object(["tap": .string("b"), "modifiers": .array([.string("command")])])
+        .object(["tap": .string("b"), "modifiers": .array([.string("command")])]),
       ]),
     ]
 
@@ -227,7 +227,7 @@ public final class TextEditModel: BaseApplicationModel, @unchecked Sendable {
     let italicParams: [String: Value] = [
       "action": .string("key_sequence"),
       "sequence": .array([
-        .object(["tap": .string("i"), "modifiers": .array([.string("command")])])
+        .object(["tap": .string("i"), "modifiers": .array([.string("command")])]),
       ]),
     ]
 

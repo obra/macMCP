@@ -4,8 +4,8 @@
 import CoreGraphics
 import Foundation
 import Logging
-import MCP
 import MacMCPUtilities
+import MCP
 
 private let elementDescriptorLogger = Logger(label: "mcp.tool.interface_explorer_descriptor")
 
@@ -16,34 +16,34 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
 
   /// Description of the tool
   public let description = """
-    Explore and examine UI elements and their capabilities in macOS applications - essential for discovering elements to interact with.
+  Explore and examine UI elements and their capabilities in macOS applications - essential for discovering elements to interact with.
 
-    IMPORTANT: This tool is critical for finding element IDs needed by UIInteractionTool and other tools. Always explore before interacting.
+  IMPORTANT: This tool is critical for finding element IDs needed by UIInteractionTool and other tools. Always explore before interacting.
 
-    Available scope types:
-    - application: Specific app by bundleId (when you know the target app)
-    - system: All applications (very broad, use sparingly)
-    - position: Element at screen coordinates (x, y required)
-    - element: Specific element by ID (advanced usage)
-    - element: Element by ID (for detailed exploration)
+  Available scope types:
+  - application: Specific app by bundleId (when you know the target app)
+  - system: All applications (very broad, use sparingly)
+  - position: Element at screen coordinates (x, y required)
+  - element: Specific element by ID (advanced usage)
+  - element: Element by ID (for detailed exploration)
 
-    Common workflows:
-    1. Initial exploration: Use 'application' scope with specific bundleId and maxDepth 15-20
-    2. Find interactive elements: Use filter by role (AXButton, AXTextField, etc.)
-    3. Search by content: Use textContains to search across all element fields
-    4. Navigate hierarchy: Use 'element' scope to explore specific elements deeper
-    5. Performance optimization: Reduce maxDepth for faster responses
+  Common workflows:
+  1. Initial exploration: Use 'application' scope with specific bundleId and maxDepth 15-20
+  2. Find interactive elements: Use filter by role (AXButton, AXTextField, etc.)
+  3. Search by content: Use textContains to search across all element fields
+  4. Navigate hierarchy: Use 'element' scope to explore specific elements deeper
+  5. Performance optimization: Reduce maxDepth for faster responses
 
-    Filtering capabilities:
-    - role: Element type (AXButton, AXTextField, AXWindow, etc.)
-    - value/valueContains: Element values or partial matches  
-    - textContains: Universal text search across all text fields (now includes role, identifier, title, description)
-    - isInteractable: Filter for elements that can be acted upon (clickable, editable, etc.)
-    - isEnabled: Filter by enabled/disabled state
-    - inMenus/inMainContent: Location context filtering (menu system vs main content)
+  Filtering capabilities:
+  - role: Element type (AXButton, AXTextField, AXWindow, etc.)
+  - value/valueContains: Element values or partial matches  
+  - textContains: Universal text search across all text fields (now includes role, identifier, title, description)
+  - isInteractable: Filter for elements that can be acted upon (clickable, editable, etc.)
+  - isEnabled: Filter by enabled/disabled state
+  - inMenus/inMainContent: Location context filtering (menu system vs main content)
 
-    Performance tips: Start with 'application' scope for specific apps, use filters to narrow results, adjust maxDepth based on needs.
-    """
+  Performance tips: Start with 'application' scope for specific apps, use filters to narrow results, adjust maxDepth based on needs.
+  """
 
   /// Input schema for the tool
   public private(set) var inputSchema: Value
@@ -56,7 +56,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
 
   /// Tool handler function that uses this instance's accessibility service
   public var handler: @Sendable ([String: Value]?) async throws -> [Tool.Content] {
-    { [self] params in return try await self.processRequest(params) }
+    { [self] params in try await self.processRequest(params) }
   }
 
   /// The logger
@@ -76,7 +76,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
       readOnlyHint: true,
       destructiveHint: false,
       idempotentHint: true,
-      openWorldHint: true
+      openWorldHint: true,
     )
 
     // Initialize inputSchema with an empty object first
@@ -94,7 +94,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
         "scope": .object([
           "type": .string("string"),
           "description": .string(
-            "Exploration scope: 'application' (specific app), 'system' (all apps), 'position' (coordinates), 'element' (specific element)"
+            "Exploration scope: 'application' (specific app), 'system' (all apps), 'position' (coordinates), 'element' (specific element)",
           ),
           "enum": .array([
             .string("system"), .string("application"), .string("position"), .string("element"),
@@ -104,13 +104,13 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
         "bundleId": .object([
           "type": .string("string"),
           "description": .string(
-            "Application bundle identifier (required for 'application' scope, e.g., 'com.apple.calculator')"
+            "Application bundle identifier (required for 'application' scope, e.g., 'com.apple.calculator')",
           ),
         ]),
         "id": .object([
           "type": .string("string"),
           "description": .string(
-            "Element ID (required for 'element' scope) for detailed element exploration"
+            "Element ID (required for 'element' scope) for detailed element exploration",
           ),
         ]),
         "x": .object([
@@ -124,19 +124,19 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
         "maxDepth": .object([
           "type": .string("number"),
           "description": .string(
-            "UI hierarchy depth: 10-15 for performance, 20+ for comprehensive exploration (default: 15)"
+            "UI hierarchy depth: 10-15 for performance, 20+ for comprehensive exploration (default: 15)",
           ), "default": .double(15),
         ]),
         "filter": .object([
           "type": .string("object"),
           "description": .string(
-            "Filter elements by properties (role, title, value, description) with exact or partial matching"
+            "Filter elements by properties (role, title, value, description) with exact or partial matching",
           ),
           "properties": .object([
             "role": .object([
               "type": .string("string"),
               "description": .string(
-                "Filter by accessibility role (e.g., 'AXButton', 'AXTextField', 'AXWindow')"
+                "Filter by accessibility role (e.g., 'AXButton', 'AXTextField', 'AXWindow')",
               ),
             ]),
             "value": .object([
@@ -149,19 +149,19 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
             "textContains": .object([
               "type": .string("string"),
               "description": .string(
-                "Filter by text containing this string in any text field (role, title, description, value, identifier)"
+                "Filter by text containing this string in any text field (role, title, description, value, identifier)",
               ),
             ]),
             "anyFieldContains": .object([
               "type": .string("string"),
               "description": .string(
-                "Search across all text fields simultaneously (title, description, value, identifier, role)"
+                "Search across all text fields simultaneously (title, description, value, identifier, role)",
               ),
             ]),
             "isInteractable": .object([
               "type": .string("boolean"),
               "description": .string(
-                "Filter for elements that can be acted upon (clickable, editable, etc.)"
+                "Filter for elements that can be acted upon (clickable, editable, etc.)",
               ),
             ]),
             "isEnabled": .object([
@@ -180,7 +180,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
         "elementTypes": .object([
           "type": .string("array"),
           "description": .string(
-            "Interactive element types to discover: button, textfield, dropdown, etc. (default: any)"
+            "Interactive element types to discover: button, textfield, dropdown, etc. (default: any)",
           ),
           "items": .object([
             "type": .string("string"),
@@ -194,7 +194,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
         "includeHidden": .object([
           "type": .string("boolean"),
           "description": .string(
-            "Include hidden/invisible elements in results (default: false for cleaner output)"
+            "Include hidden/invisible elements in results (default: false for cleaner output)",
           ), "default": .bool(false),
         ]),
         "includeDisabled": .object([
@@ -206,19 +206,19 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
         "includeNonInteractable": .object([
           "type": .string("boolean"),
           "description": .string(
-            "Include non-interactable elements in results (default: false for cleaner output)"
+            "Include non-interactable elements in results (default: false for cleaner output)",
           ), "default": .bool(false),
         ]),
         "showCoordinates": .object([
           "type": .string("boolean"),
           "description": .string(
-            "Include position and size information in results (default: false for cleaner output)"
+            "Include position and size information in results (default: false for cleaner output)",
           ), "default": .bool(false),
         ]),
         "limit": .object([
           "type": .string("integer"),
           "description": .string(
-            "Maximum elements to return (default: 100, increase for comprehensive exploration)"
+            "Maximum elements to return (default: 100, increase for comprehensive exploration)",
           ), "default": .int(100),
         ]),
       ]), "required": .array([.string("scope")]), "additionalProperties": .bool(false),
@@ -305,125 +305,125 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
 
     // Process based on scope
     switch scopeValue {
-    case "system":
-      return try await handleSystemScope(
-        maxDepth: maxDepth,
-        includeHidden: includeHidden,
-        includeDisabled: includeDisabled,
-        includeNonInteractable: includeNonInteractable,
-        showCoordinates: showCoordinates,
-        limit: limit,
-        role: role,
-        value: value,
-        valueContains: valueContains,
-        textContains: textContains,
-        anyFieldContains: anyFieldContains,
-        isInteractable: isInteractable,
-        isEnabled: isEnabled,
-        inMenus: inMenus,
-        inMainContent: inMainContent,
-        elementTypes: elementTypes,
-      )
+      case "system":
+        return try await handleSystemScope(
+          maxDepth: maxDepth,
+          includeHidden: includeHidden,
+          includeDisabled: includeDisabled,
+          includeNonInteractable: includeNonInteractable,
+          showCoordinates: showCoordinates,
+          limit: limit,
+          role: role,
+          value: value,
+          valueContains: valueContains,
+          textContains: textContains,
+          anyFieldContains: anyFieldContains,
+          isInteractable: isInteractable,
+          isEnabled: isEnabled,
+          inMenus: inMenus,
+          inMainContent: inMainContent,
+          elementTypes: elementTypes,
+        )
 
-    case "application":
-      // Validate bundle ID
-      guard let bundleId = params["bundleId"]?.stringValue else {
-        throw MCPError.invalidParams("bundleId is required when scope is 'application'")
-      }
+      case "application":
+        // Validate bundle ID
+        guard let bundleId = params["bundleId"]?.stringValue else {
+          throw MCPError.invalidParams("bundleId is required when scope is 'application'")
+        }
 
-      return try await handleApplicationScope(
-        bundleId: bundleId,
-        maxDepth: maxDepth,
-        includeHidden: includeHidden,
-        includeDisabled: includeDisabled,
-        includeNonInteractable: includeNonInteractable,
-        showCoordinates: showCoordinates,
-        limit: limit,
-        role: role,
-        value: value,
-        valueContains: valueContains,
-        textContains: textContains,
-        anyFieldContains: anyFieldContains,
-        isInteractable: isInteractable,
-        isEnabled: isEnabled,
-        inMenus: inMenus,
-        inMainContent: inMainContent,
-        elementTypes: elementTypes,
-      )
+        return try await handleApplicationScope(
+          bundleId: bundleId,
+          maxDepth: maxDepth,
+          includeHidden: includeHidden,
+          includeDisabled: includeDisabled,
+          includeNonInteractable: includeNonInteractable,
+          showCoordinates: showCoordinates,
+          limit: limit,
+          role: role,
+          value: value,
+          valueContains: valueContains,
+          textContains: textContains,
+          anyFieldContains: anyFieldContains,
+          isInteractable: isInteractable,
+          isEnabled: isEnabled,
+          inMenus: inMenus,
+          inMainContent: inMainContent,
+          elementTypes: elementTypes,
+        )
 
-    case "position":
-      // Get coordinates
-      let xCoord: Double
-      let yCoord: Double
+      case "position":
+        // Get coordinates
+        let xCoord: Double
+        let yCoord: Double
 
-      if let xDouble = params["x"]?.doubleValue {
-        xCoord = xDouble
-      } else if let xInt = params["x"]?.intValue {
-        xCoord = Double(xInt)
-      } else {
-        throw MCPError.invalidParams("x coordinate is required when scope is 'position'")
-      }
+        if let xDouble = params["x"]?.doubleValue {
+          xCoord = xDouble
+        } else if let xInt = params["x"]?.intValue {
+          xCoord = Double(xInt)
+        } else {
+          throw MCPError.invalidParams("x coordinate is required when scope is 'position'")
+        }
 
-      if let yDouble = params["y"]?.doubleValue {
-        yCoord = yDouble
-      } else if let yInt = params["y"]?.intValue {
-        yCoord = Double(yInt)
-      } else {
-        throw MCPError.invalidParams("y coordinate is required when scope is 'position'")
-      }
+        if let yDouble = params["y"]?.doubleValue {
+          yCoord = yDouble
+        } else if let yInt = params["y"]?.intValue {
+          yCoord = Double(yInt)
+        } else {
+          throw MCPError.invalidParams("y coordinate is required when scope is 'position'")
+        }
 
-      return try await handlePositionScope(
-        x: xCoord,
-        y: yCoord,
-        maxDepth: maxDepth,
-        includeHidden: includeHidden,
-        includeDisabled: includeDisabled,
-        includeNonInteractable: includeNonInteractable,
-        showCoordinates: showCoordinates,
-        limit: limit,
-        role: role,
-        value: value,
-        valueContains: valueContains,
-        textContains: textContains,
-        anyFieldContains: anyFieldContains,
-        isInteractable: isInteractable,
-        isEnabled: isEnabled,
-        inMenus: inMenus,
-        inMainContent: inMainContent,
-        elementTypes: elementTypes,
-      )
+        return try await handlePositionScope(
+          x: xCoord,
+          y: yCoord,
+          maxDepth: maxDepth,
+          includeHidden: includeHidden,
+          includeDisabled: includeDisabled,
+          includeNonInteractable: includeNonInteractable,
+          showCoordinates: showCoordinates,
+          limit: limit,
+          role: role,
+          value: value,
+          valueContains: valueContains,
+          textContains: textContains,
+          anyFieldContains: anyFieldContains,
+          isInteractable: isInteractable,
+          isEnabled: isEnabled,
+          inMenus: inMenus,
+          inMainContent: inMainContent,
+          elementTypes: elementTypes,
+        )
 
-    case "element":
-      // Validate element ID
-      guard let elementId = params["id"]?.stringValue else {
-        throw MCPError.invalidParams("id is required when scope is 'element'")
-      }
+      case "element":
+        // Validate element ID
+        guard let elementId = params["id"]?.stringValue else {
+          throw MCPError.invalidParams("id is required when scope is 'element'")
+        }
 
-      // Bundle ID is optional for element scope
-      let bundleId = params["bundleId"]?.stringValue
+        // Bundle ID is optional for element scope
+        let bundleId = params["bundleId"]?.stringValue
 
-      return try await handleElementScope(
-        elementId: elementId,
-        bundleId: bundleId,
-        maxDepth: maxDepth,
-        includeHidden: includeHidden,
-        includeDisabled: includeDisabled,
-        includeNonInteractable: includeNonInteractable,
-        showCoordinates: showCoordinates,
-        limit: limit,
-        role: role,
-        value: value,
-        valueContains: valueContains,
-        textContains: textContains,
-        anyFieldContains: anyFieldContains,
-        isInteractable: isInteractable,
-        isEnabled: isEnabled,
-        inMenus: inMenus,
-        inMainContent: inMainContent,
-        elementTypes: elementTypes,
-      )
+        return try await handleElementScope(
+          elementId: elementId,
+          bundleId: bundleId,
+          maxDepth: maxDepth,
+          includeHidden: includeHidden,
+          includeDisabled: includeDisabled,
+          includeNonInteractable: includeNonInteractable,
+          showCoordinates: showCoordinates,
+          limit: limit,
+          role: role,
+          value: value,
+          valueContains: valueContains,
+          textContains: textContains,
+          anyFieldContains: anyFieldContains,
+          isInteractable: isInteractable,
+          isEnabled: isEnabled,
+          inMenus: inMenus,
+          inMainContent: inMainContent,
+          elementTypes: elementTypes,
+        )
 
-    default: throw MCPError.invalidParams("Invalid scope: \(scopeValue)")
+      default: throw MCPError.invalidParams("Invalid scope: \(scopeValue)")
     }
   }
 
@@ -474,7 +474,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
     let descriptors = convertToEnhancedDescriptors(
       elements: elements,
       maxDepth: maxDepth,
-      showCoordinates: showCoordinates
+      showCoordinates: showCoordinates,
     )
 
     // Apply limit
@@ -535,7 +535,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
     let descriptors = convertToEnhancedDescriptors(
       elements: elements,
       maxDepth: maxDepth,
-      showCoordinates: showCoordinates
+      showCoordinates: showCoordinates,
     )
 
     // Apply limit
@@ -608,7 +608,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
     let descriptors = convertToEnhancedDescriptors(
       elements: elements,
       maxDepth: maxDepth,
-      showCoordinates: showCoordinates
+      showCoordinates: showCoordinates,
     )
 
     // Apply limit
@@ -646,7 +646,8 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
 
       // Convert to UIElement
       let element = try AccessibilityElement.convertToUIElement(
-        axElement, recursive: true, maxDepth: maxDepth, )
+        axElement, recursive: true, maxDepth: maxDepth,
+      )
 
       // If we're searching within this element, we need to apply filters to its children
       var resultElements: [UIElement] = []
@@ -688,7 +689,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
       let descriptors = convertToEnhancedDescriptors(
         elements: resultElements,
         maxDepth: maxDepth,
-        showCoordinates: showCoordinates
+        showCoordinates: showCoordinates,
       )
 
       // Apply limit
@@ -737,7 +738,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
       inMenus: inMenus,
       inMainContent: inMainContent,
       elementTypes: elementTypes,
-      includeHidden: includeHidden
+      includeHidden: includeHidden,
     )
     // Use the UIElement's findMatchingDescendants method
     return element.findMatchingDescendants(criteria: criteria, maxDepth: maxDepth, limit: limit)
@@ -790,23 +791,24 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
     // Create filter criteria from the parameters
     let criteria = UIElement.FilterCriteria(
       role: role,
-      title: nil,  // No longer supported at tool level, rely on textContains
-      titleContains: nil,  // No longer supported at tool level, rely on textContains
+      title: nil, // No longer supported at tool level, rely on textContains
+      titleContains: nil, // No longer supported at tool level, rely on textContains
       value: value,
       valueContains: valueContains,
-      description: nil,  // No longer supported at tool level, rely on textContains
-      descriptionContains: nil,  // No longer supported at tool level, rely on textContains
+      description: nil, // No longer supported at tool level, rely on textContains
+      descriptionContains: nil, // No longer supported at tool level, rely on textContains
       textContains: textContains,
       isInteractable: isInteractable,
       isEnabled: isEnabled,
       inMenus: inMenus,
       inMainContent: inMainContent,
       elementTypes: elementTypes ?? ["any"],
-      includeHidden: includeHidden
+      includeHidden: includeHidden,
     )
     // Use the static UIElement filterElements method
     var filteredElements = UIElement.filterElements(
-      elements: elements, criteria: criteria, limit: limit)
+      elements: elements, criteria: criteria, limit: limit,
+    )
     // Apply anyFieldContains filter if specified
     if let searchText = anyFieldContains, !searchText.isEmpty {
       filteredElements = filteredElements.filter { element in
@@ -814,7 +816,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
         let searchFields = [
           element.role, element.title, element.elementDescription, element.value,
           element.identifier,
-        ].compactMap { $0 }
+        ].compactMap(\.self)
         return searchFields.contains { field in field.localizedCaseInsensitiveContains(searchText) }
       }
     }
@@ -836,21 +838,21 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
   private func filterEnabledElements(_ elements: [UIElement]) -> [UIElement] {
     elements.filter { element in
       // Include only enabled elements
-      return element.isEnabled
+      element.isEnabled
     }
   }
 
   /// Filter to only include main content elements (exclude menu bars and menu items)
   private func filterMainContentElements(_ elements: [UIElement]) -> [UIElement] {
-    return filterWithHierarchyPreservation(elements) { element in
+    filterWithHierarchyPreservation(elements) { element in
       // Exclude elements in menu context
-      return !element.isInMenuContext()
+      !element.isInMenuContext()
     }
   }
 
   /// Filter to only include interactable elements
   private func filterInteractableElements(_ elements: [UIElement]) -> [UIElement] {
-    return filterWithHierarchyPreservation(elements) { element in return element.isInteractable }
+    filterWithHierarchyPreservation(elements) { element in element.isInteractable }
   }
 
   /// Smart hierarchy preservation with chain skipping.
@@ -858,37 +860,40 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
   /// and skips unnecessary single-child container chains.
   private func filterWithHierarchyPreservation(
     _ elements: [UIElement],
-    keepIf predicate: @escaping (UIElement) -> Bool = { $0.isInteractable }
+    keepIf predicate: @escaping (UIElement) -> Bool = { $0.isInteractable },
   ) -> [UIElement] {
     let filteredElements = elements.compactMap { element in
-      return processElementForHierarchyPreservation(element, keepIf: predicate)
+      processElementForHierarchyPreservation(element, keepIf: predicate)
     }
     // Post-process to flatten display structure while preserving paths
     return flattenDisplayStructure(filteredElements)
   }
+
   /// Post-processing step that reparents children to skip useless containers
   /// while preserving their original element paths for resolution
   private func flattenDisplayStructure(_ elements: [UIElement]) -> [UIElement] {
-    return elements.compactMap { element in return flattenElementDisplayStructure(element) }
+    elements.compactMap { element in flattenElementDisplayStructure(element) }
   }
+
   /// Flatten a single element's display structure by reparenting children of useless containers
   private func flattenElementDisplayStructure(_ element: UIElement) -> UIElement? {
     // First, recursively process children
     let processedChildren = element.children.compactMap { child in
-      return flattenElementDisplayStructure(child)
+      flattenElementDisplayStructure(child)
     }
     // Check if this element is a "useless" container that should be flattened
     // A useless container is:
     // 1. Non-interactable
     // 2. Has exactly one child
     // 3. That child has meaningful content
-    if !element.isInteractable && processedChildren.count == 1 {
+    if !element.isInteractable, processedChildren.count == 1 {
       let onlyChild = processedChildren[0]
-      // If the child is interactable or has multiple children, reparent its children to skip this container
+      // If the child is interactable or has multiple children, reparent its children to skip this
+      // container
       if onlyChild.isInteractable || onlyChild.children.count > 1 {
         // Return the child but with this element's parent relationship
         return UIElement(
-          path: onlyChild.path,  // Keep the child's original path!
+          path: onlyChild.path, // Keep the child's original path!
           role: onlyChild.role,
           title: onlyChild.title,
           value: onlyChild.value,
@@ -898,11 +903,11 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
           normalizedFrame: onlyChild.normalizedFrame,
           viewportFrame: onlyChild.viewportFrame,
           frameSource: onlyChild.frameSource,
-          parent: element.parent,  // Use this element's parent to skip the container
+          parent: element.parent, // Use this element's parent to skip the container
           children: onlyChild.children,
           attributes: onlyChild.attributes,
           actions: onlyChild.actions,
-          axElement: onlyChild.axElement
+          axElement: onlyChild.axElement,
         )
       }
     }
@@ -922,14 +927,14 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
       children: processedChildren,
       attributes: element.attributes,
       actions: element.actions,
-      axElement: element.axElement
+      axElement: element.axElement,
     )
   }
 
   /// Process a single element for hierarchy preservation and chain skipping
   private func processElementForHierarchyPreservation(
     _ element: UIElement,
-    keepIf predicate: @escaping (UIElement) -> Bool = { $0.isInteractable }
+    keepIf predicate: @escaping (UIElement) -> Bool = { $0.isInteractable },
   ) -> UIElement? {
     // If the element matches the predicate, always keep it
     if predicate(element) { return element }
@@ -941,7 +946,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
     // Normal case: keep the container but filter its children
     // Recursively process children first
     let processedChildren = element.children.compactMap { child in
-      return processElementForHierarchyPreservation(child, keepIf: predicate)
+      processElementForHierarchyPreservation(child, keepIf: predicate)
     }
     guard !processedChildren.isEmpty else { return nil }
     let processedElement = UIElement(
@@ -959,14 +964,14 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
       children: processedChildren,
       attributes: element.attributes,
       actions: element.actions,
-      axElement: element.axElement
+      axElement: element.axElement,
     )
     return processedElement
   }
 
   /// Convert UI elements to enhanced element descriptors
   private func convertToEnhancedDescriptors(
-    elements: [UIElement], maxDepth: Int, showCoordinates: Bool
+    elements: [UIElement], maxDepth: Int, showCoordinates: Bool,
   )
     -> [EnhancedElementDescriptor]
   {
@@ -984,7 +989,8 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
         } catch {
           // Log any path generation errors but continue
           logger.warning(
-            "Could not generate fully qualified path for element: \(error.localizedDescription)")
+            "Could not generate fully qualified path for element: \(error.localizedDescription)",
+          )
         }
       } else if !element.path.hasPrefix("macos://ui/") {
         // Path exists but isn't fully qualified - try to generate a proper one
@@ -1005,7 +1011,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
           let fullPath = try element.generatePath()
           elementDescriptorLogger.debug(
             "Replacing partial path with fully qualified path",
-            metadata: ["old": .string(element.path), "new": .string(fullPath)]
+            metadata: ["old": .string(element.path), "new": .string(fullPath)],
           )
           element.path = fullPath
         } catch {
@@ -1031,7 +1037,7 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
       return EnhancedElementDescriptor.from(
         element: element,
         maxDepth: maxDepth,
-        showCoordinates: showCoordinates
+        showCoordinates: showCoordinates,
       )
     }
   }
@@ -1051,9 +1057,11 @@ public struct InterfaceExplorerTool: @unchecked Sendable {
       return [.text(jsonString)]
     } catch {
       logger.error(
-        "Error encoding response as JSON", metadata: ["error": "\(error.localizedDescription)"])
+        "Error encoding response as JSON", metadata: ["error": "\(error.localizedDescription)"],
+      )
       throw MCPError.internalError(
-        "Failed to encode response as JSON: \(error.localizedDescription)")
+        "Failed to encode response as JSON: \(error.localizedDescription)",
+      )
     }
   }
 }

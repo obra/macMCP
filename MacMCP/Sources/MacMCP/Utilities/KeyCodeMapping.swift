@@ -48,7 +48,7 @@ public enum KeyCodeMapping {
     // Alternative names for special keys
     "enter": 0x24, "esc": 0x35, "backspace": 0x33,
     // Special ASCII characters
-    "\n": 0x24, "\r": 0x24,  // Newline and carriage return map to Return key
+    "\n": 0x24, "\r": 0x24, // Newline and carriage return map to Return key
   ]
 
   /// Modifier keys and their corresponding key codes
@@ -64,7 +64,7 @@ public enum KeyCodeMapping {
   private static let symbolKeyCodes: [String: CGKeyCode] = [
     "-": 0x1B, "=": 0x18, "[": 0x21, "]": 0x1E, "\\": 0x2A, ";": 0x29, "'": 0x27, ",": 0x2B,
     ".": 0x2F, "/": 0x2C,
-    "`": 0x32,  // backtick/grave
+    "`": 0x32, // backtick/grave
     // Names for symbols
     "minus": 0x1B, "equal": 0x18, "leftbracket": 0x21, "rightbracket": 0x1E, "backslash": 0x2A,
     "semicolon": 0x29,
@@ -83,8 +83,8 @@ public enum KeyCodeMapping {
     ")": "0", "_": "-",
     "+": "=", "{": "[", "}": "]", "|": "\\", ":": ";", "\"": "'", "<": ",", ">": ".", "?": "/",
     // Common math operators that may need special handling
-    "×": "*",  // Multiplication sign maps to * (Shift+8)
-    "÷": "/",  // Division sign maps to /
+    "×": "*", // Multiplication sign maps to * (Shift+8)
+    "÷": "/", // Division sign maps to /
   ]
 
   /// Get key code and modifiers for a key name (e.g., "a", "space", "command")

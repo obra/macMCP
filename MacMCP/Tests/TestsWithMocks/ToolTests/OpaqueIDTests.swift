@@ -18,6 +18,7 @@ import Testing
     print("Original: \(originalPath) (\(originalPath.count) chars)")
     print("Opaque ID: \(opaqueID) (\(opaqueID.count) chars)")
   }
+
   @Test("Complex path encoding") func complexPathEncoding() throws {
     let complexPath =
       #"macos://ui/AXApplication[@AXTitle="Calculator"][@bundleId="com.apple.calculator"]/AXWindow[@AXTitle="Calculator"]/AXGroup/AXSplitGroup/AXGroup/AXGroup/AXButton[@AXDescription="All Clear"]"#
@@ -25,9 +26,10 @@ import Testing
     let decodedPath = try OpaqueIDEncoder.decode(opaqueID)
     #expect(decodedPath == complexPath)
     print(
-      "Complex path compression ratio: \(String(format: "%.1f", Double(complexPath.count) / Double(opaqueID.count)))x"
+      "Complex path compression ratio: \(String(format: "%.1f", Double(complexPath.count) / Double(opaqueID.count)))x",
     )
   }
+
   @Test("Special characters handling") func specialCharactersHandling() throws {
     let pathWithSpecialChars =
       #"macos://ui/AXApplication[@AXTitle="My \"Special\" App"]/AXButton[@AXDescription="Click & Save"]"#
@@ -35,6 +37,7 @@ import Testing
     let decodedPath = try OpaqueIDEncoder.decode(opaqueID)
     #expect(decodedPath == pathWithSpecialChars)
   }
+
   @Test("Invalid opaque ID handling") func invalidOpaqueIDHandling() throws {
     let invalidOpaqueID = "invalid-opaque-id"
     do {

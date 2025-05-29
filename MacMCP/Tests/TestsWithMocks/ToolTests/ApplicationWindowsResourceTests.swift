@@ -21,12 +21,13 @@ import Testing
     let children: [MockUIElement]
     let attributes: [String: Any]
   }
+
   // Custom extension to mock the parameter extraction
   class TestableApplicationWindowsResourceHandler: ApplicationWindowsResourceHandler, @unchecked
-    Sendable
-  {
-    // Using a custom implementation instead of override since we're using the default implementation from ResourceHandler
-    public func extractParameters(from uri: String, pattern: String) throws -> [String: String] {
+  Sendable {
+    // Using a custom implementation instead of override since we're using the default
+    // implementation from ResourceHandler
+    public func extractParameters(from uri: String, pattern _: String) throws -> [String: String] {
       if uri.contains("com.apple.calculator") {
         return ["bundleId": "com.apple.calculator"]
       } else if uri.contains("com.test.app") {
@@ -36,6 +37,7 @@ import Testing
       }
     }
   }
+
   // Simple mock implementation of AccessibilityServiceProtocol
   final class MockAccessibilityService: @unchecked Sendable, AccessibilityServiceProtocol {
     let windowElements: [MockUIElement]
@@ -44,19 +46,22 @@ import Testing
     func run<T: Sendable>(_ operation: @Sendable () async throws -> T) async rethrows -> T {
       try await operation()
     }
-    func getSystemUIElement(recursive: Bool, maxDepth: Int) async throws -> UIElement {
+
+    func getSystemUIElement(recursive _: Bool, maxDepth _: Int) async throws -> UIElement {
       throw NSError(
         domain: "com.macos.mcp.test",
         code: 0,
-        userInfo: [NSLocalizedDescriptionKey: "Not implemented"]
+        userInfo: [NSLocalizedDescriptionKey: "Not implemented"],
       )
     }
-    func getApplicationUIElement(bundleId: String, recursive: Bool, maxDepth: Int) async throws
+
+    func getApplicationUIElement(bundleId: String, recursive _: Bool, maxDepth _: Int) async throws
       -> UIElement
     {
       // Create a UIElement representing the application with window children
       let children = windowElements.map { mockElement in
-        // We need to create UIElement with proper attributes to match what WindowDescriptor.from expects
+        // We need to create UIElement with proper attributes to match what WindowDescriptor.from
+        // expects
         var attributes = mockElement.attributes
         // Ensure attributes match what the WindowDescriptor.from method expects
         attributes["main"] = mockElement.isMain
@@ -71,7 +76,7 @@ import Testing
           frame: mockElement.frame,
           children: [],
           attributes: attributes,
-          actions: []
+          actions: [],
         )
       }
       return UIElement(
@@ -83,30 +88,41 @@ import Testing
         frame: CGRect(x: 0, y: 0, width: 800, height: 600),
         children: children,
         attributes: ["bundleId": bundleId],
-        actions: []
+        actions: [],
       )
     }
-    func getApplicationUIElement(processIdentifier: pid_t, recursive: Bool, maxDepth: Int)
+
+    func getApplicationUIElement(processIdentifier _: pid_t, recursive _: Bool, maxDepth _: Int)
       async throws -> UIElement
     {
       throw NSError(
         domain: "com.macos.mcp.test",
         code: 0,
-        userInfo: [NSLocalizedDescriptionKey: "Not implemented"]
+        userInfo: [NSLocalizedDescriptionKey: "Not implemented"],
       )
     }
-    func getFocusedApplicationUIElement(recursive: Bool, maxDepth: Int) async throws -> UIElement {
+
+    func getFocusedApplicationUIElement(
+      recursive _: Bool,
+      maxDepth _: Int,
+    ) async throws -> UIElement {
       throw NSError(
         domain: "com.macos.mcp.test",
         code: 0,
-        userInfo: [NSLocalizedDescriptionKey: "Not implemented"]
+        userInfo: [NSLocalizedDescriptionKey: "Not implemented"],
       )
     }
-    func getUIElementAtPosition(position: CGPoint, recursive: Bool, maxDepth: Int) async throws
+
+    func getUIElementAtPosition(
+      position _: CGPoint,
+      recursive _: Bool,
+      maxDepth _: Int,
+    ) async throws
       -> UIElement?
     {
-      return nil
+      nil
     }
+
     func findUIElements(
       role: String?,
       title: String?,
@@ -124,68 +140,94 @@ import Testing
       elementTypes: [String]?,
       scope: UIElementScope,
       recursive: Bool,
-      maxDepth: Int
-    ) async throws -> [UIElement] { return [] }
-    func findElementByPath(path: String) async throws -> UIElement? { return nil }
-    func performAction(action: String, onElementWithPath elementPath: String) async throws {
+      maxDepth: Int,
+    ) async throws -> [UIElement] { [] }
+    func findElementByPath(path _: String) async throws -> UIElement? { nil }
+    func performAction(action _: String, onElementWithPath _: String) async throws {
       // No-op
     }
-    func moveWindow(withPath path: String, to point: CGPoint) async throws {
+
+    func moveWindow(withPath _: String, to _: CGPoint) async throws {
       // No-op
     }
-    func resizeWindow(withPath path: String, to size: CGSize) async throws {
+
+    func resizeWindow(withPath _: String, to _: CGSize) async throws {
       // No-op
     }
-    func minimizeWindow(withPath path: String) async throws {
+
+    func minimizeWindow(withPath _: String) async throws {
       // No-op
     }
-    func maximizeWindow(withPath path: String) async throws {
+
+    func maximizeWindow(withPath _: String) async throws {
       // No-op
     }
-    func closeWindow(withPath path: String) async throws {
+
+    func closeWindow(withPath _: String) async throws {
       // No-op
     }
-    func activateWindow(withPath path: String) async throws {
+
+    func activateWindow(withPath _: String) async throws {
       // No-op
     }
+
     func setWindowOrder(
-      withPath path: String, orderMode: WindowOrderMode, referenceWindowPath: String?
+      withPath path: String, orderMode: WindowOrderMode, referenceWindowPath: String?,
     )
       async throws
     {
       // No-op
     }
-    func focusWindow(withPath path: String) async throws {
+
+    func focusWindow(withPath _: String) async throws {
       // No-op
     }
-    func navigateMenu(elementPath: String, in bundleId: String) async throws {
+
+    func navigateMenu(elementPath _: String, in _: String) async throws {
       // No-op
     }
   }
+
   // Error-throwing mock service for testing error cases
   final class ErrorThrowingAccessibilityService: @unchecked Sendable, AccessibilityServiceProtocol {
     func run<T: Sendable>(_ operation: @Sendable () async throws -> T) async rethrows -> T {
       try await operation()
     }
-    func getSystemUIElement(recursive: Bool, maxDepth: Int) async throws -> UIElement {
+
+    func getSystemUIElement(recursive _: Bool, maxDepth _: Int) async throws -> UIElement {
       throw AccessibilityPermissions.Error.permissionDenied
     }
-    func getApplicationUIElement(bundleId: String, recursive: Bool, maxDepth: Int) async throws
+
+    func getApplicationUIElement(
+      bundleId _: String,
+      recursive _: Bool,
+      maxDepth _: Int,
+    ) async throws
       -> UIElement
     {
       throw AccessibilityPermissions.Error.permissionDenied
     }
-    func getApplicationUIElement(processIdentifier: pid_t, recursive: Bool, maxDepth: Int)
+
+    func getApplicationUIElement(processIdentifier _: pid_t, recursive _: Bool, maxDepth _: Int)
       async throws -> UIElement
     { throw AccessibilityPermissions.Error.permissionDenied }
-    func getFocusedApplicationUIElement(recursive: Bool, maxDepth: Int) async throws -> UIElement {
+    func getFocusedApplicationUIElement(
+      recursive _: Bool,
+      maxDepth _: Int,
+    ) async throws -> UIElement {
       throw AccessibilityPermissions.Error.permissionDenied
     }
-    func getUIElementAtPosition(position: CGPoint, recursive: Bool, maxDepth: Int) async throws
+
+    func getUIElementAtPosition(
+      position _: CGPoint,
+      recursive _: Bool,
+      maxDepth _: Int,
+    ) async throws
       -> UIElement?
     {
       throw AccessibilityPermissions.Error.permissionDenied
     }
+
     func findUIElements(
       role: String?,
       title: String?,
@@ -203,45 +245,55 @@ import Testing
       elementTypes: [String]?,
       scope: UIElementScope,
       recursive: Bool,
-      maxDepth: Int
+      maxDepth: Int,
     ) async throws -> [UIElement] { throw AccessibilityPermissions.Error.permissionDenied }
-    func findElementByPath(path: String) async throws -> UIElement? {
+    func findElementByPath(path _: String) async throws -> UIElement? {
       throw AccessibilityPermissions.Error.permissionDenied
     }
-    func performAction(action: String, onElementWithPath elementPath: String) async throws {
+
+    func performAction(action _: String, onElementWithPath _: String) async throws {
       throw AccessibilityPermissions.Error.permissionDenied
     }
-    func moveWindow(withPath path: String, to point: CGPoint) async throws {
+
+    func moveWindow(withPath _: String, to _: CGPoint) async throws {
       throw AccessibilityPermissions.Error.permissionDenied
     }
-    func resizeWindow(withPath path: String, to size: CGSize) async throws {
+
+    func resizeWindow(withPath _: String, to _: CGSize) async throws {
       throw AccessibilityPermissions.Error.permissionDenied
     }
-    func minimizeWindow(withPath path: String) async throws {
+
+    func minimizeWindow(withPath _: String) async throws {
       throw AccessibilityPermissions.Error.permissionDenied
     }
-    func maximizeWindow(withPath path: String) async throws {
+
+    func maximizeWindow(withPath _: String) async throws {
       throw AccessibilityPermissions.Error.permissionDenied
     }
-    func closeWindow(withPath path: String) async throws {
+
+    func closeWindow(withPath _: String) async throws {
       throw AccessibilityPermissions.Error.permissionDenied
     }
-    func activateWindow(withPath path: String) async throws {
+
+    func activateWindow(withPath _: String) async throws {
       throw AccessibilityPermissions.Error.permissionDenied
     }
+
     func setWindowOrder(
-      withPath path: String, orderMode: WindowOrderMode, referenceWindowPath: String?
+      withPath path: String, orderMode: WindowOrderMode, referenceWindowPath: String?,
     )
       async throws
     { throw AccessibilityPermissions.Error.permissionDenied }
-    func focusWindow(withPath path: String) async throws {
+    func focusWindow(withPath _: String) async throws {
       throw AccessibilityPermissions.Error.permissionDenied
     }
-    func navigateMenu(elementPath: String, in bundleId: String) async throws {
+
+    func navigateMenu(elementPath _: String, in _: String) async throws {
       throw AccessibilityPermissions.Error.permissionDenied
     }
   }
-  @Test("Test handling application windows resource with no windows") func testNoWindows()
+
+  @Test("Test handling application windows resource with no windows") func noWindows()
     async throws
   {
     // Set up mock service with no windows
@@ -249,18 +301,19 @@ import Testing
     let logger = Logger(label: "test.application.windows")
     // Create the resource handler
     let handler = TestableApplicationWindowsResourceHandler(
-      accessibilityService: mockService, logger: logger)
+      accessibilityService: mockService, logger: logger,
+    )
     // Create resource URI components
     let resourceURI = "macos://applications/com.apple.calculator/windows"
     let components = ResourceURIComponents(
       scheme: "macos",
       path: "/applications/com.apple.calculator/windows",
-      queryParameters: [:]
+      queryParameters: [:],
     )
     // Call the handler
     let (content, metadata) = try await handler.handleRead(uri: resourceURI, components: components)
     // Check the result content
-    if case let .text(jsonString) = content {
+    if case .text(let jsonString) = content {
       // Parse the JSON to verify it's an empty array
       let jsonData = jsonString.data(using: .utf8)!
       let windowsArray = try JSONDecoder().decode([WindowDescriptor].self, from: jsonData)
@@ -270,18 +323,20 @@ import Testing
     }
     // Check the metadata
     #expect(metadata != nil, "Metadata should be provided")
-    if let metadata = metadata {
+    if let metadata {
       #expect(metadata.mimeType == "application/json", "MIME type should be application/json")
       #expect(
         metadata.additionalMetadata?["bundleId"]?.stringValue == "com.apple.calculator",
-        "Bundle ID should be correct"
+        "Bundle ID should be correct",
       )
       #expect(
-        metadata.additionalMetadata?["windowCount"]?.doubleValue == 0, "Window count should be 0")
+        metadata.additionalMetadata?["windowCount"]?.doubleValue == 0, "Window count should be 0",
+      )
     }
   }
+
   @Test("Test handling application windows resource with multiple windows")
-  func testMultipleWindows() async throws {
+  func multipleWindows() async throws {
     // Create mock window elements
     let mockWindows = [
       MockUIElement(
@@ -293,7 +348,7 @@ import Testing
         isVisible: true,
         frame: CGRect(x: 100, y: 100, width: 800, height: 600),
         children: [],
-        attributes: [:]  // Empty attributes so they'll be set by our updated mock
+        attributes: [:], // Empty attributes so they'll be set by our updated mock
       ),
       MockUIElement(
         role: "AXWindow",
@@ -304,7 +359,7 @@ import Testing
         isVisible: true,
         frame: CGRect(x: 200, y: 200, width: 400, height: 300),
         children: [],
-        attributes: [:]  // Empty attributes so they'll be set by our updated mock
+        attributes: [:], // Empty attributes so they'll be set by our updated mock
       ),
       MockUIElement(
         role: "AXWindow",
@@ -315,7 +370,7 @@ import Testing
         isVisible: true,
         frame: CGRect(x: 0, y: 0, width: 800, height: 600),
         children: [],
-        attributes: [:]  // Empty attributes so they'll be set by our updated mock
+        attributes: [:], // Empty attributes so they'll be set by our updated mock
       ),
     ]
     // Set up mock service with windows
@@ -323,32 +378,33 @@ import Testing
     let logger = Logger(label: "test.application.windows")
     // Create the resource handler
     let handler = TestableApplicationWindowsResourceHandler(
-      accessibilityService: mockService, logger: logger)
+      accessibilityService: mockService, logger: logger,
+    )
     // Create resource URI components - explicitly include minimized windows
     let resourceURI = "macos://applications/com.test.app/windows?includeMinimized=true"
     let components = ResourceURIComponents(
       scheme: "macos",
       path: "/applications/com.test.app/windows",
-      queryParameters: ["includeMinimized": "true"]
+      queryParameters: ["includeMinimized": "true"],
     )
     // Call the handler
     let (content, metadata) = try await handler.handleRead(uri: resourceURI, components: components)
     // Parse the JSON to verify the windows
-    if case let .text(jsonString) = content {
+    if case .text(let jsonString) = content {
       let jsonData = jsonString.data(using: .utf8)!
       let windowsArray = try JSONDecoder().decode([WindowDescriptor].self, from: jsonData)
       #expect(windowsArray.count == 3, "Should return 3 windows")
       // Check the first window
       let mainWindow = windowsArray.first { $0.isMain }
       #expect(mainWindow != nil, "Should have a main window")
-      if let mainWindow = mainWindow {
+      if let mainWindow {
         #expect(mainWindow.title == "Main Window", "Main window title should match")
         #expect(mainWindow.isMinimized == false, "Main window should not be minimized")
       }
       // Check the minimized window
       let minimizedWindow = windowsArray.first { $0.isMinimized }
       #expect(minimizedWindow != nil, "Should have a minimized window")
-      if let minimizedWindow = minimizedWindow {
+      if let minimizedWindow {
         #expect(minimizedWindow.title == "Minimized Window", "Minimized window title should match")
       }
     } else {
@@ -356,18 +412,20 @@ import Testing
     }
     // Check the metadata
     #expect(metadata != nil, "Metadata should be provided")
-    if let metadata = metadata {
+    if let metadata {
       #expect(metadata.mimeType == "application/json", "MIME type should be application/json")
       #expect(
         metadata.additionalMetadata?["bundleId"]?.stringValue == "com.test.app",
-        "Bundle ID should be correct"
+        "Bundle ID should be correct",
       )
       #expect(
-        metadata.additionalMetadata?["windowCount"]?.doubleValue == 3, "Window count should be 3")
+        metadata.additionalMetadata?["windowCount"]?.doubleValue == 3, "Window count should be 3",
+      )
     }
   }
+
   @Test("Test handling application windows resource with filtering minimized windows")
-  func testFilteringMinimizedWindows() async throws {
+  func filteringMinimizedWindows() async throws {
     // Create mock window elements
     let mockWindows = [
       MockUIElement(
@@ -379,7 +437,7 @@ import Testing
         isVisible: true,
         frame: CGRect(x: 100, y: 100, width: 800, height: 600),
         children: [],
-        attributes: ["main": true, "minimized": false, "visible": true]
+        attributes: ["main": true, "minimized": false, "visible": true],
       ),
       MockUIElement(
         role: "AXWindow",
@@ -390,7 +448,7 @@ import Testing
         isVisible: true,
         frame: CGRect(x: 0, y: 0, width: 800, height: 600),
         children: [],
-        attributes: ["main": false, "minimized": true, "visible": true]
+        attributes: ["main": false, "minimized": true, "visible": true],
       ),
     ]
     // Set up mock service with windows
@@ -398,18 +456,19 @@ import Testing
     let logger = Logger(label: "test.application.windows")
     // Create the resource handler
     let handler = TestableApplicationWindowsResourceHandler(
-      accessibilityService: mockService, logger: logger)
+      accessibilityService: mockService, logger: logger,
+    )
     // Create resource URI components with includeMinimized=false
     let resourceURI = "macos://applications/com.test.app/windows?includeMinimized=false"
     let components = ResourceURIComponents(
       scheme: "macos",
       path: "/applications/com.test.app/windows",
-      queryParameters: ["includeMinimized": "false"]
+      queryParameters: ["includeMinimized": "false"],
     )
     // Call the handler
     let (content, metadata) = try await handler.handleRead(uri: resourceURI, components: components)
     // Check the result content
-    if case let .text(jsonString) = content {
+    if case .text(let jsonString) = content {
       // Parse the JSON to verify the windows
       let jsonData = jsonString.data(using: .utf8)!
       let windowsArray = try JSONDecoder().decode([WindowDescriptor].self, from: jsonData)
@@ -422,12 +481,14 @@ import Testing
     }
     // Check the metadata
     #expect(metadata != nil, "Metadata should be provided")
-    if let metadata = metadata {
+    if let metadata {
       #expect(
-        metadata.additionalMetadata?["windowCount"]?.doubleValue == 1, "Window count should be 1")
+        metadata.additionalMetadata?["windowCount"]?.doubleValue == 1, "Window count should be 1",
+      )
     }
   }
-  @Test("Test handling application windows resource with error") func testErrorHandling()
+
+  @Test("Test handling application windows resource with error") func errorHandling()
     async throws
   {
     // Create an error-throwing mock service
@@ -435,13 +496,14 @@ import Testing
     let logger = Logger(label: "test.application.windows")
     // Create the resource handler
     let handler = TestableApplicationWindowsResourceHandler(
-      accessibilityService: errorService, logger: logger)
+      accessibilityService: errorService, logger: logger,
+    )
     // Create resource URI components
     let resourceURI = "macos://applications/com.test.app/windows"
     let components = ResourceURIComponents(
       scheme: "macos",
       path: "/applications/com.test.app/windows",
-      queryParameters: [:]
+      queryParameters: [:],
     )
     // Call the handler and expect it to throw
     do {
@@ -451,21 +513,24 @@ import Testing
       // Check that the error message contains "permission denied"
       #expect(
         error.localizedDescription.contains("permission denied"),
-        "Should throw a permission denied error")
+        "Should throw a permission denied error",
+      )
     }
   }
-  @Test("Test invalid URI params") func testInvalidURIParams() async throws {
+
+  @Test("Test invalid URI params") func invalidURIParams() async throws {
     let mockService = MockAccessibilityService()
     let logger = Logger(label: "test.application.windows")
     // Create the resource handler
     let handler = TestableApplicationWindowsResourceHandler(
-      accessibilityService: mockService, logger: logger)
+      accessibilityService: mockService, logger: logger,
+    )
     // The URI is invalid because we don't override the extractParameters for non-test URIs
     let invalidResourceURI = "macos://applications/windows"
     let invalidComponents = ResourceURIComponents(
       scheme: "macos",
       path: "/applications/windows",
-      queryParameters: [:]
+      queryParameters: [:],
     )
     // Call the handler and expect it to throw
     do {

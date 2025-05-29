@@ -5,7 +5,7 @@ import Foundation
 import MacMCPUtilities
 
 /// Parser for ElementPath strings with validation capabilities
-public struct ElementPathParser {
+public enum ElementPathParser {
   /// The path ID prefix (macos://ui/)
   public static let pathPrefix = "macos://ui/"
 
@@ -49,25 +49,31 @@ public struct ElementPathParser {
   {
     // Regular expressions for parsing
     // Combined pattern to handle both escaped and unescaped quotes
-    let attributePattern = "\\[@([^=]+)=\\\\?\"((?:[^\"]|\\\\\")*?)\\\\?\"\\]"  // Captures attribute name and value
-    let indexPattern = "#([+-]?\\d+)(?=\\[|$)"  // Captures integer index only at end or before attributes
+    let attributePattern =
+      "\\[@([^=]+)=\\\\?\"((?:[^\"]|\\\\\")*?)\\\\?\"\\]" // Captures attribute name and value
+    let indexPattern =
+      "#([+-]?\\d+)(?=\\[|$)" // Captures integer index only at end or before attributes
 
     // First, extract the index if present (from the end)
     var workingString = segmentString
-    var index: Int? = nil
+    var index: Int?
     // Check for valid integer index pattern only
     if let regex = try? NSRegularExpression(pattern: indexPattern) {
       let nsString = workingString as NSString
       let range = NSRange(location: 0, length: nsString.length)
       if let match = regex.firstMatch(in: workingString, options: [], range: range),
-        match.numberOfRanges >= 2
+         match.numberOfRanges >= 2
       {
-        let indexRange = Range(match.range(at: 1), in: workingString)!
+        guard let indexRange = Range(match.range(at: 1), in: workingString) else {
+          throw ElementPathError.invalidPathSyntax(segmentString, details: "Invalid index range")
+        }
         let indexString = String(workingString[indexRange])
         if let parsedIndex = Int(indexString) {
           index = parsedIndex
           // Remove the index from the working string
-          let fullMatchRange = Range(match.range(at: 0), in: workingString)!
+          guard let fullMatchRange = Range(match.range(at: 0), in: workingString) else {
+            throw ElementPathError.invalidPathSyntax(segmentString, details: "Invalid index match range")
+          }
           workingString.removeSubrange(fullMatchRange)
         }
       }
@@ -93,9 +99,11 @@ public struct ElementPathParser {
       let nsString = workingString as NSString
       let range = NSRange(location: 0, length: nsString.length)
       if let match = clearInvalidRegex.firstMatch(in: workingString, options: [], range: range),
-        match.numberOfRanges >= 2
+         match.numberOfRanges >= 2
       {
-        let invalidIndexRange = Range(match.range(at: 1), in: workingString)!
+        guard let invalidIndexRange = Range(match.range(at: 1), in: workingString) else {
+          throw ElementPathError.invalidPathSyntax(segmentString, details: "Invalid syntax check range")
+        }
         let invalidIndexString = String(workingString[invalidIndexRange])
         throw ElementPathError.invalidIndexSyntax("#\(invalidIndexString)", atSegment: segmentIndex)
       }
@@ -111,8 +119,8 @@ public struct ElementPathParser {
       // Sort matches by location in reverse order to safely remove from string
       let sortedMatches = matches.sorted { $0.range.location > $1.range.location }
       for match in matches where match.numberOfRanges >= 3 {
-        let nameRange = Range(match.range(at: 1), in: workingString)!
-        let valueRange = Range(match.range(at: 2), in: workingString)!
+        guard let nameRange = Range(match.range(at: 1), in: workingString),
+              let valueRange = Range(match.range(at: 2), in: workingString) else { continue }
         let name = String(workingString[nameRange])
         var value = String(workingString[valueRange])
         // Unescape quotes in the value
@@ -123,7 +131,7 @@ public struct ElementPathParser {
       }
       // Remove all attribute patterns from the working string
       for match in sortedMatches {
-        let fullMatchRange = Range(match.range(at: 0), in: workingString)!
+        guard let fullMatchRange = Range(match.range(at: 0), in: workingString) else { continue }
         workingString.removeSubrange(fullMatchRange)
       }
     }
@@ -146,7 +154,7 @@ public struct ElementPathParser {
   ///   - strict: Whether to use strict validation
   /// - Returns: Validation result with any warnings
   /// - Throws: ElementPathError for critical validation failures
-  public static func validatePath(_ pathString: String, strict: Bool = false, ) throws -> (
+  public static func validatePath(_ pathString: String, strict: Bool = false) throws -> (
     isValid: Bool, warnings: [ElementPathError]
   ) {
     var warnings: [ElementPathError] = []
@@ -171,7 +179,7 @@ public struct ElementPathParser {
         ElementPathError.validationWarning(
           "Path has \(segmentStrings.count) segments, which might be excessive",
           suggestion: "Consider using a shorter path if possible",
-        )
+        ),
       )
     }
 
@@ -184,7 +192,7 @@ public struct ElementPathParser {
         // Check for segment-specific warnings
         warnings.append(contentsOf: validateSegment(segment, index: i, strict: strict))
       } catch let error as ElementPathError {
-        throw error  // Re-throw any parsing errors
+        throw error // Re-throw any parsing errors
       } catch {
         throw ElementPathError.invalidPathSyntax(
           String(segmentString),
@@ -204,8 +212,8 @@ public struct ElementPathParser {
             ElementPathError.validationWarning(
               "First segment role is '\(firstSegment.role)' rather than 'AXApplication' or 'AXSystemWide'",
               suggestion:
-                "Paths typically start with AXApplication for targeting specific applications",
-            )
+              "Paths typically start with AXApplication for targeting specific applications",
+            ),
           )
         }
 
@@ -221,7 +229,7 @@ public struct ElementPathParser {
                 String(firstSegmentString),
                 suggestedAttribute: "bundleId or title",
                 atSegment: 0,
-              )
+              ),
             )
           }
         }
@@ -253,7 +261,7 @@ public struct ElementPathParser {
         ElementPathError.validationWarning(
           "Empty role in segment at index \(index)",
           suggestion: "Specify a valid accessibility role like 'AXButton', 'AXTextField', etc.",
-        )
+        ),
       )
     }
 
@@ -263,8 +271,8 @@ public struct ElementPathParser {
         ElementPathError.validationWarning(
           "Role '\(segment.role)' doesn't have the standard 'AX' prefix",
           suggestion:
-            "Consider using standard accessibility roles like 'AXButton', 'AXTextField', etc.",
-        )
+          "Consider using standard accessibility roles like 'AXButton', 'AXTextField', etc.",
+        ),
       )
     }
 
@@ -275,7 +283,7 @@ public struct ElementPathParser {
           ElementPathError.validationWarning(
             "Empty value for attribute '\(key)' in segment at index \(index)",
             suggestion: "Consider removing the empty attribute or providing a meaningful value",
-          )
+          ),
         )
       }
 
@@ -285,7 +293,7 @@ public struct ElementPathParser {
           ElementPathError.validationWarning(
             "Empty attribute name in segment at index \(index)",
             suggestion: "Specify a valid attribute name",
-          )
+          ),
         )
       }
     }
@@ -293,34 +301,34 @@ public struct ElementPathParser {
     // If it's a common UI element, check if it has the right attributes for reliable identification
     if index > 0, segment.attributes.isEmpty, segment.index == nil, strict {
       switch segment.role {
-      case "AXButton", "AXMenuItem", "AXRadioButton", "AXCheckBox":
-        warnings.append(
-          ElementPathError.missingAttribute(
-            segment.toString(),
-            suggestedAttribute: "AXTitle or AXDescription",
-            atSegment: index,
+        case "AXButton", "AXMenuItem", "AXRadioButton", "AXCheckBox":
+          warnings.append(
+            ElementPathError.missingAttribute(
+              segment.toString(),
+              suggestedAttribute: "AXTitle or AXDescription",
+              atSegment: index,
+            ),
           )
-        )
 
-      case "AXTextField", "AXTextArea":
-        warnings.append(
-          ElementPathError.missingAttribute(
-            segment.toString(),
-            suggestedAttribute: "AXPlaceholderValue or AXIdentifier",
-            atSegment: index,
+        case "AXTextField", "AXTextArea":
+          warnings.append(
+            ElementPathError.missingAttribute(
+              segment.toString(),
+              suggestedAttribute: "AXPlaceholderValue or AXIdentifier",
+              atSegment: index,
+            ),
           )
-        )
 
-      case "AXTable", "AXGrid", "AXList", "AXOutline":
-        warnings.append(
-          ElementPathError.missingAttribute(
-            segment.toString(),
-            suggestedAttribute: "AXIdentifier",
-            atSegment: index,
+        case "AXTable", "AXGrid", "AXList", "AXOutline":
+          warnings.append(
+            ElementPathError.missingAttribute(
+              segment.toString(),
+              suggestedAttribute: "AXIdentifier",
+              atSegment: index,
+            ),
           )
-        )
 
-      default: break
+        default: break
       }
     }
 
@@ -348,16 +356,17 @@ public struct ElementPathParser {
         if segment.role == previousRole {
           consecutiveSegments[segment.role, default: 1] += 1
 
-          // If we have multiple segments with the same role in a row and no index is specified, warn about
+          // If we have multiple segments with the same role in a row and no index is specified,
+          // warn about
           // ambiguity
           if consecutiveSegments[segment.role, default: 1] > 1, segment.index == nil, strict {
             warnings.append(
               ElementPathError.potentialAmbiguity(
                 segment.toString(),
                 details:
-                  "Multiple consecutive '\(segment.role)' segments without index specification",
+                "Multiple consecutive '\(segment.role)' segments without index specification",
                 atSegment: i,
-              )
+              ),
             )
           }
         } else {
@@ -367,15 +376,15 @@ public struct ElementPathParser {
 
         // Warn about common generic roles without sufficient disambiguation
         if ["AXGroup", "AXBox", "AXGeneric"].contains(segment.role), segment.attributes.isEmpty,
-          segment.index == nil, strict
+           segment.index == nil, strict
         {
           warnings.append(
             ElementPathError.potentialAmbiguity(
               segment.toString(),
               details:
-                "Generic role '\(segment.role)' without attributes or index may match multiple elements",
+              "Generic role '\(segment.role)' without attributes or index may match multiple elements",
               atSegment: i,
-            )
+            ),
           )
         }
       } catch {
@@ -402,7 +411,7 @@ extension String {
       let range = match.range
       let startIndex = self.index(self.startIndex, offsetBy: range.location)
       let endIndex = self.index(startIndex, offsetBy: range.length)
-      return startIndex..<endIndex
+      return startIndex ..< endIndex
     }
   }
 

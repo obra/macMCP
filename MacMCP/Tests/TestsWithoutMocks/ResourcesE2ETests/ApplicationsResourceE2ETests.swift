@@ -23,19 +23,27 @@ import Testing
     calculatorApp = CalculatorModel(toolChain: toolChain)
     // Terminate any existing Calculator instances
     let runningApps = NSRunningApplication.runningApplications(
-      withBundleIdentifier: calculatorBundleId)
-    for runningApp in runningApps { _ = runningApp.terminate() }
+      withBundleIdentifier: calculatorBundleId,
+    )
+    for runningApp in runningApps {
+      _ = runningApp.terminate()
+    }
     try await Task.sleep(for: .milliseconds(1000))
   }
+
   // Teardown method
   private mutating func tearDown() async throws {
     // Terminate the calculator application
     let runningApps = NSRunningApplication.runningApplications(
-      withBundleIdentifier: calculatorBundleId)
-    for runningApp in runningApps { _ = runningApp.terminate() }
+      withBundleIdentifier: calculatorBundleId,
+    )
+    for runningApp in runningApps {
+      _ = runningApp.terminate()
+    }
     try await Task.sleep(for: .milliseconds(1000))
   }
-  @Test("Test applications resource lists running apps") mutating func testApplicationsResource()
+
+  @Test("Test applications resource lists running apps") mutating func applicationsResource()
     async throws
   {
     try await setUp()
@@ -47,15 +55,17 @@ import Testing
     let applicationService = toolChain.applicationService
     let logger = Logger(label: "test.applications")
     let handler = ApplicationsResourceHandler(
-      applicationService: applicationService, logger: logger)
+      applicationService: applicationService, logger: logger,
+    )
     // Create the resource URI
     let resourceURI = "macos://applications"
     let components = ResourceURIComponents(
-      scheme: "macos", path: "/applications", queryParameters: [:])
+      scheme: "macos", path: "/applications", queryParameters: [:],
+    )
     // Call the handler directly
     let (content, metadata) = try await handler.handleRead(uri: resourceURI, components: components)
     // Verify the content
-    if case let .text(jsonString) = content {
+    if case .text(let jsonString) = content {
       // Verify standard system processes are listed
       #expect(jsonString.contains("Finder"), "Response should include Finder")
       // Our test app should be listed
@@ -73,18 +83,21 @@ import Testing
     }
     try await tearDown()
   }
+
   @Test("Test application launch and termination reflection in applications resource")
-  mutating func testLaunchAndTerminationReflection() async throws {
+  mutating func launchAndTerminationReflection() async throws {
     try await setUp()
     // Create an ApplicationsResourceHandler
     let applicationService = toolChain.applicationService
     let logger = Logger(label: "test.applications")
     let handler = ApplicationsResourceHandler(
-      applicationService: applicationService, logger: logger)
+      applicationService: applicationService, logger: logger,
+    )
     // Create the resource URI
     let resourceURI = "macos://applications"
     let components = ResourceURIComponents(
-      scheme: "macos", path: "/applications", queryParameters: [:])
+      scheme: "macos", path: "/applications", queryParameters: [:],
+    )
     // Call the handler before launching Calculator
     let (beforeContent, _) = try await handler.handleRead(uri: resourceURI, components: components)
     // Now launch Calculator
@@ -94,7 +107,7 @@ import Testing
     // Call the handler again after launching Calculator
     let (afterContent, _) = try await handler.handleRead(uri: resourceURI, components: components)
     // Check that Calculator appears in the second response but not the first
-    if case let .text(beforeJson) = beforeContent, case let .text(afterJson) = afterContent {
+    if case .text(let beforeJson) = beforeContent, case .text(let afterJson) = afterContent {
       let beforeHasCalculator = beforeJson.contains(calculatorBundleId)
       let afterHasCalculator = afterJson.contains(calculatorBundleId)
       #expect(!beforeHasCalculator, "Calculator should not be in applications list before launch")
@@ -104,23 +117,28 @@ import Testing
     }
     // Now terminate Calculator
     let runningApps = NSRunningApplication.runningApplications(
-      withBundleIdentifier: calculatorBundleId)
-    for runningApp in runningApps { _ = runningApp.terminate() }
+      withBundleIdentifier: calculatorBundleId,
+    )
+    for runningApp in runningApps {
+      _ = runningApp.terminate()
+    }
     try await Task.sleep(for: .milliseconds(1000))
     // Call the handler again after terminating Calculator
     let (finalContent, _) = try await handler.handleRead(uri: resourceURI, components: components)
     // Check that Calculator no longer appears
-    if case let .text(finalJson) = finalContent {
+    if case .text(let finalJson) = finalContent {
       let finalHasCalculator = finalJson.contains(calculatorBundleId)
       #expect(
-        !finalHasCalculator, "Calculator should not be in applications list after termination")
+        !finalHasCalculator, "Calculator should not be in applications list after termination",
+      )
     } else {
       #expect(Bool(false), "Content should be text")
     }
     try await tearDown()
   }
+
   @Test("Test resource registry with real handlers")
-  mutating func testResourceRegistryWithRealHandlers() async throws {
+  mutating func resourceRegistryWithRealHandlers() async throws {
     try await setUp()
     // Create a resource registry
     let registry = ResourceRegistry()
@@ -129,10 +147,11 @@ import Testing
     let accessibilityService = toolChain.accessibilityService
     let logger = Logger(label: "test.applications")
     let applicationsHandler = ApplicationsResourceHandler(
-      applicationService: applicationService, logger: logger)
+      applicationService: applicationService, logger: logger,
+    )
     let windowsHandler = ApplicationWindowsResourceHandler(
       accessibilityService: accessibilityService,
-      logger: logger
+      logger: logger,
     )
     // Register the handlers
     registry.register(applicationsHandler)
@@ -143,7 +162,8 @@ import Testing
     #expect(resources.count >= 2, "Registry should have at least 2 resources")
     #expect(
       resources.contains(where: { $0.id.contains("applications") }),
-      "Should contain applications resource")
+      "Should contain applications resource",
+    )
     #expect(nextCursor == nil, "Next cursor should be nil since all resources were returned")
     try await tearDown()
   }

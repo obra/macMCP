@@ -31,12 +31,13 @@ public struct MenuHierarchy: Codable, Sendable {
     self.totalItems = totalItems
     self.exploredDepth = exploredDepth
     self.generatedAt = generatedAt
-    self.cacheExpiresAt = generatedAt.addingTimeInterval(cacheTimeout)
+    cacheExpiresAt = generatedAt.addingTimeInterval(cacheTimeout)
   }
+
   /// Check if this cache entry is still valid
-  public var isValid: Bool { return Date() < cacheExpiresAt }
+  public var isValid: Bool { Date() < cacheExpiresAt }
   /// Get all menu paths in a flat array
-  public var allPaths: [String] { return menus.values.flatMap { $0 } }
+  public var allPaths: [String] { menus.values.flatMap(\.self) }
   /// Get top-level menu names
-  public var topLevelMenus: [String] { return Array(menus.keys).sorted() }
+  public var topLevelMenus: [String] { Array(menus.keys).sorted() }
 }

@@ -22,7 +22,7 @@ import Testing
       props: ["Enabled", "Visible", "clickable"],
       actions: ["AXPress"],
       attributes: [:],
-      children: nil
+      children: nil,
     )
     // Test JSON encoding
     let encoder = JSONConfiguration.encoder
@@ -36,6 +36,7 @@ import Testing
     #expect(!jsonString.contains("\\\""), "Should not contain escaped quotes")
     print("EnhancedElementDescriptor successfully outputs opaque IDs!")
   }
+
   @Test("WindowManagementTool and ResourcesUIElement output opaque IDs")
   func windowManagementAndResourcesOutputOpaqueIDs() throws {
     // This test verifies that the migration was successful by testing the same
@@ -54,7 +55,7 @@ import Testing
       props: ["Enabled", "Visible", "movable", "resizable"],
       actions: ["AXMove", "AXResize"],
       attributes: ["bundleId": "com.apple.calculator"],
-      children: nil
+      children: nil,
     )
     // Encode as those tools would (via formatResponse)
     let encoder = JSONConfiguration.encoder

@@ -26,6 +26,7 @@ import Testing
     #expect(appRunning)
     try await helper.resetAppState()
   }
+
   // Shared teardown method
   private mutating func tearDown() async throws {
     if helper != nil { _ = try await helper.closeWindowAndDiscardChanges() }
@@ -48,7 +49,7 @@ import Testing
   }
 
   /// Test formatting text in TextEdit - bold, italic, newline, etc.
-  @Test("Text Formatting in TextEdit") mutating func testTextFormatting() async throws {
+  @Test("Text Formatting in TextEdit") mutating func textFormatting() async throws {
     try await setUp()
     // Type "Hello world" in TextEdit
     let text = "Hello world"
@@ -75,7 +76,7 @@ import Testing
   }
 
   /// Test more advanced formatting and saving/reopening
-  @Test("Save and Reopen TextEdit Document") mutating func testSaveAndReopen() async throws {
+  @Test("Save and Reopen TextEdit Document") mutating func saveAndReopen() async throws {
     try await setUp()
     // Type "Formatting Test" in TextEdit
     let text = "Formatting Test"

@@ -8,7 +8,7 @@ import Testing
 @testable import MacMCP
 
 @Suite("Verbosity Unit Tests") struct VerbosityUnitTests {
-  @Test("getStateArray excludes normal states") func testStateArrayOnlyShowsExceptions()
+  @Test("getStateArray excludes normal states") func stateArrayOnlyShowsExceptions()
     async throws
   {
     // Test normal element - should have empty state array
@@ -20,9 +20,9 @@ import Testing
       frame: CGRect(x: 0, y: 0, width: 100, height: 30),
       children: [],
       attributes: [
-        "enabled": true,  // Use lowercase keys that UIElement properties expect
+        "enabled": true, // Use lowercase keys that UIElement properties expect
         "focused": false, "selected": false, "visible": true,
-      ]
+      ],
     )
     let normalStates = normalElement.getStateArray()
     #expect(normalStates.isEmpty, "Normal states should result in empty array")
@@ -35,11 +35,11 @@ import Testing
       frame: CGRect(x: 0, y: 0, width: 100, height: 30),
       children: [],
       attributes: [
-        "enabled": false,  // Exception
-        "focused": true,  // Exception
-        "selected": true,  // Exception
-        "visible": false,  // Exception
-      ]
+        "enabled": false, // Exception
+        "focused": true, // Exception
+        "selected": true, // Exception
+        "visible": false, // Exception
+      ],
     )
     let exceptionalStates = exceptionalElement.getStateArray()
     #expect(exceptionalStates.contains("disabled"))
@@ -52,18 +52,19 @@ import Testing
     #expect(!exceptionalStates.contains("unselected"))
     #expect(!exceptionalStates.contains("visible"))
   }
-  @Test("EnhancedElementDescriptor omits redundant name field") func testNameDeduplication()
+
+  @Test("EnhancedElementDescriptor omits redundant name field") func nameDeduplication()
     async throws
   {
     // Create element where name matches role
     let roleMatchElement = UIElement(
       path: "test://role-match",
       role: "AXButton",
-      title: "AXButton",  // Will become name, matches role
+      title: "AXButton", // Will become name, matches role
       elementDescription: nil,
       frame: CGRect(x: 0, y: 0, width: 100, height: 30),
       children: [],
-      attributes: [:]
+      attributes: [:],
     )
     let descriptor1 = EnhancedElementDescriptor.from(element: roleMatchElement)
     let jsonData1 = try JSONEncoder().encode(descriptor1)
@@ -76,10 +77,10 @@ import Testing
       role: "AXButton",
       title: "Save",
       elementDescription: nil,
-      identifier: "Save",  // Pass identifier as constructor parameter
+      identifier: "Save", // Pass identifier as constructor parameter
       frame: CGRect(x: 0, y: 0, width: 100, height: 30),
       children: [],
-      attributes: [:]
+      attributes: [:],
     )
     let descriptor2 = EnhancedElementDescriptor.from(element: identifierMatchElement)
     let jsonData2 = try JSONEncoder().encode(descriptor2)
@@ -90,34 +91,35 @@ import Testing
     let uniqueNameElement = UIElement(
       path: "test://unique",
       role: "AXButton",
-      title: "Click Me",  // Unique name
+      title: "Click Me", // Unique name
       elementDescription: nil,
-      identifier: "btn1",  // Different from title
+      identifier: "btn1", // Different from title
       frame: CGRect(x: 0, y: 0, width: 100, height: 30),
       children: [],
-      attributes: [:]
+      attributes: [:],
     )
     let descriptor3 = EnhancedElementDescriptor.from(element: uniqueNameElement)
     let jsonData3 = try JSONEncoder().encode(descriptor3)
     let json3 = String(data: jsonData3, encoding: .utf8)!
     #expect(json3.contains("\"name\":\"Click Me\""), "Should include unique name")
   }
-  @Test("Token reduction is significant") func testTokenReduction() async throws {
+
+  @Test("Token reduction is significant") func tokenReduction() async throws {
     // Element that would have been verbose before improvements
     let element = UIElement(
       path: "test://verbose",
       role: "AXButton",
-      title: "AXButton",  // Matches role - will be omitted
+      title: "AXButton", // Matches role - will be omitted
       elementDescription: nil,
       frame: CGRect(x: 0, y: 0, width: 100, height: 30),
       children: [],
       attributes: [
-        "AXEnabled": true,  // Normal - will be omitted
-        "AXFocused": false,  // Normal - will be omitted
-        "AXSelected": false,  // Normal - will be omitted
-        "visible": true,  // Normal - will be omitted
+        "AXEnabled": true, // Normal - will be omitted
+        "AXFocused": false, // Normal - will be omitted
+        "AXSelected": false, // Normal - will be omitted
+        "visible": true, // Normal - will be omitted
         "AXIdentifier": "test",
-      ]
+      ],
     )
     let descriptor = EnhancedElementDescriptor.from(element: element)
     let jsonData = try JSONEncoder().encode(descriptor)
@@ -130,7 +132,8 @@ import Testing
     #expect(json.count < 300, "JSON should be under 300 chars, got \(json.count)")
     print("Reduced JSON (\(json.count) chars): \(json)")
   }
-  @Test("showCoordinates parameter controls frame output") func testShowCoordinatesParameter()
+
+  @Test("showCoordinates parameter controls frame output") func showCoordinatesParameter()
     async throws
   {
     let element = UIElement(
@@ -140,49 +143,56 @@ import Testing
       elementDescription: nil,
       frame: CGRect(x: 100, y: 200, width: 50, height: 30),
       children: [],
-      attributes: [:]
+      attributes: [:],
     )
     // Test with showCoordinates = false (default)
     let descriptorWithoutCoordinates = EnhancedElementDescriptor.from(
       element: element,
       maxDepth: 1,
-      showCoordinates: false
+      showCoordinates: false,
     )
     let jsonWithoutCoords = try JSONEncoder().encode(descriptorWithoutCoordinates)
     let jsonStringWithoutCoords = String(data: jsonWithoutCoords, encoding: .utf8)!
     #expect(
       !jsonStringWithoutCoords.contains("frame"),
-      "Frame should be omitted when showCoordinates=false")
+      "Frame should be omitted when showCoordinates=false",
+    )
     #expect(
       !jsonStringWithoutCoords.contains("100"),
-      "X coordinate should not appear when showCoordinates=false")
+      "X coordinate should not appear when showCoordinates=false",
+    )
     // Test with showCoordinates = true
     let descriptorWithCoordinates = EnhancedElementDescriptor.from(
       element: element,
       maxDepth: 1,
-      showCoordinates: true
+      showCoordinates: true,
     )
     let jsonWithCoords = try JSONEncoder().encode(descriptorWithCoordinates)
     let jsonStringWithCoords = String(data: jsonWithCoords, encoding: .utf8)!
     #expect(
-      jsonStringWithCoords.contains("frame"), "Frame should be included when showCoordinates=true")
+      jsonStringWithCoords.contains("frame"), "Frame should be included when showCoordinates=true",
+    )
     #expect(
-      jsonStringWithCoords.contains("100"), "X coordinate should appear when showCoordinates=true")
+      jsonStringWithCoords.contains("100"), "X coordinate should appear when showCoordinates=true",
+    )
     #expect(
-      jsonStringWithCoords.contains("200"), "Y coordinate should appear when showCoordinates=true")
+      jsonStringWithCoords.contains("200"), "Y coordinate should appear when showCoordinates=true",
+    )
     #expect(jsonStringWithCoords.contains("50"), "Width should appear when showCoordinates=true")
     #expect(jsonStringWithCoords.contains("30"), "Height should appear when showCoordinates=true")
     // Verify significant size difference
     let sizeDifference = jsonStringWithCoords.count - jsonStringWithoutCoords.count
     #expect(
       sizeDifference > 20,
-      "Including coordinates should add significant content, got difference: \(sizeDifference)"
+      "Including coordinates should add significant content, got difference: \(sizeDifference)",
     )
     print(
-      "Without coordinates (\(jsonStringWithoutCoords.count) chars): \(jsonStringWithoutCoords)")
+      "Without coordinates (\(jsonStringWithoutCoords.count) chars): \(jsonStringWithoutCoords)",
+    )
     print("With coordinates (\(jsonStringWithCoords.count) chars): \(jsonStringWithCoords)")
   }
-  @Test("actions are always shown without AX prefix") func testActionsAlwaysShown() async throws {
+
+  @Test("actions are always shown without AX prefix") func actionsAlwaysShown() async throws {
     let element = UIElement(
       path: "test://actions",
       role: "AXButton",
@@ -191,7 +201,7 @@ import Testing
       frame: CGRect(x: 0, y: 0, width: 50, height: 30),
       children: [],
       attributes: [:],
-      actions: ["AXPress", "AXFocus", "AXShowMenu"]
+      actions: ["AXPress", "AXFocus", "AXShowMenu"],
     )
     // Actions should always be included now
     let descriptor = EnhancedElementDescriptor.from(element: element, maxDepth: 1)
@@ -206,8 +216,9 @@ import Testing
     #expect(!jsonString.contains("AXShowMenu"), "AXShowMenu should not appear (prefix removed)")
     print("Actions JSON (\(jsonString.count) chars): \(jsonString)")
   }
+
   @Test("ChangeDetectionHelper uses verbosity reduction")
-  func testChangeDetectionHelperVerbosityReduction()
+  func changeDetectionHelperVerbosityReduction()
     async throws
   {
     let element = UIElement(
@@ -218,7 +229,7 @@ import Testing
       frame: CGRect(x: 100, y: 200, width: 150, height: 40),
       children: [],
       attributes: [:],
-      actions: ["AXPress", "AXFocus", "AXShowMenu"]
+      actions: ["AXPress", "AXFocus", "AXShowMenu"],
     )
     // Create mock UI changes
     let changes = UIChanges(newElements: [element])
@@ -227,14 +238,15 @@ import Testing
     let response = ChangeDetectionHelper.formatResponse(
       message: "Element added successfully",
       uiChanges: changes,
-      logger: logger
+      logger: logger,
     )
     // Extract the JSON response
     #expect(response.count == 1, "Should return one content item")
     if case .text(let jsonString) = response[0] {
       // Verify verbosity reduction is applied
       #expect(
-        !jsonString.contains("\"frame\""), "Frame should be excluded due to showCoordinates=false")
+        !jsonString.contains("\"frame\""), "Frame should be excluded due to showCoordinates=false",
+      )
       #expect(jsonString.contains("\"actions\""), "Actions should always be included now")
       #expect(!jsonString.contains("100"), "X coordinate should not appear in response")
       #expect(jsonString.contains("Press"), "Actions should appear without AX prefix")

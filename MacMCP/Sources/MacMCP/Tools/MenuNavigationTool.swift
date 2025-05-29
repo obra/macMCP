@@ -12,43 +12,43 @@ public struct MenuNavigationTool: @unchecked Sendable {
 
   /// Description of the tool
   public let description = """
-    Navigate and interact with macOS application menus for accessing commands and functionality.
+  Navigate and interact with macOS application menus for accessing commands and functionality.
 
-    IMPORTANT: Menu bar actions are typically faster and more reliable than clicking UI elements directly.
-    Most application functions are accessible through menus, making this the preferred interaction method.
+  IMPORTANT: Menu bar actions are typically faster and more reliable than clicking UI elements directly.
+  Most application functions are accessible through menus, making this the preferred interaction method.
 
-    Available actions:
-    - showAllMenus: Recursively discover and display all menus in a compact, hierarchical format
-    - showMenu: Get detailed information about a specific menu and all its items
-    - selectMenuItem: Click/activate a menu item using its readable path
+  Available actions:
+  - showAllMenus: Recursively discover and display all menus in a compact, hierarchical format
+  - showMenu: Get detailed information about a specific menu and all its items
+  - selectMenuItem: Click/activate a menu item using its readable path
 
-    REQUIRED workflow for activating menu items:
-    1. First: showAllMenus with bundleId to see available menus and their paths
-    2. Then: selectMenuItem with bundleId and the exact menuPath from step 1
+  REQUIRED workflow for activating menu items:
+  1. First: showAllMenus with bundleId to see available menus and their paths
+  2. Then: selectMenuItem with bundleId and the exact menuPath from step 1
 
-    Path format examples:
-    - "File > New"
-    - "Edit > Find > Find Next"
-    - "Format > Font > Show Fonts"
-    - "Help > Search"
+  Path format examples:
+  - "File > New"
+  - "Edit > Find > Find Next"
+  - "Format > Font > Show Fonts"
+  - "Help > Search"
 
-    Menu structure hierarchy:
-    - Application → Top-level menus (File, Edit, View, etc.)
-    - Menu → Menu items (New, Open, Save, etc.)  
-    - Menu items → Submenus or commands
+  Menu structure hierarchy:
+  - Application → Top-level menus (File, Edit, View, etc.)
+  - Menu → Menu items (New, Open, Save, etc.)  
+  - Menu items → Submenus or commands
 
-    IMPORTANT: Menu paths use " > " (space-arrow-space) as separator!
-    - ✅ Correct: "File > Save As..."
-    - ❌ Incorrect: "File/Save As..." or "File→Save As..."
+  IMPORTANT: Menu paths use " > " (space-arrow-space) as separator!
+  - ✅ Correct: "File > Save As..."
+  - ❌ Incorrect: "File/Save As..." or "File→Save As..."
 
-    Use cases:
-    - Access app commands not available in UI
-    - Automate menu-driven workflows
-    - Discover available application functionality
-    - Execute keyboard shortcut equivalents programmatically
+  Use cases:
+  - Access app commands not available in UI
+  - Automate menu-driven workflows
+  - Discover available application functionality
+  - Execute keyboard shortcut equivalents programmatically
 
-    Bundle ID required for all operations to target specific application.
-    """
+  Bundle ID required for all operations to target specific application.
+  """
 
   /// Input schema for the tool
   public private(set) var inputSchema: Value
@@ -73,7 +73,7 @@ public struct MenuNavigationTool: @unchecked Sendable {
 
   /// Tool handler function that uses this instance's services
   public var handler: @Sendable ([String: Value]?) async throws -> [Tool.Content] {
-    { [self] params in return try await self.processRequest(params) }
+    { [self] params in try await self.processRequest(params) }
   }
 
   /// Create a new menu navigation tool
@@ -91,8 +91,9 @@ public struct MenuNavigationTool: @unchecked Sendable {
     self.menuNavigationService = menuNavigationService
     self.accessibilityService = accessibilityService
     self.changeDetectionService = changeDetectionService
-    self.interactionWrapper = InteractionWithChangeDetection(
-      changeDetectionService: changeDetectionService)
+    interactionWrapper = InteractionWithChangeDetection(
+      changeDetectionService: changeDetectionService,
+    )
     self.logger = logger ?? Logger(label: "mcp.tool.menu_navigation")
 
     // Set tool annotations
@@ -101,7 +102,7 @@ public struct MenuNavigationTool: @unchecked Sendable {
       readOnlyHint: false,
       destructiveHint: true,
       idempotentHint: false,
-      openWorldHint: true
+      openWorldHint: true,
     )
 
     // Initialize inputSchema with an empty object first
@@ -123,13 +124,13 @@ public struct MenuNavigationTool: @unchecked Sendable {
       "bundleId": .object([
         "type": .string("string"),
         "description": .string(
-          "Application bundle identifier (required for all actions, e.g., 'com.apple.TextEdit')"
+          "Application bundle identifier (required for all actions, e.g., 'com.apple.TextEdit')",
         ),
       ]),
       "menuPath": .object([
         "type": .string("string"),
         "description": .string(
-          "Menu path for showMenu or selectMenuItem (e.g., 'File > Save As...', 'Format > Font')"
+          "Menu path for showMenu or selectMenuItem (e.g., 'File > Save As...', 'Format > Font')",
         ),
       ]),
       "maxDepth": .object([
@@ -151,7 +152,7 @@ public struct MenuNavigationTool: @unchecked Sendable {
     ]
     // Merge in change detection properties
     let properties = baseProperties.merging(
-      ChangeDetectionHelper.addChangeDetectionSchemaProperties()
+      ChangeDetectionHelper.addChangeDetectionSchemaProperties(),
     ) { _, new in
       new
     }
@@ -199,26 +200,31 @@ public struct MenuNavigationTool: @unchecked Sendable {
 
     // Delegate to appropriate handler based on action
     switch actionValue {
-    case "showAllMenus":
-      let maxDepth = Int(params["maxDepth"]?.doubleValue ?? 3)
-      let format = params["format"]?.stringValue ?? "compact"
-      return try await handleShowAllMenus(bundleId: bundleId, maxDepth: maxDepth, format: format)
+      case "showAllMenus":
+        let maxDepth = Int(params["maxDepth"]?.doubleValue ?? 3)
+        let format = params["format"]?.stringValue ?? "compact"
+        return try await handleShowAllMenus(bundleId: bundleId, maxDepth: maxDepth, format: format)
 
-    case "showMenu":
-      guard let menuPath = params["menuPath"]?.stringValue else {
-        throw MCPError.invalidParams("menuPath is required for showMenu")
-      }
-      let includeSubmenus = params["includeSubmenus"]?.boolValue ?? true
-      return try await handleShowMenu(
-        bundleId: bundleId, menuPath: menuPath, includeSubmenus: includeSubmenus)
+      case "showMenu":
+        guard let menuPath = params["menuPath"]?.stringValue else {
+          throw MCPError.invalidParams("menuPath is required for showMenu")
+        }
+        let includeSubmenus = params["includeSubmenus"]?.boolValue ?? true
+        return try await handleShowMenu(
+          bundleId: bundleId, menuPath: menuPath, includeSubmenus: includeSubmenus,
+        )
 
-    case "selectMenuItem":
-      guard let menuPath = params["menuPath"]?.stringValue else {
-        throw MCPError.invalidParams("menuPath is required for selectMenuItem")
-      }
-      return try await handleSelectMenuItem(bundleId: bundleId, menuPath: menuPath, params: params)
+      case "selectMenuItem":
+        guard let menuPath = params["menuPath"]?.stringValue else {
+          throw MCPError.invalidParams("menuPath is required for selectMenuItem")
+        }
+        return try await handleSelectMenuItem(
+          bundleId: bundleId,
+          menuPath: menuPath,
+          params: params,
+        )
 
-    default: throw MCPError.invalidParams("Invalid action: \(actionValue)")
+      default: throw MCPError.invalidParams("Invalid action: \(actionValue)")
     }
   }
 
@@ -238,14 +244,14 @@ public struct MenuNavigationTool: @unchecked Sendable {
       metadata: [
         "bundleId": .string(bundleId), "maxDepth": .string("\(validDepth)"),
         "format": .string(format),
-      ]
+      ],
     )
     do {
       // Get complete menu hierarchy
       let hierarchy = try await menuNavigationService.getCompleteMenuHierarchy(
         bundleId: bundleId,
         maxDepth: validDepth,
-        useCache: true
+        useCache: true,
       )
       // Format response based on requested format
       if format == "detailed" {
@@ -256,20 +262,20 @@ public struct MenuNavigationTool: @unchecked Sendable {
           application: hierarchy.application,
           menus: hierarchy.menus,
           totalItems: hierarchy.totalItems,
-          exploredDepth: hierarchy.exploredDepth
+          exploredDepth: hierarchy.exploredDepth,
         )
         return try formatResponse(compactResult)
       }
     } catch let error as MenuNavigationError {
       let helpfulMessage = """
-        Failed to explore menus for application '\(bundleId)': \(error.description)
+      Failed to explore menus for application '\(bundleId)': \(error.description)
 
-        Troubleshooting steps:
-        1. Verify the application '\(bundleId)' is running and accessible
-        2. Check that the application has accessibility permissions
-        3. Ensure the application has a menu bar (some apps don't have traditional menus)
-        4. Try with a lower maxDepth value if the exploration is timing out
-        """
+      Troubleshooting steps:
+      1. Verify the application '\(bundleId)' is running and accessible
+      2. Check that the application has accessibility permissions
+      3. Ensure the application has a menu bar (some apps don't have traditional menus)
+      4. Try with a lower maxDepth value if the exploration is timing out
+      """
       throw MCPError.internalError(helpfulMessage)
     }
   }
@@ -282,21 +288,22 @@ public struct MenuNavigationTool: @unchecked Sendable {
   /// - Returns: The tool result
   private func handleShowMenu(bundleId: String, menuPath: String, includeSubmenus: Bool)
     async throws -> [Tool
-    .Content]
+      .Content
+    ]
   {
     logger.info(
       "Showing menu details",
       metadata: [
         "bundleId": .string(bundleId), "menuPath": .string(menuPath),
         "includeSubmenus": .string("\(includeSubmenus)"),
-      ]
+      ],
     )
     do {
       // Get menu details
       let menuDetails = try await menuNavigationService.getMenuDetails(
         bundleId: bundleId,
         menuPath: menuPath,
-        includeSubmenus: includeSubmenus
+        includeSubmenus: includeSubmenus,
       )
       // Format as detailed menu information
       let menuResult = MenuDetailsResult(
@@ -311,25 +318,25 @@ public struct MenuNavigationTool: @unchecked Sendable {
             title: child.title,
             enabled: child.enabled,
             shortcut: child.shortcut,
-            hasSubmenu: child.hasSubmenu
+            hasSubmenu: child.hasSubmenu,
           )
-        } ?? []
+        } ?? [],
       )
       return try formatResponse(menuResult)
     } catch let error as MenuNavigationError {
       // Provide path-specific error guidance
       let suggestions = await getPathSuggestions(bundleId: bundleId, invalidPath: menuPath)
       let helpfulMessage = """
-        Failed to explore menu path '\(menuPath)' in application '\(bundleId)': \(error.description)
+      Failed to explore menu path '\(menuPath)' in application '\(bundleId)': \(error.description)
 
-        \(suggestions)
+      \(suggestions)
 
-        Troubleshooting steps:
-        1. Use showAllMenus to see all available menu paths
-        2. Check path format: use " > " (space-arrow-space) as separator
-        3. Ensure exact title matching (case-sensitive)
-        4. Try exploring the top-level menu first (e.g., just "File" instead of "File > New")
-        """
+      Troubleshooting steps:
+      1. Use showAllMenus to see all available menu paths
+      2. Check path format: use " > " (space-arrow-space) as separator
+      3. Ensure exact title matching (case-sensitive)
+      4. Try exploring the top-level menu first (e.g., just "File" instead of "File > New")
+      """
       throw MCPError.internalError(helpfulMessage)
     }
   }
@@ -342,22 +349,24 @@ public struct MenuNavigationTool: @unchecked Sendable {
   /// - Returns: The tool result
   private func handleSelectMenuItem(bundleId: String, menuPath: String, params: [String: Value])
     async throws -> [Tool
-    .Content]
+      .Content
+    ]
   {
     logger.info(
       "Selecting menu item",
-      metadata: ["bundleId": .string(bundleId), "menuPath": .string(menuPath)])
+      metadata: ["bundleId": .string(bundleId), "menuPath": .string(menuPath)],
+    )
     let (detectChanges, delay) = ChangeDetectionHelper.extractChangeDetectionParams(params)
 
     do {
       // Activate the menu item with change detection
       let result = try await interactionWrapper.performWithChangeDetection(
         detectChanges: detectChanges,
-        delay: delay
+        delay: delay,
       ) {
         let success = try await menuNavigationService.activateMenuItemByPath(
           bundleId: bundleId,
-          menuPath: menuPath
+          menuPath: menuPath,
         )
         return "Menu item activated: \(menuPath) (success: \(success))"
       }
@@ -365,35 +374,35 @@ public struct MenuNavigationTool: @unchecked Sendable {
       return ChangeDetectionHelper.formatResponse(
         message: result.result,
         uiChanges: result.uiChanges,
-        logger: logger
+        logger: logger,
       )
     } catch let error as MenuNavigationError {
       // Provide path-specific error guidance
       let suggestions = await getPathSuggestions(bundleId: bundleId, invalidPath: menuPath)
       let helpfulMessage = """
-        Failed to activate menu item '\(menuPath)' in application '\(bundleId)': \(error.description)
+      Failed to activate menu item '\(menuPath)' in application '\(bundleId)': \(error.description)
 
-        \(suggestions)
+      \(suggestions)
 
-        Troubleshooting steps:
-        1. Use showAllMenus to get the exact path for the menu item you want
-        2. Ensure the path format is correct: "TopMenu > MenuItem" (space-arrow-space separator)
-        3. Check that the menu item is currently enabled and available
-        4. Verify the application is in focus and ready to receive menu commands
-        """
+      Troubleshooting steps:
+      1. Use showAllMenus to get the exact path for the menu item you want
+      2. Ensure the path format is correct: "TopMenu > MenuItem" (space-arrow-space separator)
+      3. Check that the menu item is currently enabled and available
+      4. Verify the application is in focus and ready to receive menu commands
+      """
       throw MCPError.internalError(helpfulMessage)
     } catch {
       // Handle other errors with context
       let contextualMessage = """
-        Unexpected error during menu activation: \(error.localizedDescription)
+      Unexpected error during menu activation: \(error.localizedDescription)
 
-        Context:
-        - Application: \(bundleId)
-        - Menu path: \(menuPath)
+      Context:
+      - Application: \(bundleId)
+      - Menu path: \(menuPath)
 
-        This may indicate an application state change or accessibility issue.
-        Try using showAllMenus to refresh the menu structure.
-        """
+      This may indicate an application state change or accessibility issue.
+      Try using showAllMenus to refresh the menu structure.
+      """
       throw MCPError.internalError(contextualMessage)
     }
   }
@@ -409,10 +418,11 @@ public struct MenuNavigationTool: @unchecked Sendable {
       let hierarchy = try await menuNavigationService.getCompleteMenuHierarchy(
         bundleId: bundleId,
         maxDepth: 2,
-        useCache: true
+        useCache: true,
       )
       let suggestions = MenuPathResolver.suggestSimilar(
-        invalidPath, in: hierarchy, maxSuggestions: 3)
+        invalidPath, in: hierarchy, maxSuggestions: 3,
+      )
       if !suggestions.isEmpty {
         return "Did you mean one of these paths?\n"
           + suggestions.map { "  - \($0)" }.joined(separator: "\n")
@@ -439,10 +449,11 @@ public struct MenuNavigationTool: @unchecked Sendable {
     } catch {
       logger.error(
         "Error encoding response as JSON",
-        metadata: ["error": .string("\(error.localizedDescription)")]
+        metadata: ["error": .string("\(error.localizedDescription)")],
       )
       throw MCPError.internalError(
-        "Failed to encode response as JSON: \(error.localizedDescription)")
+        "Failed to encode response as JSON: \(error.localizedDescription)",
+      )
     }
   }
 }

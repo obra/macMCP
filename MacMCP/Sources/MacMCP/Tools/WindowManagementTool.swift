@@ -12,35 +12,35 @@ public struct WindowManagementTool: @unchecked Sendable {
 
   /// Description of the tool
   public let description = """
-    Comprehensive window management for macOS applications with positioning, sizing, and state control.
+  Comprehensive window management for macOS applications with positioning, sizing, and state control.
 
-    IMPORTANT: Window coordinates use screen coordinates with (0,0) at top-left corner.
+  IMPORTANT: Window coordinates use screen coordinates with (0,0) at top-left corner.
 
-    Available actions:
-    - getApplicationWindows: List all windows for an application
-    - getActiveWindow: Get the currently active window
-    - getFocusedElement: Get the currently focused UI element
-    - moveWindow: Move a window to new coordinates
-    - resizeWindow: Change window dimensions
-    - minimizeWindow: Minimize a window to dock
-    - maximizeWindow: Maximize/zoom a window
-    - closeWindow: Close a window
-    - activateWindow: Bring window to front and focus
-    - setWindowOrder: Change window layering order
-    - focusWindow: Give keyboard focus to window
+  Available actions:
+  - getApplicationWindows: List all windows for an application
+  - getActiveWindow: Get the currently active window
+  - getFocusedElement: Get the currently focused UI element
+  - moveWindow: Move a window to new coordinates
+  - resizeWindow: Change window dimensions
+  - minimizeWindow: Minimize a window to dock
+  - maximizeWindow: Maximize/zoom a window
+  - closeWindow: Close a window
+  - activateWindow: Bring window to front and focus
+  - setWindowOrder: Change window layering order
+  - focusWindow: Give keyboard focus to window
 
-    Window identification:
-    - bundleId: Application bundle identifier (e.g., "com.apple.calculator")
-    - windowId: Specific window identifier from getApplicationWindows
+  Window identification:
+  - bundleId: Application bundle identifier (e.g., "com.apple.calculator")
+  - windowId: Specific window identifier from getApplicationWindows
 
-    Common workflows:
-    1. List windows: getApplicationWindows → get windowId
-    2. Position window: moveWindow with x, y coordinates
-    3. Size window: resizeWindow with width, height
-    4. Focus management: activateWindow → focusWindow
+  Common workflows:
+  1. List windows: getApplicationWindows → get windowId
+  2. Position window: moveWindow with x, y coordinates
+  3. Size window: resizeWindow with width, height
+  4. Focus management: activateWindow → focusWindow
 
-    Coordinate system: Screen pixels, (0,0) = top-left, positive values go right/down.
-    """
+  Coordinate system: Screen pixels, (0,0) = top-left, positive values go right/down.
+  """
 
   /// Input schema for the tool
   public private(set) var inputSchema: Value
@@ -56,7 +56,7 @@ public struct WindowManagementTool: @unchecked Sendable {
 
   /// Tool handler function that uses this instance's accessibility service
   public var handler: @Sendable ([String: Value]?) async throws -> [Tool.Content] {
-    { [self] params in return try await self.processRequest(params) }
+    { [self] params in try await self.processRequest(params) }
   }
 
   /// Available window management actions
@@ -109,7 +109,7 @@ public struct WindowManagementTool: @unchecked Sendable {
       readOnlyHint: false,
       destructiveHint: true,
       idempotentHint: false,
-      openWorldHint: true
+      openWorldHint: true,
     )
 
     // Initialize inputSchema with an empty object first
@@ -127,7 +127,7 @@ public struct WindowManagementTool: @unchecked Sendable {
         "action": .object([
           "type": .string("string"),
           "description": .string(
-            "Window management operation: get info, move/resize, minimize/maximize, focus control"
+            "Window management operation: get info, move/resize, minimize/maximize, focus control",
           ),
           "enum": .array([
             .string("getApplicationWindows"), .string("getActiveWindow"),
@@ -140,19 +140,19 @@ public struct WindowManagementTool: @unchecked Sendable {
         "bundleId": .object([
           "type": .string("string"),
           "description": .string(
-            "Application bundle identifier (required for getApplicationWindows, e.g., 'com.apple.calculator')"
+            "Application bundle identifier (required for getApplicationWindows, e.g., 'com.apple.calculator')",
           ),
         ]),
         "windowId": .object([
           "type": .string("string"),
           "description": .string(
-            "Specific window identifier from getApplicationWindows (required for window-specific actions)"
+            "Specific window identifier from getApplicationWindows (required for window-specific actions)",
           ),
         ]),
         "includeMinimized": .object([
           "type": .string("boolean"),
           "description": .string(
-            "Include minimized windows in getApplicationWindows results (default: true)"
+            "Include minimized windows in getApplicationWindows results (default: true)",
           ), "default": .bool(true),
         ]),
         "x": .object([
@@ -174,7 +174,7 @@ public struct WindowManagementTool: @unchecked Sendable {
         "orderMode": .object([
           "type": .string("string"),
           "description": .string(
-            "Window layering: 'front'=topmost, 'back'=bottom, 'above'/'below'=relative to reference"
+            "Window layering: 'front'=topmost, 'back'=bottom, 'above'/'below'=relative to reference",
           ),
           "enum": .array([.string("front"), .string("back"), .string("above"), .string("below")]),
         ]),
@@ -212,7 +212,7 @@ public struct WindowManagementTool: @unchecked Sendable {
 
     // Get the action
     guard let actionString = params["action"]?.stringValue,
-      let action = Action(rawValue: actionString)
+          let action = Action(rawValue: actionString)
     else {
       throw MCPError.invalidParams("Valid action is required")
     }
@@ -221,28 +221,28 @@ public struct WindowManagementTool: @unchecked Sendable {
     let includeMinimized = params["includeMinimized"]?.boolValue ?? true
 
     switch action {
-    case .getApplicationWindows:
-      return try await handleGetApplicationWindows(params, includeMinimized: includeMinimized)
+      case .getApplicationWindows:
+        return try await handleGetApplicationWindows(params, includeMinimized: includeMinimized)
 
-    case .getActiveWindow: return try await handleGetActiveWindow()
+      case .getActiveWindow: return try await handleGetActiveWindow()
 
-    case .getFocusedElement: return try await handleGetFocusedElement()
+      case .getFocusedElement: return try await handleGetFocusedElement()
 
-    case .moveWindow: return try await handleMoveWindow(params)
+      case .moveWindow: return try await handleMoveWindow(params)
 
-    case .resizeWindow: return try await handleResizeWindow(params)
+      case .resizeWindow: return try await handleResizeWindow(params)
 
-    case .minimizeWindow: return try await handleMinimizeWindow(params)
+      case .minimizeWindow: return try await handleMinimizeWindow(params)
 
-    case .maximizeWindow: return try await handleMaximizeWindow(params)
+      case .maximizeWindow: return try await handleMaximizeWindow(params)
 
-    case .closeWindow: return try await handleCloseWindow(params)
+      case .closeWindow: return try await handleCloseWindow(params)
 
-    case .activateWindow: return try await handleActivateWindow(params)
+      case .activateWindow: return try await handleActivateWindow(params)
 
-    case .setWindowOrder: return try await handleSetWindowOrder(params)
+      case .setWindowOrder: return try await handleSetWindowOrder(params)
 
-    case .focusWindow: return try await handleFocusWindow(params)
+      case .focusWindow: return try await handleFocusWindow(params)
     }
   }
 
@@ -251,9 +251,10 @@ public struct WindowManagementTool: @unchecked Sendable {
   ///   - params: The request parameters
   ///   - includeMinimized: Whether to include minimized windows
   /// - Returns: The tool result
-  private func handleGetApplicationWindows(_ params: [String: Value], includeMinimized: Bool, )
+  private func handleGetApplicationWindows(_ params: [String: Value], includeMinimized: Bool)
     async throws -> [Tool
-    .Content]
+      .Content
+    ]
   {
     // Validate bundle ID
     guard let bundleId = params["bundleId"]?.stringValue else {
@@ -264,7 +265,7 @@ public struct WindowManagementTool: @unchecked Sendable {
     let appElement = try await accessibilityService.getApplicationUIElement(
       bundleId: bundleId,
       recursive: true,
-      maxDepth: 2,  // Only need shallow depth for windows
+      maxDepth: 2, // Only need shallow depth for windows
     )
 
     // Find all window elements
@@ -288,7 +289,7 @@ public struct WindowManagementTool: @unchecked Sendable {
     // Get the focused application element
     let focusedApp = try await accessibilityService.getFocusedApplicationUIElement(
       recursive: true,
-      maxDepth: 2,  // Only need shallow depth for windows
+      maxDepth: 2, // Only need shallow depth for windows
     )
 
     // Look for the main/focused window
@@ -305,7 +306,7 @@ public struct WindowManagementTool: @unchecked Sendable {
 
     // If no window is marked as main, just return the first window
     if mainWindow == nil,
-      let firstWindow = focusedApp.children.first(where: { $0.role == AXAttribute.Role.window })
+       let firstWindow = focusedApp.children.first(where: { $0.role == AXAttribute.Role.window })
     {
       mainWindow = WindowDescriptor.from(element: firstWindow)
     }
@@ -377,7 +378,7 @@ public struct WindowManagementTool: @unchecked Sendable {
     }
 
     do {
-      try await accessibilityService.moveWindow(withPath: windowId, to: CGPoint(x: x, y: y), )
+      try await accessibilityService.moveWindow(withPath: windowId, to: CGPoint(x: x, y: y))
 
       return [
         .text(
@@ -391,8 +392,8 @@ public struct WindowManagementTool: @unchecked Sendable {
                   "y": \(y)
               }
           }
-          """
-        )
+          """,
+        ),
       ]
     } catch { throw MCPError.internalError("Failed to move window: \(error.localizedDescription)") }
   }
@@ -422,7 +423,8 @@ public struct WindowManagementTool: @unchecked Sendable {
 
     do {
       try await accessibilityService.resizeWindow(
-        withPath: windowId, to: CGSize(width: width, height: height), )
+        withPath: windowId, to: CGSize(width: width, height: height),
+      )
 
       return [
         .text(
@@ -436,8 +438,8 @@ public struct WindowManagementTool: @unchecked Sendable {
                   "height": \(height)
               }
           }
-          """
-        )
+          """,
+        ),
       ]
     } catch {
       throw MCPError.internalError("Failed to resize window: \(error.localizedDescription)")
@@ -463,8 +465,8 @@ public struct WindowManagementTool: @unchecked Sendable {
               "action": "minimizeWindow",
               "windowId": "\(windowId)"
           }
-          """
-        )
+          """,
+        ),
       ]
     } catch {
       throw MCPError.internalError("Failed to minimize window: \(error.localizedDescription)")
@@ -490,8 +492,8 @@ public struct WindowManagementTool: @unchecked Sendable {
               "action": "maximizeWindow",
               "windowId": "\(windowId)"
           }
-          """
-        )
+          """,
+        ),
       ]
     } catch {
       throw MCPError.internalError("Failed to maximize window: \(error.localizedDescription)")
@@ -517,8 +519,8 @@ public struct WindowManagementTool: @unchecked Sendable {
               "action": "closeWindow",
               "windowId": "\(windowId)"
           }
-          """
-        )
+          """,
+        ),
       ]
     } catch {
       throw MCPError.internalError("Failed to close window: \(error.localizedDescription)")
@@ -544,8 +546,8 @@ public struct WindowManagementTool: @unchecked Sendable {
               "action": "activateWindow",
               "windowId": "\(windowId)"
           }
-          """
-        )
+          """,
+        ),
       ]
     } catch {
       throw MCPError.internalError("Failed to activate window: \(error.localizedDescription)")
@@ -561,10 +563,10 @@ public struct WindowManagementTool: @unchecked Sendable {
     }
 
     guard let orderModeString = params["orderMode"]?.stringValue,
-      let orderMode = WindowOrderMode(rawValue: orderModeString)
+          let orderMode = WindowOrderMode(rawValue: orderModeString)
     else {
       throw MCPError.invalidParams(
-        "Valid orderMode is required for setWindowOrder action (front, back, above, below)"
+        "Valid orderMode is required for setWindowOrder action (front, back, above, below)",
       )
     }
 
@@ -573,7 +575,8 @@ public struct WindowManagementTool: @unchecked Sendable {
 
     if orderMode == .above || orderMode == .below, referenceWindowId == nil {
       throw MCPError.invalidParams(
-        "referenceWindowId is required for '\(orderMode.rawValue)' order mode")
+        "referenceWindowId is required for '\(orderMode.rawValue)' order mode",
+      )
     }
 
     do {
@@ -583,12 +586,14 @@ public struct WindowManagementTool: @unchecked Sendable {
         referenceWindowPath: referenceWindowId,
       )
 
-      let referenceInfo =
-        referenceWindowId != nil
-        ? """
+      let referenceInfo = if let referenceId = referenceWindowId {
+        """
         ,
-            "referenceWindowId": "\(referenceWindowId!)"
-        """ : ""
+            "referenceWindowId": "\(referenceId)"
+        """
+      } else {
+        ""
+      }
 
       return [
         .text(
@@ -599,8 +604,8 @@ public struct WindowManagementTool: @unchecked Sendable {
               "windowId": "\(windowId)",
               "orderMode": "\(orderMode.rawValue)"\(referenceInfo)
           }
-          """
-        )
+          """,
+        ),
       ]
     } catch {
       throw MCPError.internalError("Failed to set window order: \(error.localizedDescription)")
@@ -626,8 +631,8 @@ public struct WindowManagementTool: @unchecked Sendable {
               "action": "focusWindow",
               "windowId": "\(windowId)"
           }
-          """
-        )
+          """,
+        ),
       ]
     } catch {
       throw MCPError.internalError("Failed to focus window: \(error.localizedDescription)")
@@ -649,9 +654,11 @@ public struct WindowManagementTool: @unchecked Sendable {
       return [.text(jsonString)]
     } catch {
       logger.error(
-        "Error encoding response as JSON", metadata: ["error": "\(error.localizedDescription)"])
+        "Error encoding response as JSON", metadata: ["error": "\(error.localizedDescription)"],
+      )
       throw MCPError.internalError(
-        "Failed to encode response as JSON: \(error.localizedDescription)")
+        "Failed to encode response as JSON: \(error.localizedDescription)",
+      )
     }
   }
 }

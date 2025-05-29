@@ -19,7 +19,7 @@ class MCPTreeVisualizer {
     var showDetails: Bool = false
     var showAllAttributes: Bool = false
     var highlightPaths: Bool = false
-    var showFullPaths: Bool = true  // Default to showing full paths
+    var showFullPaths: Bool = true // Default to showing full paths
     var indentSize: Int = 3
     var branchPrefix: String = "+"
   }
@@ -33,7 +33,8 @@ class MCPTreeVisualizer {
   /// - Parameters:
   ///   - rootElement: The root element of the tree
   ///   - withFilters: Optional filters to apply (key-value pairs)
-  ///   - pathPattern: Optional path pattern to filter elements by (used only for display, filtering is done
+  ///   - pathPattern: Optional path pattern to filter elements by (used only for display, filtering
+  /// is done
   /// server-side)
   /// - Returns: A string representation of the tree
   func visualize(
@@ -62,7 +63,8 @@ class MCPTreeVisualizer {
 
     // Recursively visualize children with standard filters only (no path filtering)
     visualizeChildren(
-      rootElement.children, withFilters: withFilters, prefix: "", isLast: true, intoOutput: &output)
+      rootElement.children, withFilters: withFilters, prefix: "", isLast: true, intoOutput: &output,
+    )
 
     return output
   }
@@ -256,155 +258,159 @@ class MCPTreeVisualizer {
   private func applyStandardFilter(_ element: MCPUIElementNode, key: String, value: String) -> Bool
   {
     switch key {
-    case "role": return element.role.lowercased().contains(value.lowercased())
-    case "subrole":
-      if let subrole = element.subrole { return subrole.lowercased().contains(value.lowercased()) }
-      return false
-    case "title":
-      if let title = element.title { return title.lowercased().contains(value.lowercased()) }
-      return false
-    case "description":
-      // Search in all possible description fields
-      if let desc = element.description, desc.lowercased().contains(value.lowercased()) {
-        return true
-      }
-      return false
-    case "id", "identifier": return element.identifier.lowercased().contains(value.lowercased())
-    case "enabled":
-      let isEnabled = element.isEnabled
-      let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
-      return isEnabled == valueAsBool
-    case "clickable":
-      let isClickable = element.isClickable
-      let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
-      return isClickable == valueAsBool
-    case "visible":
-      let isVisible = element.isVisible
-      let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
-      return isVisible == valueAsBool
-    case "focused":
-      let isFocused = element.focused
-      let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
-      return isFocused == valueAsBool
-    case "selected":
-      let isSelected = element.selected
-      let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
-      return isSelected == valueAsBool
-    default:
-      // Check if filter key is an attribute
-      if let attrValue = element.attributes[key] {
-        if let stringValue = attrValue as? String,
-          !stringValue.lowercased().contains(value.lowercased())
-        {
-          return false
-        } else if let numberValue = attrValue as? NSNumber, !numberValue.stringValue.contains(value)
-        {
-          return false
-        } else if !(attrValue is String), !(attrValue is NSNumber) {
-          return false  // Non-string/number attributes are filtered out if specified
+      case "role": return element.role.lowercased().contains(value.lowercased())
+      case "subrole":
+        if let subrole = element
+          .subrole { return subrole.lowercased().contains(value.lowercased()) }
+        return false
+      case "title":
+        if let title = element.title { return title.lowercased().contains(value.lowercased()) }
+        return false
+      case "description":
+        // Search in all possible description fields
+        if let desc = element.description, desc.lowercased().contains(value.lowercased()) {
+          return true
         }
-        return true
-      }
-      return false
+        return false
+      case "id", "identifier": return element.identifier.lowercased().contains(value.lowercased())
+      case "enabled":
+        let isEnabled = element.isEnabled
+        let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
+        return isEnabled == valueAsBool
+      case "clickable":
+        let isClickable = element.isClickable
+        let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
+        return isClickable == valueAsBool
+      case "visible":
+        let isVisible = element.isVisible
+        let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
+        return isVisible == valueAsBool
+      case "focused":
+        let isFocused = element.focused
+        let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
+        return isFocused == valueAsBool
+      case "selected":
+        let isSelected = element.selected
+        let valueAsBool = value.lowercased() == "true" || value.lowercased() == "yes"
+        return isSelected == valueAsBool
+      default:
+        // Check if filter key is an attribute
+        if let attrValue = element.attributes[key] {
+          if let stringValue = attrValue as? String,
+             !stringValue.lowercased().contains(value.lowercased())
+          {
+            return false
+          } else if let numberValue = attrValue as? NSNumber,
+                    !numberValue.stringValue.contains(value)
+          {
+            return false
+          } else if !(attrValue is String), !(attrValue is NSNumber) {
+            return false // Non-string/number attributes are filtered out if specified
+          }
+          return true
+        }
+        return false
     }
   }
 
   /// Checks if an element matches a specific component type
   /// - Parameters:
   ///   - element: The element to check
-  ///   - type: The component type to match ("menu", "window-controls", "window-contents", or "interactive")
+  ///   - type: The component type to match ("menu", "window-controls", "window-contents", or
+  /// "interactive")
   /// - Returns: Whether the element is of the specified component type
   private func isElementOfComponentType(_ element: MCPUIElementNode, type: String) -> Bool {
     switch type {
-    case "menu", "menus":
-      // Check if element is menu-related
-      let menuRoles = ["AXMenuBar", "AXMenu", "AXMenuItem", "AXMenuBarItem"]
-      return menuRoles.contains(element.role)
+      case "menu", "menus":
+        // Check if element is menu-related
+        let menuRoles = ["AXMenuBar", "AXMenu", "AXMenuItem", "AXMenuBarItem"]
+        return menuRoles.contains(element.role)
 
-    case "window-control", "window-controls":
-      // Check if element is a window control
-      let controlRoles = ["AXToolbar", "AXButton", "AXSlider", "AXScrollBar"]
-      let controlSubroles = [
-        "AXCloseButton", "AXMinimizeButton", "AXZoomButton", "AXToolbarButton",
-        "AXFullScreenButton",
-      ]
-
-      // Check if it's a control by role
-      if controlRoles.contains(element.role) {
-        // Accept certain roles regardless of position (like toolbars)
-        if ["AXToolbar"].contains(element.role) { return true }
-
-        // For other controls, check if they're in the window chrome area
-        // This is a heuristic - window controls are usually at the top of the window
-        if let frame = element.frame, frame.origin.y < 50 { return true }
-
-        // Otherwise, it's not a window control
-        return false
-      }
-
-      // Check if it's a control by subrole
-      if let subrole = element.subrole, controlSubroles.contains(subrole) { return true }
-
-      // Not a window control
-      return false
-
-    case "window-content", "window-contents":
-      // Check if element is window content (not menu or control)
-      let menuRoles = ["AXMenuBar", "AXMenu", "AXMenuItem", "AXMenuBarItem"]
-      let controlRoles = ["AXToolbar"]
-      let controlSubroles = [
-        "AXCloseButton", "AXMinimizeButton", "AXZoomButton", "AXToolbarButton",
-        "AXFullScreenButton",
-      ]
-
-      // Exclude menu elements
-      if menuRoles.contains(element.role) { return false }
-
-      // Exclude control elements by role
-      if controlRoles.contains(element.role) { return false }
-
-      // Exclude control elements by subrole
-      if let subrole = element.subrole, controlSubroles.contains(subrole) { return false }
-
-      // Exclude buttons in the window chrome area
-      if element.role == "AXButton", let frame = element.frame, frame.origin.y < 50 { return false }
-
-      // Include everything else
-      return true
-
-    case "interactive", "interactable":
-      // Check for common interactive element roles
-      let interactiveRoles = [
-        "AXButton", "AXCheckBox", "AXRadioButton", "AXPopUpButton", "AXMenuItem", "AXLink",
-        "AXSlider",
-        "AXTextField", "AXTextArea", "AXComboBox",
-      ]
-
-      // First check role
-      if interactiveRoles.contains(element.role) { return true }
-
-      // Check clickable state
-      if element.isClickable { return true }
-
-      // Check action capability
-      if element.actions.contains("AXPress") { return true }
-
-      // Check general capabilities
-      if let capabilities = (element.attributes["capabilities"] as? [String])
-        ?? (element.attributes["capabilities"] as? String)?.components(separatedBy: ", ")
-      {
-        let interactiveCapabilities = [
-          "clickable", "editable", "toggleable", "selectable", "adjustable",
+      case "window-control", "window-controls":
+        // Check if element is a window control
+        let controlRoles = ["AXToolbar", "AXButton", "AXSlider", "AXScrollBar"]
+        let controlSubroles = [
+          "AXCloseButton", "AXMinimizeButton", "AXZoomButton", "AXToolbarButton",
+          "AXFullScreenButton",
         ]
-        for capability in interactiveCapabilities where capabilities.contains(capability) {
-          return true
+
+        // Check if it's a control by role
+        if controlRoles.contains(element.role) {
+          // Accept certain roles regardless of position (like toolbars)
+          if ["AXToolbar"].contains(element.role) { return true }
+
+          // For other controls, check if they're in the window chrome area
+          // This is a heuristic - window controls are usually at the top of the window
+          if let frame = element.frame, frame.origin.y < 50 { return true }
+
+          // Otherwise, it's not a window control
+          return false
         }
-      }
 
-      // Not an interactive element
-      return false
+        // Check if it's a control by subrole
+        if let subrole = element.subrole, controlSubroles.contains(subrole) { return true }
 
-    default: return false
+        // Not a window control
+        return false
+
+      case "window-content", "window-contents":
+        // Check if element is window content (not menu or control)
+        let menuRoles = ["AXMenuBar", "AXMenu", "AXMenuItem", "AXMenuBarItem"]
+        let controlRoles = ["AXToolbar"]
+        let controlSubroles = [
+          "AXCloseButton", "AXMinimizeButton", "AXZoomButton", "AXToolbarButton",
+          "AXFullScreenButton",
+        ]
+
+        // Exclude menu elements
+        if menuRoles.contains(element.role) { return false }
+
+        // Exclude control elements by role
+        if controlRoles.contains(element.role) { return false }
+
+        // Exclude control elements by subrole
+        if let subrole = element.subrole, controlSubroles.contains(subrole) { return false }
+
+        // Exclude buttons in the window chrome area
+        if element.role == "AXButton", let frame = element.frame,
+           frame.origin.y < 50 { return false }
+
+        // Include everything else
+        return true
+
+      case "interactive", "interactable":
+        // Check for common interactive element roles
+        let interactiveRoles = [
+          "AXButton", "AXCheckBox", "AXRadioButton", "AXPopUpButton", "AXMenuItem", "AXLink",
+          "AXSlider",
+          "AXTextField", "AXTextArea", "AXComboBox",
+        ]
+
+        // First check role
+        if interactiveRoles.contains(element.role) { return true }
+
+        // Check clickable state
+        if element.isClickable { return true }
+
+        // Check action capability
+        if element.actions.contains("AXPress") { return true }
+
+        // Check general capabilities
+        if let capabilities = (element.attributes["capabilities"] as? [String])
+          ?? (element.attributes["capabilities"] as? String)?.components(separatedBy: ", ")
+        {
+          let interactiveCapabilities = [
+            "clickable", "editable", "toggleable", "selectable", "adjustable",
+          ]
+          for capability in interactiveCapabilities where capabilities.contains(capability) {
+            return true
+          }
+        }
+
+        // Not an interactive element
+        return false
+
+      default: return false
     }
   }
 

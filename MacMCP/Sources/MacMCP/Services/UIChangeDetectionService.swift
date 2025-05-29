@@ -25,6 +25,7 @@ public struct UIChanges {
     self.removedElements = removedElements
     self.modifiedElements = modifiedElements
   }
+
   public var hasChanges: Bool {
     !newElements.isEmpty || !removedElements.isEmpty || !modifiedElements.isEmpty
   }
@@ -41,9 +42,10 @@ public final class UIChangeDetectionService: UIChangeDetectionServiceProtocol {
   public init(accessibilityService: AccessibilityServiceProtocol) {
     self.accessibilityService = accessibilityService
   }
+
   public func captureUISnapshot(scope: UIElementScope, maxDepth: Int = 10) async throws -> [String:
-    UIElement]
-  {
+    UIElement
+  ] {
     logger.debug("Capturing UI snapshot with scope: \(scope), maxDepth: \(maxDepth)")
     let elements = try await accessibilityService.findUIElements(
       role: nil,
@@ -62,13 +64,16 @@ public final class UIChangeDetectionService: UIChangeDetectionServiceProtocol {
       elementTypes: nil,
       scope: scope,
       recursive: true,
-      maxDepth: maxDepth
+      maxDepth: maxDepth,
     )
     var snapshot: [String: UIElement] = [:]
-    for element in elements { snapshot[element.path] = element }
+    for element in elements {
+      snapshot[element.path] = element
+    }
     logger.debug("Captured snapshot with \(snapshot.count) elements")
     return snapshot
   }
+
   public func detectChanges(before: [String: UIElement], after: [String: UIElement]) -> UIChanges {
     let beforeIds = Set(before.keys)
     let afterIds = Set(after.keys)
@@ -91,10 +96,10 @@ public final class UIChangeDetectionService: UIChangeDetectionServiceProtocol {
     let changes = UIChanges(
       newElements: newElements,
       removedElements: removedElements,
-      modifiedElements: modifiedElements
+      modifiedElements: modifiedElements,
     )
     logger.debug(
-      "Detected changes: \(newElements.count) new, \(removedElements.count) removed, \(modifiedElements.count) modified"
+      "Detected changes: \(newElements.count) new, \(removedElements.count) removed, \(modifiedElements.count) modified",
     )
     return changes
   }

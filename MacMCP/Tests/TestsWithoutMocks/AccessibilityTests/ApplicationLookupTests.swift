@@ -41,6 +41,7 @@ import Testing
       throw error
     }
   }
+
   // Shared setup method for each test
   private mutating func setUp() async throws {
     // Initialize static resources if not already done
@@ -52,6 +53,7 @@ import Testing
     #expect(app != nil, "Failed to access shared Calculator app")
     #expect(accessibilityService != nil, "Failed to access shared AccessibilityService")
   }
+
   // Shared teardown method - now just resets state without terminating
   private mutating func tearDown() async throws {
     // Reset instance variables but don't terminate between tests
@@ -59,6 +61,7 @@ import Testing
     // Small delay to ensure UI state is settled
     try await Task.sleep(for: .milliseconds(100))
   }
+
   // Static teardown method to be called at the end of all tests
   @MainActor static func tearDown() async throws {
     // Skip if environment wasn't set up
@@ -79,7 +82,7 @@ import Testing
       throw NSError(
         domain: "ApplicationLookupTests",
         code: 1000,
-        userInfo: [NSLocalizedDescriptionKey: "Calculator app not running"]
+        userInfo: [NSLocalizedDescriptionKey: "Calculator app not running"],
       )
     }
 
@@ -90,9 +93,8 @@ import Testing
 
   // Helper to test application lookup using ElementPath
   private func testApplicationLookup(
-    path: String, description: String, shouldForeground: Bool = false
+    path: String, description: String, shouldForeground: Bool = false,
   ) async throws {
-
     if shouldForeground {
       try await bringCalculatorToForeground()
       try await Task.sleep(for: .milliseconds(500))
@@ -103,7 +105,8 @@ import Testing
       let elementPath = try ElementPath.parse(path)
 
       // Try to resolve just the first segment (the application)
-      // We use a hack to extract just the application element by passing a path with only the first segment
+      // We use a hack to extract just the application element by passing a path with only the first
+      // segment
       let truncatedPath = try ElementPath(segments: [elementPath.segments[0]])
 
       let appElement = try await truncatedPath.resolve(using: accessibilityService)
@@ -127,7 +130,7 @@ import Testing
 
   // MARK: - Tests
 
-  @Test("Application Lookup By Title Only") mutating func testApplicationLookupByTitleOnly()
+  @Test("Application Lookup By Title Only") mutating func applicationLookupByTitleOnly()
     async throws
   {
     try await setUp()
@@ -136,7 +139,7 @@ import Testing
     try await tearDown()
   }
 
-  @Test("Application Lookup By BundleId Only") mutating func testApplicationLookupByBundleIdOnly()
+  @Test("Application Lookup By BundleId Only") mutating func applicationLookupByBundleIdOnly()
     async throws
   {
     try await setUp()
@@ -146,69 +149,72 @@ import Testing
   }
 
   @Test("Application Lookup By Title And BundleId")
-  mutating func testApplicationLookupByTitleAndBundleId()
+  mutating func applicationLookupByTitleAndBundleId()
     async throws
   {
     try await setUp()
     let path =
       "macos://ui/AXApplication[@AXTitle=\"Calculator\"][@bundleId=\"com.apple.calculator\"]"
     try await testApplicationLookup(
-      path: path, description: "Lookup by title and bundleId (title first)")
+      path: path, description: "Lookup by title and bundleId (title first)",
+    )
     try await tearDown()
   }
 
   @Test("Application Lookup By BundleId And Title")
-  mutating func testApplicationLookupByBundleIdAndTitle()
+  mutating func applicationLookupByBundleIdAndTitle()
     async throws
   {
     try await setUp()
     let path =
       "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"][@AXTitle=\"Calculator\"]"
     try await testApplicationLookup(
-      path: path, description: "Lookup by bundleId and title (bundleId first)")
+      path: path, description: "Lookup by bundleId and title (bundleId first)",
+    )
     try await tearDown()
   }
 
   @Test("Application Lookup By Title With AXBundleId")
-  mutating func testApplicationLookupByTitleWithAXBundleId()
+  mutating func applicationLookupByTitleWithAXBundleId()
     async throws
   {
     try await setUp()
     let path =
       "macos://ui/AXApplication[@AXTitle=\"Calculator\"][@AXbundleId=\"com.apple.calculator\"]"
     try await testApplicationLookup(
-      path: path, description: "Lookup by title and AX-prefixed bundleId")
+      path: path, description: "Lookup by title and AX-prefixed bundleId",
+    )
     try await tearDown()
   }
 
   // Tests with foreground activation
 
   @Test("Application Lookup By Title Only With Foreground")
-  mutating func testApplicationLookupByTitleOnlyWithForeground() async throws {
+  mutating func applicationLookupByTitleOnlyWithForeground() async throws {
     try await setUp()
     let path = "macos://ui/AXApplication[@AXTitle=\"Calculator\"]"
     try await testApplicationLookup(
       path: path,
       description: "Lookup by title only (with foreground)",
-      shouldForeground: true
+      shouldForeground: true,
     )
     try await tearDown()
   }
 
   @Test("Application Lookup By BundleId Only With Foreground")
-  mutating func testApplicationLookupByBundleIdOnlyWithForeground() async throws {
+  mutating func applicationLookupByBundleIdOnlyWithForeground() async throws {
     try await setUp()
     let path = "macos://ui/AXApplication[@bundleId=\"com.apple.calculator\"]"
     try await testApplicationLookup(
       path: path,
       description: "Lookup by bundleId only (with foreground)",
-      shouldForeground: true
+      shouldForeground: true,
     )
     try await tearDown()
   }
 
   // Extreme test - is the app running but just can't be found with AX?
-  @Test("Application Is Running") mutating func testApplicationIsRunning() async throws {
+  @Test("Application Is Running") mutating func applicationIsRunning() async throws {
     try await setUp()
     let apps = NSRunningApplication.runningApplications(withBundleIdentifier: calculatorBundleId)
     #expect(!apps.isEmpty, "Calculator not found in running applications")
@@ -217,7 +223,7 @@ import Testing
   }
 
   // Test accessibility permissions
-  @Test("Accessibility Permissions Check") mutating func testAccessibilityPermissionsCheck()
+  @Test("Accessibility Permissions Check") mutating func accessibilityPermissionsCheck()
     async throws
   {
     try await setUp()

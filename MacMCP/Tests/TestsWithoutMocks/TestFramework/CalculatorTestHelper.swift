@@ -59,7 +59,9 @@ import Testing
     if forceRelaunch || !isRunning {
       // Terminate any existing calculator instances first to ensure clean state
       let runningApps = NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleId)
-      for runningApp in runningApps { _ = runningApp.terminate() }
+      for runningApp in runningApps {
+        _ = runningApp.terminate()
+      }
 
       // Wait for termination to complete
       if !runningApps.isEmpty { try await Task.sleep(for: .milliseconds(1000)) }
@@ -89,7 +91,7 @@ import Testing
 
     // Clear the calculator
     _ = try await app.clear()
-    try await Task.sleep(for: .milliseconds(500))  // Wait for clear to complete
+    try await Task.sleep(for: .milliseconds(500)) // Wait for clear to complete
 
     return true
   }
@@ -99,13 +101,13 @@ import Testing
   private func waitForCalculatorUIReady() async throws {
     let maxAttempts = 10
     let delayMs = 500
-    for attempt in 1...maxAttempts {
+    for attempt in 1 ... maxAttempts {
       // Try to verify that basic UI elements are accessible
       do {
         // Check if we can find the main window
-        if (try await app.getMainWindow()) != nil {
+        if try await (app.getMainWindow()) != nil {
           // Try to find a basic button to ensure the UI is loaded
-          if (try await app.findButton("1")) != nil {
+          if try await (app.findButton("1")) != nil {
             // UI is ready
             return
           }
@@ -119,7 +121,7 @@ import Testing
     throw NSError(
       domain: "CalculatorTestHelper",
       code: 2000,
-      userInfo: [NSLocalizedDescriptionKey: "Calculator UI did not become ready within timeout"]
+      userInfo: [NSLocalizedDescriptionKey: "Calculator UI did not become ready within timeout"],
     )
   }
 
@@ -152,10 +154,10 @@ import Testing
     let actualValue = try await app.getDisplayValue()
 
     // Use the custom message if provided, otherwise create a default message
-    let _ =
+    _ =
       message.isEmpty
-      ? "Calculator display should show '\(expectedValue)' but found '\(actualValue ?? "nil")'"
-      : message
+        ? "Calculator display should show '\(expectedValue)' but found '\(actualValue ?? "nil")'"
+        : message
 
     // Use Swift Testing framework's expect - can't pass message directly
     #expect(actualValue == expectedValue)

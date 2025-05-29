@@ -22,7 +22,7 @@ import Testing
       props: ["Enabled", "Visible", "clickable"],
       actions: ["AXPress"],
       attributes: [:],
-      children: nil
+      children: nil,
     )
     // Test direct JSON encoding (what InterfaceExplorerTool.formatResponse does)
     let encoder = JSONConfiguration.encoder

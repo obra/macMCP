@@ -12,28 +12,28 @@ public struct ApplicationManagementTool: @unchecked Sendable {
 
   /// Description of what the tool does
   public let description = """
-    Manage macOS applications with comprehensive launch, termination, and monitoring capabilities.
+  Manage macOS applications with comprehensive launch, termination, and monitoring capabilities.
 
-    IMPORTANT: Use bundleId for precise application identification when possible.
+  IMPORTANT: Use bundleId for precise application identification when possible.
 
-    Available actions:
-    - launch: Start an application by name or bundle ID
-    - terminate: Gracefully quit an application 
-    - forceTerminate: Force quit an unresponsive application
-    - isRunning: Check if an application is currently running
-    - getRunningApplications: List all currently running applications
-    - activateApplication: Bring an application to the foreground
-    - hideApplication: Hide an application
-    - unhideApplication: Unhide a previously hidden application
-    - hideOtherApplications: Hide all applications except the current one
-    - getFrontmostApplication: Get the currently active application
+  Available actions:
+  - launch: Start an application by name or bundle ID
+  - terminate: Gracefully quit an application 
+  - forceTerminate: Force quit an unresponsive application
+  - isRunning: Check if an application is currently running
+  - getRunningApplications: List all currently running applications
+  - activateApplication: Bring an application to the foreground
+  - hideApplication: Hide an application
+  - unhideApplication: Unhide a previously hidden application
+  - hideOtherApplications: Hide all applications except the current one
+  - getFrontmostApplication: Get the currently active application
 
-    App identification methods:
-    - applicationName: Human-readable name (e.g., "Calculator", "Safari")
-    - bundleId: Unique identifier (e.g., "com.apple.calculator", "com.apple.Safari")
+  App identification methods:
+  - applicationName: Human-readable name (e.g., "Calculator", "Safari")
+  - bundleId: Unique identifier (e.g., "com.apple.calculator", "com.apple.Safari")
 
-    Security note: Some actions may require user permission or accessibility access.
-    """
+  Security note: Some actions may require user permission or accessibility access.
+  """
 
   /// Input schema for the tool
   public private(set) var inputSchema: Value
@@ -75,7 +75,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
       readOnlyHint: false,
       destructiveHint: true,
       idempotentHint: false,
-      openWorldHint: true
+      openWorldHint: true,
     )
 
     // Initialize inputSchema with an empty object first
@@ -93,7 +93,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
         "action": .object([
           "type": .string("string"),
           "description": .string(
-            "Application management action: launch/terminate apps, check status, control visibility"
+            "Application management action: launch/terminate apps, check status, control visibility",
           ),
           "enum": .array([
             .string("launch"), .string("terminate"), .string("forceTerminate"),
@@ -107,13 +107,13 @@ public struct ApplicationManagementTool: @unchecked Sendable {
         "applicationName": .object([
           "type": .string("string"),
           "description": .string(
-            "Human-readable application name (e.g., 'Calculator', 'Safari', 'TextEdit')"
+            "Human-readable application name (e.g., 'Calculator', 'Safari', 'TextEdit')",
           ),
         ]),
         "bundleId": .object([
           "type": .string("string"),
           "description": .string(
-            "Application bundle identifier for precise targeting (e.g., 'com.apple.calculator', 'com.apple.Safari')"
+            "Application bundle identifier for precise targeting (e.g., 'com.apple.calculator', 'com.apple.Safari')",
           ),
         ]),
         "arguments": .object([
@@ -165,80 +165,80 @@ public struct ApplicationManagementTool: @unchecked Sendable {
 
       // Get the action
       guard let actionString = params["action"]?.stringValue,
-        let action = Action(rawValue: actionString)
+            let action = Action(rawValue: actionString)
       else {
         throw MCPError.invalidParams("Valid action is required")
       }
 
       // Process based on action type
       switch action {
-      case .launch:
-        return try await ApplicationManagementTool.handleLaunch(
-          params,
-          applicationService: applicationService,
-          logger: logger,
-        )
+        case .launch:
+          return try await ApplicationManagementTool.handleLaunch(
+            params,
+            applicationService: applicationService,
+            logger: logger,
+          )
 
-      case .terminate:
-        return try await ApplicationManagementTool.handleTerminate(
-          params,
-          applicationService: applicationService,
-          logger: logger,
-        )
+        case .terminate:
+          return try await ApplicationManagementTool.handleTerminate(
+            params,
+            applicationService: applicationService,
+            logger: logger,
+          )
 
-      case .forceTerminate:
-        return try await ApplicationManagementTool.handleForceTerminate(
-          params,
-          applicationService: applicationService,
-          logger: logger,
-        )
+        case .forceTerminate:
+          return try await ApplicationManagementTool.handleForceTerminate(
+            params,
+            applicationService: applicationService,
+            logger: logger,
+          )
 
-      case .isRunning:
-        return try await ApplicationManagementTool.handleIsRunning(
-          params,
-          applicationService: applicationService,
-          logger: logger,
-        )
+        case .isRunning:
+          return try await ApplicationManagementTool.handleIsRunning(
+            params,
+            applicationService: applicationService,
+            logger: logger,
+          )
 
-      case .getRunningApplications:
-        return try await ApplicationManagementTool.handleGetRunningApplications(
-          applicationService: applicationService,
-          logger: logger,
-        )
+        case .getRunningApplications:
+          return try await ApplicationManagementTool.handleGetRunningApplications(
+            applicationService: applicationService,
+            logger: logger,
+          )
 
-      case .activateApplication:
-        return try await ApplicationManagementTool.handleActivateApplication(
-          params,
-          applicationService: applicationService,
-          logger: logger,
-        )
+        case .activateApplication:
+          return try await ApplicationManagementTool.handleActivateApplication(
+            params,
+            applicationService: applicationService,
+            logger: logger,
+          )
 
-      case .hideApplication:
-        return try await ApplicationManagementTool.handleHideApplication(
-          params,
-          applicationService: applicationService,
-          logger: logger,
-        )
+        case .hideApplication:
+          return try await ApplicationManagementTool.handleHideApplication(
+            params,
+            applicationService: applicationService,
+            logger: logger,
+          )
 
-      case .unhideApplication:
-        return try await ApplicationManagementTool.handleUnhideApplication(
-          params,
-          applicationService: applicationService,
-          logger: logger,
-        )
+        case .unhideApplication:
+          return try await ApplicationManagementTool.handleUnhideApplication(
+            params,
+            applicationService: applicationService,
+            logger: logger,
+          )
 
-      case .hideOtherApplications:
-        return try await ApplicationManagementTool.handleHideOtherApplications(
-          params,
-          applicationService: applicationService,
-          logger: logger,
-        )
+        case .hideOtherApplications:
+          return try await ApplicationManagementTool.handleHideOtherApplications(
+            params,
+            applicationService: applicationService,
+            logger: logger,
+          )
 
-      case .getFrontmostApplication:
-        return try await ApplicationManagementTool.handleGetFrontmostApplication(
-          applicationService: applicationService,
-          logger: logger,
-        )
+        case .getFrontmostApplication:
+          return try await ApplicationManagementTool.handleGetFrontmostApplication(
+            applicationService: applicationService,
+            logger: logger,
+          )
       }
     }
   }
@@ -250,7 +250,8 @@ public struct ApplicationManagementTool: @unchecked Sendable {
     logger: Logger,
   ) async throws -> [Tool.Content] {
     logger.debug(
-      "Handling launch action", metadata: ["params": "\(params.keys.joined(separator: ", "))"])
+      "Handling launch action", metadata: ["params": "\(params.keys.joined(separator: ", "))"],
+    )
 
     // Extract application identifier (name or bundle ID)
     let applicationName = params["applicationName"]?.stringValue
@@ -286,8 +287,8 @@ public struct ApplicationManagementTool: @unchecked Sendable {
               "bundleId": "\(result.bundleId)",
               "applicationName": "\(result.applicationName)"
           }
-          """
-        )
+          """,
+        ),
       ]
     } catch {
       logger.error("Launch failed", metadata: ["error": "\(error.localizedDescription)"])
@@ -302,7 +303,8 @@ public struct ApplicationManagementTool: @unchecked Sendable {
     logger: Logger,
   ) async throws -> [Tool.Content] {
     logger.debug(
-      "Handling terminate action", metadata: ["params": "\(params.keys.joined(separator: ", "))"])
+      "Handling terminate action", metadata: ["params": "\(params.keys.joined(separator: ", "))"],
+    )
 
     // Validate bundle ID
     guard let bundleId = params["bundleId"]?.stringValue else {
@@ -326,8 +328,8 @@ public struct ApplicationManagementTool: @unchecked Sendable {
               "success": \(terminated),
               "bundleId": "\(bundleId)"
           }
-          """
-        )
+          """,
+        ),
       ]
     } catch {
       logger.error("Terminate failed", metadata: ["error": "\(error.localizedDescription)"])
@@ -343,7 +345,8 @@ public struct ApplicationManagementTool: @unchecked Sendable {
   ) async throws -> [Tool.Content] {
     logger.debug(
       "Handling force terminate action",
-      metadata: ["params": "\(params.keys.joined(separator: ", "))"])
+      metadata: ["params": "\(params.keys.joined(separator: ", "))"],
+    )
 
     // Validate bundle ID
     guard let bundleId = params["bundleId"]?.stringValue else {
@@ -351,7 +354,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
     }
 
     do {
-      let terminated = try await applicationService.forceTerminateApplication(bundleId: bundleId, )
+      let terminated = try await applicationService.forceTerminateApplication(bundleId: bundleId)
 
       // Format the result as JSON
       return [
@@ -361,13 +364,14 @@ public struct ApplicationManagementTool: @unchecked Sendable {
               "success": \(terminated),
               "bundleId": "\(bundleId)"
           }
-          """
-        )
+          """,
+        ),
       ]
     } catch {
       logger.error("Force terminate failed", metadata: ["error": "\(error.localizedDescription)"])
       throw MCPError.internalError(
-        "Failed to force terminate application: \(error.localizedDescription)")
+        "Failed to force terminate application: \(error.localizedDescription)",
+      )
     }
   }
 
@@ -378,7 +382,8 @@ public struct ApplicationManagementTool: @unchecked Sendable {
     logger: Logger,
   ) async throws -> [Tool.Content] {
     logger.debug(
-      "Handling isRunning action", metadata: ["params": "\(params.keys.joined(separator: ", "))"])
+      "Handling isRunning action", metadata: ["params": "\(params.keys.joined(separator: ", "))"],
+    )
 
     // Validate bundle ID
     guard let bundleId = params["bundleId"]?.stringValue else {
@@ -386,7 +391,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
     }
 
     do {
-      let isRunning = try await applicationService.isApplicationRunning(bundleId: bundleId, )
+      let isRunning = try await applicationService.isApplicationRunning(bundleId: bundleId)
 
       // Format the result as JSON
       return [
@@ -397,13 +402,14 @@ public struct ApplicationManagementTool: @unchecked Sendable {
               "bundleId": "\(bundleId)",
               "isRunning": \(isRunning)
           }
-          """
-        )
+          """,
+        ),
       ]
     } catch {
       logger.error("isRunning check failed", metadata: ["error": "\(error.localizedDescription)"])
       throw MCPError.internalError(
-        "Failed to check if application is running: \(error.localizedDescription)")
+        "Failed to check if application is running: \(error.localizedDescription)",
+      )
     }
   }
 
@@ -427,7 +433,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
               "bundleId": "\(bundleId)",
               "applicationName": "\(name)"
           }
-          """
+          """,
         )
       }
 
@@ -441,14 +447,16 @@ public struct ApplicationManagementTool: @unchecked Sendable {
                   \(appArray.joined(separator: ",\n        "))
               ]
           }
-          """
-        )
+          """,
+        ),
       ]
     } catch {
       logger.error(
-        "getRunningApplications failed", metadata: ["error": "\(error.localizedDescription)"])
+        "getRunningApplications failed", metadata: ["error": "\(error.localizedDescription)"],
+      )
       throw MCPError.internalError(
-        "Failed to get running applications: \(error.localizedDescription)")
+        "Failed to get running applications: \(error.localizedDescription)",
+      )
     }
   }
 
@@ -460,7 +468,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
   ) async throws -> [Tool.Content] {
     logger.debug(
       "Handling activateApplication action",
-      metadata: ["params": "\(params.keys.joined(separator: ", "))"]
+      metadata: ["params": "\(params.keys.joined(separator: ", "))"],
     )
 
     // Validate bundle ID
@@ -469,7 +477,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
     }
 
     do {
-      let activated = try await applicationService.activateApplication(bundleId: bundleId, )
+      let activated = try await applicationService.activateApplication(bundleId: bundleId)
 
       // Format the result as JSON
       return [
@@ -479,12 +487,13 @@ public struct ApplicationManagementTool: @unchecked Sendable {
               "success": \(activated),
               "bundleId": "\(bundleId)"
           }
-          """
-        )
+          """,
+        ),
       ]
     } catch {
       logger.error(
-        "activateApplication failed", metadata: ["error": "\(error.localizedDescription)"])
+        "activateApplication failed", metadata: ["error": "\(error.localizedDescription)"],
+      )
       throw MCPError.internalError("Failed to activate application: \(error.localizedDescription)")
     }
   }
@@ -497,7 +506,8 @@ public struct ApplicationManagementTool: @unchecked Sendable {
   ) async throws -> [Tool.Content] {
     logger.debug(
       "Handling hideApplication action",
-      metadata: ["params": "\(params.keys.joined(separator: ", "))"])
+      metadata: ["params": "\(params.keys.joined(separator: ", "))"],
+    )
 
     // Validate bundle ID
     guard let bundleId = params["bundleId"]?.stringValue else {
@@ -505,7 +515,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
     }
 
     do {
-      let hidden = try await applicationService.hideApplication(bundleId: bundleId, )
+      let hidden = try await applicationService.hideApplication(bundleId: bundleId)
 
       // Format the result as JSON
       return [
@@ -515,8 +525,8 @@ public struct ApplicationManagementTool: @unchecked Sendable {
               "success": \(hidden),
               "bundleId": "\(bundleId)"
           }
-          """
-        )
+          """,
+        ),
       ]
     } catch {
       logger.error("hideApplication failed", metadata: ["error": "\(error.localizedDescription)"])
@@ -532,7 +542,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
   ) async throws -> [Tool.Content] {
     logger.debug(
       "Handling unhideApplication action",
-      metadata: ["params": "\(params.keys.joined(separator: ", "))"]
+      metadata: ["params": "\(params.keys.joined(separator: ", "))"],
     )
 
     // Validate bundle ID
@@ -541,7 +551,7 @@ public struct ApplicationManagementTool: @unchecked Sendable {
     }
 
     do {
-      let unhidden = try await applicationService.unhideApplication(bundleId: bundleId, )
+      let unhidden = try await applicationService.unhideApplication(bundleId: bundleId)
 
       // Format the result as JSON
       return [
@@ -551,8 +561,8 @@ public struct ApplicationManagementTool: @unchecked Sendable {
               "success": \(unhidden),
               "bundleId": "\(bundleId)"
           }
-          """
-        )
+          """,
+        ),
       ]
     } catch {
       logger.error("unhideApplication failed", metadata: ["error": "\(error.localizedDescription)"])
@@ -568,22 +578,24 @@ public struct ApplicationManagementTool: @unchecked Sendable {
   ) async throws -> [Tool.Content] {
     logger.debug(
       "Handling hideOtherApplications action",
-      metadata: ["params": "\(params.keys.joined(separator: ", "))"]
+      metadata: ["params": "\(params.keys.joined(separator: ", "))"],
     )
 
     // Extract optional bundle ID
     let bundleId = params["bundleId"]?.stringValue
 
     do {
-      let _ = try await applicationService.hideOtherApplications(exceptBundleIdentifier: bundleId, )
+      _ = try await applicationService.hideOtherApplications(exceptBundleIdentifier: bundleId)
 
       // Format the result as JSON
-      let exceptInfo =
-        bundleId != nil
-        ? """
+      let exceptInfo = if let bundleId {
+        """
         ,
-            "exceptBundleIdentifier": "\(bundleId!)"
-        """ : ""
+            "exceptBundleIdentifier": "\(bundleId)"
+        """
+      } else {
+        ""
+      }
 
       return [
         .text(
@@ -591,14 +603,16 @@ public struct ApplicationManagementTool: @unchecked Sendable {
           {
               "success": true\(exceptInfo)
           }
-          """
-        )
+          """,
+        ),
       ]
     } catch {
       logger.error(
-        "hideOtherApplications failed", metadata: ["error": "\(error.localizedDescription)"])
+        "hideOtherApplications failed", metadata: ["error": "\(error.localizedDescription)"],
+      )
       throw MCPError.internalError(
-        "Failed to hide other applications: \(error.localizedDescription)")
+        "Failed to hide other applications: \(error.localizedDescription)",
+      )
     }
   }
 
@@ -624,8 +638,8 @@ public struct ApplicationManagementTool: @unchecked Sendable {
                 "isActive": \(frontmost.isActive),
                 "isFinishedLaunching": \(frontmost.isFinishedLaunching)
             }
-            """
-          )
+            """,
+          ),
         ]
       } else {
         // No frontmost application
@@ -636,31 +650,35 @@ public struct ApplicationManagementTool: @unchecked Sendable {
                 "success": true,
                 "hasFrontmostApplication": false
             }
-            """
-          )
+            """,
+          ),
         ]
       }
     } catch {
       logger.error(
-        "getFrontmostApplication failed", metadata: ["error": "\(error.localizedDescription)"])
+        "getFrontmostApplication failed", metadata: ["error": "\(error.localizedDescription)"],
+      )
       throw MCPError.internalError(
-        "Failed to get frontmost application: \(error.localizedDescription)")
+        "Failed to get frontmost application: \(error.localizedDescription)",
+      )
     }
   }
 
   /// Escape a string for JSON
   private static func escapeJsonString(_ string: String) -> String {
     var escaped = string.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(
-      of: "\"", with: "\\\""
+      of: "\"", with: "\\\"",
     )
     .replacingOccurrences(of: "\n", with: "\\n").replacingOccurrences(of: "\r", with: "\\r")
     .replacingOccurrences(of: "\t", with: "\\t")
 
     // Handle non-printable characters
-    for i in 0..<32 {
-      let character = String(Character(UnicodeScalar(i)!))
-      let replacement = "\\u" + String(format: "%04x", i)
-      escaped = escaped.replacingOccurrences(of: character, with: replacement)
+    for i in 0 ..< 32 {
+      if let scalar = UnicodeScalar(i) {
+        let character = String(Character(scalar))
+        let replacement = "\\u" + String(format: "%04x", i)
+        escaped = escaped.replacingOccurrences(of: character, with: replacement)
+      }
     }
 
     return escaped

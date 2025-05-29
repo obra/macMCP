@@ -6,8 +6,9 @@ import Logging
 import Testing
 
 /// Function that wraps #expect with a custom message
-/// In the Testing framework, we can't pass a custom message to #expect, so we just use the expression
-public func expectMessage(_ expression: Bool, _ message: String = "") {
+/// In the Testing framework, we can't pass a custom message to #expect, so we just use the
+/// expression
+public func expectMessage(_ expression: Bool, _: String = "") {
   // Just forward to the normal #expect but ignore the message since we can't show it
   #expect(expression)
 }
@@ -33,13 +34,15 @@ extension TestCase {
     // Set up logging for this test
     let typeName = String(describing: type(of: self))
     (logger, logFileURL) = TestLogger.create(
-      label: "mcp.test.\(typeName.lowercased())", testName: typeName)
+      label: "mcp.test.\(typeName.lowercased())", testName: typeName,
+    )
     // Configure standard environment variables
     TestLogger.configureEnvironment(logger: logger)
     // Create diagnostic log if needed
     diagnosticLogPath = TestLogger.createDiagnosticLog(testName: typeName, logger: logger)
     logger.info("====== TEST SETUP STARTED ======")
   }
+
   /// Standard teardown implementation
   public mutating func tearDown() async throws {
     logger.info("====== TEST TEARDOWN STARTED ======")
@@ -58,7 +61,7 @@ extension TestCase {
 /// A testing utility struct to include in Swift Testing framework test suites
 /// Use this as a property in your test struct to include logging capabilities
 public struct TestSetup: TestCase {
-  public var logger: Logger = Logger(label: "mcp.test.default")
+  public var logger: Logger = .init(label: "mcp.test.default")
   public var logFileURL: URL?
   public var diagnosticLogPath: String?
   public init() {}

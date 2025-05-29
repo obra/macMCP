@@ -26,7 +26,7 @@ public class AccessibilityElement {
     depth: Int,
     parent: UIElement? = nil,
     path: String = "",
-    siblingIndex: Int? = nil
+    siblingIndex: Int? = nil,
   ) throws -> UIElement {
     // Get basic properties - with robust error handling
     // If we can't get the role attribute, use "unknown" and continue rather than fail completely
@@ -67,8 +67,8 @@ public class AccessibilityElement {
     // Get the frame information with robust error handling
     let frame: CGRect
     let frameSource: FrameSource
-    var normalizedFrame: CGRect? = nil
-    var viewportFrame: CGRect? = nil
+    var normalizedFrame: CGRect?
+    var viewportFrame: CGRect?
 
     // Get the frame information with all the enhanced detections
     (frame, frameSource, normalizedFrame, viewportFrame) = getFrameInformation(
@@ -96,7 +96,8 @@ public class AccessibilityElement {
     // Add title if available and not empty - use AXTitle for proper accessibility attribute name
     if let title, !title.isEmpty { attributePairs["AXTitle"] = title }
 
-    // Add description if available and not empty - use AXDescription for proper accessibility attribute name
+    // Add description if available and not empty - use AXDescription for proper accessibility
+    // attribute name
     if let description, !description.isEmpty { attributePairs["AXDescription"] = description }
 
     // For application elements, add bundle identifier if possible
@@ -106,20 +107,21 @@ public class AccessibilityElement {
       let pidResult = AXUIElementGetPid(axElement, &pid)
       if pidResult == .success, pid != 0 {
         if let app = NSRunningApplication(processIdentifier: pid),
-          let bundleId = app.bundleIdentifier
+           let bundleId = app.bundleIdentifier
         {
           attributePairs["bundleId"] = bundleId
         }
       }
     }
 
-    // Construct the element-only path segment - format: AXRole[@attr="value"] or AXRole#index[@attr="value"]
+    // Construct the element-only path segment - format: AXRole[@attr="value"] or
+    // AXRole#index[@attr="value"]
     let baseElementPathSegment = createElementPathString(role: role, attributes: attributePairs)
     // Add positional index if provided to resolve path collisions among siblings
     // Format: AXRole#index[@attributes] where index is the 1-based position in parent's children
     // Only added for elements that share the same base path with siblings
     let elementPathSegment =
-      if let siblingIndex = siblingIndex {
+      if let siblingIndex {
         // Insert #index after the role but before the attributes
         insertPositionalIndex(siblingIndex, into: baseElementPathSegment)
       } else { baseElementPathSegment }
@@ -132,7 +134,8 @@ public class AccessibilityElement {
       "macos://ui/\(hierarchicalPath.hasPrefix("AX") ? hierarchicalPath : "AX\(hierarchicalPath)")"
     let elementPath = fullHierarchicalPath
 
-    // Now that we have an identifier, we'll use the frame-related variables that are already defined
+    // Now that we have an identifier, we'll use the frame-related variables that are already
+    // defined
 
     // Get available actions with robust error handling
     let actions: [String]
@@ -167,7 +170,8 @@ public class AccessibilityElement {
     // Recursively get children if requested and we haven't reached max depth
     var children: [UIElement] = []
 
-    // Always continue if below the minimum traversal depth (ensures critical controls aren't missed)
+    // Always continue if below the minimum traversal depth (ensures critical controls aren't
+    // missed)
     // Increased to 30 to better find deeply nested elements like those in ScrollAreas
     let minimumTraversalDepth = 30
     let shouldTraverse = recursive && (depth < minimumTraversalDepth || depth < maxDepth)
@@ -178,7 +182,7 @@ public class AccessibilityElement {
         var attrNamesRef: CFArray?
         var hasChildrenAttribute = false
         if AXUIElementCopyAttributeNames(axElement, &attrNamesRef) == .success,
-          let attrNames = attrNamesRef as? [String]
+           let attrNames = attrNamesRef as? [String]
         {
           hasChildrenAttribute = attrNames.contains(AXAttribute.children)
         }
@@ -197,7 +201,7 @@ public class AccessibilityElement {
             // Pre-process children to detect path collisions and assign positional indices
             let childrenWithIndices = try createSiblingIndices(
               for: prioritizedChildren,
-              parentPath: hierarchicalPath
+              parentPath: hierarchicalPath,
             )
 
             // Process each child with collision-aware path generation
@@ -229,9 +233,8 @@ public class AccessibilityElement {
                       axChild,
                       attribute: AXAttribute.position,
                     ) as? NSValue,
-                      let sizeValue = try? getAttribute(axChild, attribute: AXAttribute.size)
-                        as? NSValue
-                    {
+                    let sizeValue = try? getAttribute(axChild, attribute: AXAttribute.size)
+                    as? NSValue {
                       CGRect(origin: positionValue.pointValue, size: sizeValue.sizeValue)
                     } else if let axFrame = try? getAttribute(
                       axChild,
@@ -240,26 +243,27 @@ public class AccessibilityElement {
 
                   let hasZeroSize = frame.size.width <= 0 || frame.size.height <= 0
 
-                  // Special case for interactive elements - don't filter them out based on zero size
+                  // Special case for interactive elements - don't filter them out based on zero
+                  // size
                   let isInteractiveElement =
                     childRole == "AXButton" || childRole == "AXMenuItem"
-                    || childRole == "AXCheckBox" || childRole == "AXRadioButton"
-                    || childRole == "AXTextField" || childRole == "AXLink"
+                      || childRole == "AXCheckBox" || childRole == "AXRadioButton"
+                      || childRole == "AXTextField" || childRole == "AXLink"
 
                   // Always include menu elements regardless of state
                   let isMenuElement =
                     childRole == "AXMenu" || childRole == "AXMenuBar"
-                    || childRole == "AXMenuBarItem" || childRole == "AXMenuItem"
+                      || childRole == "AXMenuBarItem" || childRole == "AXMenuItem"
 
                   // Identify important container and content elements
                   let isImportantContainer =
                     childRole == "AXSplitGroup" || childRole == "AXGroup"
-                    || childRole == "AXScrollArea"
+                      || childRole == "AXScrollArea"
 
                   // Identify elements that might contain important text/values
                   let isValueElement =
                     childRole == "AXStaticText" || childRole == "AXTextField"
-                    || childRole == "AXTextArea"
+                      || childRole == "AXTextArea"
 
                   // Less strict filtering - include menu elements always
                   let isAvailable: Bool =
@@ -267,7 +271,8 @@ public class AccessibilityElement {
                       // Always include menu elements regardless of state
                       true
                     } else if isImportantContainer {
-                      // For containers: don't filter based on zero size, but respect enabled/hidden state
+                      // For containers: don't filter based on zero size, but respect enabled/hidden
+                      // state
                       isVisible && !isHidden
                     } else if isValueElement {
                       // For text elements: similarly don't filter on size or enabled state
@@ -305,7 +310,7 @@ public class AccessibilityElement {
                   depth: depth + 1,
                   parent: element,
                   path: hierarchicalPath,
-                  siblingIndex: pathIndex
+                  siblingIndex: pathIndex,
                 )
                 children.append(child)
               } catch {
@@ -314,8 +319,8 @@ public class AccessibilityElement {
                 continue
               }
             }
-          }  // End of axChildren processing
-        }  // End of hasChildrenAttribute check
+          } // End of axChildren processing
+        } // End of hasChildrenAttribute check
       } catch {
         // Log but continue
         NSLog("WARNING: Failed to get children: \(error.localizedDescription)")
@@ -354,7 +359,7 @@ public class AccessibilityElement {
     var prioritizedChildren: [(AXUIElement, Int)] = []
 
     for child in children {
-      var priority = 5  // Default priority
+      var priority = 5 // Default priority
 
       // Get child role
       if let role = try? getAttribute(child, attribute: AXAttribute.role) as? String {
@@ -364,7 +369,7 @@ public class AccessibilityElement {
         }
         // Menu elements get high priority too (no longer deprioritized)
         else if isMenuElement(role) {
-          priority = 1  // High priority for menus
+          priority = 1 // High priority for menus
         }
         // Give containers next priority
         else if isControlContainer(role) {
@@ -444,7 +449,7 @@ public class AccessibilityElement {
       "tab": ["AXTabGroup", "AXTab", "AXTabButton"],
       "menu": [AXAttribute.Role.menu, AXAttribute.Role.menuItem, "AXMenuBarItem"],
       "image": [AXAttribute.Role.image, "AXGroup"], "text": [AXAttribute.Role.staticText],
-      "window": [AXAttribute.Role.window], "any": [],  // Special case - will match any element
+      "window": [AXAttribute.Role.window], "any": [], // Special case - will match any element
     ]
 
     // If "any" type is requested or invalid type, return all elements
@@ -460,24 +465,25 @@ public class AccessibilityElement {
 
       // Handle special cases based on element type
       switch elementType {
-      case "button":
-        // Consider any element with a "press" action to be a button
-        return element.actions.contains(AXAttribute.Action.press)
+        case "button":
+          // Consider any element with a "press" action to be a button
+          return element.actions.contains(AXAttribute.Action.press)
 
-      case "textfield":
-        // Consider any editable element to be a text field
-        return element.attributes["editable"] as? Bool == true
+        case "textfield":
+          // Consider any editable element to be a text field
+          return element.attributes["editable"] as? Bool == true
 
-      case "image":
-        // Consider groups that contain images or have image-like names
-        return element.role == AXAttribute.Role.group
-          && (element.path.lowercased().contains("image")
-            || element.path.lowercased().contains("icon")
-            || element.path.lowercased().contains("picture"))
+        case "image":
+          // Consider groups that contain images or have image-like names
+          return element.role == AXAttribute.Role.group
+            && (element.path.lowercased().contains("image")
+              || element.path.lowercased().contains("icon")
+              || element.path.lowercased().contains("picture")
+            )
 
-      case "any": return true
+        case "any": return true
 
-      default: return false
+        default: return false
       }
     }
   }
@@ -574,7 +580,7 @@ public class AccessibilityElement {
       viewportFrame: nil,
       frameSource: frame == .zero ? .unavailable : .attribute,
       parent: parent,
-      children: [],  // Empty children - don't traverse
+      children: [], // Empty children - don't traverse
       attributes: [:],
       actions: [],
     )
@@ -591,7 +597,7 @@ public class AccessibilityElement {
   ///   - role: The role of the element
   ///   - title: The title of the element (if available)
   /// - Returns: A tuple containing (frame, source, normalizedFrame, viewportFrame)
-  private static func getFrameInformation(axElement: AXUIElement, role: String, title: String?, )
+  private static func getFrameInformation(axElement: AXUIElement, role: String, title _: String?)
     -> (
       CGRect, FrameSource, CGRect?, CGRect?
     )
@@ -611,7 +617,8 @@ public class AccessibilityElement {
 
     // Get position
     if let positionValue = try? getAttribute(axElement, attribute: AXAttribute.position) {
-      // Check for both NSValue and AXValue types since different macOS versions return different types
+      // Check for both NSValue and AXValue types since different macOS versions return different
+      // types
       if let nsValue = positionValue as? NSValue {
         origin = nsValue.pointValue
         hasValidPosition = true
@@ -665,7 +672,8 @@ public class AccessibilityElement {
     // If we still don't have valid frame information, try parent-based calculations
     if frameSource == .unavailable
       || (frame.origin.x == 0 && frame.origin.y == 0 && frame.size.width == 0
-        && frame.size.height == 0)
+        && frame.size.height == 0
+      )
     {
       // Get parent element, if available
       if let parentElementObj = try? getAttribute(axElement, attribute: AXAttribute.parent) {
@@ -679,17 +687,19 @@ public class AccessibilityElement {
 
           // Try to get parent position and size
           if let parentPosition = try? getAttribute(
-            parentElement, attribute: AXAttribute.position, )
+            parentElement, attribute: AXAttribute.position,
+          )
             as? NSValue,
             let parentSize = try? getAttribute(parentElement, attribute: AXAttribute.size)
-              as? NSValue
+            as? NSValue
           {
             parentFrame = CGRect(origin: parentPosition.pointValue, size: parentSize.sizeValue)
             hasParentFrame = true
           }
           // Try to get parent frame as a single value
           else if let parentFrameValue = try? getAttribute(
-            parentElement, attribute: AXAttribute.frame, )
+            parentElement, attribute: AXAttribute.frame,
+          )
             as? NSValue
           {
             parentFrame = parentFrameValue.rectValue
@@ -699,7 +709,7 @@ public class AccessibilityElement {
           if hasParentFrame, !parentFrame.isEmpty {
             // Calculate a relative position within parent based on index among siblings
             // This is a rough guess - better than nothing
-            if let siblings = try? getAttribute(parentElement, attribute: AXAttribute.children, )
+            if let siblings = try? getAttribute(parentElement, attribute: AXAttribute.children)
               as? [AXUIElement]
             {
               var index: CGFloat = 0
@@ -753,17 +763,19 @@ public class AccessibilityElement {
 
           // Try to get parent position and size
           if let parentPosition = try? getAttribute(
-            parentElement, attribute: AXAttribute.position, )
+            parentElement, attribute: AXAttribute.position,
+          )
             as? NSValue,
             let parentSize = try? getAttribute(parentElement, attribute: AXAttribute.size)
-              as? NSValue
+            as? NSValue
           {
             parentFrame = CGRect(origin: parentPosition.pointValue, size: parentSize.sizeValue)
             hasParentFrame = true
           }
           // Try to get parent frame as a single value
           else if let parentFrameValue = try? getAttribute(
-            parentElement, attribute: AXAttribute.frame, )
+            parentElement, attribute: AXAttribute.frame,
+          )
             as? NSValue
           {
             parentFrame = parentFrameValue.rectValue
@@ -798,12 +810,13 @@ public class AccessibilityElement {
               parentRole == AXAttribute.Role.menu
             {
               // Get parent frame
-              if let parentFrame = try? getAttribute(parentElement, attribute: AXAttribute.frame, )
+              if let parentFrame = try? getAttribute(parentElement, attribute: AXAttribute.frame)
                 as? NSValue
               {
                 // Get all menu items and find this item's index
                 if let menuItems = try? getAttribute(
-                  parentElement, attribute: AXAttribute.children, )
+                  parentElement, attribute: AXAttribute.children,
+                )
                   as? [AXUIElement]
                 {
                   // Find our position in the menu
@@ -925,10 +938,11 @@ public class AccessibilityElement {
 
     // Fallback to attribute method only if direct API call fails
     if let actionNames = try? getAttribute(element, attribute: AXAttribute.actions) as? [String],
-      !actionNames.isEmpty
+       !actionNames.isEmpty
     {
       NSLog(
-        "Fallback to getAttribute for actions succeeded where AXUIElementCopyActionNames failed")
+        "Fallback to getAttribute for actions succeeded where AXUIElementCopyActionNames failed",
+      )
       return actionNames
     }
 
@@ -965,7 +979,7 @@ public class AccessibilityElement {
     }
 
     // Set a timeout for the action to prevent hanging
-    let timeoutStatus = AXUIElementSetMessagingTimeout(element, 1.0)  // 1 second timeout
+    let timeoutStatus = AXUIElementSetMessagingTimeout(element, 1.0) // 1 second timeout
     if timeoutStatus != .success {
       NSLog("WARNING: Failed to set messaging timeout for action \(action)")
     }
@@ -988,7 +1002,7 @@ public class AccessibilityElement {
         domain: "com.macos.mcp.accessibility",
         code: Int(error.rawValue),
         userInfo: [
-          NSLocalizedDescriptionKey: "Could not complete action (element busy or unresponsive)"
+          NSLocalizedDescriptionKey: "Could not complete action (element busy or unresponsive)",
         ],
       )
     } else if error == .actionUnsupported {
@@ -1005,7 +1019,7 @@ public class AccessibilityElement {
         code: Int(error.rawValue),
         userInfo: [
           NSLocalizedDescriptionKey:
-            "Failed to perform action \(action) (error code: \(error.rawValue))"
+            "Failed to perform action \(action) (error code: \(error.rawValue))",
         ],
       )
     }
@@ -1016,7 +1030,7 @@ public class AccessibilityElement {
   ///   - element: The element to modify
   ///   - attribute: The attribute name
   ///   - value: The new value
-  public static func setAttribute(_ element: AXUIElement, attribute: String, value: Any, ) throws {
+  public static func setAttribute(_ element: AXUIElement, attribute: String, value: Any) throws {
     // Safety check - validate the element is valid before trying to access it
     if CFGetTypeID(element) != AXUIElementGetTypeID() {
       NSLog("WARNING: Invalid AXUIElement passed to setAttribute")
@@ -1046,13 +1060,13 @@ public class AccessibilityElement {
     }
 
     // Set a timeout to prevent hanging
-    let timeoutStatus = AXUIElementSetMessagingTimeout(element, 1.0)  // 1 second timeout
+    let timeoutStatus = AXUIElementSetMessagingTimeout(element, 1.0) // 1 second timeout
     if timeoutStatus != .success {
       NSLog("WARNING: Failed to set messaging timeout for setAttribute \(attribute)")
     }
 
     // Attempt to set the attribute value
-    let error = AXUIElementSetAttributeValue(element, attribute as CFString, value as CFTypeRef, )
+    let error = AXUIElementSetAttributeValue(element, attribute as CFString, value as CFTypeRef)
 
     if error == .success {
       return
@@ -1065,7 +1079,8 @@ public class AccessibilityElement {
       )
     } else if error == .illegalArgument {
       NSLog(
-        "ERROR: Illegal argument when setting attribute \(attribute): value type may be incorrect")
+        "ERROR: Illegal argument when setting attribute \(attribute): value type may be incorrect",
+      )
       throw NSError(
         domain: "com.macos.mcp.accessibility",
         code: Int(error.rawValue),
@@ -1085,7 +1100,7 @@ public class AccessibilityElement {
         code: Int(error.rawValue),
         userInfo: [
           NSLocalizedDescriptionKey:
-            "Could not complete setting attribute (element busy or unresponsive)"
+            "Could not complete setting attribute (element busy or unresponsive)",
         ],
       )
     } else {
@@ -1095,7 +1110,7 @@ public class AccessibilityElement {
         code: Int(error.rawValue),
         userInfo: [
           NSLocalizedDescriptionKey:
-            "Failed to set attribute \(attribute) (error code: \(error.rawValue))"
+            "Failed to set attribute \(attribute) (error code: \(error.rawValue))",
         ],
       )
     }
@@ -1127,7 +1142,8 @@ public class AccessibilityElement {
   /// - Parameters:
   ///   - role: The accessibility role of the element
   ///   - attributes: Key-value pairs of attributes to include in the path
-  /// - Returns: A properly formatted path segment string (role[@attr="value"]) without macos://ui/ prefix
+  /// - Returns: A properly formatted path segment string (role[@attr="value"]) without macos://ui/
+  /// prefix
   private static func createElementPathString(role: String, attributes: [String: String]) -> String
   {
     var pathString = role
@@ -1141,10 +1157,12 @@ public class AccessibilityElement {
 
     return pathString
   }
+
   /// Create sibling indices to resolve path collisions using positional indexing
   ///
   /// Algorithm:
-  /// 1. Assign positional indices (1, 2, 3...) to ALL siblings based on their order in parent's children
+  /// 1. Assign positional indices (1, 2, 3...) to ALL siblings based on their order in parent's
+  /// children
   /// 2. Generate base paths (role + attributes) for each sibling
   /// 3. Identify which base paths have multiple occurrences (duplicates)
   /// 4. Only show positional index for elements with duplicate base paths
@@ -1157,14 +1175,18 @@ public class AccessibilityElement {
   /// Position 4: AXButton[@AXDescription="Cancel"]  → Unique, index=nil (no #4 shown)
   /// Position 5: AXButton[@AXDescription="Add"]     → Duplicate, index=5 (shows #5)
   ///
-  /// Ordering Assumption: The order of children returned by AXUIElementCopyAttributeValue(element, kAXChildrenAttribute)
-  /// is stable and deterministic for the same UI state. This ordering is used for positional indexing.
+  /// Ordering Assumption: The order of children returned by AXUIElementCopyAttributeValue(element,
+  /// kAXChildrenAttribute)
+  /// is stable and deterministic for the same UI state. This ordering is used for positional
+  /// indexing.
   ///
   /// - Parameters:
-  ///   - children: Array of sibling AXUIElement objects in their natural order from accessibility API
+  ///   - children: Array of sibling AXUIElement objects in their natural order from accessibility
+  /// API
   ///   - parentPath: The parent element's path (for context/debugging, not used in indexing logic)
-  /// - Returns: Array of tuples containing (element, positionalIndex) where positionalIndex is nil for unique paths or 1-based position for duplicates
-  private static func createSiblingIndices(for children: [AXUIElement], parentPath: String) throws
+  /// - Returns: Array of tuples containing (element, positionalIndex) where positionalIndex is nil
+  /// for unique paths or 1-based position for duplicates
+  private static func createSiblingIndices(for children: [AXUIElement], parentPath _: String) throws
     -> [(
       AXUIElement, Int?
     )]
@@ -1177,13 +1199,13 @@ public class AccessibilityElement {
       var attributePairs: [String: String] = [:]
       // Add title if available and not empty
       if let title = try? getAttribute(child, attribute: AXAttribute.title) as? String,
-        !title.isEmpty
+         !title.isEmpty
       {
         attributePairs["AXTitle"] = title
       }
       // Add description if available and not empty
       if let description = try? getAttribute(child, attribute: AXAttribute.description) as? String,
-        !description.isEmpty
+         !description.isEmpty
       {
         attributePairs["AXDescription"] = description
       }
@@ -1194,29 +1216,31 @@ public class AccessibilityElement {
     }
     // Second pass: count occurrences of each base path to identify duplicates
     var pathCounts: [String: Int] = [:]
-    for data in childData { pathCounts[data.basePath, default: 0] += 1 }
+    for data in childData {
+      pathCounts[data.basePath, default: 0] += 1
+    }
     // Third pass: assign indices only to elements with duplicate base paths
     var result: [(AXUIElement, Int?)] = []
     for data in childData {
-      let positionalIndex: Int?
-      if pathCounts[data.basePath]! > 1 {
+      let positionalIndex: Int? = if pathCounts[data.basePath]! > 1 {
         // This base path has duplicates, show the positional index
-        positionalIndex = data.position
+        data.position
       } else {
         // This base path is unique, no index needed (clean path)
-        positionalIndex = nil
+        nil
       }
       result.append((data.element, positionalIndex))
     }
     return result
   }
+
   /// Insert positional index into a base element path segment
   /// Converts "AXButton[@AXDescription=\"Add\"]" to "AXButton#2[@AXDescription=\"Add\"]"
   /// - Parameters:
   ///   - index: The 1-based positional index within the parent's children
   ///   - basePath: The base path segment (role + attributes)
   /// - Returns: Path segment with positional index inserted after role, before attributes
-  internal static func insertPositionalIndex(_ index: Int, into basePath: String) -> String {
+  static func insertPositionalIndex(_ index: Int, into basePath: String) -> String {
     // Find the first '[' character which starts the attributes section
     if let attributeStart = basePath.firstIndex(of: "[") {
       let roleString = String(basePath[..<attributeStart])

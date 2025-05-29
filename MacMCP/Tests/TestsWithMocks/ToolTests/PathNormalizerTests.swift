@@ -29,15 +29,18 @@ import Testing
   @Test("Escape attribute values") func escapeAttributeValues() {
     // Test quote escaping
     #expect(
-      PathNormalizer.escapeAttributeValue("Value with \"quotes\"") == "Value with \\\"quotes\\\"")
+      PathNormalizer.escapeAttributeValue("Value with \"quotes\"") == "Value with \\\"quotes\\\"",
+    )
 
     // Test backslash escaping
     #expect(
-      PathNormalizer.escapeAttributeValue("Value with \\ backslash") == "Value with \\\\ backslash")
+      PathNormalizer.escapeAttributeValue("Value with \\ backslash") == "Value with \\\\ backslash",
+    )
 
     // Test control character escaping
     #expect(
-      PathNormalizer.escapeAttributeValue("Value with \n newline") == "Value with \\n newline")
+      PathNormalizer.escapeAttributeValue("Value with \n newline") == "Value with \\n newline",
+    )
     #expect(PathNormalizer.escapeAttributeValue("Value with \t tab") == "Value with \\t tab")
     #expect(PathNormalizer.escapeAttributeValue("Value with \r return") == "Value with \\r return")
 
@@ -51,19 +54,23 @@ import Testing
   @Test("Unescape attribute values") func unescapeAttributeValues() {
     // Test quote unescaping
     #expect(
-      PathNormalizer.unescapeAttributeValue("Value with \\\"quotes\\\"") == "Value with \"quotes\"")
+      PathNormalizer.unescapeAttributeValue("Value with \\\"quotes\\\"") == "Value with \"quotes\"",
+    )
 
     // Test backslash unescaping
     #expect(
       PathNormalizer.unescapeAttributeValue("Value with \\\\ backslash")
-        == "Value with \\ backslash")
+        == "Value with \\ backslash",
+    )
 
     // Test control character unescaping
     #expect(
-      PathNormalizer.unescapeAttributeValue("Value with \\n newline") == "Value with \n newline")
+      PathNormalizer.unescapeAttributeValue("Value with \\n newline") == "Value with \n newline",
+    )
     #expect(PathNormalizer.unescapeAttributeValue("Value with \\t tab") == "Value with \t tab")
     #expect(
-      PathNormalizer.unescapeAttributeValue("Value with \\r return") == "Value with \r return")
+      PathNormalizer.unescapeAttributeValue("Value with \\r return") == "Value with \r return",
+    )
 
     // Test combined unescaping
     #expect(
@@ -123,7 +130,7 @@ import Testing
     // Create a sample element hierarchy
     let buttonElement = UIElement(
       path:
-        "macos://ui/AXButton[@AXTitle=\"OK\"][@AXDescription=\"OK Button\"][@AXIdentifier=\"okButton\"]",
+      "macos://ui/AXButton[@AXTitle=\"OK\"][@AXDescription=\"OK Button\"][@AXIdentifier=\"okButton\"]",
       role: "AXButton",
       title: "OK",
       elementDescription: "OK Button",
@@ -145,7 +152,7 @@ import Testing
     // This is a test-only workaround as UIElement uses weak parent references
     let buttonWithParent = UIElement(
       path:
-        "macos://ui/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"][@AXDescription=\"OK Button\"][@AXIdentifier=\"okButton\"]",
+      "macos://ui/AXGroup[@AXTitle=\"Controls\"]/AXButton[@AXTitle=\"OK\"][@AXDescription=\"OK Button\"][@AXIdentifier=\"okButton\"]",
       role: "AXButton",
       title: "OK",
       elementDescription: "OK Button",

@@ -180,47 +180,47 @@ class ElementPrinter {
   /// - Returns: A string representation of the value
   private func formatValue(_ value: Any) -> String {
     switch value {
-    case let stringValue as String: return stringValue
-    case let numberValue as NSNumber: return numberValue.stringValue
-    case let arrayValue as [Any]:
-      if arrayValue.isEmpty {
-        return "[]"
-      } else {
-        return "[Array with \(arrayValue.count) elements]"
-      }
-    case let pointValue as NSValue where String(cString: pointValue.objCType) == "{CGPoint=dd}":
-      var point = CGPoint.zero
-      pointValue.getValue(&point)
-      return "(\(Int(point.x)), \(Int(point.y)))"
-    case let sizeValue as NSValue where String(cString: sizeValue.objCType) == "{CGSize=dd}":
-      var size = CGSize.zero
-      sizeValue.getValue(&size)
-      return "(\(Int(size.width))×\(Int(size.height)))"
-    case let rectValue as NSValue
-    where String(cString: rectValue.objCType) == "{CGRect={CGPoint=dd}{CGSize=dd}}":
-      var rect = CGRect.zero
-      rectValue.getValue(&rect)
-      return
-        "(x:\(Int(rect.origin.x)), y:\(Int(rect.origin.y)), w:\(Int(rect.size.width)), h:\(Int(rect.size.height)))"
-    case let boolValue as Bool: return boolValue ? "Yes" : "No"
-    case is AXUIElement: return "[Element reference]"
-    case let dictValue as [String: Any]:
-      if dictValue.isEmpty {
-        return "{}"
-      } else {
-        return "{Dictionary with \(dictValue.count) entries}"
-      }
-    case let urlValue as URL: return urlValue.absoluteString
-    case let dateValue as Date:
-      let formatter = DateFormatter()
-      formatter.dateStyle = .medium
-      formatter.timeStyle = .medium
-      return formatter.string(from: dateValue)
-    case let colorValue as NSColor:
-      return
-        "Color(r:\(Int(colorValue.redComponent * 255)), g:\(Int(colorValue.greenComponent * 255)), b:\(Int(colorValue.blueComponent * 255)))"
-    case let error as NSError: return "Error: \(error.localizedDescription)"
-    case let unknown: return "[Type: \(type(of: unknown))]"
+      case let stringValue as String: return stringValue
+      case let numberValue as NSNumber: return numberValue.stringValue
+      case let arrayValue as [Any]:
+        if arrayValue.isEmpty {
+          return "[]"
+        } else {
+          return "[Array with \(arrayValue.count) elements]"
+        }
+      case let pointValue as NSValue where String(cString: pointValue.objCType) == "{CGPoint=dd}":
+        var point = CGPoint.zero
+        pointValue.getValue(&point)
+        return "(\(Int(point.x)), \(Int(point.y)))"
+      case let sizeValue as NSValue where String(cString: sizeValue.objCType) == "{CGSize=dd}":
+        var size = CGSize.zero
+        sizeValue.getValue(&size)
+        return "(\(Int(size.width))×\(Int(size.height)))"
+      case let rectValue as NSValue
+      where String(cString: rectValue.objCType) == "{CGRect={CGPoint=dd}{CGSize=dd}}":
+        var rect = CGRect.zero
+        rectValue.getValue(&rect)
+        return
+          "(x:\(Int(rect.origin.x)), y:\(Int(rect.origin.y)), w:\(Int(rect.size.width)), h:\(Int(rect.size.height)))"
+      case let boolValue as Bool: return boolValue ? "Yes" : "No"
+      case is AXUIElement: return "[Element reference]"
+      case let dictValue as [String: Any]:
+        if dictValue.isEmpty {
+          return "{}"
+        } else {
+          return "{Dictionary with \(dictValue.count) entries}"
+        }
+      case let urlValue as URL: return urlValue.absoluteString
+      case let dateValue as Date:
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .medium
+        return formatter.string(from: dateValue)
+      case let colorValue as NSColor:
+        return
+          "Color(r:\(Int(colorValue.redComponent * 255)), g:\(Int(colorValue.greenComponent * 255)), b:\(Int(colorValue.blueComponent * 255)))"
+      case let error as NSError: return "Error: \(error.localizedDescription)"
+      case let unknown: return "[Type: \(type(of: unknown))]"
     }
   }
 }

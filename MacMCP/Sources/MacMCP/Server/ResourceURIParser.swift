@@ -17,32 +17,34 @@ public enum ResourceURIError: Swift.Error, CustomStringConvertible {
   /// Description for the error
   public var description: String {
     switch self {
-    case .invalidURIFormat(let uri): return "Invalid resource URI format: \(uri)"
-    case .missingParameter(let param): return "Missing required parameter: \(param)"
-    case .invalidParameterValue(let param, let value):
-      return "Invalid value for parameter \(param): \(value)"
-    case .resourceNotFound(let uri): return "Resource not found: \(uri)"
+      case .invalidURIFormat(let uri): "Invalid resource URI format: \(uri)"
+      case .missingParameter(let param): "Missing required parameter: \(param)"
+      case .invalidParameterValue(let param, let value):
+        "Invalid value for parameter \(param): \(value)"
+      case .resourceNotFound(let uri): "Resource not found: \(uri)"
     }
   }
+
   /// Convert to MCP error
   var asMCPError: MCPError {
     switch self {
-    case .invalidURIFormat, .missingParameter, .invalidParameterValue:
-      return MCPError.invalidParams(description)
-    case .resourceNotFound: return MCPError.invalidRequest("Resource not found: \(description)")
+      case .invalidURIFormat, .missingParameter, .invalidParameterValue:
+        MCPError.invalidParams(description)
+      case .resourceNotFound: MCPError.invalidRequest("Resource not found: \(description)")
     }
   }
 }
 
 /// Parser for resource URIs and query parameters
-public struct ResourceURIParser {
+public enum ResourceURIParser {
   /// Parse a resource URI into components
   /// - Parameter uri: The resource URI to parse
   /// - Returns: A ResourceURIComponents object representing the parsed URI
   /// - Throws: ResourceURIError if the URI is invalid
   public static func parse(_ uri: String) throws -> ResourceURIComponents {
     // Special handling for URIs without a scheme
-    // If the URI doesn't have a scheme, it might be a relative path like "applications/bundleId/windows"
+    // If the URI doesn't have a scheme, it might be a relative path like
+    // "applications/bundleId/windows"
     if !uri.contains("://") {
       // Assume it's a macos:// URI with just a path
       let pathComponents = uri.split(separator: "?")
@@ -61,7 +63,7 @@ public struct ResourceURIParser {
     // Handle URLs with or without a host component
     // Some URLs might be formatted as macos://applications/... instead of macos:///applications/...
     var uriToProcess = uri
-    if uri.hasPrefix("macos://") && !uri.hasPrefix("macos:///") {
+    if uri.hasPrefix("macos://"), !uri.hasPrefix("macos:///") {
       // Convert macos://path to macos:///path for proper URLComponents parsing
       uriToProcess = uriToProcess.replacingOccurrences(of: "macos://", with: "macos:///")
     }
@@ -78,11 +80,14 @@ public struct ResourceURIParser {
     // Extract the query parameters
     var queryParams: [String: String] = [:]
     if let queryItems = components.queryItems {
-      for item in queryItems { if let value = item.value { queryParams[item.name] = value } }
+      for item in queryItems {
+        if let value = item.value { queryParams[item.name] = value }
+      }
     }
     // Create and return the parsed components
     return ResourceURIComponents(scheme: scheme, path: path, queryParameters: queryParams)
   }
+
   /// Extract path components from a resource path
   /// - Parameter path: The resource path
   /// - Returns: An array of path components
@@ -99,6 +104,7 @@ public struct ResourceURIParser {
     // Split the path into components
     return cleanPath.split(separator: "/").map(String.init)
   }
+
   /// Parse query parameters
   /// - Parameter params: Query parameters dictionary
   /// - Returns: A ResourceQueryParameters object
@@ -120,6 +126,7 @@ public struct ResourceURIParser {
     }
     return result
   }
+
   /// Format a resource URI with path and query parameters
   /// - Parameters:
   ///   - path: The resource path
@@ -131,7 +138,7 @@ public struct ResourceURIParser {
     // Add an empty host to ensure we get macos:// instead of macos:/
     components.host = ""
     components.path = path.hasPrefix("/") ? path : "/\(path)"
-    if let queryParams = queryParams, !queryParams.isEmpty {
+    if let queryParams, !queryParams.isEmpty {
       components.queryItems = queryParams.map { URLQueryItem(name: $0.key, value: $0.value) }
     }
     return components.string ?? "macos://\(path)"
@@ -152,6 +159,7 @@ public struct ResourceURIComponents {
   public var parsedQueryParameters: ResourceQueryParameters {
     ResourceURIParser.parseQueryParameters(queryParameters)
   }
+
   /// Initialize with components
   /// - Parameters:
   ///   - scheme: URI scheme

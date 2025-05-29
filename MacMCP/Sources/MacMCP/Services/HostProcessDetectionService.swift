@@ -13,11 +13,12 @@ public class HostProcessDetectionService {
     public let processId: pid_t
     public let executablePath: String?
     /// The display name for user-facing messages
-    public var displayName: String { return name }
+    public var displayName: String { name }
   }
+
   /// Detect the current host process
   public static func detectHostProcess() -> HostProcessInfo {
-    let processId = getppid()  // Parent process ID
+    let processId = getppid() // Parent process ID
 
     // Walk up the process tree to find the actual desktop app host
     if let hostApp = findDesktopHostApp(fromPid: processId) {
@@ -25,7 +26,7 @@ public class HostProcessDetectionService {
         bundleId: hostApp.bundleIdentifier,
         name: hostApp.localizedName ?? hostApp.bundleIdentifier ?? "Unknown Application",
         processId: hostApp.processIdentifier,
-        executablePath: hostApp.bundleURL?.path
+        executablePath: hostApp.bundleURL?.path,
       )
     }
     // Fallback: use immediate parent if we can't find a desktop app
@@ -36,19 +37,21 @@ public class HostProcessDetectionService {
         bundleId: runningApp.bundleIdentifier,
         name: runningApp.localizedName ?? runningApp.bundleIdentifier ?? "Unknown Application",
         processId: processId,
-        executablePath: runningApp.bundleURL?.path
+        executablePath: runningApp.bundleURL?.path,
       )
     }
     // Final fallback: use process name
     let processName = getProcessName(processId: processId) ?? "Unknown Process"
     return HostProcessInfo(
-      bundleId: nil, name: processName, processId: processId, executablePath: nil)
+      bundleId: nil, name: processName, processId: processId, executablePath: nil,
+    )
   }
+
   /// Walk up the process tree to find a desktop app host
   private static func findDesktopHostApp(fromPid: pid_t) -> NSRunningApplication? {
     var currentPid = fromPid
     var lastValidApp: NSRunningApplication?
-    while currentPid > 1 {  // Stop before init (PID 1)
+    while currentPid > 1 { // Stop before init (PID 1)
       if let app = NSWorkspace.shared.runningApplications.first(where: {
         $0.processIdentifier == currentPid
       }) {
@@ -70,7 +73,8 @@ public class HostProcessDetectionService {
         task.waitUntilExit()
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         if let output = String(data: data, encoding: .utf8)?.trimmingCharacters(
-          in: .whitespacesAndNewlines),
+          in: .whitespacesAndNewlines,
+        ),
           let parentPid = pid_t(output), parentPid != currentPid
         {
           currentPid = parentPid
@@ -82,6 +86,7 @@ public class HostProcessDetectionService {
     // Return the last valid regular app we found
     return lastValidApp
   }
+
   /// Get process name by process ID using system calls
   private static func getProcessName(processId: pid_t) -> String? {
     let task = Process()
@@ -94,7 +99,8 @@ public class HostProcessDetectionService {
       task.waitUntilExit()
       let data = pipe.fileHandleForReading.readDataToEndOfFile()
       if let output = String(data: data, encoding: .utf8)?.trimmingCharacters(
-        in: .whitespacesAndNewlines),
+        in: .whitespacesAndNewlines,
+      ),
         !output.isEmpty
       {
         return output
@@ -104,49 +110,50 @@ public class HostProcessDetectionService {
     }
     return nil
   }
+
   /// Get comprehensive guidance for opening System Settings for the detected host
   public static func getSystemSettingsGuidance(for hostInfo: HostProcessInfo) -> String {
     let missingPermissions = ComprehensivePermissions.getMissingPermissions()
     if missingPermissions.isEmpty { return "✅ All permissions are already granted!" }
     var guidance = """
-      🔐 Permission Setup Required
+    🔐 Permission Setup Required
 
-      MacMCP needs additional permissions to function properly.
-      The permissions need to be granted to: \(hostInfo.displayName)
+    MacMCP needs additional permissions to function properly.
+    The permissions need to be granted to: \(hostInfo.displayName)
 
-      📋 Steps to grant permissions:
+    📋 Steps to grant permissions:
 
-      1. Open System Settings (or System Preferences on older macOS)
-      2. Navigate to Privacy & Security
-      3. Find and configure these sections:
+    1. Open System Settings (or System Preferences on older macOS)
+    2. Navigate to Privacy & Security
+    3. Find and configure these sections:
 
-      """
+    """
     for permission in missingPermissions {
       guidance += """
-           • \(permission.systemSettingsPath)
-             → Click the (+) button and add "\(hostInfo.displayName)"
-             → \(permission.description)
+         • \(permission.systemSettingsPath)
+           → Click the (+) button and add "\(hostInfo.displayName)"
+           → \(permission.description)
 
-        """
+      """
     }
     guidance += """
 
-      🔍 If you don't see "\(hostInfo.displayName)" in the permission dialog:
-      • Click the (+) button to browse for it
-      • Look for the application that's running the MCP server
+    🔍 If you don't see "\(hostInfo.displayName)" in the permission dialog:
+    • Click the (+) button to browse for it
+    • Look for the application that's running the MCP server
 
-      ⚠️  Important: After granting permissions, you may need to restart the MCP server for changes to take effect.
-      """
+    ⚠️  Important: After granting permissions, you may need to restart the MCP server for changes to take effect.
+    """
     return guidance
   }
+
   /// Open System Settings to the appropriate privacy pane
   public static func openSystemSettings(for permission: ComprehensivePermissions.PermissionType) {
-    let settingsURL: String
-    switch permission {
-    case .accessibility:
-      settingsURL = "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
-    case .screenRecording:
-      settingsURL = "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
+    let settingsURL = switch permission {
+      case .accessibility:
+        "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+      case .screenRecording:
+        "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
     }
     if let url = URL(string: settingsURL) { NSWorkspace.shared.open(url) }
   }

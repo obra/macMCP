@@ -34,7 +34,8 @@ import Testing
       .connectionClosed,
       .transportError(
         NSError(
-          domain: "test", code: 123, userInfo: [NSLocalizedDescriptionKey: "Connection timeout"], )
+          domain: "test", code: 123, userInfo: [NSLocalizedDescriptionKey: "Connection timeout"],
+        ),
       ),
     ]
 
@@ -54,10 +55,12 @@ import Testing
     let accessibilityService = AccessibilityService(logger: logger)
     let applicationService = ApplicationService(logger: logger)
     let interactionService = UIInteractionService(
-      accessibilityService: accessibilityService, logger: logger, )
+      accessibilityService: accessibilityService, logger: logger,
+    )
 
     let changeDetectionService = UIChangeDetectionService(
-      accessibilityService: accessibilityService)
+      accessibilityService: accessibilityService,
+    )
     let tool = UIInteractionTool(
       interactionService: interactionService,
       accessibilityService: accessibilityService,
@@ -96,18 +99,18 @@ import Testing
       } catch let error as MCPError {
         // Verify the error is properly formatted
         switch error {
-        case .invalidParams(let message):
-          // Check that the message contains useful context information
-          #expect(message != nil && !message!.isEmpty, "Error message should not be empty")
+          case .invalidParams(let message):
+            // Check that the message contains useful context information
+            #expect(message != nil && !message!.isEmpty, "Error message should not be empty")
 
-          // We won't test specific message content since the exact message format may change
-          // Just verify that the message isn't empty
-          #expect(message != nil, "Error message should exist")
+            // We won't test specific message content since the exact message format may change
+            // Just verify that the message isn't empty
+            #expect(message != nil, "Error message should exist")
 
-        default:
-          // Some errors might be categorized differently
-          // This is fine as long as they're proper MCPErrors
-          break
+          default:
+            // Some errors might be categorized differently
+            // This is fine as long as they're proper MCPErrors
+            break
         }
       } catch {
         #expect(Bool(false), "Test \(name) threw unexpected error type: \(type(of: error))")

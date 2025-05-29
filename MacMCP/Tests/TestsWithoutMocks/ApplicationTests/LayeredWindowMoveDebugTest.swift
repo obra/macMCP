@@ -17,7 +17,8 @@ import Testing
   private mutating func setUp() async throws {
     // Set up logging
     (logger, _) = TestLogger.create(
-      label: "mcp.test.layered_debug", testName: "LayeredWindowMoveDebugTest")
+      label: "mcp.test.layered_debug", testName: "LayeredWindowMoveDebugTest",
+    )
     TestLogger.configureEnvironment(logger: logger)
     logger.info("Setting up LayeredWindowMoveDebugTest")
     // Create toolchain
@@ -51,12 +52,14 @@ import Testing
     // Wait for window to appear
     try await Task.sleep(for: .milliseconds(1000))
   }
+
   private mutating func tearDown() async throws {
     logger.info("Tearing down LayeredWindowMoveDebugTest")
     toolChain = nil
     textEditApp = nil
   }
-  @Test("Layered window movement debug") mutating func testLayeredWindowMovement() async throws {
+
+  @Test("Layered window movement debug") mutating func layeredWindowMovement() async throws {
     try await setUp()
     guard let app = textEditApp else { throw TestError.setupFailed("TextEdit app not available") }
     logger.info("🚀 Starting layered window movement test")
@@ -65,7 +68,8 @@ import Testing
     let appElement = AXUIElementCreateApplication(app.processIdentifier)
     var windowsRef: CFTypeRef?
     let windowsResult = AXUIElementCopyAttributeValue(
-      appElement, kAXWindowsAttribute as CFString, &windowsRef)
+      appElement, kAXWindowsAttribute as CFString, &windowsRef,
+    )
     guard windowsResult == .success else {
       throw TestError.testFailed("Failed to get windows via raw AX API: \(windowsResult)")
     }
@@ -86,13 +90,15 @@ import Testing
       throw TestError.testFailed("Failed to create point value for direct test")
     }
     let directMoveResult = AXUIElementSetAttributeValue(
-      directWindow, kAXPositionAttribute as CFString, pointValue1)
+      directWindow, kAXPositionAttribute as CFString, pointValue1,
+    )
     logger.info(
-      "   📊 Direct move result: \(directMoveResult) (\(directMoveResult == .success ? "SUCCESS" : "FAILURE"))"
+      "   📊 Direct move result: \(directMoveResult) (\(directMoveResult == .success ? "SUCCESS" : "FAILURE"))",
     )
     if directMoveResult != .success {
       throw TestError.testFailed(
-        "LAYER 1 FAILED: Direct AX API movement failed with \(directMoveResult)")
+        "LAYER 1 FAILED: Direct AX API movement failed with \(directMoveResult)",
+      )
     }
     // ==== LAYER 2: ElementPath.resolve() ====
     logger.info("\n📍 LAYER 2: ElementPath.resolve()")
@@ -114,7 +120,8 @@ import Testing
     let resolvedElementID = CFHash(resolvedElement)
     logger.info("   📊 Resolved element ID: \(resolvedElementID)")
     logger.info(
-      "   📊 Element ID comparison: Direct=\(directElementID), Resolved=\(resolvedElementID)")
+      "   📊 Element ID comparison: Direct=\(directElementID), Resolved=\(resolvedElementID)",
+    )
     if directElementID != resolvedElementID {
       logger.error("   ❌ CRITICAL: Element IDs differ! ElementPath returned different element.")
       // Continue testing but note the difference
@@ -130,14 +137,14 @@ import Testing
     let resolvedMoveResult = AXUIElementSetAttributeValue(
       resolvedElement,
       kAXPositionAttribute as CFString,
-      pointValue2
+      pointValue2,
     )
     logger.info(
-      "   📊 Resolved element move result: \(resolvedMoveResult) (\(resolvedMoveResult == .success ? "SUCCESS" : "FAILURE"))"
+      "   📊 Resolved element move result: \(resolvedMoveResult) (\(resolvedMoveResult == .success ? "SUCCESS" : "FAILURE"))",
     )
     if resolvedMoveResult != .success {
       logger.error(
-        "   ❌ LAYER 2 FAILED: ElementPath resolved element movement failed with \(resolvedMoveResult)"
+        "   ❌ LAYER 2 FAILED: ElementPath resolved element movement failed with \(resolvedMoveResult)",
       )
     }
     // ==== LAYER 3: AccessibilityService.moveWindow() ====
@@ -167,11 +174,14 @@ import Testing
     // ==== FINAL ANALYSIS ====
     logger.info("\n📊 FINAL ANALYSIS:")
     logger.info(
-      "   Layer 1 (Raw AX API): \(directMoveResult == .success ? "✅ SUCCESS" : "❌ FAILED")")
+      "   Layer 1 (Raw AX API): \(directMoveResult == .success ? "✅ SUCCESS" : "❌ FAILED")",
+    )
     logger.info(
-      "   Layer 2 (ElementPath): \(resolvedMoveResult == .success ? "✅ SUCCESS" : "❌ FAILED")")
+      "   Layer 2 (ElementPath): \(resolvedMoveResult == .success ? "✅ SUCCESS" : "❌ FAILED")",
+    )
     logger.info(
-      "   Element ID Match: \(directElementID == resolvedElementID ? "✅ SAME" : "❌ DIFFERENT")")
+      "   Element ID Match: \(directElementID == resolvedElementID ? "✅ SAME" : "❌ DIFFERENT")",
+    )
     // Get final window position
     var finalPositionRef: CFTypeRef?
     AXUIElementCopyAttributeValue(directWindow, kAXPositionAttribute as CFString, &finalPositionRef)
@@ -191,6 +201,7 @@ struct TestError: Swift.Error {
   static func setupFailed(_ message: String) -> TestError {
     TestError(message: "Setup failed: \(message)")
   }
+
   static func testFailed(_ message: String) -> TestError {
     TestError(message: "Test failed: \(message)")
   }

@@ -10,16 +10,14 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 echo "🎨 Formatting Swift code..."
 
-# Check if swift-format is available
-if ! command -v swift-format &> /dev/null; then
-    echo "❌ swift-format not found. Install with: brew install swift-format"
+# Check if SwiftFormat is available
+if ! command -v swiftformat &> /dev/null; then
+    echo "❌ SwiftFormat not found. Install with: brew install swiftformat"
     exit 1
 fi
 
-# Format all Swift files
-find "$PROJECT_ROOT/MacMCP/Sources" -name "*.swift" -exec swift-format --configuration "$PROJECT_ROOT/.swift-format" -i {} \;
-find "$PROJECT_ROOT/MacMCP/Tests" -name "*.swift" -exec swift-format --configuration "$PROJECT_ROOT/.swift-format" -i {} \;
-find "$PROJECT_ROOT/MacMCP/Tools" -name "*.swift" -exec swift-format --configuration "$PROJECT_ROOT/.swift-format" -i {} \;
+# Format all Swift files using SwiftFormat
+swiftformat "$PROJECT_ROOT/MacMCP/Sources" "$PROJECT_ROOT/MacMCP/Tests" "$PROJECT_ROOT/MacMCP/Tools" --config "$PROJECT_ROOT/.swiftformat"
 
 echo "✅ Swift code formatted successfully"
 

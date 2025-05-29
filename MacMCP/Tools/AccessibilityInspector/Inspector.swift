@@ -128,7 +128,8 @@ class UIElementNode {
     ]
     isClickable = clickableRoles.contains(role) || actions.contains(kAXPressAction)
 
-    // Determine if element is visible (if it has a non-zero size or doesn't have a size attribute but is still
+    // Determine if element is visible (if it has a non-zero size or doesn't have a size attribute
+    // but is still
     // meaningful)
     let hasSize = frame != nil && (frame!.size.width > 0 || frame!.size.height > 0)
     let isHidden = UIElementNode.getAttribute(element, attribute: "AXHidden") as? Bool ?? false
@@ -210,7 +211,8 @@ class Inspector {
     // Get the children
     var childrenRef: CFTypeRef?
     let result = AXUIElementCopyAttributeValue(
-      node.element, kAXChildrenAttribute as CFString, &childrenRef)
+      node.element, kAXChildrenAttribute as CFString, &childrenRef,
+    )
 
     if result != AXError.success {
       if result == AXError.noValue || result == AXError.attributeUnsupported {

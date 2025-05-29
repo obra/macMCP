@@ -16,7 +16,7 @@ public protocol MenuNavigationServiceProtocol: Actor {
   ///   - menuTitle: The title of the menu to get items from
   ///   - includeSubmenus: Whether to include submenus in the results
   /// - Returns: An array of menu item descriptors
-  func getMenuItems(bundleId: String, menuTitle: String, includeSubmenus: Bool, ) async throws
+  func getMenuItems(bundleId: String, menuTitle: String, includeSubmenus: Bool) async throws
     -> [MenuItemDescriptor]
 
   /// Activate a menu item by ElementPath URI
@@ -24,7 +24,7 @@ public protocol MenuNavigationServiceProtocol: Actor {
   ///   - bundleId: The bundle identifier of the application
   ///   - elementPath: ElementPath URI to the menu item to activate (e.g. "macos://ui/...")
   /// - Returns: Boolean indicating success
-  func activateMenuItem(bundleId: String, elementPath: String, ) async throws -> Bool
+  func activateMenuItem(bundleId: String, elementPath: String) async throws -> Bool
 
   // MARK: - Enhanced Path-Based Methods
 

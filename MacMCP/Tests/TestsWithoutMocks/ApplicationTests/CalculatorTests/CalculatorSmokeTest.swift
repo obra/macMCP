@@ -23,15 +23,17 @@ import Testing
   private mutating func setUp() async throws {
     // Set up standardized logging
     (logger, logFileURL) = TestLogger.create(
-      label: "mcp.test.calculator", testName: "CalculatorSmokeTest")
+      label: "mcp.test.calculator", testName: "CalculatorSmokeTest",
+    )
     TestLogger.configureEnvironment(logger: logger)
-    let _ = TestLogger.createDiagnosticLog(testName: "CalculatorSmokeTest", logger: logger)
+    _ = TestLogger.createDiagnosticLog(testName: "CalculatorSmokeTest", logger: logger)
     // Get the shared calculator helper
     calculatorHelper = await CalculatorTestHelper.sharedHelper()
     // Ensure app is running and reset state
-    let _ = try await calculatorHelper.ensureAppIsRunning()
+    _ = try await calculatorHelper.ensureAppIsRunning()
     await calculatorHelper.resetAppState()
   }
+
   // Shared teardown method
   private mutating func tearDown() async throws {
     logger.debug("Tearing down CalculatorSmokeTest")
@@ -44,7 +46,7 @@ import Testing
   }
 
   /// Test the most basic calculator interaction: press a button and read display
-  @Test("Basic Button Press And Display Read") mutating func testBasicButtonPressAndDisplayRead()
+  @Test("Basic Button Press And Display Read") mutating func basicButtonPressAndDisplayRead()
     async throws
   {
     try await setUp()
@@ -61,7 +63,7 @@ import Testing
   }
 
   /// Test basic addition operation
-  @Test("Basic Addition") mutating func testBasicAddition() async throws {
+  @Test("Basic Addition") mutating func basicAddition() async throws {
     try await setUp()
     // Press 3 + 4 = buttons
     logger.debug("Executing calculation 3 + 4 = ")
@@ -80,7 +82,8 @@ import Testing
     // Verify result is 7
     logger.debug("Verifying display value is '7'")
     try await calculatorHelper.assertDisplayValue(
-      "7", message: "Display should show the result '7'")
+      "7", message: "Display should show the result '7'",
+    )
     try await tearDown()
   }
 }

@@ -24,7 +24,7 @@ public struct ClipboardManagementTool: @unchecked Sendable {
       readOnlyHint: false,
       destructiveHint: false,
       idempotentHint: false,
-      openWorldHint: true
+      openWorldHint: true,
     )
   }
 
@@ -108,13 +108,13 @@ public struct ClipboardManagementTool: @unchecked Sendable {
         "imageData": .object([
           "type": .string("string"),
           "description": .string(
-            "Base64-encoded image data (PNG/JPEG) to set in clipboard (required for setImage action)"
+            "Base64-encoded image data (PNG/JPEG) to set in clipboard (required for setImage action)",
           ),
         ]),
         "filePaths": .object([
           "type": .string("array"), "items": .object(["type": .string("string")]),
           "description": .string(
-            "Array of absolute file paths to set in clipboard (required for setFiles action)"
+            "Array of absolute file paths to set in clipboard (required for setFiles action)",
           ),
         ]),
       ]), "additionalProperties": .bool(false),
@@ -125,7 +125,7 @@ public struct ClipboardManagementTool: @unchecked Sendable {
         .object([
           "action": .string("setImage"),
           "imageData": .string(
-            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
           ),
         ]),
         .object([
@@ -153,14 +153,14 @@ public struct ClipboardManagementTool: @unchecked Sendable {
     }
 
     switch action {
-    case .getInfo: return try await handleGetInfo()
-    case .getText: return try await handleGetText()
-    case .setText: return try await handleSetText(input)
-    case .getImage: return try await handleGetImage()
-    case .setImage: return try await handleSetImage(input)
-    case .getFiles: return try await handleGetFiles()
-    case .setFiles: return try await handleSetFiles(input)
-    case .clear: return try await handleClear()
+      case .getInfo: return try await handleGetInfo()
+      case .getText: return try await handleGetText()
+      case .setText: return try await handleSetText(input)
+      case .getImage: return try await handleGetImage()
+      case .setImage: return try await handleSetImage(input)
+      case .getFiles: return try await handleGetFiles()
+      case .setFiles: return try await handleSetFiles(input)
+      case .clear: return try await handleClear()
     }
   }
 
@@ -263,18 +263,18 @@ public struct ClipboardManagementTool: @unchecked Sendable {
       if let params {
         for (key, value) in params {
           switch value {
-          case .string(let stringValue): processedParams[key] = stringValue
-          case .bool(let boolValue): processedParams[key] = boolValue
-          case .int(let intValue): processedParams[key] = intValue
-          case .double(let doubleValue): processedParams[key] = doubleValue
-          case .array(let arrayValue):
-            // Handle arrays of strings
-            let stringArray = arrayValue.compactMap { value -> String? in
-              if case .string(let str) = value { return str }
-              return nil
-            }
-            if stringArray.count == arrayValue.count { processedParams[key] = stringArray }
-          default: break
+            case .string(let stringValue): processedParams[key] = stringValue
+            case .bool(let boolValue): processedParams[key] = boolValue
+            case .int(let intValue): processedParams[key] = intValue
+            case .double(let doubleValue): processedParams[key] = doubleValue
+            case .array(let arrayValue):
+              // Handle arrays of strings
+              let stringArray = arrayValue.compactMap { value -> String? in
+                if case .string(let str) = value { return str }
+                return nil
+              }
+              if stringArray.count == arrayValue.count { processedParams[key] = stringArray }
+            default: break
           }
         }
       }

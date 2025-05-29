@@ -7,7 +7,7 @@ import XCTest
 @testable import MacMCP
 
 @Suite("UI Change Detection Tests") struct UIChangeDetectionTests {
-  @Test("detectChanges finds new elements") func testDetectNewElements() async throws {
+  @Test("detectChanges finds new elements") func detectNewElements() async throws {
     let service = UIChangeDetectionService(accessibilityService: MockAccessibilityService())
     // Create before snapshot with one element
     let element1 = UIElement(
@@ -19,7 +19,7 @@ import XCTest
       frameSource: .direct,
       children: [],
       attributes: [:],
-      actions: []
+      actions: [],
     )
     let beforeSnapshot = ["path1": element1]
     // Create after snapshot with additional element
@@ -32,7 +32,7 @@ import XCTest
       frameSource: .direct,
       children: [],
       attributes: [:],
-      actions: []
+      actions: [],
     )
     let afterSnapshot = ["path1": element1, "path2": element2]
     // Detect changes
@@ -43,7 +43,8 @@ import XCTest
     #expect(changes.modifiedElements.isEmpty)
     #expect(changes.newElements.first?.path == "/app/button2")
   }
-  @Test("detectChanges finds removed elements") func testDetectRemovedElements() async throws {
+
+  @Test("detectChanges finds removed elements") func detectRemovedElements() async throws {
     let service = UIChangeDetectionService(accessibilityService: MockAccessibilityService())
     // Create before snapshot with two elements
     let element1 = UIElement(
@@ -55,7 +56,7 @@ import XCTest
       frameSource: .direct,
       children: [],
       attributes: [:],
-      actions: []
+      actions: [],
     )
     let element2 = UIElement(
       path: "/app/button2",
@@ -66,7 +67,7 @@ import XCTest
       frameSource: .direct,
       children: [],
       attributes: [:],
-      actions: []
+      actions: [],
     )
     let beforeSnapshot = ["path1": element1, "path2": element2]
     // Create after snapshot with one element removed
@@ -79,7 +80,8 @@ import XCTest
     #expect(changes.modifiedElements.isEmpty)
     #expect(changes.removedElements.first == "path2")
   }
-  @Test("detectChanges finds modified elements") func testDetectModifiedElements() async throws {
+
+  @Test("detectChanges finds modified elements") func detectModifiedElements() async throws {
     let service = UIChangeDetectionService(accessibilityService: MockAccessibilityService())
     // Create before snapshot
     let element1Before = UIElement(
@@ -91,7 +93,7 @@ import XCTest
       frameSource: .direct,
       children: [],
       attributes: [:],
-      actions: []
+      actions: [],
     )
     let beforeSnapshot = ["path1": element1Before]
     // Create after snapshot with modified element (different title)
@@ -104,7 +106,7 @@ import XCTest
       frameSource: .direct,
       children: [],
       attributes: [:],
-      actions: []
+      actions: [],
     )
     let afterSnapshot = ["path1": element1After]
     // Detect changes
@@ -115,7 +117,8 @@ import XCTest
     #expect(changes.modifiedElements.count == 1)
     #expect(changes.modifiedElements.first?.after.title == "Button 1 Modified")
   }
-  @Test("detectChanges returns no changes for identical snapshots") func testNoChanges()
+
+  @Test("detectChanges returns no changes for identical snapshots") func noChanges()
     async throws
   {
     let service = UIChangeDetectionService(accessibilityService: MockAccessibilityService())
@@ -129,7 +132,7 @@ import XCTest
       frameSource: .direct,
       children: [],
       attributes: [:],
-      actions: []
+      actions: [],
     )
     let snapshot = ["path1": element1]
     // Detect changes

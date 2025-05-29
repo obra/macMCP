@@ -19,6 +19,7 @@ public struct InteractionWithChangeDetection {
   public init(changeDetectionService: UIChangeDetectionServiceProtocol) {
     self.changeDetectionService = changeDetectionService
   }
+
   public func performWithChangeDetection<T>(
     scope: UIElementScope = .focusedApplication,
     detectChanges: Bool = true,
@@ -31,7 +32,8 @@ public struct InteractionWithChangeDetection {
     if detectChanges {
       do {
         beforeSnapshot = try await changeDetectionService.captureUISnapshot(
-          scope: scope, maxDepth: maxDepth)
+          scope: scope, maxDepth: maxDepth,
+        )
         logger.debug("Captured before snapshot with \(beforeSnapshot?.count ?? 0) elements")
       } catch {
         logger.warning("Failed to capture before snapshot: \(error)")
@@ -48,12 +50,13 @@ public struct InteractionWithChangeDetection {
         // Wait for UI to settle after interaction
         if delay > 0 { try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000)) }
         let afterSnapshot = try await changeDetectionService.captureUISnapshot(
-          scope: scope, maxDepth: maxDepth)
+          scope: scope, maxDepth: maxDepth,
+        )
         logger.debug("Captured after snapshot with \(afterSnapshot.count) elements")
         changes = changeDetectionService.detectChanges(before: before, after: afterSnapshot)
-        if let changes = changes, changes.hasChanges {
+        if let changes, changes.hasChanges {
           logger.info(
-            "UI changes detected: \(changes.newElements.count) new, \(changes.removedElements.count) removed, \(changes.modifiedElements.count) modified"
+            "UI changes detected: \(changes.newElements.count) new, \(changes.removedElements.count) removed, \(changes.modifiedElements.count) modified",
           )
         } else {
           logger.debug("No UI changes detected")

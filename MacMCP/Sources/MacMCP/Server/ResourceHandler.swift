@@ -46,12 +46,13 @@ extension ResourceHandler {
     // Check each component
     for (pattern, component) in zip(patternComponents, uriComponents) {
       // If the pattern component is a parameter (enclosed in {}), it matches anything
-      if pattern.hasPrefix("{") && pattern.hasSuffix("}") { continue }
+      if pattern.hasPrefix("{"), pattern.hasSuffix("}") { continue }
       // Otherwise, the component should match exactly
       if pattern != component { return false }
     }
     return true
   }
+
   /// Extract parameter values from a URI based on the pattern
   /// - Parameters:
   ///   - uri: The URI
@@ -63,7 +64,7 @@ extension ResourceHandler {
 
     // Check if the URI is missing a scheme, and if the pattern has one
     var normalizedUri = uri
-    if !uri.contains("://") && pattern.contains("://") {
+    if !uri.contains("://"), pattern.contains("://") {
       // The pattern has a scheme (e.g., macos://) but the URI doesn't
       // Extract the scheme from the pattern and add it to the URI
       if let schemeEnd = pattern.range(of: "://") {
@@ -86,7 +87,7 @@ extension ResourceHandler {
       // Extract parameter values
       for (pattern, component) in zip(patternComponents, uriComponents) {
         // If the pattern component is a parameter (enclosed in {}), extract its value
-        if pattern.hasPrefix("{") && pattern.hasSuffix("}") {
+        if pattern.hasPrefix("{"), pattern.hasSuffix("}") {
           let paramName = String(pattern.dropFirst().dropLast())
           parameters[paramName] = component
         } else if pattern != component {
@@ -115,6 +116,7 @@ public class ResourceRegistry: @unchecked Sendable {
   public func registerTemplate(_ template: ListResourceTemplates.Template) {
     templates.append(template)
   }
+
   /// Register a resource template using MCP format
   /// - Parameter template: The template to register in MCP format
   public func registerMCPTemplate(_ template: MCP.Resource.Template) {
@@ -123,24 +125,28 @@ public class ResourceRegistry: @unchecked Sendable {
       uriTemplate: template.uriTemplate,
       name: template.name,
       description: template.description,
-      mimeType: template.mimeType
+      mimeType: template.mimeType,
     )
     templates.append(ourTemplate)
   }
+
   /// Find a handler for the given URI
   /// - Parameter uri: The URI to handle
   /// - Returns: The handler if found
   /// - Throws: ResourceURIError if no handler is found
   public func handlerFor(uri: String) throws -> ResourceHandler {
-    for handler in handlers where handler.canHandle(uri: uri) { return handler }
+    for handler in handlers where handler.canHandle(uri: uri) {
+      return handler
+    }
     throw ResourceURIError.resourceNotFound(uri)
   }
+
   /// Get all registered resource handlers
   /// - Returns: Array of resource handlers
-  public func allHandlers() -> [ResourceHandler] { return handlers }
+  public func allHandlers() -> [ResourceHandler] { handlers }
   /// Get all registered resource templates
   /// - Returns: Array of resource templates
-  public func allTemplates() -> [ListResourceTemplates.Template] { return templates }
+  public func allTemplates() -> [ListResourceTemplates.Template] { templates }
   /// List all available resources
   /// - Parameters:
   ///   - cursor: Optional pagination cursor
@@ -156,31 +162,29 @@ public class ResourceRegistry: @unchecked Sendable {
         id: handler.uriPattern,
         uri: handler.uriPattern,
         name: handler.name,
-        type: handler.mimeType
+        type: handler.mimeType,
       )
     }
     // Simple pagination based on cursor
-    if let cursor = cursor, let index = resources.firstIndex(where: { $0.id == cursor }) {
+    if let cursor, let index = resources.firstIndex(where: { $0.id == cursor }) {
       let startIndex = resources.index(after: index)
       if startIndex < resources.endIndex {
         let endIndex = min(startIndex + actualLimit, resources.endIndex)
-        let slice = resources[startIndex..<endIndex]
+        let slice = resources[startIndex ..< endIndex]
         // Determine next cursor
-        let nextCursor: String?
-        if endIndex < resources.endIndex {
-          nextCursor = resources[endIndex].id
+        let nextCursor: String? = if endIndex < resources.endIndex {
+          resources[endIndex].id
         } else {
-          nextCursor = nil
+          nil
         }
         return (Array(slice), nextCursor)
       }
     }
     // No cursor or cursor not found - return from beginning
     let endIndex = min(actualLimit, resources.count)
-    let slice = resources[0..<endIndex]
+    let slice = resources[0 ..< endIndex]
     // Determine next cursor
-    let nextCursor: String?
-    if endIndex < resources.count { nextCursor = resources[endIndex].id } else { nextCursor = nil }
+    let nextCursor: String? = if endIndex < resources.count { resources[endIndex].id } else { nil }
     return (Array(slice), nextCursor)
   }
 }

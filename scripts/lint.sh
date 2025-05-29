@@ -12,12 +12,12 @@ echo "🔍 Checking Swift code formatting and linting..."
 
 cd "$PROJECT_ROOT"
 
-# Check formatting with swift-format (without changing files)
-if command -v swift-format &> /dev/null; then
+# Check formatting with SwiftFormat (without changing files)
+if command -v swiftformat &> /dev/null; then
     echo "📏 Checking code formatting..."
     
-    # Use swift-format lint to check for formatting issues
-    if swift-format lint --configuration .swift-format --recursive MacMCP/Sources MacMCP/Tests MacMCP/Tools --strict; then
+    # Use SwiftFormat --lint to check for formatting issues
+    if swiftformat MacMCP/Sources MacMCP/Tests MacMCP/Tools --config .swiftformat --lint; then
         echo "✅ Code formatting is correct"
     else
         echo "❌ Formatting issues found"
@@ -25,7 +25,7 @@ if command -v swift-format &> /dev/null; then
         exit 1
     fi
 else
-    echo "⚠️  swift-format not found. Install with: brew install swift-format"
+    echo "⚠️  SwiftFormat not found. Install with: brew install swiftformat"
 fi
 
 # Run SwiftLint

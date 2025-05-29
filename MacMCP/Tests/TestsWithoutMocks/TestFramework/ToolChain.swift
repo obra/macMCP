@@ -67,17 +67,21 @@ public final class ToolChain: @unchecked Sendable {
     accessibilityService = AccessibilityService(logger: logger)
     applicationService = ApplicationService(logger: logger)
     screenshotService = ScreenshotService(
-      accessibilityService: accessibilityService, logger: logger, )
+      accessibilityService: accessibilityService, logger: logger,
+    )
     interactionService = UIInteractionService(
-      accessibilityService: accessibilityService, logger: logger, )
+      accessibilityService: accessibilityService, logger: logger,
+    )
     menuNavigationService = MenuNavigationService(
-      accessibilityService: accessibilityService, logger: logger, )
+      accessibilityService: accessibilityService, logger: logger,
+    )
 
     // Create tools
-    screenshotTool = ScreenshotTool(screenshotService: screenshotService, logger: logger, )
+    screenshotTool = ScreenshotTool(screenshotService: screenshotService, logger: logger)
 
     let changeDetectionService = UIChangeDetectionService(
-      accessibilityService: accessibilityService)
+      accessibilityService: accessibilityService,
+    )
     uiInteractionTool = UIInteractionTool(
       interactionService: interactionService,
       accessibilityService: accessibilityService,
@@ -87,7 +91,8 @@ public final class ToolChain: @unchecked Sendable {
     )
 
     windowManagementTool = WindowManagementTool(
-      accessibilityService: accessibilityService, logger: logger, )
+      accessibilityService: accessibilityService, logger: logger,
+    )
 
     menuNavigationTool = MenuNavigationTool(
       menuNavigationService: menuNavigationService,
@@ -97,7 +102,8 @@ public final class ToolChain: @unchecked Sendable {
     )
 
     interfaceExplorerTool = InterfaceExplorerTool(
-      accessibilityService: accessibilityService, logger: logger, )
+      accessibilityService: accessibilityService, logger: logger,
+    )
 
     keyboardInteractionTool = KeyboardInteractionTool(
       interactionService: interactionService,
@@ -107,7 +113,8 @@ public final class ToolChain: @unchecked Sendable {
     )
 
     applicationManagementTool = ApplicationManagementTool(
-      applicationService: applicationService, logger: logger, )
+      applicationService: applicationService, logger: logger,
+    )
   }
 
   // MARK: - Application Operations
@@ -118,7 +125,7 @@ public final class ToolChain: @unchecked Sendable {
   ///   - arguments: Optional command line arguments
   ///   - hideOthers: Whether to hide other applications
   /// - Returns: True if the application was successfully opened
-  public func openApp(bundleId: String, arguments: [String]? = nil, hideOthers: Bool = false, )
+  public func openApp(bundleId: String, arguments: [String]? = nil, hideOthers: Bool = false)
     async throws -> Bool
   {
     // Create parameters for the application management tool
@@ -215,7 +222,8 @@ public final class ToolChain: @unchecked Sendable {
     // Add exact description as textContains filter (for compact JSON format compatibility)
     if criteria.description != nil { filterObj["textContains"] = .string(criteria.description!) }
 
-    // Include main content (windows and their contents) - this is equivalent to --show-window-contents
+    // Include main content (windows and their contents) - this is equivalent to
+    // --show-window-contents
     filterObj["inMainContent"] = .bool(true)
 
     // Only add filter if we have filter criteria
@@ -223,7 +231,7 @@ public final class ToolChain: @unchecked Sendable {
 
     // Set hidden elements flag
     if criteria.isVisible != nil {
-      params["includeHidden"] = .bool(true)  // We'll filter later based on isVisible
+      params["includeHidden"] = .bool(true) // We'll filter later based on isVisible
     }
     // Always include coordinates since tests need them for clicking
     params["showCoordinates"] = .bool(true)
@@ -244,14 +252,15 @@ public final class ToolChain: @unchecked Sendable {
         elements.append(element)
       }
 
-      // Filter elements by criteria - but skip if we used textContains since InterfaceExplorerTool already filtered
-      let matchingElements: [UIElement]
-      if criteria.description != nil {
-        // We converted description to textContains, so InterfaceExplorerTool already did the filtering
-        matchingElements = elements
+      // Filter elements by criteria - but skip if we used textContains since InterfaceExplorerTool
+      // already filtered
+      let matchingElements: [UIElement] = if criteria.description != nil {
+        // We converted description to textContains, so InterfaceExplorerTool already did the
+        // filtering
+        elements
       } else {
         // Apply our own filtering for other criteria
-        matchingElements = elements.filter { criteria.matches($0) }
+        elements.filter { criteria.matches($0) }
       }
 
       return matchingElements
@@ -299,7 +308,7 @@ public final class ToolChain: @unchecked Sendable {
     elementId: String,
     appBundleId: String? = nil,
     detectChanges: Bool = false,
-    changeDetectionDelay: Int = 200
+    changeDetectionDelay: Int = 200,
   ) async throws -> [Tool.Content] {
     // Create parameters for the tool
     var params: [String: Value] = [
@@ -318,7 +327,7 @@ public final class ToolChain: @unchecked Sendable {
   ///   - elementPath: Path of the element to click in macos://ui/ format
   ///   - bundleId: Optional bundle identifier of the application
   /// - Returns: True if the click was successful
-  public func clickElement(elementPath: String, bundleId: String? = nil, ) async throws -> Bool {
+  public func clickElement(elementPath: String, bundleId: String? = nil) async throws -> Bool {
     // Create parameters for the tool
     var params: [String: Value] = ["action": .string("click"), "id": .string(elementPath)]
 
@@ -364,7 +373,7 @@ public final class ToolChain: @unchecked Sendable {
   ///   - text: Text to type
   ///   - bundleId: Optional bundle identifier of the application
   /// - Returns: True if the text was successfully typed
-  public func typeText(elementPath: String, text: String, bundleId: String? = nil, ) async throws
+  public func typeText(elementPath: String, text: String, bundleId: String? = nil) async throws
     -> Bool
   {
     // Create parameters for the tool
@@ -440,7 +449,7 @@ public final class ToolChain: @unchecked Sendable {
   ///   - changeDetectionDelay: Delay in milliseconds before capturing changes
   /// - Returns: Array of tool content (may include change detection results)
   public func typeTextWithKeyboard(
-    text: String, detectChanges: Bool = false, changeDetectionDelay: Int = 200
+    text: String, detectChanges: Bool = false, changeDetectionDelay: Int = 200,
   )
     async throws -> [Tool.Content]
   {
@@ -555,7 +564,9 @@ public final class ToolChain: @unchecked Sendable {
     // Add filter if provided
     if let filter, !filter.isEmpty {
       var filterObj: [String: Value] = [:]
-      for (key, value) in filter { filterObj[key] = .string(value) }
+      for (key, value) in filter {
+        filterObj[key] = .string(value)
+      }
       params["filter"] = .object(filterObj)
     }
 
@@ -587,37 +598,40 @@ public final class ToolChain: @unchecked Sendable {
       throw NSError(
         domain: "ToolChain",
         code: 1010,
-        userInfo: [NSLocalizedDescriptionKey: "Tool response is not text content"]
+        userInfo: [NSLocalizedDescriptionKey: "Tool response is not text content"],
       )
     }
     guard let data = jsonString.data(using: .utf8) else {
       throw NSError(
         domain: "ToolChain",
         code: 1011,
-        userInfo: [NSLocalizedDescriptionKey: "Failed to convert JSON string to data"]
+        userInfo: [NSLocalizedDescriptionKey: "Failed to convert JSON string to data"],
       )
     }
     guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
       throw NSError(
         domain: "ToolChain",
         code: 1012,
-        userInfo: [NSLocalizedDescriptionKey: "Failed to parse JSON or result is not a dictionary"]
+        userInfo: [NSLocalizedDescriptionKey: "Failed to parse JSON or result is not a dictionary"],
       )
     }
     return json
   }
+
   /// Get a boolean value from a parsed JSON response
   /// - Parameters:
   ///   - json: The parsed JSON
   ///   - key: The key to look up
   /// - Returns: The boolean value, or false if not found
   public func getBoolValue(from json: [String: Any], forKey key: String) -> Bool {
-    return json[key] as? Bool ?? false
+    json[key] as? Bool ?? false
   }
+
   // MARK: - Helper Methods
 
   /// Parse a UI element from JSON
-  /// - Parameter json: JSON dictionary representing a UI element (in EnhancedElementDescriptor format)
+  /// - Parameter json: JSON dictionary representing a UI element (in EnhancedElementDescriptor
+  /// format)
   /// - Returns: UI element
   private func parseUIElement(from json: [String: Any]) throws -> UIElement {
     // Extract required fields
@@ -643,10 +657,10 @@ public final class ToolChain: @unchecked Sendable {
     let value = json["value"]
     let stringValue: String? =
       value as? String
-      ?? {
-        if let value { return String(describing: value) }
-        return nil
-      }()
+        ?? {
+          if let value { return String(describing: value) }
+          return nil
+        }()
     let description = json["description"] as? String
 
     // Extract frame
@@ -677,7 +691,9 @@ public final class ToolChain: @unchecked Sendable {
     var attributes: [String: Any] = [:]
     if let attributesDict = json["attributes"] as? [String: String] {
       // Convert string-to-string dictionary to string-to-any dictionary
-      for (key, value) in attributesDict { attributes[key] = value }
+      for (key, value) in attributesDict {
+        attributes[key] = value
+      }
     }
 
     // Extract actions (handle both old array format and new comma-separated string format)
@@ -719,27 +735,27 @@ public final class ToolChain: @unchecked Sendable {
     // Process all props (state and capabilities together)
     for prop in allProps {
       switch prop.lowercased() {
-      // State properties
-      case "enabled": isEnabled = true
-      case "disabled": isEnabled = false
-      case "visible": isVisible = true
-      case "hidden": isVisible = false
-      case "focused": isFocused = true
-      case "unfocused": isFocused = false
-      case "selected": isSelected = true
-      case "unselected": isSelected = false
-      // Capability properties
-      case "clickable": attributes["clickable"] = true
-      case "editable": attributes["editable"] = true
-      case "toggleable": attributes["toggleable"] = true
-      case "selectable": attributes["selectable"] = true
-      case "adjustable": attributes["adjustable"] = true
-      case "scrollable": attributes["scrollable"] = true
-      case "haschildren": attributes["hasChildren"] = true
-      case "hasmenu": attributes["hasMenu"] = true
-      case "hashelp": attributes["hasHelp"] = true
-      case "hastooltip": attributes["hasTooltip"] = true
-      default: break  // Ignore other properties
+        // State properties
+        case "enabled": isEnabled = true
+        case "disabled": isEnabled = false
+        case "visible": isVisible = true
+        case "hidden": isVisible = false
+        case "focused": isFocused = true
+        case "unfocused": isFocused = false
+        case "selected": isSelected = true
+        case "unselected": isSelected = false
+        // Capability properties
+        case "clickable": attributes["clickable"] = true
+        case "editable": attributes["editable"] = true
+        case "toggleable": attributes["toggleable"] = true
+        case "selectable": attributes["selectable"] = true
+        case "adjustable": attributes["adjustable"] = true
+        case "scrollable": attributes["scrollable"] = true
+        case "haschildren": attributes["hasChildren"] = true
+        case "hasmenu": attributes["hasMenu"] = true
+        case "hashelp": attributes["hasHelp"] = true
+        case "hastooltip": attributes["hasTooltip"] = true
+        default: break // Ignore other properties
       }
     }
 
@@ -758,9 +774,9 @@ public final class ToolChain: @unchecked Sendable {
       elementDescription: description,
       frame: frame,
       normalizedFrame: normalizedFrame,
-      viewportFrame: nil,  // Not included in JSON
-      frameSource: .direct,  // Default
-      parent: nil,  // Parent relationship not preserved in JSON
+      viewportFrame: nil, // Not included in JSON
+      frameSource: .direct, // Default
+      parent: nil, // Parent relationship not preserved in JSON
       children: children,
       attributes: attributes,
       actions: actions,

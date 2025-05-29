@@ -7,9 +7,9 @@ import Logging
 import MCP
 
 #if canImport(System)
-  import System
+import System
 #else
-  @preconcurrency import SystemPackage
+@preconcurrency import SystemPackage
 #endif
 
 // Configure a logger for the inspector
@@ -17,13 +17,13 @@ private let inspectorLogger = Logger(label: "com.fsck.mac-mcp.mcp-inspector")
 
 /// The main inspector class responsible for accessibility tree traversal using MCP tools
 class MCPInspector: @unchecked Sendable {
-  let appId: String?  // Changed to public access for menu and window helpers
+  let appId: String? // Changed to public access for menu and window helpers
   private let pid: Int?
   private let maxDepth: Int
   private var elementIndex = 0
 
   // Official MCP client for communicating with the MCP server
-  var mcpClient: Client?  // Changed to public access for use by menu and window helpers
+  var mcpClient: Client? // Changed to public access for use by menu and window helpers
   private var transport: StdioTransport?
   private var process: Process?
 
@@ -33,13 +33,13 @@ class MCPInspector: @unchecked Sendable {
     self.maxDepth = maxDepth
 
     // Set up MCP path
-    let serverPath = mcpPath ?? "./MacMCP"  // Default to local directory if not specified
+    let serverPath = mcpPath ?? "./MacMCP" // Default to local directory if not specified
     print("Using MCP server at: \(serverPath)")
 
     // Create a process for the MCP server
     let process = Process()
     process.executableURL = URL(fileURLWithPath: serverPath)
-    process.arguments = []  // No arguments, just run in standard mode
+    process.arguments = [] // No arguments, just run in standard mode
 
     // Set up pipes for stdin/stdout
     let inPipe = Pipe()
@@ -106,11 +106,13 @@ class MCPInspector: @unchecked Sendable {
         print("Using server-side path resolution for: \(pathFilter)")
         do {
           return try await inspectElementByPath(
-            bundleId: bundleId, path: pathFilter, maxDepth: maxDepth, )
+            bundleId: bundleId, path: pathFilter, maxDepth: maxDepth,
+          )
         } catch {
           // If path-based inspection fails, fall back to normal app inspection
           print("Path-based inspection failed with error: \(error.localizedDescription)")
-          print("Falling back to standard application inspection")  // Continue with standard app inspection
+          print("Falling back to standard application inspection") // Continue with standard app
+          // inspection
         }
       } else {
         // This is a UI element filter pattern, not a path
@@ -138,7 +140,8 @@ class MCPInspector: @unchecked Sendable {
       guard let firstContent = uiState.content.first, case .text(let jsonString) = firstContent
       else {
         throw InspectionError.unexpectedError(
-          "Invalid response format from MCP: missing text content")
+          "Invalid response format from MCP: missing text content",
+        )
       }
 
       // Convert the JSON string to data
@@ -165,7 +168,8 @@ class MCPInspector: @unchecked Sendable {
       return rootNode
     } catch {
       throw InspectionError.unexpectedError(
-        "Failed to parse UI state: \(error.localizedDescription)")
+        "Failed to parse UI state: \(error.localizedDescription)",
+      )
     }
   }
 
@@ -203,14 +207,14 @@ class MCPInspector: @unchecked Sendable {
     // Create the request parameters for the InterfaceExplorerTool (replacing the older UIStateTool)
     let arguments: [String: Value] = [
       "scope": .string("application"), "bundleId": .string(bundleId), "maxDepth": .int(maxDepth),
-      "includeHidden": .bool(true),  // Include all elements for completeness
+      "includeHidden": .bool(true), // Include all elements for completeness
     ]
 
     // Send request to the MCP server using the new tool name
     do {
       print("Sending interface explorer request to MCP for: \(bundleId)")
       let (content, isError) = try await mcpClient.callTool(
-        name: "macos_explore_ui",  // Updated tool name
+        name: "macos_explore_ui", // Updated tool name
         arguments: arguments,
       )
 
@@ -227,7 +231,8 @@ class MCPInspector: @unchecked Sendable {
       inspectorLogger.error("Failed to fetch UI state data: \(error.localizedDescription)")
       print("ERROR: Detailed interface explorer error: \(error)")
       throw InspectionError.unexpectedError(
-        "Failed to fetch UI state: \(error.localizedDescription)")
+        "Failed to fetch UI state: \(error.localizedDescription)",
+      )
     }
   }
 
@@ -243,15 +248,18 @@ class MCPInspector: @unchecked Sendable {
 
     // Create the request parameters for the InterfaceExplorerTool with element path parameter
     let arguments: [String: Value] = [
-      "scope": .string("path"), "bundleId": .string(bundleId), "id": .string(path),  // Use the path parameter for path-based lookup
-      "maxDepth": .int(maxDepth), "includeHidden": .bool(true),  // Include all elements for completeness
+      "scope": .string("path"), "bundleId": .string(bundleId), "id": .string(path),
+      // Use the path parameter for path-based lookup
+      "maxDepth": .int(maxDepth), "includeHidden": .bool(true),
+      // Include all elements for completeness
     ]
 
     // Send request to the MCP server
     do {
       print("Sending element path request to MCP: \(path)")
       let (content, isError) = try await mcpClient.callTool(
-        name: "macos_explore_ui", arguments: arguments, )
+        name: "macos_explore_ui", arguments: arguments,
+      )
 
       if let isError, isError {
         throw InspectionError.unexpectedError("Error from MCP tool: \(content)")
@@ -260,7 +268,8 @@ class MCPInspector: @unchecked Sendable {
       // Process the response
       guard let firstContent = content.first, case .text(let jsonString) = firstContent else {
         throw InspectionError.unexpectedError(
-          "Invalid response format from MCP: missing text content")
+          "Invalid response format from MCP: missing text content",
+        )
       }
 
       // Convert the JSON string to data
@@ -289,7 +298,8 @@ class MCPInspector: @unchecked Sendable {
       inspectorLogger.error("Failed to fetch element by path: \(error.localizedDescription)")
       print("ERROR: Element path inspection error: \(error)")
       throw InspectionError.unexpectedError(
-        "Failed to fetch element by path: \(error.localizedDescription)")
+        "Failed to fetch element by path: \(error.localizedDescription)",
+      )
     }
   }
 
@@ -313,14 +323,14 @@ class MCPInspector: @unchecked Sendable {
     // Extract attributes using regex - support both [@attr="value"] and [attr="value"] formats
     let attributePattern = "\\[@?([^=]+)=\"([^\"]+)\"\\]"
     let regex = try? NSRegularExpression(pattern: attributePattern)
-    let nsRange = NSRange(pattern.startIndex..<pattern.endIndex, in: pattern)
+    let nsRange = NSRange(pattern.startIndex ..< pattern.endIndex, in: pattern)
 
     if let regex {
       let matches = regex.matches(in: pattern, options: [], range: nsRange)
       for match in matches {
         // Extract attribute name and value
         if match.numberOfRanges == 3, let nameRange = Range(match.range(at: 1), in: pattern),
-          let valueRange = Range(match.range(at: 2), in: pattern)
+           let valueRange = Range(match.range(at: 2), in: pattern)
         {
           let name = String(pattern[nameRange])
           let value = String(pattern[valueRange])
@@ -387,7 +397,8 @@ class MCPInspector: @unchecked Sendable {
     // Process the response
     guard let firstContent = content.first, case .text(let jsonString) = firstContent else {
       throw InspectionError.unexpectedError(
-        "Invalid response format from MCP: missing text content")
+        "Invalid response format from MCP: missing text content",
+      )
     }
 
     // Convert the JSON string to data and create a node
@@ -399,7 +410,8 @@ class MCPInspector: @unchecked Sendable {
     let jsonArray = try JSONSerialization.jsonObject(with: jsonData) as? [[String: Any]]
     guard let rootJson = jsonArray?.first else {
       throw InspectionError.unexpectedError(
-        "Invalid JSON response from MCP or no matching elements found")
+        "Invalid JSON response from MCP or no matching elements found",
+      )
     }
 
     // Reset element counter
@@ -478,11 +490,11 @@ enum InspectionError: Swift.Error {
 
   var description: String {
     switch self {
-    case .accessibilityPermissionDenied:
-      "Accessibility permission denied. Please enable accessibility permissions in System Settings > Privacy & Security > Accessibility."
-    case .applicationNotFound: "Application not found. Please verify the bundle ID or process ID."
-    case .timeout: "Operation timed out. The application may be busy or not responding."
-    case .unexpectedError(let message): "Unexpected error: \(message)"
+      case .accessibilityPermissionDenied:
+        "Accessibility permission denied. Please enable accessibility permissions in System Settings > Privacy & Security > Accessibility."
+      case .applicationNotFound: "Application not found. Please verify the bundle ID or process ID."
+      case .timeout: "Operation timed out. The application may be busy or not responding."
+      case .unexpectedError(let message): "Unexpected error: \(message)"
     }
   }
 }

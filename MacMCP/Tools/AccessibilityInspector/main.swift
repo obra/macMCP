@@ -14,10 +14,10 @@ struct AccessibilityInspector: ParsableCommand {
     commandName: "ax-inspector",
     abstract: "A utility for inspecting the accessibility tree of macOS applications",
     discussion: """
-      The Accessibility Tree Inspector provides detailed visualization and inspection 
-      of UI element hierarchies in macOS applications. This is essential for test 
-      development and troubleshooting accessibility interactions.
-      """,
+    The Accessibility Tree Inspector provides detailed visualization and inspection 
+    of UI element hierarchies in macOS applications. This is essential for test 
+    development and troubleshooting accessibility interactions.
+    """,
   )
 
   // Application targeting options
@@ -33,7 +33,8 @@ struct AccessibilityInspector: ParsableCommand {
   @Option(name: [.customLong("save")], help: "Save output to file") var saveToFile: String?
 
   @Option(
-    name: [.customLong("filter")], help: "Filter elements by property (format: property=value)")
+    name: [.customLong("filter")], help: "Filter elements by property (format: property=value)",
+  )
   var filter: [String] = []
 
   @Flag(name: [.customLong("hide-invisible")], help: "Hide invisible elements") var hideInvisible:
@@ -44,7 +45,8 @@ struct AccessibilityInspector: ParsableCommand {
 
   @Flag(
     name: [.customLong("show-menus")],
-    help: "Only show menu-related elements (menu bar, menus, menu items)")
+    help: "Only show menu-related elements (menu bar, menus, menu items)",
+  )
   var showMenus: Bool = false
 
   @Flag(
@@ -82,7 +84,8 @@ struct AccessibilityInspector: ParsableCommand {
         filterDict[String(parts[0])] = String(parts[1])
       } else {
         logger.warning(
-          "Ignoring invalid filter format: \(filterString). Expected format: property=value")
+          "Ignoring invalid filter format: \(filterString). Expected format: property=value",
+        )
       }
     }
 
@@ -98,8 +101,8 @@ struct AccessibilityInspector: ParsableCommand {
 
       // Create visualizer options
       var visualizerOptions = TreeVisualizer.Options()
-      visualizerOptions.showDetails = true  // Always show details
-      visualizerOptions.showAllAttributes = true  // Always show all attributes
+      visualizerOptions.showDetails = true // Always show details
+      visualizerOptions.showAllAttributes = true // Always show all attributes
 
       // Initialize visualizer
       let visualizer = TreeVisualizer(options: visualizerOptions)
@@ -180,11 +183,11 @@ enum InspectionError: Error {
 
   var description: String {
     switch self {
-    case .accessibilityPermissionDenied:
-      "Accessibility permission denied. Please enable accessibility permissions in System Settings > Privacy & Security > Accessibility."
-    case .applicationNotFound: "Application not found. Please verify the bundle ID or process ID."
-    case .timeout: "Operation timed out. The application may be busy or not responding."
-    case .unexpectedError(let message): "Unexpected error: \(message)"
+      case .accessibilityPermissionDenied:
+        "Accessibility permission denied. Please enable accessibility permissions in System Settings > Privacy & Security > Accessibility."
+      case .applicationNotFound: "Application not found. Please verify the bundle ID or process ID."
+      case .timeout: "Operation timed out. The application may be busy or not responding."
+      case .unexpectedError(let message): "Unexpected error: \(message)"
     }
   }
 }

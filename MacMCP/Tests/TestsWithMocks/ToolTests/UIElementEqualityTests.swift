@@ -7,7 +7,7 @@ import Testing
 @testable import MacMCP
 
 @Suite(.serialized) struct UIElementEqualityTests {
-  @Test("UIElement equality basics - same path should be equal") func testBasicEquality() throws {
+  @Test("UIElement equality basics - same path should be equal") func basicEquality() throws {
     let element1 = createTestUIElement(path: "macos://ui/AXButton[@AXDescription=\"Test\"]")
     let element2 = createTestUIElement(path: "macos://ui/AXButton[@AXDescription=\"Test\"]")
     print("Element 1 path: \(element1.path)")
@@ -21,7 +21,8 @@ import Testing
     #expect(element1 == element2, "Elements with same path should be equal")
     #expect(!(element1 != element2), "Negation should be consistent")
   }
-  @Test("Investigate impossible condition scenario") func testImpossibleCondition() throws {
+
+  @Test("Investigate impossible condition scenario") func impossibleCondition() throws {
     let element1 = createTestUIElement(path: "macos://ui/AXButton[@AXDescription=\"Test\"]")
     let element2 = createTestUIElement(path: "macos://ui/AXButton[@AXDescription=\"Test\"]")
     // Replicate the exact test from UIChangeDetectionService
@@ -34,13 +35,14 @@ import Testing
     print("Direct comparison: \(element1 == element2)")
     print("Direct negation: \(element1 != element2)")
     // This should be impossible - if it fails, we've reproduced the bug
-    if equal && notEqual {
+    if equal, notEqual {
       print("🚨 IMPOSSIBLE CONDITION REPRODUCED!")
       print("This indicates a fundamental Swift equality issue")
     }
     #expect(!(equal && notEqual), "Cannot have both equal and not equal be true")
   }
-  @Test("Test different objects with same path") func testDifferentObjectsSamePath() throws {
+
+  @Test("Test different objects with same path") func differentObjectsSamePath() throws {
     let path = "macos://ui/AXButton[@AXDescription=\"Test\"]"
     // Create multiple UIElement objects with identical paths but different content
     let element1 = UIElement(
@@ -58,16 +60,16 @@ import Testing
       children: [],
       attributes: [:],
       actions: [],
-      axElement: nil
+      axElement: nil,
     )
     let element2 = UIElement(
       path: path,
       role: "AXButton",
-      title: "Test2",  // Different title
+      title: "Test2", // Different title
       value: nil,
       elementDescription: "Test",
       identifier: nil,
-      frame: CGRect(x: 10, y: 10, width: 100, height: 20),  // Different frame
+      frame: CGRect(x: 10, y: 10, width: 100, height: 20), // Different frame
       normalizedFrame: nil,
       viewportFrame: nil,
       frameSource: .direct,
@@ -75,7 +77,7 @@ import Testing
       children: [],
       attributes: [:],
       actions: [],
-      axElement: nil
+      axElement: nil,
     )
     print("Element1 title: \(element1.title ?? "nil")")
     print("Element2 title: \(element2.title ?? "nil")")
@@ -86,7 +88,8 @@ import Testing
     print("Not equal: \(element1 != element2)")
     // These should be equal because equality is path-based
     #expect(
-      element1 == element2, "Elements with same path should be equal regardless of other properties"
+      element1 == element2,
+      "Elements with same path should be equal regardless of other properties",
     )
     #expect(!(element1 != element2), "Negation should be consistent")
   }
@@ -95,7 +98,7 @@ import Testing
 // MARK: - Helper Functions
 
 private func createTestUIElement(path: String) -> UIElement {
-  return UIElement(
+  UIElement(
     path: path,
     role: "AXButton",
     title: "Test",
@@ -110,6 +113,6 @@ private func createTestUIElement(path: String) -> UIElement {
     children: [],
     attributes: [:],
     actions: [],
-    axElement: nil
+    axElement: nil,
   )
 }

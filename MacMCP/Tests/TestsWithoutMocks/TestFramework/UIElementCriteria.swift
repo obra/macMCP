@@ -184,7 +184,8 @@ public struct UIElementCriteria {
 
     if let area {
       parts.append(
-        "area=(\(area.origin.x), \(area.origin.y), \(area.size.width), \(area.size.height))")
+        "area=(\(area.origin.x), \(area.origin.y), \(area.size.width), \(area.size.height))",
+      )
     }
 
     return parts.joined(separator: ", ")

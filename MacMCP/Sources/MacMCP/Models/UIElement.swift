@@ -4,8 +4,8 @@
 @preconcurrency import AppKit
 @preconcurrency import ApplicationServices
 import Foundation
-import MCP
 import MacMCPUtilities
+import MCP
 
 /// AXAttribute key strings from Apple's AXConstants.h
 public enum AXAttribute {
@@ -38,12 +38,12 @@ public enum AXAttribute {
   public static let minimumValue = "AXMinimumValue"
 
   // Additional position related constants
-  public static let visibleArea = "AXVisibleArea"  // Visible area of a scrollable view
-  public static let contents = "AXContents"  // Contents of a container
-  public static let topLevelUIElement = "AXTopLevelUIElement"  // Top level element (window)
-  public static let firstVisibleRow = "AXFirstVisibleRow"  // First visible row in a table
-  public static let lastVisibleRow = "AXLastVisibleRow"  // Last visible row in a table
-  public static let visibleRange = "AXVisibleRange"  // Visible range in a document
+  public static let visibleArea = "AXVisibleArea" // Visible area of a scrollable view
+  public static let contents = "AXContents" // Contents of a container
+  public static let topLevelUIElement = "AXTopLevelUIElement" // Top level element (window)
+  public static let firstVisibleRow = "AXFirstVisibleRow" // First visible row in a table
+  public static let lastVisibleRow = "AXLastVisibleRow" // Last visible row in a table
+  public static let visibleRange = "AXVisibleRange" // Visible range in a document
 
   // Common AX roles
   public enum Role {
@@ -199,7 +199,7 @@ public enum FrameSource: String, Codable {
     // Assumes a standard large desktop size (this is just a safety check)
     let isOffScreen =
       frame.origin.x < -10000 || frame.origin.y < -10000 || frame.origin.x > 10000
-      || frame.origin.y > 10000
+        || frame.origin.y > 10000
 
     // Special case: if it has a frameSource that's derived, it might be calculated
     // or estimated, so trust the frame less
@@ -233,8 +233,7 @@ public enum FrameSource: String, Codable {
   ///   - accessibilityService: The AccessibilityService to use for resolution
   /// - Throws: ElementPathError if the path cannot be resolved
   public convenience init(fromPath path: String, accessibilityService: AccessibilityServiceProtocol)
-    async throws
-  {
+  async throws {
     // Parse the path string into an ElementPath
     let elementPath = try ElementPath.parse(path)
 
@@ -258,7 +257,7 @@ public enum FrameSource: String, Codable {
     var attributes: [String: Any] = [:]
     var attrNamesRef: CFArray?
     if AXUIElementCopyAttributeNames(axElement, &attrNamesRef) == .success,
-      let attrNames = attrNamesRef as? [String]
+       let attrNames = attrNamesRef as? [String]
     {
       for attrName in attrNames {
         var attrValueRef: CFTypeRef?
@@ -294,24 +293,28 @@ public enum FrameSource: String, Codable {
     // Get the role
     var roleRef: CFTypeRef?
     let roleStatus = AXUIElementCopyAttributeValue(
-      axElement, AXAttribute.role as CFString, &roleRef)
+      axElement, AXAttribute.role as CFString, &roleRef,
+    )
     if roleStatus == .success, let roleValue = roleRef as? String {
       role = roleValue
     } else {
       throw ElementPathError.segmentResolutionFailed(
-        "Could not determine element role", atSegment: 0)
+        "Could not determine element role", atSegment: 0,
+      )
     }
 
     // Get the title if available
     var titleRef: CFTypeRef?
     let titleStatus = AXUIElementCopyAttributeValue(
-      axElement, AXAttribute.title as CFString, &titleRef)
+      axElement, AXAttribute.title as CFString, &titleRef,
+    )
     if titleStatus == .success, let titleValue = titleRef as? String { title = titleValue }
 
     // Get the value if available
     var valueRef: CFTypeRef?
     let valueStatus = AXUIElementCopyAttributeValue(
-      axElement, AXAttribute.value as CFString, &valueRef)
+      axElement, AXAttribute.value as CFString, &valueRef,
+    )
     if valueStatus == .success {
       if let stringValue = valueRef as? String {
         value = stringValue
@@ -347,7 +350,8 @@ public enum FrameSource: String, Codable {
     // Get the frame
     var frameRef: CFTypeRef?
     let frameStatus = AXUIElementCopyAttributeValue(
-      axElement, AXAttribute.frame as CFString, &frameRef)
+      axElement, AXAttribute.frame as CFString, &frameRef,
+    )
     if frameStatus == .success, let frameValue = frameRef as? CGRect {
       frame = frameValue
     } else {
@@ -360,11 +364,12 @@ public enum FrameSource: String, Codable {
       )
       var sizeRef: CFTypeRef?
       let sizeStatus = AXUIElementCopyAttributeValue(
-        axElement, AXAttribute.size as CFString, &sizeRef)
+        axElement, AXAttribute.size as CFString, &sizeRef,
+      )
 
       if positionStatus == .success, let positionValue = positionRef as? CGPoint,
-        sizeStatus == .success,
-        let sizeValue = sizeRef as? CGSize
+         sizeStatus == .success,
+         let sizeValue = sizeRef as? CGSize
       {
         frame = CGRect(origin: positionValue, size: sizeValue)
       }
@@ -373,7 +378,8 @@ public enum FrameSource: String, Codable {
     // Get available actions
     var actionsRef: CFTypeRef?
     let actionsStatus = AXUIElementCopyAttributeValue(
-      axElement, AXAttribute.actions as CFString, &actionsRef)
+      axElement, AXAttribute.actions as CFString, &actionsRef,
+    )
     if actionsStatus == .success, let actionsArray = actionsRef as? [String] {
       actions = actionsArray
     }
@@ -566,6 +572,7 @@ public enum FrameSource: String, Codable {
     )
     return elementCopy
   }
+
   /// Get an array of state strings describing the current state of this element
   /// Only includes exceptional states to reduce verbosity (disabled, hidden, focused, selected)
   /// - Returns: Array of exceptional state strings
@@ -589,6 +596,7 @@ public enum FrameSource: String, Codable {
     }
     return states
   }
+
   /// Get an array of capability strings describing the element's interaction capabilities
   /// - Returns: Array of capability strings (e.g., "clickable", "editable", "scrollable", etc.)
   public func getCapabilitiesArray() -> [String] {
@@ -613,13 +621,17 @@ public enum FrameSource: String, Codable {
     if attributes["focusable"] as? Bool == true { capabilities.append("focusable") }
     return capabilities
   }
+
   /// Get a filtered and cleaned dictionary of attributes
   /// - Returns: Dictionary of string attributes with all values converted to strings
   public func getFilteredAttributes() -> [String: String] {
     var result: [String: String] = [:]
-    for (key, value) in attributes { result[key] = String(describing: value) }
+    for (key, value) in attributes {
+      result[key] = String(describing: value)
+    }
     return result
   }
+
   /// Filter criteria for searching UI elements
   public struct FilterCriteria {
     /// Filter by accessibility role (exact match)
@@ -636,7 +648,8 @@ public enum FrameSource: String, Codable {
     public let description: String?
     /// Filter by description containing this text (case-insensitive)
     public let descriptionContains: String?
-    /// Filter by text containing this string in any text field (title, description, value, identifier)
+    /// Filter by text containing this string in any text field (title, description, value,
+    /// identifier)
     public let textContains: String?
     /// Filter for elements that can be acted upon (clickable, editable, etc.)
     public let isInteractable: Bool?
@@ -698,6 +711,7 @@ public enum FrameSource: String, Codable {
       self.includeHidden = includeHidden
     }
   }
+
   /// Check if this element matches the specified filter criteria
   /// - Parameter criteria: The filter criteria to check against
   /// - Returns: True if the element matches all criteria, false otherwise
@@ -712,13 +726,13 @@ public enum FrameSource: String, Codable {
       "textfield": [AXAttribute.Role.textField, AXAttribute.Role.textArea, "AXSecureTextField"],
       "dropdown": [AXAttribute.Role.popUpButton, "AXComboBox", "AXPopover"],
       "slider": ["AXSlider", "AXScrollBar"], "link": [AXAttribute.Role.link],
-      "tab": ["AXTabGroup", "AXTab", "AXTabButton"], "any": [],  // Special case - matches all
+      "tab": ["AXTabGroup", "AXTab", "AXTabButton"], "any": [], // Special case - matches all
     ]
     // Collect all roles to match based on elementTypes
     var targetRoles = Set<String>()
     if criteria.elementTypes.contains("any") {
       // If "any" is selected, we don't filter by role
-      targetRoles = []  // Empty set means no filtering
+      targetRoles = [] // Empty set means no filtering
     } else {
       // Otherwise, include roles for the specified types
       for type in criteria.elementTypes {
@@ -726,36 +740,40 @@ public enum FrameSource: String, Codable {
       }
     }
     // Role filter - use contains match to handle roles like "AXTextArea First Text View"
-    let roleMatches = criteria.role == nil || role.contains(criteria.role!)
+    let roleMatches = criteria.role.map { role.contains($0) } ?? true
     // Element type filter
     let typeMatches = targetRoles.isEmpty || targetRoles.contains(role)
     // Title filter
     let titleMatches =
       (criteria.title == nil || title == criteria.title)
-      && (criteria.titleContains == nil
-        || (title?.localizedCaseInsensitiveContains(criteria.titleContains!) ?? false))
+        &&
+        (criteria.titleContains
+          .map { title?.localizedCaseInsensitiveContains($0) ?? false } ?? true
+        )
     // Value filter
     let valueMatches =
       (criteria.value == nil || value == criteria.value)
-      && (criteria.valueContains == nil
-        || (value?.localizedCaseInsensitiveContains(criteria.valueContains!) ?? false))
+        &&
+        (criteria.valueContains
+          .map { value?.localizedCaseInsensitiveContains($0) ?? false } ?? true
+        )
     // Description filter
     let descriptionMatches =
       (criteria.description == nil || elementDescription == criteria.description)
-      && (criteria.descriptionContains == nil
-        || (elementDescription?.localizedCaseInsensitiveContains(criteria.descriptionContains!)
-          ?? false))
+        && (criteria.descriptionContains == nil
+          || (elementDescription?.localizedCaseInsensitiveContains(criteria.descriptionContains!)
+            ?? false
+          )
+        )
     // Universal text search filter
-    let textContainsMatches: Bool
-    if let searchText = criteria.textContains {
-      textContainsMatches =
-        (title?.localizedCaseInsensitiveContains(searchText) == true)
+    let textContainsMatches: Bool = if let searchText = criteria.textContains {
+      (title?.localizedCaseInsensitiveContains(searchText) == true)
         || (elementDescription?.localizedCaseInsensitiveContains(searchText) == true)
         || (value?.localizedCaseInsensitiveContains(searchText) == true)
         || (identifier?.localizedCaseInsensitiveContains(searchText) == true)
         || (role.localizedCaseInsensitiveContains(searchText) == true)
     } else {
-      textContainsMatches = true
+      true
     }
     // Interactable filter
     let interactableMatches: Bool
@@ -767,11 +785,10 @@ public enum FrameSource: String, Codable {
       interactableMatches = true
     }
     // Enabled state filter
-    let enabledMatches: Bool
-    if let shouldBeEnabled = criteria.isEnabled {
-      enabledMatches = isEnabled == shouldBeEnabled
+    let enabledMatches: Bool = if let shouldBeEnabled = criteria.isEnabled {
+      isEnabled == shouldBeEnabled
     } else {
-      enabledMatches = true
+      true
     }
     // Location context filter (menu vs main content)
     let locationMatches: Bool
@@ -780,7 +797,7 @@ public enum FrameSource: String, Codable {
       locationMatches = elementIsInMenus == shouldBeInMenus
     } else if let shouldBeInMainContent = criteria.inMainContent {
       let elementIsInMenus = isInMenuContext()
-      locationMatches = (!elementIsInMenus) == shouldBeInMainContent
+      locationMatches = !elementIsInMenus == shouldBeInMainContent
     } else {
       locationMatches = true
     }
@@ -789,10 +806,11 @@ public enum FrameSource: String, Codable {
     // Element matches if it passes all applicable filters
     let finalResult =
       roleMatches && typeMatches && titleMatches && valueMatches && descriptionMatches
-      && textContainsMatches
-      && interactableMatches && enabledMatches && locationMatches && visibilityMatches
+        && textContainsMatches
+        && interactableMatches && enabledMatches && locationMatches && visibilityMatches
     return finalResult
   }
+
   /// Static method to filter a collection of elements by criteria
   /// - Parameters:
   ///   - elements: The elements to filter
@@ -800,7 +818,7 @@ public enum FrameSource: String, Codable {
   ///   - limit: Maximum number of elements to return (default 100)
   /// - Returns: Filtered elements (up to the limit)
   public static func filterElements(
-    elements: [UIElement], criteria: FilterCriteria, limit: Int = 100
+    elements: [UIElement], criteria: FilterCriteria, limit: Int = 100,
   ) -> [UIElement] {
     var results: [UIElement] = []
     // Process each element
@@ -812,6 +830,7 @@ public enum FrameSource: String, Codable {
     }
     return results
   }
+
   /// Find matching descendants in this element's hierarchy
   /// - Parameters:
   ///   - criteria: The filter criteria
@@ -854,12 +873,12 @@ public enum FrameSource: String, Codable {
 
   /// Computed property to check if this element is interactable
   public var isInteractable: Bool {
-    return isClickable || isEditable || isToggleable || isSelectable || isAdjustable
+    isClickable || isEditable || isToggleable || isSelectable || isAdjustable
   }
 
   /// Check if this element has any interactable descendants
   public func hasInteractableDescendants() -> Bool {
-    return hasDescendantsMatching { $0.isInteractable }
+    hasDescendantsMatching { $0.isInteractable }
   }
 
   /// Check if this element has any descendants that match the given predicate
@@ -879,7 +898,7 @@ public enum FrameSource: String, Codable {
   /// Returns nil if no meaningful level is found.
   public func getFlattenedChild() -> UIElement? {
     guard children.count == 1 else {
-      return nil  // Only flatten single-child chains
+      return nil // Only flatten single-child chains
     }
     let onlyChild = children[0]
     // If the child is interactable, don't skip it
@@ -934,7 +953,8 @@ public enum FrameSource: String, Codable {
     let element2 = try await elementPath2.resolve(using: accessibilityService)
 
     // Compare the raw AXUIElements for equality
-    // Note: This comparison is implementation-defined and may not be reliable across all macOS versions
+    // Note: This comparison is implementation-defined and may not be reliable across all macOS
+    // versions
     // It relies on the system's notion of element equality
     return CFEqual(element1, element2)
   }
@@ -960,7 +980,8 @@ public enum FrameSource: String, Codable {
 
   /// Generate a path-based identifier for this element
   /// - Parameters:
-  ///   - includeValue: Whether to include the value attribute (default false since values can change)
+  ///   - includeValue: Whether to include the value attribute (default false since values can
+  /// change)
   ///   - includeFrame: Whether to include frame information (default false)
   /// - Returns: A path string conforming to ElementPath syntax
   /// - Throws: ElementPathError if path generation fails
@@ -980,13 +1001,15 @@ public enum FrameSource: String, Codable {
       // Ensure role has AX prefix - this is critical for consistent resolution
       let normalizedRole = element.role.hasPrefix("AX") ? element.role : "AX\(element.role)"
 
-      // For generic containers like AXGroup, add position-based matching if there are no other identifying
+      // For generic containers like AXGroup, add position-based matching if there are no other
+      // identifying
       // attributes
       let isGenericContainer =
         (normalizedRole == "AXGroup" || normalizedRole == "AXBox" || normalizedRole == "AXGeneric")
 
       // Add useful identifying attributes - title, description, and identifier are most stable
-      // For AXApplication elements, skip title to keep paths clean (bundleId will be added during resolution)
+      // For AXApplication elements, skip title to keep paths clean (bundleId will be added during
+      // resolution)
       if let title = element.title, !title.isEmpty {
         if normalizedRole != "AXApplication" {
           attributes["AXTitle"] = PathNormalizer.escapeAttributeValue(title)
@@ -1010,11 +1033,12 @@ public enum FrameSource: String, Codable {
           // Always consistently use "AXIdentifier" in the final path
           attributes["AXIdentifier"] = identifier
           // Diagnostic logging
-          break  // Stop after finding the first valid identifier
+          break // Stop after finding the first valid identifier
         }
       }
 
-      // For generic containers with no identifying attributes, consider adding index for disambiguation
+      // For generic containers with no identifying attributes, consider adding index for
+      // disambiguation
       if isGenericContainer, attributes.isEmpty, element.parent != nil {
         // Find position of this element among siblings with the same role
         if let parent = element.parent {
@@ -1023,11 +1047,12 @@ public enum FrameSource: String, Codable {
             // Only add index if there are multiple siblings with the same role
             if sameRoleSiblings.count > 1 {
               let indexedSegment = PathSegment(
-                role: normalizedRole, attributes: attributes, index: index)
+                role: normalizedRole, attributes: attributes, index: index,
+              )
               pathSegments.append(indexedSegment)
               // Move to parent
               currentElement = element.parent
-              continue  // Skip the rest of this iteration to avoid adding duplicate segment
+              continue // Skip the rest of this iteration to avoid adding duplicate segment
             }
           }
         }

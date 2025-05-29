@@ -2,8 +2,8 @@
 // ABOUTME: Part of MacMCP allowing LLMs to interact with macOS applications.
 
 import Foundation
-import MCP
 import MacMCP
+import MCP
 import Testing
 
 @Suite(.serialized) struct ClipboardManagementE2ETests {
@@ -14,7 +14,7 @@ import Testing
   // Sample test data
   private let testText = "MacMCP clipboard test text"
   private let testImageBase64 =
-    "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AVAT/2Q=="  // 1x1
+    "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AVAT/2Q==" // 1x1
   // black JPEG
   private let tempDir = FileManager.default.temporaryDirectory
 
@@ -61,7 +61,7 @@ import Testing
 
   // MARK: - Text Operations Tests
 
-  @Test("Text Operations") mutating func testTextOperations() async throws {
+  @Test("Text Operations") mutating func textOperations() async throws {
     try await setUp()
     // 1. Set text
     var input: [String: Any] = ["action": "setText", "text": testText]
@@ -99,7 +99,7 @@ import Testing
 
   // MARK: - Image Operations Tests
 
-  @Test("Image Operations") mutating func testImageOperations() async throws {
+  @Test("Image Operations") mutating func imageOperations() async throws {
     try await setUp()
     // 1. Set image
     var input: [String: Any] = ["action": "setImage", "imageData": testImageBase64]
@@ -135,7 +135,7 @@ import Testing
 
   // MARK: - File Operations Tests
 
-  @Test("File Operations") mutating func testFileOperations() async throws {
+  @Test("File Operations") mutating func fileOperations() async throws {
     try await setUp()
     // 1. Set files
     var input: [String: Any] = ["action": "setFiles", "filePaths": [tempFilePath1, tempFilePath2]]
@@ -170,7 +170,7 @@ import Testing
 
   // MARK: - Error Handling Tests
 
-  @Test("Invalid Input Parameters") mutating func testInvalidInputParameters() async throws {
+  @Test("Invalid Input Parameters") mutating func invalidInputParameters() async throws {
     try await setUp()
     // Test invalid action
     var input: [String: Any] = ["action": "invalidAction"]
@@ -244,11 +244,11 @@ import Testing
     try await tearDown()
   }
 
-  @Test("Non Existent Files") mutating func testNonExistentFiles() async throws {
+  @Test("Non Existent Files") mutating func nonExistentFiles() async throws {
     try await setUp()
     // Try to set non-existent files
     let nonExistentPath = tempDir.appendingPathComponent(
-      "non_existent_file_\(UUID().uuidString).txt"
+      "non_existent_file_\(UUID().uuidString).txt",
     ).path
 
     let input: [String: Any] = ["action": "setFiles", "filePaths": [nonExistentPath]]
@@ -259,7 +259,8 @@ import Testing
     } catch let error as MCPError {
       if case .internalError(let message) = error {
         #expect(
-          message?.contains("FILES_NOT_FOUND") == true, "Error should indicate files not found")
+          message?.contains("FILES_NOT_FOUND") == true, "Error should indicate files not found",
+        )
       } else {
         #expect(Bool(false), "Wrong error type thrown: \(error)")
       }
@@ -267,7 +268,7 @@ import Testing
     try await tearDown()
   }
 
-  @Test("Invalid Image Data") mutating func testInvalidImageData() async throws {
+  @Test("Invalid Image Data") mutating func invalidImageData() async throws {
     try await setUp()
     // Try to set invalid base64 data as an image
     let input: [String: Any] = ["action": "setImage", "imageData": "not valid base64!"]
@@ -279,7 +280,8 @@ import Testing
       if case .internalError(let message) = error {
         #expect(
           message?.contains("INVALID_IMAGE_DATA") == true,
-          "Error should indicate invalid image data", )
+          "Error should indicate invalid image data",
+        )
       } else {
         #expect(Bool(false), "Wrong error type thrown: \(error)")
       }

@@ -16,7 +16,7 @@ import Testing
   // Test helper for TextEdit interactions
   private var helper: TextEditTestHelper!
 
-  @Test("Test basic text typing") mutating func testBasicTextTyping() async throws {
+  @Test("Test basic text typing") mutating func basicTextTyping() async throws {
     // Setup
     helper = await TextEditTestHelper.shared()
 
@@ -37,7 +37,7 @@ import Testing
     _ = try await helper.closeWindowAndDiscardChanges()
   }
 
-  @Test("Test basic formatting") mutating func testBasicFormatting() async throws {
+  @Test("Test basic formatting") mutating func basicFormatting() async throws {
     // Setup
     helper = await TextEditTestHelper.shared()
 
@@ -63,13 +63,13 @@ import Testing
     // Check document text is still there
     try await helper.assertDocumentContainsText(
       testText,
-      message: "Document should still contain the text after formatting"
+      message: "Document should still contain the text after formatting",
     )
     // Cleanup
     _ = try await helper.closeWindowAndDiscardChanges()
   }
 
-  @Test("Test combined text operations") mutating func testCombinedTextOperations() async throws {
+  @Test("Test combined text operations") mutating func combinedTextOperations() async throws {
     // Setup
     helper = await TextEditTestHelper.shared()
 
@@ -85,15 +85,15 @@ import Testing
     let success = try await helper.performTextOperation(
       operation: {
         // Type text
-        _ = try await self.helper.typeText(testText)
+        _ = try await helper.typeText(testText)
 
         // Select text
-        _ = try await self.helper.selectText(startPos: 0, length: testText.count)
+        _ = try await helper.selectText(startPos: 0, length: testText.count)
 
         // Make text larger
-        return try await self.helper.makeTextLarger()
+        return try await helper.makeTextLarger()
       },
-      verificationText: testText
+      verificationText: testText,
     )
 
     #expect(success)

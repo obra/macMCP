@@ -17,7 +17,8 @@ public actor ClipboardService: ClipboardServiceProtocol {
   public func getClipboardText() async throws -> String {
     guard let text = NSPasteboard.general.string(forType: .string) else {
       throw createClipboardError(
-        code: "NO_TEXT_AVAILABLE", message: "No text content available in clipboard", )
+        code: "NO_TEXT_AVAILABLE", message: "No text content available in clipboard",
+      )
     }
     return text
   }
@@ -30,7 +31,8 @@ public actor ClipboardService: ClipboardServiceProtocol {
     pasteboard.clearContents()
     if !pasteboard.setString(text, forType: .string) {
       throw createClipboardError(
-        code: "SET_TEXT_FAILED", message: "Failed to set text to clipboard", )
+        code: "SET_TEXT_FAILED", message: "Failed to set text to clipboard",
+      )
     }
   }
 
@@ -41,7 +43,8 @@ public actor ClipboardService: ClipboardServiceProtocol {
     let pasteboard = NSPasteboard.general
     guard let imgData = pasteboard.data(forType: .tiff) ?? pasteboard.data(forType: .png) else {
       throw createClipboardError(
-        code: "NO_IMAGE_AVAILABLE", message: "No image content available in clipboard", )
+        code: "NO_IMAGE_AVAILABLE", message: "No image content available in clipboard",
+      )
     }
 
     let base64String = imgData.base64EncodedString()
@@ -54,7 +57,8 @@ public actor ClipboardService: ClipboardServiceProtocol {
   public func setClipboardImage(_ base64Image: String) async throws {
     guard let imageData = Data(base64Encoded: base64Image) else {
       throw createClipboardError(
-        code: "INVALID_IMAGE_DATA", message: "Invalid base64 image data provided", )
+        code: "INVALID_IMAGE_DATA", message: "Invalid base64 image data provided",
+      )
     }
 
     guard NSImage(data: imageData) != nil else {
@@ -68,7 +72,8 @@ public actor ClipboardService: ClipboardServiceProtocol {
     pasteboard.clearContents()
     if !pasteboard.setData(imageData, forType: .png) {
       throw createClipboardError(
-        code: "SET_IMAGE_FAILED", message: "Failed to set image to clipboard", )
+        code: "SET_IMAGE_FAILED", message: "Failed to set image to clipboard",
+      )
     }
   }
 
@@ -85,7 +90,8 @@ public actor ClipboardService: ClipboardServiceProtocol {
     }
 
     throw createClipboardError(
-      code: "NO_FILES_AVAILABLE", message: "No file URLs available in clipboard", )
+      code: "NO_FILES_AVAILABLE", message: "No file URLs available in clipboard",
+    )
   }
 
   /// Sets file URLs to the clipboard
@@ -101,7 +107,8 @@ public actor ClipboardService: ClipboardServiceProtocol {
     // Check if all paths were valid
     if fileURLs.count != paths.count {
       throw createClipboardError(
-        code: "INVALID_FILE_PATHS", message: "One or more file paths are invalid", )
+        code: "INVALID_FILE_PATHS", message: "One or more file paths are invalid",
+      )
     }
 
     // Check if all files exist
@@ -117,7 +124,8 @@ public actor ClipboardService: ClipboardServiceProtocol {
     // Write to pasteboard
     if !pasteboard.writeObjects(fileURLs as [NSURL]) {
       throw createClipboardError(
-        code: "SET_FILES_FAILED", message: "Failed to set file URLs to clipboard", )
+        code: "SET_FILES_FAILED", message: "Failed to set file URLs to clipboard",
+      )
     }
   }
 

@@ -35,7 +35,7 @@ import Testing
   )
 
   // Test that path generation works correctly
-  @Test("Test element path generation") mutating func testElementPathGeneration() throws {
+  @Test("Test element path generation") mutating func elementPathGeneration() throws {
     // Generate paths for different elements
     let path1 = try testElement1.generatePath()
     let path2 = try testElement2.generatePath()
@@ -51,8 +51,7 @@ import Testing
   }
 
   // Test path generation with optional attributes
-  @Test("Test path with optional attributes") mutating func testPathWithOptionalAttributes() throws
-  {
+  @Test("Test path with optional attributes") mutating func pathWithOptionalAttributes() throws {
     // Test path with value included
     let pathWithValue = try testElement2.generatePath(includeValue: true)
     #expect(pathWithValue.contains("AXValue"), "Path should include value attribute when requested")
@@ -66,7 +65,7 @@ import Testing
   }
 
   // Test element path hierarchy with parent-child relationships
-  @Test("Test element path hierarchy") mutating func testElementPathHierarchy() throws {
+  @Test("Test element path hierarchy") mutating func elementPathHierarchy() throws {
     // Create a parent element
     let parentElement = UIElement(
       path: "macos://ui/AXGroup[@AXTitle=\"Parent Group\"][@identifier=\"test-parent\"]",
@@ -83,7 +82,7 @@ import Testing
     // Create a child element with the parent
     let childElement = UIElement(
       path:
-        "macos://ui/AXGroup[@AXTitle=\"Parent Group\"]/AXButton[@AXTitle=\"Child Button\"][@identifier=\"test-child\"]",
+      "macos://ui/AXGroup[@AXTitle=\"Parent Group\"]/AXButton[@AXTitle=\"Child Button\"][@identifier=\"test-child\"]",
       role: "AXButton",
       title: "Child Button",
       frame: CGRect(x: 100, y: 100, width: 100, height: 50),

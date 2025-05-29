@@ -19,7 +19,7 @@ if CommandLine.arguments.count <= 1 {
 
     // Check for environment variable to override log level
     if let logLevelEnv = ProcessInfo.processInfo.environment["MCP_LOG_LEVEL"],
-      let specifiedLevel = Logger.Level(rawValue: logLevelEnv.lowercased())
+       let specifiedLevel = Logger.Level(rawValue: logLevelEnv.lowercased())
     {
       handler.logLevel = specifiedLevel
     } else if isTestEnvironment {
@@ -41,7 +41,7 @@ if CommandLine.arguments.count <= 1 {
   logger.debug("Arguments: \(CommandLine.arguments)")
 
   // Create the server with debug logging
-  let server = MCPServer(logger: logger, )
+  let server = MCPServer(logger: logger)
   logger.debug("Created MCPServer instance")
 
   // Create the transport
@@ -81,9 +81,9 @@ struct MacMCPCommand: ParsableCommand {
     commandName: "mac-mcp",
     abstract: "macOS Model Context Protocol (MCP) Server",
     discussion: """
-      This tool provides a macOS MCP server that connects AI assistants 
-      to macOS through the accessibility APIs.
-      """,
+    This tool provides a macOS MCP server that connects AI assistants 
+    to macOS through the accessibility APIs.
+    """,
     version: "0.1.0",
   )
 
@@ -99,7 +99,7 @@ struct MacMCPCommand: ParsableCommand {
 
     // Check for environment variable to override log level
     if let logLevelEnv = ProcessInfo.processInfo.environment["MCP_LOG_LEVEL"],
-      let specifiedLevel = Logger.Level(rawValue: logLevelEnv.lowercased())
+       let specifiedLevel = Logger.Level(rawValue: logLevelEnv.lowercased())
     {
       logLevel = specifiedLevel
     } else if isTestEnvironment {

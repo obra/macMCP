@@ -1,8 +1,8 @@
 // ABOUTME: ComprehensivePermissions.swift
 // ABOUTME: Part of MacMCP allowing LLMs to interact with macOS applications.
 
-import AVFoundation
 import AppKit
+import AVFoundation
 import Foundation
 
 /// Utilities for checking and requesting all required macOS permissions
@@ -13,21 +13,23 @@ public enum ComprehensivePermissions {
     case screenRecording = "Screen Recording"
     public var description: String {
       switch self {
-      case .accessibility:
-        return "Accessibility permissions allow the app to interact with UI elements"
-      case .screenRecording:
-        return "Screen Recording permissions allow the app to capture screen content"
+        case .accessibility:
+          "Accessibility permissions allow the app to interact with UI elements"
+        case .screenRecording:
+          "Screen Recording permissions allow the app to capture screen content"
       }
     }
+
     public var systemSettingsPath: String {
       switch self {
-      case .accessibility: return "Privacy & Security > Accessibility"
-      case .screenRecording: return "Privacy & Security > Screen Recording"
+        case .accessibility: "Privacy & Security > Accessibility"
+        case .screenRecording: "Privacy & Security > Screen Recording"
       }
     }
   }
+
   /// Check if accessibility permissions are granted
-  public static func hasAccessibilityPermissions() -> Bool { return AXIsProcessTrusted() }
+  public static func hasAccessibilityPermissions() -> Bool { AXIsProcessTrusted() }
   /// Check if screen recording permissions are granted
   public static func hasScreenRecordingPermissions() -> Bool {
     // On macOS 10.15+, we can check screen recording permissions
@@ -38,23 +40,27 @@ public enum ComprehensivePermissions {
     // On older versions, assume we have permission
     return true
   }
+
   /// Check all required permissions
   public static func checkAllPermissions() -> [PermissionType: Bool] {
-    return [
+    [
       .accessibility: hasAccessibilityPermissions(),
       .screenRecording: hasScreenRecordingPermissions(),
     ]
   }
+
   /// Get missing permissions
   public static func getMissingPermissions() -> [PermissionType] {
     let status = checkAllPermissions()
     return status.compactMap { permission, granted in granted ? nil : permission }
   }
+
   /// Request accessibility permissions (with prompt)
   public static func requestAccessibilityPermissions() {
     let options: NSDictionary = ["AXTrustedCheckOptionPrompt": true]
     _ = AXIsProcessTrustedWithOptions(options)
   }
+
   /// Request screen recording permissions
   public static func requestScreenRecordingPermissions() {
     if #available(macOS 10.15, *) {
@@ -62,16 +68,18 @@ public enum ComprehensivePermissions {
       _ = CGRequestScreenCaptureAccess()
     }
   }
+
   /// Request all missing permissions
   public static func requestAllMissingPermissions() {
     let missing = getMissingPermissions()
     for permission in missing {
       switch permission {
-      case .accessibility: requestAccessibilityPermissions()
-      case .screenRecording: requestScreenRecordingPermissions()
+        case .accessibility: requestAccessibilityPermissions()
+        case .screenRecording: requestScreenRecordingPermissions()
       }
     }
   }
+
   /// Generate a user-friendly status report
   public static func generateStatusReport() -> String {
     let status = checkAllPermissions()

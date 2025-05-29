@@ -63,7 +63,7 @@ import Testing
   // MARK: - Test Methods
 
   /// Test capturing screenshot of full screen
-  @Test("Full Screen Capture") mutating func testFullScreenCapture() async throws {
+  @Test("Full Screen Capture") mutating func fullScreenCapture() async throws {
     try await setUp()
     // Create parameters for the screenshot tool
     let params: [String: Value] = ["region": .string("full")]
@@ -85,9 +85,10 @@ import Testing
       let screenHeight = Int(mainScreen.frame.height)
 
       // Check that image dimensions match screen dimensions (approximately)
-      // We use a tolerance because different scaling factors might affect the exact pixel dimensions
-      let widthTolerance = Int(Double(screenWidth) * 0.1)  // 10% tolerance
-      let heightTolerance = Int(Double(screenHeight) * 0.1)  // 10% tolerance
+      // We use a tolerance because different scaling factors might affect the exact pixel
+      // dimensions
+      let widthTolerance = Int(Double(screenWidth) * 0.1) // 10% tolerance
+      let heightTolerance = Int(Double(screenHeight) * 0.1) // 10% tolerance
 
       #expect(
         abs(Int(image.size.width) - screenWidth) <= widthTolerance,
@@ -107,7 +108,7 @@ import Testing
   }
 
   /// Test capturing screenshot of an area of the screen
-  @Test("Area Screenshot Capture") mutating func testAreaCapture() async throws {
+  @Test("Area Screenshot Capture") mutating func areaCapture() async throws {
     try await setUp()
     // Define an area that should contain part of the Calculator window
     // We use the center of the screen to increase the chances of capturing Calculator
@@ -159,7 +160,7 @@ import Testing
   }
 
   /// Test capturing screenshot of the Calculator window
-  @Test("Window Screenshot Capture") mutating func testWindowCapture() async throws {
+  @Test("Window Screenshot Capture") mutating func windowCapture() async throws {
     try await setUp()
     // Create parameters for the screenshot tool
     let params: [String: Value] = [
@@ -190,7 +191,7 @@ import Testing
   }
 
   /// Test capturing screenshot of a specific UI element in the Calculator
-  @Test("Element Screenshot Capture") mutating func testElementCapture() async throws {
+  @Test("Element Screenshot Capture") mutating func elementCapture() async throws {
     try await setUp()
     // First make sure Calculator is fully active
     NSRunningApplication.runningApplications(withBundleIdentifier: calculatorBundleId).first?
@@ -230,7 +231,8 @@ import Testing
     } catch {
       // If element capture fails, use a simple approach with a fixed area of the screen
       print(
-        "Element capture failed: \(error.localizedDescription). Testing with fixed area capture.")
+        "Element capture failed: \(error.localizedDescription). Testing with fixed area capture.",
+      )
       // Take a screenshot of a fixed area of the screen (center area)
       // This is more reliable than trying to get the exact window position
       let screenFrame = NSScreen.main!.frame
@@ -262,7 +264,7 @@ import Testing
 
   /// Test capturing screenshot of individual elements discovered by the UI inspector
   /// This test tries to find specific UI elements in the Calculator app
-  @Test("Specific Element Screenshot") mutating func testSpecificElementScreenshot() async throws {
+  @Test("Specific Element Screenshot") mutating func specificElementScreenshot() async throws {
     try await setUp()
     // First make sure Calculator is fully active and has time to stabilize
     NSRunningApplication.runningApplications(withBundleIdentifier: calculatorBundleId).first?
@@ -289,15 +291,14 @@ import Testing
       #expect(image.size.width > 180, "Window should be wider than 180px")
       #expect(image.size.height > 180, "Window should be taller than 180px")
       #expect(metadata?["region"] == "window", "Region should be 'window'")
-
     }
 
     // Now demonstrate element discovery using the UI Explorer
 
     // Try to find button elements
-    let buttonCriteria = UIElementCriteria(role: "AXButton", isVisible: true, )
+    let buttonCriteria = UIElementCriteria(role: "AXButton", isVisible: true)
 
-    let _ = try await toolChain.findElements(
+    _ = try await toolChain.findElements(
       matching: buttonCriteria,
       scope: "application",
       bundleId: calculatorBundleId,
@@ -305,9 +306,9 @@ import Testing
     )
 
     // Try to find other element types - just for discovery demonstration
-    let staticTextCriteria = UIElementCriteria(role: "AXStaticText", isVisible: true, )
+    let staticTextCriteria = UIElementCriteria(role: "AXStaticText", isVisible: true)
 
-    let _ = try await toolChain.findElements(
+    _ = try await toolChain.findElements(
       matching: staticTextCriteria,
       scope: "application",
       bundleId: calculatorBundleId,
@@ -320,7 +321,7 @@ import Testing
   // MARK: - Error Tests
 
   /// Test behavior when element cannot be found
-  @Test("Non-Existent Element") mutating func testNonExistentElement() async throws {
+  @Test("Non-Existent Element") mutating func nonExistentElement() async throws {
     try await setUp()
     // For this test, we'll use a completely invalid app ID that definitely doesn't exist
     // We use a window screenshot with a non-existent app ID as this is more reliable
@@ -338,7 +339,7 @@ import Testing
       // Check that the error message contains relevant text
       #expect(
         errorDesc.contains("not running") || errorDesc.contains("application not running"),
-        "Error should indicate application not running"
+        "Error should indicate application not running",
       )
     }
     // Verify that we did catch an error
@@ -347,7 +348,7 @@ import Testing
   }
 
   /// Test behavior when application is not running
-  @Test("Non-Running Application") mutating func testNonRunningApplication() async throws {
+  @Test("Non-Running Application") mutating func nonRunningApplication() async throws {
     try await setUp()
     // Create parameters for the screenshot tool with a non-running application
     let params: [String: Value] = [
@@ -362,7 +363,8 @@ import Testing
       // Success - we expect an error
       #expect(
         error.localizedDescription.contains("not running"),
-        "Error should indicate application not running")
+        "Error should indicate application not running",
+      )
     }
     try await tearDown()
   }
@@ -372,7 +374,7 @@ import Testing
   /// Find a calculator button UI element
   private func findCalculatorButton() async throws -> UIElement? {
     // Define criteria to find a calculator button
-    let criteria = UIElementCriteria(role: "AXButton", isVisible: true, isEnabled: true, )
+    let criteria = UIElementCriteria(role: "AXButton", isVisible: true, isEnabled: true)
 
     // Find the button in the Calculator app
     let elements = try await toolChain.findElements(
@@ -385,6 +387,7 @@ import Testing
     // Return the first matching element
     return elements.first
   }
+
   /// Helper to find the Calculator window frame for reliable testing
   private func findCalculatorWindowFrame() async throws -> CGRect {
     // Get the window info using CGWindowListCopyWindowInfo
@@ -393,11 +396,11 @@ import Testing
     // Find windows belonging to Calculator
     let app = NSRunningApplication.runningApplications(withBundleIdentifier: calculatorBundleId)
       .first
-    guard let app = app else {
+    guard let app else {
       throw NSError(
         domain: "test.error",
         code: 1,
-        userInfo: [NSLocalizedDescriptionKey: "Calculator not running"]
+        userInfo: [NSLocalizedDescriptionKey: "Calculator not running"],
       )
     }
     // Find the calculator window
@@ -406,15 +409,15 @@ import Testing
       return ownerPID == app.processIdentifier
     }
     guard let windowInfo = calculatorWindows.first,
-      let bounds = windowInfo[kCGWindowBounds as String] as? [String: Any],
-      let x = bounds["X"] as? CGFloat,
-      let y = bounds["Y"] as? CGFloat, let width = bounds["Width"] as? CGFloat,
-      let height = bounds["Height"] as? CGFloat
+          let bounds = windowInfo[kCGWindowBounds as String] as? [String: Any],
+          let x = bounds["X"] as? CGFloat,
+          let y = bounds["Y"] as? CGFloat, let width = bounds["Width"] as? CGFloat,
+          let height = bounds["Height"] as? CGFloat
     else {
       throw NSError(
         domain: "test.error",
         code: 2,
-        userInfo: [NSLocalizedDescriptionKey: "Could not get Calculator window bounds"]
+        userInfo: [NSLocalizedDescriptionKey: "Could not get Calculator window bounds"],
       )
     }
     return CGRect(x: x, y: y, width: width, height: height)
@@ -459,12 +462,12 @@ import Testing
 
   /// Save a screenshot to disk for manual inspection
   private func saveScreenshotForInspection(
-    imageData: Data, region: String, width: String, height: String
+    imageData: Data, region: String, width: String, height: String,
   ) {
     // Use a temporary directory so the tests can run on any machine
     let outputDir = FileManager.default.temporaryDirectory.appendingPathComponent(
       "macmcp-test-screenshots",
-      isDirectory: true
+      isDirectory: true,
     ).path
     let dateFormatter = DateFormatter()
     dateFormatter.dateFormat = "yyyyMMdd_HHmmss"
@@ -489,7 +492,7 @@ import Testing
     // Use the temporary directory so the path is valid on any machine
     let outputDir = FileManager.default.temporaryDirectory.appendingPathComponent(
       "macmcp-test-screenshots",
-      isDirectory: true
+      isDirectory: true,
     ).path
     let dateFormatter = DateFormatter()
     dateFormatter.dateFormat = "yyyyMMdd_HHmmss"
