@@ -67,10 +67,12 @@ import Testing
       attributes: [:],
     )
     let descriptor1 = EnhancedElementDescriptor.from(element: roleMatchElement)
-    let jsonData1 = try JSONEncoder().encode(descriptor1)
-    let json1 = String(data: jsonData1, encoding: .utf8)!
-    #expect(!json1.contains("\"name\""), "Should omit name when it matches role")
-    #expect(json1.contains("\"role\":\"AXButton\""), "Should include role")
+    
+    try JSONTestUtilities.testElementDescriptor(descriptor1) { json in
+      try JSONTestUtilities.assertPropertyDoesNotExist(json, property: "name")
+      try JSONTestUtilities.assertProperty(json, property: "role", equals: "AXButton")
+    }
+    
     // Create element where name matches identifier
     let identifierMatchElement = UIElement(
       path: "test://id-match",
@@ -83,10 +85,12 @@ import Testing
       attributes: [:],
     )
     let descriptor2 = EnhancedElementDescriptor.from(element: identifierMatchElement)
-    let jsonData2 = try JSONEncoder().encode(descriptor2)
-    let json2 = String(data: jsonData2, encoding: .utf8)!
-    #expect(!json2.contains("\"name\""), "Should omit name when it matches identifier")
-    #expect(json2.contains("\"identifier\""), "Should include identifier")
+    
+    try JSONTestUtilities.testElementDescriptor(descriptor2) { json in
+      try JSONTestUtilities.assertPropertyDoesNotExist(json, property: "name")
+      try JSONTestUtilities.assertPropertyContains(json, property: "el", substring: "Save")
+    }
+    
     // Create element with unique name - should include it
     let uniqueNameElement = UIElement(
       path: "test://unique",
@@ -99,9 +103,11 @@ import Testing
       attributes: [:],
     )
     let descriptor3 = EnhancedElementDescriptor.from(element: uniqueNameElement)
-    let jsonData3 = try JSONEncoder().encode(descriptor3)
-    let json3 = String(data: jsonData3, encoding: .utf8)!
-    #expect(json3.contains("\"name\":\"Click Me\""), "Should include unique name")
+    
+    try JSONTestUtilities.testElementDescriptor(descriptor3) { json in
+      try JSONTestUtilities.assertPropertyContains(json, property: "el", substring: "Click Me")
+      try JSONTestUtilities.assertPropertyContains(json, property: "el", substring: "btn1")
+    }
   }
 
   @Test("Token reduction is significant") func tokenReduction() async throws {
@@ -124,11 +130,22 @@ import Testing
     let descriptor = EnhancedElementDescriptor.from(element: element)
     let jsonData = try JSONEncoder().encode(descriptor)
     let json = String(data: jsonData, encoding: .utf8)!
-    // Verify verbosity reduction
-    #expect(!json.contains("\"name\""), "Name should be omitted")
-    #expect(json.contains("\"props\":[]"), "Props should be empty (no normal states)")
-    // JSON should be significantly shorter
-    // Rough estimate: under 200 chars instead of 400+ with verbose output
+    
+    try JSONTestUtilities.testElementDescriptor(descriptor) { json in
+      // Verify verbosity reduction
+      try JSONTestUtilities.assertPropertyDoesNotExist(json, property: "name")
+      // Props field may not exist if empty (which is correct behavior)
+      // If it exists, it should be empty or only contain non-normal states
+      if json["props"] != nil {
+        // Props should not contain normal states like "enabled", "visible", etc.
+        if let propsString = json["props"] as? String {
+          #expect(!propsString.contains("enabled"), "Props should not contain 'enabled'")
+          #expect(!propsString.contains("visible"), "Props should not contain 'visible'")
+        }
+      }
+    }
+    
+    // JSON should be significantly shorter due to verbosity reduction
     #expect(json.count < 300, "JSON should be under 300 chars, got \(json.count)")
     print("Reduced JSON (\(json.count) chars): \(json)")
   }

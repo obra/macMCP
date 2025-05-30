@@ -271,66 +271,145 @@ When using the Swift Testing framework's `#expect` macro, follow these guideline
 
 ### 7. Testing JSON Responses
 
-When testing JSON responses from resources or other API calls, prefer parsing the JSON and testing the data structure directly rather than using string contains checks. This approach is more robust and less prone to failures due to whitespace or formatting differences.
+When testing JSON responses from resources or other API calls, **always** use the `JSONTestUtilities` framework rather than string-based assertions. This approach is more robust and less prone to failures due to whitespace, field ordering, or formatting differences.
 
-#### JSON Parsing and Testing Pattern
+#### Using JSONTestUtilities
+
+The MacMCP test suite provides a comprehensive `JSONTestUtilities` framework located in `Tests/TestsWithoutMocks/TestFramework/JSONTestUtilities.swift`. This utility provides structured, type-safe JSON testing.
+
+##### Basic JSON Object Testing
 
 ```swift
-// Verify JSON response content
-if case let .text(jsonString) = content {
-    // Parse the JSON string to an array or object
-    guard let jsonData = jsonString.data(using: .utf8) else {
-        #expect(Bool(false), "Could not convert JSON string to data")
-        return
-    }
-    
-    do {
-        // For array responses
-        guard let jsonArray = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [[String: Any]] else {
-            #expect(Bool(false), "JSON is not an array of objects")
-            return
-        }
+import JSONTestUtilities
+
+// Test a JSON response from a resource
+if case .text(let jsonString) = content {
+    try JSONTestUtilities.testJSONObject(jsonString) { json in
+        // Test basic properties
+        try JSONTestUtilities.assertProperty(json, property: "id", equals: "expected-id")
+        try JSONTestUtilities.assertProperty(json, property: "role", equals: "AXButton")
         
-        // For object responses
-        // guard let jsonObject = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any] else {
-        //     #expect(Bool(false), "JSON is not an object")
-        //     return
-        // }
+        // Test for property existence without checking value
+        try JSONTestUtilities.assertPropertyExists(json, property: "frame")
         
-        // Check structure and content
-        #expect(jsonArray.count > 0, "Array should not be empty")
+        // Test that certain properties are omitted
+        try JSONTestUtilities.assertPropertyDoesNotExist(json, property: "redundantField")
         
-        // Check for properties
-        if let firstItem = jsonArray.first {
-            #expect(firstItem["propertyName"] != nil, "Item should have propertyName")
-            
-            // Check property values if needed
-            if let value = firstItem["propertyName"] as? String {
-                #expect(value == "expectedValue", "Property should have expected value")
-            }
-        }
-        
-        // Check for items with specific property values
-        let hasItemWithProperty = jsonArray.contains { item in
-            item["propertyName"] as? String == "expectedValue"
-        }
-        #expect(hasItemWithProperty, "Array should contain item with expected property value")
-        
-    } catch {
-        #expect(Bool(false), "Failed to parse JSON: \(error.localizedDescription)")
+        // Test string contains
+        try JSONTestUtilities.assertPropertyContains(json, property: "el", substring: "Button")
     }
 } else {
     #expect(Bool(false), "Content should be text")
 }
 ```
 
+##### JSON Array Testing
+
+```swift
+// Test a JSON array response
+if case .text(let jsonString) = content {
+    try JSONTestUtilities.testJSONArray(jsonString) { jsonArray in
+        // Test array structure
+        #expect(jsonArray.count > 0, "Array should not be empty")
+        
+        // Test that array contains an object with specific property
+        try JSONTestUtilities.assertArrayContainsObjectWithProperty(
+            jsonArray, 
+            property: "role", 
+            equals: "AXButton"
+        )
+        
+        // Test all items in array have required property
+        for item in jsonArray {
+            try JSONTestUtilities.assertPropertyExists(item, property: "id")
+        }
+    }
+} else {
+    #expect(Bool(false), "Content should be text")
+}
+```
+
+##### Testing EnhancedElementDescriptor Output
+
+For testing `EnhancedElementDescriptor` JSON output specifically, use the specialized utility:
+
+```swift
+// Test an EnhancedElementDescriptor
+let element = UIElement(...)
+let descriptor = EnhancedElementDescriptor.from(element: element)
+
+try JSONTestUtilities.testElementDescriptor(descriptor) { json in
+    // Test required fields
+    try JSONTestUtilities.assertPropertyExists(json, property: "id")
+    try JSONTestUtilities.assertProperty(json, property: "role", equals: "AXButton")
+    
+    // Test verbosity reduction - omitted fields
+    try JSONTestUtilities.assertPropertyDoesNotExist(json, property: "name")
+    
+    // Test combined element field
+    try JSONTestUtilities.assertPropertyContains(json, property: "el", substring: "Save")
+    
+    // Test conditional fields (only present when showCoordinates=true)
+    if showCoordinates {
+        try JSONTestUtilities.assertPropertyExists(json, property: "frame")
+    } else {
+        try JSONTestUtilities.assertPropertyDoesNotExist(json, property: "frame")
+    }
+}
+```
+
+#### Available Utility Methods
+
+The `JSONTestUtilities` provides these methods:
+
+1. **Core Parsing**:
+   - `parseJSON(_:)` - Parse JSON string to Any
+   - `parseJSONObject(_:)` - Parse JSON string to [String: Any]
+   - `parseJSONArray(_:)` - Parse JSON string to [[String: Any]]
+
+2. **Property Assertions**:
+   - `assertPropertyExists(_:property:)` - Check property exists
+   - `assertPropertyDoesNotExist(_:property:)` - Check property is absent
+   - `assertProperty(_:property:equals:)` - Check property has specific value
+   - `assertPropertyContains(_:property:substring:)` - Check string property contains substring
+
+3. **Array Assertions**:
+   - `assertArrayContainsObjectWithProperty(_:property:equals:)` - Check array contains object with property
+
+4. **Structured Testing**:
+   - `testJSONObject(_:assertions:)` - Parse and test JSON object
+   - `testJSONArray(_:assertions:)` - Parse and test JSON array
+   - `testElementDescriptor(_:assertions:)` - Test EnhancedElementDescriptor output
+
 #### Benefits of This Approach
 
-1. **Robust to Formatting Changes**: Doesn't depend on exact JSON string format (whitespace, ordering, etc.)
-2. **Type Safety**: Can check not just for property existence but also correct types
-3. **Better Error Messages**: Can provide more specific error messages based on the actual data structure
-4. **Complex Conditions**: Can check for complex conditions like "at least one item has property X"
-5. **Access to Full Data Structure**: Can navigate and test nested properties easily
+1. **Robust to Formatting Changes**: Independent of JSON string formatting, whitespace, or property ordering
+2. **Type Safety**: Checks both property existence and correct types
+3. **Better Error Messages**: Provides specific error messages about what's wrong
+4. **Complex Conditions**: Supports complex testing scenarios like array searches
+5. **Maintainable**: Changes to JSON structure require minimal test updates
+6. **Consistent**: All JSON tests use the same patterns and utilities
+
+#### Migration from String-Based Tests
+
+**❌ Avoid this pattern:**
+```swift
+// Brittle string-based testing
+let jsonString = String(data: jsonData, encoding: .utf8)!
+#expect(jsonString.contains("\"role\":\"AXButton\""), "Should contain role")
+#expect(jsonString.contains("\"id\":"), "Should contain id field")
+#expect(!jsonString.contains("\"name\""), "Should not contain name field")
+```
+
+**✅ Use this pattern instead:**
+```swift
+// Robust structured testing
+try JSONTestUtilities.testElementDescriptor(descriptor) { json in
+    try JSONTestUtilities.assertProperty(json, property: "role", equals: "AXButton")
+    try JSONTestUtilities.assertPropertyExists(json, property: "id")
+    try JSONTestUtilities.assertPropertyDoesNotExist(json, property: "name")
+}
+```
 
 ## Running Tests
 

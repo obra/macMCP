@@ -288,7 +288,8 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
 
   /// Coding keys for custom Codable implementation
   private enum CodingKeys: String, CodingKey {
-    case id, role, element, title, value, description, help, identifier, frame
+    case id, role, title, value, description, help, identifier, frame
     case props, actions, attributes, children
+    case element = "el"
   }
 }
