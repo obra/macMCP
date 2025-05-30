@@ -346,36 +346,27 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
 
     // Parse the result JSON to verify content
     if case .text(let jsonString) = result[0] {
-      // Parse the JSON
-      let jsonData = jsonString.data(using: .utf8)!
-      let json = try JSONSerialization.jsonObject(with: jsonData) as! [[String: Any]]
+      try JSONTestUtilities.testJSONArray(jsonString) { windows in
+        #expect(windows.count == 2, "Should have 2 windows")
 
-      // Verify window count
-      #expect(json.count == 2, "Should have 2 windows")
+        // Verify first window
+        let firstWindow = windows[0]
+        try JSONTestUtilities.assertProperty(
+          firstWindow, 
+          property: "id", 
+          equals: "macos://ui/AXWindow[@AXTitle=\"Test Window 1\"][@AXDescription=\"Test Window 1\"]"
+        )
+        try JSONTestUtilities.assertProperty(firstWindow, property: "title", equals: "Test Window 1")
 
-      // Verify first window
-      let firstWindow = json[0]
-      #expect(
-        firstWindow["id"] as? String
-          == "macos://ui/AXWindow[@AXTitle=\"Test Window 1\"][@AXDescription=\"Test Window 1\"]",
-        "First window should have the correct ID",
-      )
-      #expect(
-        firstWindow["title"] as? String == "Test Window 1",
-        "First window should have the correct title",
-      )
-
-      // Verify second window
-      let secondWindow = json[1]
-      #expect(
-        secondWindow["id"] as? String
-          == "macos://ui/AXWindow[@AXTitle=\"Test Window 2\"][@AXDescription=\"Test Window 2\"]",
-        "Second window should have the correct ID",
-      )
-      #expect(
-        secondWindow["title"] as? String == "Test Window 2",
-        "Second window should have the correct title",
-      )
+        // Verify second window
+        let secondWindow = windows[1]
+        try JSONTestUtilities.assertProperty(
+          secondWindow, 
+          property: "id", 
+          equals: "macos://ui/AXWindow[@AXTitle=\"Test Window 2\"][@AXDescription=\"Test Window 2\"]"
+        )
+        try JSONTestUtilities.assertProperty(secondWindow, property: "title", equals: "Test Window 2")
+      }
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -438,25 +429,18 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
 
     // Parse the result JSON to verify content
     if case .text(let jsonString) = result[0] {
-      // Parse the JSON
-      let jsonData = jsonString.data(using: .utf8)!
-      let json = try JSONSerialization.jsonObject(with: jsonData) as! [[String: Any]]
+      try JSONTestUtilities.testJSONArray(jsonString) { windows in
+        #expect(windows.count == 1, "Should have 1 window")
 
-      // Verify window
-      #expect(json.count == 1, "Should have 1 window")
-
-      let activeWindow = json[0]
-      #expect(
-        activeWindow["id"] as? String
-          ==
-          "macos://ui/AXWindow[@AXTitle=\"Active Window\"][@AXDescription=\"Active Test Window\"]",
-        "Active window should have the correct ID",
-      )
-      #expect(
-        activeWindow["title"] as? String == "Active Window",
-        "Active window should have the correct title",
-      )
-      #expect(activeWindow["isMain"] as? Bool == true, "Active window should be the main window")
+        let activeWindow = windows[0]
+        try JSONTestUtilities.assertProperty(
+          activeWindow, 
+          property: "id", 
+          equals: "macos://ui/AXWindow[@AXTitle=\"Active Window\"][@AXDescription=\"Active Test Window\"]"
+        )
+        try JSONTestUtilities.assertProperty(activeWindow, property: "title", equals: "Active Window")
+        try JSONTestUtilities.assertProperty(activeWindow, property: "isMain", equals: true)
+      }
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -509,14 +493,21 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
       mockAccessibilityService.moveWindowPoint?.y == 300, "Should move to the correct y coordinate",
     )
 
-    // Use simple string contains validation instead of JSON parsing
+    // Validate JSON structure and content
     if case .text(let jsonString) = result[0] {
-      #expect(jsonString.contains("\"success\""), "Response should indicate success")
-      #expect(jsonString.contains("\"action\""), "Response should include action name")
-      #expect(jsonString.contains("\"windowId\""), "Response should include window ID")
-      #expect(jsonString.contains("\"position\""), "Response should include position information")
-      #expect(jsonString.contains("\"x\""), "Response should include x coordinate")
-      #expect(jsonString.contains("\"y\""), "Response should include y coordinate")
+      try JSONTestUtilities.testJSONObject(jsonString) { json in
+        try JSONTestUtilities.assertPropertyExists(json, property: "success")
+        try JSONTestUtilities.assertPropertyExists(json, property: "action")
+        try JSONTestUtilities.assertPropertyExists(json, property: "windowId")
+        try JSONTestUtilities.assertPropertyExists(json, property: "position")
+        
+        // Check position sub-object
+        try JSONTestUtilities.assertPropertyExists(json, property: "position")
+        if let position = json["position"] as? [String: Any] {
+          try JSONTestUtilities.assertPropertyExists(position, property: "x")
+          try JSONTestUtilities.assertPropertyExists(position, property: "y")
+        }
+      }
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -572,14 +563,20 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
       "Should resize to the correct height",
     )
 
-    // Use simple string contains validation instead of JSON parsing
+    // Validate JSON structure and content
     if case .text(let jsonString) = result[0] {
-      #expect(jsonString.contains("\"success\""), "Response should indicate success")
-      #expect(jsonString.contains("\"action\""), "Response should include action name")
-      #expect(jsonString.contains("\"windowId\""), "Response should include window ID")
-      #expect(jsonString.contains("\"size\""), "Response should include size information")
-      #expect(jsonString.contains("\"width\""), "Response should include width")
-      #expect(jsonString.contains("\"height\""), "Response should include height")
+      try JSONTestUtilities.testJSONObject(jsonString) { json in
+        try JSONTestUtilities.assertPropertyExists(json, property: "success")
+        try JSONTestUtilities.assertPropertyExists(json, property: "action")
+        try JSONTestUtilities.assertPropertyExists(json, property: "windowId")
+        try JSONTestUtilities.assertPropertyExists(json, property: "size")
+        
+        // Check size sub-object
+        if let size = json["size"] as? [String: Any] {
+          try JSONTestUtilities.assertPropertyExists(size, property: "width")
+          try JSONTestUtilities.assertPropertyExists(size, property: "height")
+        }
+      }
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -625,11 +622,13 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
       "Should use the correct window ID",
     )
 
-    // Use simple string contains validation instead of JSON parsing
+    // Validate JSON structure and content
     if case .text(let jsonString) = result[0] {
-      #expect(jsonString.contains("\"success\""), "Response should indicate success")
-      #expect(jsonString.contains("\"action\""), "Response should include action name")
-      #expect(jsonString.contains("\"windowId\""), "Response should include window ID")
+      try JSONTestUtilities.testJSONObject(jsonString) { json in
+        try JSONTestUtilities.assertPropertyExists(json, property: "success")
+        try JSONTestUtilities.assertPropertyExists(json, property: "action")
+        try JSONTestUtilities.assertPropertyExists(json, property: "windowId")
+      }
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -675,11 +674,13 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
       "Should use the correct window ID",
     )
 
-    // Use simple string contains validation instead of JSON parsing
+    // Validate JSON structure and content
     if case .text(let jsonString) = result[0] {
-      #expect(jsonString.contains("\"success\""), "Response should indicate success")
-      #expect(jsonString.contains("\"action\""), "Response should include action name")
-      #expect(jsonString.contains("\"windowId\""), "Response should include window ID")
+      try JSONTestUtilities.testJSONObject(jsonString) { json in
+        try JSONTestUtilities.assertPropertyExists(json, property: "success")
+        try JSONTestUtilities.assertPropertyExists(json, property: "action")
+        try JSONTestUtilities.assertPropertyExists(json, property: "windowId")
+      }
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -725,11 +726,13 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
       "Should use the correct window ID",
     )
 
-    // Use simple string contains validation instead of JSON parsing
+    // Validate JSON structure and content
     if case .text(let jsonString) = result[0] {
-      #expect(jsonString.contains("\"success\""), "Response should indicate success")
-      #expect(jsonString.contains("\"action\""), "Response should include action name")
-      #expect(jsonString.contains("\"windowId\""), "Response should include window ID")
+      try JSONTestUtilities.testJSONObject(jsonString) { json in
+        try JSONTestUtilities.assertPropertyExists(json, property: "success")
+        try JSONTestUtilities.assertPropertyExists(json, property: "action")
+        try JSONTestUtilities.assertPropertyExists(json, property: "windowId")
+      }
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -775,11 +778,13 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
       "Should use the correct window ID",
     )
 
-    // Use simple string contains validation instead of JSON parsing
+    // Validate JSON structure and content
     if case .text(let jsonString) = result[0] {
-      #expect(jsonString.contains("\"success\""), "Response should indicate success")
-      #expect(jsonString.contains("\"action\""), "Response should include action name")
-      #expect(jsonString.contains("\"windowId\""), "Response should include window ID")
+      try JSONTestUtilities.testJSONObject(jsonString) { json in
+        try JSONTestUtilities.assertPropertyExists(json, property: "success")
+        try JSONTestUtilities.assertPropertyExists(json, property: "action")
+        try JSONTestUtilities.assertPropertyExists(json, property: "windowId")
+      }
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -834,12 +839,14 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
       "Should not have a reference window",
     )
 
-    // Use simple string contains validation instead of JSON parsing
+    // Validate JSON structure and content
     if case .text(let jsonString) = result[0] {
-      #expect(jsonString.contains("\"success\""), "Response should indicate success")
-      #expect(jsonString.contains("\"action\""), "Response should include action name")
-      #expect(jsonString.contains("\"windowId\""), "Response should include window ID")
-      #expect(jsonString.contains("\"orderMode\""), "Response should include order mode")
+      try JSONTestUtilities.testJSONObject(jsonString) { json in
+        try JSONTestUtilities.assertPropertyExists(json, property: "success")
+        try JSONTestUtilities.assertPropertyExists(json, property: "action")
+        try JSONTestUtilities.assertPropertyExists(json, property: "windowId")
+        try JSONTestUtilities.assertPropertyExists(json, property: "orderMode")
+      }
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -897,15 +904,15 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
       "Should have the correct reference window",
     )
 
-    // Use simple string contains validation instead of JSON parsing
+    // Validate JSON structure and content
     if case .text(let jsonString) = result[0] {
-      #expect(jsonString.contains("\"success\""), "Response should indicate success")
-      #expect(jsonString.contains("\"action\""), "Response should include action name")
-      #expect(jsonString.contains("\"windowId\""), "Response should include window ID")
-      #expect(jsonString.contains("\"orderMode\""), "Response should include order mode")
-      #expect(
-        jsonString.contains("\"referenceWindowId\""), "Response should include reference window ID",
-      )
+      try JSONTestUtilities.testJSONObject(jsonString) { json in
+        try JSONTestUtilities.assertPropertyExists(json, property: "success")
+        try JSONTestUtilities.assertPropertyExists(json, property: "action")
+        try JSONTestUtilities.assertPropertyExists(json, property: "windowId")
+        try JSONTestUtilities.assertPropertyExists(json, property: "orderMode")
+        try JSONTestUtilities.assertPropertyExists(json, property: "referenceWindowId")
+      }
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -951,11 +958,13 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
       "Should use the correct window ID",
     )
 
-    // Use simple string contains validation instead of JSON parsing
+    // Validate JSON structure and content
     if case .text(let jsonString) = result[0] {
-      #expect(jsonString.contains("\"success\""), "Response should indicate success")
-      #expect(jsonString.contains("\"action\""), "Response should include action name")
-      #expect(jsonString.contains("\"windowId\""), "Response should include window ID")
+      try JSONTestUtilities.testJSONObject(jsonString) { json in
+        try JSONTestUtilities.assertPropertyExists(json, property: "success")
+        try JSONTestUtilities.assertPropertyExists(json, property: "action")
+        try JSONTestUtilities.assertPropertyExists(json, property: "windowId")
+      }
     } else {
       #expect(Bool(false), "Result should be text content")
     }

@@ -31,19 +31,31 @@ import Testing
     print("Generated JSON with opaque ID:")
     print(jsonString)
     // 3. Verify that the JSON contains an opaque ID (not the raw path)
-    #expect(!jsonString.contains("macos://ui/"), "JSON should contain opaque ID, not raw path")
-    #expect(!jsonString.contains("[@AXTitle="), "JSON should not contain raw element path syntax")
-    // 4. Extract the opaque ID from the JSON
-    let json = try JSONSerialization.jsonObject(with: jsonData) as! [String: Any]
-    let opaqueID = json["id"] as! String
-    print("Extracted opaque ID: \(opaqueID)")
-    // 5. Test the decoding functionality directly (simulates what UIInteractionTool would do)
-    let decodedPath = try OpaqueIDEncoder.decode(opaqueID)
-    #expect(decodedPath == originalPath, "Decoded path should match original")
-    print("Successfully decoded opaque ID back to: \(decodedPath)")
+    try JSONTestUtilities.assertDoesNotContainAny(jsonString, substrings: [
+      "macos://ui/",
+      "[@AXTitle="
+    ], message: "JSON should contain opaque ID, not raw path elements")
+    
+    // 4. Extract the opaque ID from the JSON using robust parsing
+    try JSONTestUtilities.testJSONObject(jsonString) { json in
+      try JSONTestUtilities.assertPropertyExists(json, property: "id")
+      guard let opaqueID = json["id"] as? String else {
+        #expect(Bool(false), "ID should be a string")
+        return
+      }
+      
+      print("Extracted opaque ID: \(opaqueID)")
+      // 5. Test the decoding functionality directly (simulates what UIInteractionTool would do)
+      let decodedPath = try OpaqueIDEncoder.decode(opaqueID)
+      #expect(decodedPath == originalPath, "Decoded path should match original")
+      print("Successfully decoded opaque ID back to: \(decodedPath)")
+    }
+    
     // 6. Verify the JSON is clean (no escaping issues)
-    #expect(!jsonString.contains("\\\""), "JSON should not contain escaped quotes")
-    #expect(!jsonString.contains("\\/"), "JSON should not contain escaped slashes")
+    try JSONTestUtilities.assertDoesNotContainAny(jsonString, substrings: [
+      "\\\"",
+      "\\/"
+    ], message: "JSON should not contain escaped characters")
   }
 
   @Test("Opaque ID vs raw path JSON comparison") func opaqueIDVsRawPathComparison() throws {
@@ -77,8 +89,8 @@ import Testing
     print("Raw path JSON (with escaping issues):")
     print(rawJsonString)
     // Verify opaque approach eliminates escaping
-    #expect(!jsonString.contains("\\\""), "Opaque ID JSON should have no escaped quotes")
-    #expect(rawJsonString.contains("\\\""), "Raw path JSON should have escaped quotes")
+    try JSONTestUtilities.assertDoesNotContain(jsonString, substring: "\\\"", message: "Opaque ID JSON should have no escaped quotes")
+    #expect(rawJsonString.contains("\\\""), "Raw path JSON should have escaped quotes for comparison")
     print("Opaque ID successfully eliminates JSON escaping issues!")
   }
 }

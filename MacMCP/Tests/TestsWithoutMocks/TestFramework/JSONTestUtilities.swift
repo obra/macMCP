@@ -14,6 +14,7 @@ enum JSONTestUtilities {
     case missingProperty(String)
     case wrongPropertyType(property: String, expectedType: String, actualType: String)
     case invalidPropertyValue(property: String, expected: String, actual: String)
+    case assertionFailed(String)
     var description: String {
       switch self {
         case .invalidJSON(let message): "Invalid JSON: \(message)"
@@ -22,6 +23,7 @@ enum JSONTestUtilities {
           "Wrong property type for '\(property)': expected \(expectedType), got \(actualType)"
         case .invalidPropertyValue(let property, let expected, let actual):
           "Invalid property value for '\(property)': expected \(expected), got \(actual)"
+        case .assertionFailed(let message): "Assertion failed: \(message)"
       }
     }
   }
@@ -93,21 +95,63 @@ enum JSONTestUtilities {
     // First check if property exists
     try assertPropertyExists(json, property: property)
     let actualValue = json[property]!
-    // Check types match (allow String and NSString variants to match)
+    // Check types match (allow String and NSString variants to match, and numeric types with NSNumber)
     let expectedIsString = expectedValue is String
     let actualIsString = actualValue is String
+    let expectedIsBool = expectedValue is Bool
+    let actualIsBool = actualValue is Bool || actualValue is NSNumber
+    let expectedIsNumeric = expectedValue is Int || expectedValue is Double || expectedValue is Float || expectedValue is Bool
+    let actualIsNumeric = actualValue is NSNumber || actualValue is Int || actualValue is Double || actualValue is Float || actualValue is Bool
     
-    if !((expectedIsString && actualIsString) || type(of: expectedValue) == type(of: actualValue)) {
+    let typesMatch = (expectedIsString && actualIsString) || 
+                     (expectedIsNumeric && actualIsNumeric) ||
+                     type(of: expectedValue) == type(of: actualValue)
+    
+    if !typesMatch {
       throw JSONTestError.wrongPropertyType(
         property: property,
         expectedType: "\(type(of: expectedValue))",
         actualType: "\(type(of: actualValue))",
       )
     }
-    // Check values match (converted to strings for comparison)
-    let expectedStr = "\(expectedValue)"
-    let actualStr = "\(actualValue)"
-    if expectedStr != actualStr {
+    // Check values match (handle numeric types and NSNumber comparison specially)
+    var valuesMatch = false
+    
+    if expectedIsBool && actualIsBool {
+      // Handle Bool vs NSNumber comparison
+      let expectedBool = expectedValue as! Bool
+      if let actualNSNumber = actualValue as? NSNumber {
+        valuesMatch = expectedBool == actualNSNumber.boolValue
+      } else {
+        valuesMatch = expectedBool == (actualValue as! Bool)
+      }
+    } else if expectedIsNumeric && actualIsNumeric {
+      // Handle numeric vs NSNumber comparison
+      if let actualNSNumber = actualValue as? NSNumber {
+        if let expectedInt = expectedValue as? Int {
+          valuesMatch = expectedInt == actualNSNumber.intValue
+        } else if let expectedDouble = expectedValue as? Double {
+          valuesMatch = expectedDouble == actualNSNumber.doubleValue
+        } else if let expectedFloat = expectedValue as? Float {
+          valuesMatch = expectedFloat == actualNSNumber.floatValue
+        } else {
+          // Default to string comparison for other numeric types
+          valuesMatch = "\(expectedValue)" == "\(actualValue)"
+        }
+      } else {
+        // Both are native Swift numeric types
+        valuesMatch = "\(expectedValue)" == "\(actualValue)"
+      }
+    } else {
+      // Default string comparison for other types
+      let expectedStr = "\(expectedValue)"
+      let actualStr = "\(actualValue)"
+      valuesMatch = expectedStr == actualStr
+    }
+    
+    if !valuesMatch {
+      let expectedStr = "\(expectedValue)"
+      let actualStr = "\(actualValue)"
       throw JSONTestError.invalidPropertyValue(
         property: property, expected: expectedStr, actual: actualStr,
       )
@@ -180,6 +224,49 @@ enum JSONTestUtilities {
     let json = try parseJSONArray(jsonString)
     try assertions(json)
     return true
+  }
+
+  // MARK: - Negative Assertion Utilities
+
+  /// Asserts that a JSON string does NOT contain a specific substring
+  /// - Parameters:
+  ///   - jsonString: The JSON string to test
+  ///   - substring: The substring that should NOT be present
+  ///   - message: Optional custom error message
+  /// - Throws: JSONTestError if the substring is found
+  static func assertDoesNotContain(_ jsonString: String, substring: String, message: String? = nil) throws {
+    if jsonString.contains(substring) {
+      let errorMessage = message ?? "JSON should not contain '\(substring)'"
+      throw JSONTestError.assertionFailed(errorMessage)
+    }
+  }
+
+  /// Asserts that a JSON string does NOT contain any of the specified substrings
+  /// - Parameters:
+  ///   - jsonString: The JSON string to test
+  ///   - substrings: Array of substrings that should NOT be present
+  ///   - message: Optional custom error message
+  /// - Throws: JSONTestError if any substring is found
+  static func assertDoesNotContainAny(_ jsonString: String, substrings: [String], message: String? = nil) throws {
+    for substring in substrings {
+      if jsonString.contains(substring) {
+        let errorMessage = message ?? "JSON should not contain '\(substring)'"
+        throw JSONTestError.assertionFailed(errorMessage)
+      }
+    }
+  }
+
+  /// Asserts that a property does NOT exist in a JSON object
+  /// - Parameters:
+  ///   - json: The JSON object to test
+  ///   - property: The property name that should NOT exist
+  ///   - message: Optional custom error message
+  /// - Throws: JSONTestError if the property exists
+  static func assertPropertyDoesNotExist(_ json: [String: Any], property: String, message: String? = nil) throws {
+    if json[property] != nil {
+      let errorMessage = message ?? "Property '\(property)' should not exist"
+      throw JSONTestError.assertionFailed(errorMessage)
+    }
   }
 }
 

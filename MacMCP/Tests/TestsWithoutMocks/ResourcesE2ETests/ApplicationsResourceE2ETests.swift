@@ -66,15 +66,32 @@ import Testing
     let (content, metadata) = try await handler.handleRead(uri: resourceURI, components: components)
     // Verify the content
     if case .text(let jsonString) = content {
-      // Verify standard system processes are listed
-      #expect(jsonString.contains("Finder"), "Response should include Finder")
-      // Our test app should be listed
-      #expect(jsonString.contains(calculatorBundleId), "Response should include Calculator")
-      #expect(jsonString.contains("Calculator"), "Response should include Calculator name")
-      // Each application entry should have basic information
-      #expect(jsonString.contains("\"bundleId\""), "Response should include bundle identifiers")
-      #expect(jsonString.contains("\"name\""), "Response should include application names")
-      #expect(jsonString.contains("\"processIdentifier\""), "Response should include process IDs")
+      try JSONTestUtilities.testJSONArray(jsonString) { applications in
+        #expect(!applications.isEmpty, "Should have running applications")
+        
+        // Verify standard system processes are listed
+        let hasFinderApp = applications.contains { app in
+          if let name = app["name"] as? String {
+            return name.contains("Finder")
+          }
+          return false
+        }
+        #expect(hasFinderApp, "Response should include Finder")
+        
+        // Our test app should be listed
+        let hasCalculatorApp = applications.contains { app in
+          (app["bundleId"] as? String)?.contains(calculatorBundleId) == true ||
+          (app["name"] as? String)?.contains("Calculator") == true
+        }
+        #expect(hasCalculatorApp, "Response should include Calculator")
+        
+        // Each application entry should have basic information
+        for app in applications {
+          try JSONTestUtilities.assertPropertyExists(app, property: "bundleId")
+          try JSONTestUtilities.assertPropertyExists(app, property: "name") 
+          try JSONTestUtilities.assertPropertyExists(app, property: "processIdentifier")
+        }
+      }
       // Verify metadata
       #expect(metadata != nil, "Metadata should be provided")
       #expect(metadata?.mimeType == "application/json", "MIME type should be application/json")

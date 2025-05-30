@@ -47,10 +47,15 @@ import Testing
     let (content, metadata) = try await handler.handleRead(uri: resourceURI, components: components)
     // Verify the content
     if case .text(let jsonString) = content {
-      // Verify basic menu structure
-      #expect(jsonString.contains("File"), "Response should include File menu")
-      #expect(jsonString.contains("Edit"), "Response should include Edit menu")
-      #expect(jsonString.contains("Format"), "Response should include Format menu")
+      try JSONTestUtilities.testJSONArray(jsonString) { menus in
+        #expect(!menus.isEmpty, "Should have at least one menu")
+        
+        // Verify basic menu structure
+        let menuTitles = menus.compactMap { $0["title"] as? String }
+        #expect(menuTitles.contains("File"), "Response should include File menu")
+        #expect(menuTitles.contains("Edit"), "Response should include Edit menu")
+        #expect(menuTitles.contains("Format"), "Response should include Format menu")
+      }
       // Verify metadata
       #expect(metadata != nil, "Metadata should be provided")
       #expect(metadata?.mimeType == "application/json", "MIME type should be application/json")
@@ -87,10 +92,15 @@ import Testing
     let (content, metadata) = try await handler.handleRead(uri: resourceURI, components: components)
     // Verify the content
     if case .text(let jsonString) = content {
-      // Verify File menu items
-      #expect(jsonString.contains("New"), "Response should include New item")
-      #expect(jsonString.contains("Open"), "Response should include Open item")
-      #expect(jsonString.contains("Save"), "Response should include Save item")
+      try JSONTestUtilities.testJSONArray(jsonString) { menuItems in
+        #expect(!menuItems.isEmpty, "Should have File menu items")
+        
+        // Verify File menu items
+        let itemTitles = menuItems.compactMap { $0["title"] as? String }
+        #expect(itemTitles.contains("New"), "Response should include New item")
+        #expect(itemTitles.contains("Open"), "Response should include Open item")
+        #expect(itemTitles.contains("Save"), "Response should include Save item")
+      }
       // Verify metadata
       #expect(metadata != nil, "Metadata should be provided")
       if let metadata {
@@ -134,15 +144,32 @@ import Testing
     let (content, metadata) = try await handler.handleRead(uri: resourceURI, components: components)
     // Verify the content
     if case .text(let jsonString) = content {
-      // Format menu typically has Font submenu
-      #expect(jsonString.contains("Font"), "Response should include Font item")
-      // Since we requested includeSubmenus=true, we should see Font submenu items
-      #expect(jsonString.contains("submenuItems"), "Response should include submenu items")
-      // Look for common Font submenu items
-      #expect(
-        jsonString.contains("Bold") || jsonString.contains("Italic"),
-        "Response should include Font submenu items like Bold or Italic",
-      )
+      try JSONTestUtilities.testJSONArray(jsonString) { formatMenuItems in
+        #expect(!formatMenuItems.isEmpty, "Should have Format menu items")
+        
+        // Format menu typically has Font submenu
+        let itemTitles = formatMenuItems.compactMap { $0["title"] as? String }
+        #expect(itemTitles.contains("Font"), "Response should include Font item")
+        
+        // Since we requested includeSubmenus=true, we should see Font submenu items
+        let hasSubmenuItems = formatMenuItems.contains { item in
+          item["submenuItems"] != nil
+        }
+        #expect(hasSubmenuItems, "Response should include submenu items")
+        
+        // Look for common Font submenu items in any submenu
+        var foundFontItem = false
+        for item in formatMenuItems {
+          if let submenuItems = item["submenuItems"] as? [[String: Any]] {
+            let submenuTitles = submenuItems.compactMap { $0["title"] as? String }
+            if submenuTitles.contains("Bold") || submenuTitles.contains("Italic") {
+              foundFontItem = true
+              break
+            }
+          }
+        }
+        #expect(foundFontItem, "Response should include Font submenu items like Bold or Italic")
+      }
       // Verify metadata
       #expect(metadata != nil, "Metadata should be provided")
       if let metadata {

@@ -66,13 +66,16 @@ import Testing
     let (content, metadata) = try await handler.handleRead(uri: resourceURI, components: components)
     // Verify the content
     if case .text(let jsonString) = content {
-      // Verify Calculator is in the list
-      #expect(
-        jsonString.contains(calculatorBundleId), "Calculator should be in the applications list",
-      )
-      #expect(
-        jsonString.contains("Calculator"), "Calculator name should be in the applications list",
-      )
+      try JSONTestUtilities.testJSONArray(jsonString) { applications in
+        #expect(!applications.isEmpty, "Should have running applications")
+        
+        // Verify Calculator is in the list
+        let hasCalculatorApp = applications.contains { app in
+          (app["bundleId"] as? String)?.contains(calculatorBundleId) == true ||
+          (app["name"] as? String)?.contains("Calculator") == true
+        }
+        #expect(hasCalculatorApp, "Calculator should be in the applications list")
+      }
     } else {
       #expect(Bool(false), "Content should be text")
     }
@@ -104,12 +107,25 @@ import Testing
     let (content, metadata) = try await handler.handleRead(uri: resourceURI, components: components)
     // Verify the content
     if case .text(let jsonString) = content {
-      // Verify window information
-      #expect(jsonString.contains("AXWindow"), "Response should include AXWindow")
-      #expect(jsonString.contains("Calculator"), "Window title should contain Calculator")
-      // Verify window properties
-      #expect(jsonString.contains("\"isMain\""), "Response should include main window status")
-      #expect(jsonString.contains("\"frame\""), "Response should include frame information")
+      try JSONTestUtilities.testJSONArray(jsonString) { windows in
+        #expect(!windows.isEmpty, "Should have at least one window")
+        
+        // Verify window information
+        let hasCalculatorWindow = windows.contains { window in
+          if let title = window["title"] as? String,
+             let id = window["id"] as? String {
+            return title.contains("Calculator") || id.contains("AXWindow")
+          }
+          return false
+        }
+        #expect(hasCalculatorWindow, "Response should include Calculator window")
+        
+        // Verify window properties exist
+        for window in windows {
+          try JSONTestUtilities.assertPropertyExists(window, property: "isMain")
+          try JSONTestUtilities.assertPropertyExists(window, property: "frame")
+        }
+      }
     } else {
       #expect(Bool(false), "Content should be text")
     }
@@ -140,11 +156,30 @@ import Testing
     let (content, metadata) = try await handler.handleRead(uri: resourceURI, components: components)
     // Verify the content
     if case .text(let jsonString) = content {
-      // Verify calculator information
-      #expect(jsonString.contains("AXApplication"), "Response should include AXApplication")
-      #expect(jsonString.contains("Calculator"), "Response should include Calculator title")
-      #expect(jsonString.contains("children"), "Response should include children")
-      #expect(jsonString.contains("AXWindow"), "Response should include AXWindow in children")
+      try JSONTestUtilities.testJSONObject(jsonString) { element in
+        // Verify calculator information
+        try JSONTestUtilities.assertPropertyExists(element, property: "role")
+        if let role = element["role"] as? String {
+          #expect(role.contains("AXApplication"), "Response should include AXApplication")
+        }
+        
+        if let name = element["name"] as? String {
+          #expect(name.contains("Calculator"), "Response should include Calculator title")
+        }
+        
+        try JSONTestUtilities.assertPropertyExists(element, property: "children")
+        
+        // Check if children contain AXWindow
+        if let children = element["children"] as? [[String: Any]] {
+          let hasWindow = children.contains { child in
+            if let childRole = child["role"] as? String {
+              return childRole.contains("AXWindow")
+            }
+            return false
+          }
+          #expect(hasWindow, "Response should include AXWindow in children")
+        }
+      }
     } else {
       #expect(Bool(false), "Content should be text")
     }
@@ -177,13 +212,23 @@ import Testing
     let (content, metadata) = try await handler.handleRead(uri: resourceURI, components: components)
     // Verify the content
     if case .text(let jsonString) = content {
-      // Verify we got interactable elements
-      #expect(jsonString.contains("AXButton"), "Response should include calculator buttons")
-      // The response should be an array since interactable=true returns an array
-      #expect(jsonString.hasPrefix("["), "Response should be an array")
-      #expect(jsonString.hasSuffix("]"), "Response should be an array")
-      // Verify all returned elements have some kind of interactive action
-      #expect(jsonString.contains("\"actions\""), "Response should include actions")
+      try JSONTestUtilities.testJSONArray(jsonString) { interactableElements in
+        #expect(!interactableElements.isEmpty, "Should have interactable elements")
+        
+        // Verify we got interactable elements like buttons
+        let hasButtons = interactableElements.contains { element in
+          if let role = element["role"] as? String {
+            return role.contains("AXButton")
+          }
+          return false
+        }
+        #expect(hasButtons, "Response should include calculator buttons")
+        
+        // Verify all returned elements have some kind of interactive action
+        for element in interactableElements {
+          try JSONTestUtilities.assertPropertyExists(element, property: "actions")
+        }
+      }
       // Verify metadata
       #expect(metadata != nil, "Metadata should be provided")
       if let metadata {

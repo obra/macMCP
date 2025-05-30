@@ -104,16 +104,26 @@ import Testing
     let (content, metadata) = try await handler.handleRead(uri: resourceURI, components: components)
     // Verify the content
     if case .text(let jsonString) = content {
-      // Verify basic window properties
-      #expect(jsonString.contains("\"id\""), "Response should include window ID")
-      #expect(jsonString.contains("\"title\""), "Response should include window title")
-      #expect(jsonString.contains("\"frame\""), "Response should include window frame")
-      #expect(jsonString.contains("\"isMain\""), "Response should include main window flag")
-      // TextEdit should have at least one window
-      #expect(
-        jsonString.contains("Untitled") || jsonString.contains("TextEdit"),
-        "Response should include TextEdit window title",
-      )
+      try JSONTestUtilities.testJSONArray(jsonString) { windows in
+        #expect(!windows.isEmpty, "Should have at least one window")
+        
+        // Verify basic window properties exist in at least one window
+        for window in windows {
+          try JSONTestUtilities.assertPropertyExists(window, property: "id")
+          try JSONTestUtilities.assertPropertyExists(window, property: "title")
+          try JSONTestUtilities.assertPropertyExists(window, property: "frame")
+          try JSONTestUtilities.assertPropertyExists(window, property: "isMain")
+        }
+        
+        // TextEdit should have at least one window with expected title
+        let hasExpectedTitle = windows.contains { window in
+          if let title = window["title"] as? String {
+            return title.contains("Untitled") || title.contains("TextEdit")
+          }
+          return false
+        }
+        #expect(hasExpectedTitle, "Response should include TextEdit window title")
+      }
       // Verify metadata
       #expect(metadata != nil, "Metadata should be provided")
       #expect(metadata?.mimeType == "application/json", "MIME type should be application/json")
@@ -151,39 +161,28 @@ import Testing
     let (content, _) = try await handler.handleRead(uri: resourceURI, components: components)
     // Verify the content
     if case .text(let jsonString) = content {
-      // Parse the JSON string to an array
-      guard let jsonData = jsonString.data(using: .utf8) else {
-        #expect(Bool(false), "Could not convert JSON string to data")
-        return
-      }
-      do {
-        // Parse the JSON array
-        guard
-          let windowsArray = try JSONSerialization.jsonObject(with: jsonData, options: [])
-          as? [[String: Any]]
-        else {
-          #expect(Bool(false), "JSON is not an array of objects")
-          return
-        }
-        // Check basic structural properties
+      try JSONTestUtilities.testJSONArray(jsonString) { windowsArray in
         #expect(!windowsArray.isEmpty, "Should have at least one window")
+        
         // Check that the first window has all the required state properties
         if let firstWindow = windowsArray.first {
-          #expect(firstWindow["isMinimized"] != nil, "Window should have minimized state")
-          #expect(firstWindow["isVisible"] != nil, "Window should have visibility state")
-          #expect(firstWindow["isMain"] != nil, "Window should have main window state")
+          try JSONTestUtilities.assertPropertyExists(firstWindow, property: "isMinimized")
+          try JSONTestUtilities.assertPropertyExists(firstWindow, property: "isVisible")
+          try JSONTestUtilities.assertPropertyExists(firstWindow, property: "isMain")
         }
+        
         // Check for a window that isn't minimized (at least one window should not be minimized)
         let hasNonMinimizedWindow = windowsArray.contains { window in
           window["isMinimized"] as? Bool == false
         }
         #expect(hasNonMinimizedWindow, "There should be at least one non-minimized window")
+        
         // Check for a visible window (at least one window should be visible)
         let hasVisibleWindow = windowsArray.contains { window in
           window["isVisible"] as? Bool == true
         }
         #expect(hasVisibleWindow, "There should be at least one visible window")
-      } catch { #expect(Bool(false), "Failed to parse JSON: \(error.localizedDescription)") }
+      }
     } else {
       #expect(Bool(false), "Content should be text")
     }

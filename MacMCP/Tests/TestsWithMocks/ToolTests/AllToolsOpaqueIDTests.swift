@@ -30,10 +30,12 @@ import Testing
     let jsonString = String(data: jsonData, encoding: .utf8)!
     print("EnhancedElementDescriptor JSON:")
     print(jsonString)
-    // Should use opaque IDs
-    #expect(!jsonString.contains("macos://ui/"), "Should use opaque ID, not raw path")
-    #expect(!jsonString.contains("[@AXTitle="), "Should not contain raw path syntax")
-    #expect(!jsonString.contains("\\\""), "Should not contain escaped quotes")
+    // Should use opaque IDs - verify no raw path elements
+    try JSONTestUtilities.assertDoesNotContainAny(jsonString, substrings: [
+      "macos://ui/",
+      "[@AXTitle=",
+      "\\\""
+    ], message: "Should use opaque ID format, not raw paths")
     print("EnhancedElementDescriptor successfully outputs opaque IDs!")
   }
 
@@ -63,11 +65,13 @@ import Testing
     let jsonString = String(data: jsonData, encoding: .utf8)!
     print("WindowManagementTool/ResourcesUIElement style JSON:")
     print(jsonString)
-    // Verify clean output
-    #expect(!jsonString.contains("macos://ui/"), "Should use opaque ID, not raw path")
-    #expect(!jsonString.contains("[@bundleId="), "Should not contain raw element path syntax")
-    #expect(!jsonString.contains("\\\""), "Should not contain escaped quotes")
-    #expect(!jsonString.contains("\\/"), "Should not contain escaped slashes")
+    // Verify clean output - should not contain raw path elements
+    try JSONTestUtilities.assertDoesNotContainAny(jsonString, substrings: [
+      "macos://ui/",
+      "[@bundleId=",
+      "\\\"",
+      "\\/"
+    ], message: "Should use opaque ID format, not raw paths or escaped characters")
     print("WindowManagementTool and ResourcesUIElement now output clean opaque IDs!")
   }
 }

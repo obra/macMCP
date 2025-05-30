@@ -30,17 +30,30 @@ import Testing
     let jsonString = String(data: jsonData, encoding: .utf8)!
     print("InterfaceExplorerTool JSON output:")
     print(jsonString)
-    // Verify opaque ID is used
-    #expect(!jsonString.contains("macos://ui/"), "Should use opaque ID, not raw path")
-    #expect(!jsonString.contains("[@AXTitle="), "Should not contain raw element path syntax")
-    #expect(!jsonString.contains("\\\""), "Should not contain escaped quotes")
-    #expect(!jsonString.contains("\\/"), "Should not contain escaped slashes")
-    // Extract the opaque ID from the JSON array
-    let jsonArray = try JSONSerialization.jsonObject(with: jsonData) as! [[String: Any]]
-    let opaqueID = jsonArray[0]["id"] as! String
-    // Test that we can decode the opaque ID back to the original path
-    let decodedPath = try OpaqueIDEncoder.decode(opaqueID)
-    #expect(decodedPath == problematicPath, "Round-trip should work")
-    print("Successfully decoded opaque ID back to original path!")
+    // Verify opaque ID is used - should not contain raw path elements
+    try JSONTestUtilities.assertDoesNotContainAny(jsonString, substrings: [
+      "macos://ui/",
+      "[@AXTitle=", 
+      "\\\"",
+      "\\/"
+    ], message: "Should use opaque ID format, not raw paths or escaped characters")
+    
+    // Extract the opaque ID from the JSON array using robust parsing
+    try JSONTestUtilities.testJSONArray(jsonString) { jsonArray in
+      #expect(!jsonArray.isEmpty, "Should have at least one element")
+      let firstElement = jsonArray[0]
+      try JSONTestUtilities.assertPropertyExists(firstElement, property: "id")
+      
+      // Get the opaque ID for round-trip testing
+      guard let opaqueID = firstElement["id"] as? String else {
+        #expect(Bool(false), "ID should be a string")
+        return
+      }
+      
+      // Test that we can decode the opaque ID back to the original path
+      let decodedPath = try OpaqueIDEncoder.decode(opaqueID)
+      #expect(decodedPath == problematicPath, "Round-trip should work")
+      print("Successfully decoded opaque ID back to original path!")
+    }
   }
 }

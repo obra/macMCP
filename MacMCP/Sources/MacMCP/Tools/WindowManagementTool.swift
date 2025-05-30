@@ -5,6 +5,37 @@ import Foundation
 import Logging
 import MCP
 
+/// Response structure for window operations
+private struct WindowOperationResponse: Codable {
+  let success: Bool
+  let action: String
+  let windowId: String
+  let position: Position?
+  let size: Size?
+  let orderMode: String?
+  let referenceWindowId: String?
+  
+  struct Position: Codable {
+    let x: CGFloat
+    let y: CGFloat
+  }
+  
+  struct Size: Codable {
+    let width: CGFloat
+    let height: CGFloat
+  }
+  
+  init(success: Bool, action: String, windowId: String, position: Position? = nil, size: Size? = nil, orderMode: String? = nil, referenceWindowId: String? = nil) {
+    self.success = success
+    self.action = action
+    self.windowId = windowId
+    self.position = position
+    self.size = size
+    self.orderMode = orderMode
+    self.referenceWindowId = referenceWindowId
+  }
+}
+
 /// A tool for managing and interacting with application windows
 public struct WindowManagementTool: @unchecked Sendable {
   /// The name of the tool
@@ -380,21 +411,13 @@ public struct WindowManagementTool: @unchecked Sendable {
     do {
       try await accessibilityService.moveWindow(withPath: windowId, to: CGPoint(x: x, y: y))
 
-      return [
-        .text(
-          """
-          {
-              "success": true,
-              "action": "moveWindow",
-              "windowId": "\(windowId)",
-              "position": {
-                  "x": \(x),
-                  "y": \(y)
-              }
-          }
-          """,
-        ),
-      ]
+      let response = WindowOperationResponse(
+        success: true,
+        action: "moveWindow", 
+        windowId: windowId,
+        position: WindowOperationResponse.Position(x: x, y: y)
+      )
+      return try formatResponse(response)
     } catch { throw MCPError.internalError("Failed to move window: \(error.localizedDescription)") }
   }
 
@@ -426,21 +449,13 @@ public struct WindowManagementTool: @unchecked Sendable {
         withPath: windowId, to: CGSize(width: width, height: height),
       )
 
-      return [
-        .text(
-          """
-          {
-              "success": true,
-              "action": "resizeWindow",
-              "windowId": "\(windowId)",
-              "size": {
-                  "width": \(width),
-                  "height": \(height)
-              }
-          }
-          """,
-        ),
-      ]
+      let response = WindowOperationResponse(
+        success: true,
+        action: "resizeWindow",
+        windowId: windowId,
+        size: WindowOperationResponse.Size(width: width, height: height)
+      )
+      return try formatResponse(response)
     } catch {
       throw MCPError.internalError("Failed to resize window: \(error.localizedDescription)")
     }
@@ -457,17 +472,12 @@ public struct WindowManagementTool: @unchecked Sendable {
     do {
       try await accessibilityService.minimizeWindow(withPath: windowId)
 
-      return [
-        .text(
-          """
-          {
-              "success": true,
-              "action": "minimizeWindow",
-              "windowId": "\(windowId)"
-          }
-          """,
-        ),
-      ]
+      let response = WindowOperationResponse(
+        success: true,
+        action: "minimizeWindow",
+        windowId: windowId
+      )
+      return try formatResponse(response)
     } catch {
       throw MCPError.internalError("Failed to minimize window: \(error.localizedDescription)")
     }
@@ -484,17 +494,12 @@ public struct WindowManagementTool: @unchecked Sendable {
     do {
       try await accessibilityService.maximizeWindow(withPath: windowId)
 
-      return [
-        .text(
-          """
-          {
-              "success": true,
-              "action": "maximizeWindow",
-              "windowId": "\(windowId)"
-          }
-          """,
-        ),
-      ]
+      let response = WindowOperationResponse(
+        success: true,
+        action: "maximizeWindow",
+        windowId: windowId
+      )
+      return try formatResponse(response)
     } catch {
       throw MCPError.internalError("Failed to maximize window: \(error.localizedDescription)")
     }
@@ -511,17 +516,12 @@ public struct WindowManagementTool: @unchecked Sendable {
     do {
       try await accessibilityService.closeWindow(withPath: windowId)
 
-      return [
-        .text(
-          """
-          {
-              "success": true,
-              "action": "closeWindow",
-              "windowId": "\(windowId)"
-          }
-          """,
-        ),
-      ]
+      let response = WindowOperationResponse(
+        success: true,
+        action: "closeWindow",
+        windowId: windowId
+      )
+      return try formatResponse(response)
     } catch {
       throw MCPError.internalError("Failed to close window: \(error.localizedDescription)")
     }
@@ -538,17 +538,12 @@ public struct WindowManagementTool: @unchecked Sendable {
     do {
       try await accessibilityService.activateWindow(withPath: windowId)
 
-      return [
-        .text(
-          """
-          {
-              "success": true,
-              "action": "activateWindow",
-              "windowId": "\(windowId)"
-          }
-          """,
-        ),
-      ]
+      let response = WindowOperationResponse(
+        success: true,
+        action: "activateWindow",
+        windowId: windowId
+      )
+      return try formatResponse(response)
     } catch {
       throw MCPError.internalError("Failed to activate window: \(error.localizedDescription)")
     }
@@ -586,27 +581,14 @@ public struct WindowManagementTool: @unchecked Sendable {
         referenceWindowPath: referenceWindowId,
       )
 
-      let referenceInfo = if let referenceId = referenceWindowId {
-        """
-        ,
-            "referenceWindowId": "\(referenceId)"
-        """
-      } else {
-        ""
-      }
-
-      return [
-        .text(
-          """
-          {
-              "success": true,
-              "action": "setWindowOrder",
-              "windowId": "\(windowId)",
-              "orderMode": "\(orderMode.rawValue)"\(referenceInfo)
-          }
-          """,
-        ),
-      ]
+      let response = WindowOperationResponse(
+        success: true,
+        action: "setWindowOrder",
+        windowId: windowId,
+        orderMode: orderMode.rawValue,
+        referenceWindowId: referenceWindowId
+      )
+      return try formatResponse(response)
     } catch {
       throw MCPError.internalError("Failed to set window order: \(error.localizedDescription)")
     }
@@ -623,17 +605,12 @@ public struct WindowManagementTool: @unchecked Sendable {
     do {
       try await accessibilityService.focusWindow(withPath: windowId)
 
-      return [
-        .text(
-          """
-          {
-              "success": true,
-              "action": "focusWindow",
-              "windowId": "\(windowId)"
-          }
-          """,
-        ),
-      ]
+      let response = WindowOperationResponse(
+        success: true,
+        action: "focusWindow",
+        windowId: windowId
+      )
+      return try formatResponse(response)
     } catch {
       throw MCPError.internalError("Failed to focus window: \(error.localizedDescription)")
     }

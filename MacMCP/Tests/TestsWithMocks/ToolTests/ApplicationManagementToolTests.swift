@@ -303,14 +303,11 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
 
     // Verify the result content
     if case .text(let jsonString) = result[0] {
-      // Basic validation of JSON format
-      #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
-      #expect(
-        jsonString.contains("\"processIdentifier\": 12345"), "Response should include process ID",
-      )
-      #expect(
-        jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID",
-      )
+      try JSONTestUtilities.testJSONObject(jsonString) { json in
+        try JSONTestUtilities.assertProperty(json, property: "success", equals: true)
+        try JSONTestUtilities.assertProperty(json, property: "processIdentifier", equals: 12345)
+        try JSONTestUtilities.assertProperty(json, property: "bundleId", equals: "com.test.app")
+      }
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -342,8 +339,9 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
 
     // Verify the result content
     if case .text(let jsonString) = result[0] {
-      // Basic validation of JSON format
-      #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
+      try JSONTestUtilities.testJSONObject(jsonString) { json in
+        try JSONTestUtilities.assertProperty(json, property: "success", equals: true)
+      }
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -372,11 +370,10 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
 
     // Verify the result content
     if case .text(let jsonString) = result[0] {
-      // Basic validation of JSON format
-      #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
-      #expect(
-        jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID",
-      )
+      try JSONTestUtilities.testJSONObject(jsonString) { json in
+        try JSONTestUtilities.assertProperty(json, property: "success", equals: true)
+        try JSONTestUtilities.assertProperty(json, property: "bundleId", equals: "com.test.app")
+      }
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -406,11 +403,10 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
 
     // Verify the result content
     if case .text(let jsonString) = result[0] {
-      // Basic validation of JSON format
-      #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
-      #expect(
-        jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID",
-      )
+      try JSONTestUtilities.testJSONObject(jsonString) { json in
+        try JSONTestUtilities.assertProperty(json, property: "success", equals: true)
+        try JSONTestUtilities.assertProperty(json, property: "bundleId", equals: "com.test.app")
+      }
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -439,12 +435,11 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
 
     // Verify the result content
     if case .text(let jsonString) = result[0] {
-      // Basic validation of JSON format
-      #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
-      #expect(
-        jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID",
-      )
-      #expect(jsonString.contains("\"isRunning\": true"), "Response should include running status")
+      try JSONTestUtilities.testJSONObject(jsonString) { json in
+        try JSONTestUtilities.assertProperty(json, property: "success", equals: true)
+        try JSONTestUtilities.assertProperty(json, property: "bundleId", equals: "com.test.app")
+        try JSONTestUtilities.assertProperty(json, property: "isRunning", equals: true)
+      }
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -471,27 +466,34 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
 
     // Verify the result content
     if case .text(let jsonString) = result[0] {
-      // Basic validation of JSON format
-      #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
-      #expect(
-        jsonString.contains("\"applications\":"), "Response should include applications array",
-      )
-      #expect(
-        jsonString.contains("\"bundleId\": \"com.test.app1\""),
-        "Response should include first app bundle ID",
-      )
-      #expect(
-        jsonString.contains("\"applicationName\": \"Test App 1\""),
-        "Response should include first app name",
-      )
-      #expect(
-        jsonString.contains("\"bundleId\": \"com.test.app2\""),
-        "Response should include second app bundle ID",
-      )
-      #expect(
-        jsonString.contains("\"applicationName\": \"Test App 2\""),
-        "Response should include second app name",
-      )
+      try JSONTestUtilities.testJSONObject(jsonString) { json in
+        try JSONTestUtilities.assertProperty(json, property: "success", equals: true)
+        try JSONTestUtilities.assertPropertyExists(json, property: "applications")
+        
+        // Test the applications array
+        guard let applicationsArray = json["applications"] as? [[String: Any]] else {
+          #expect(Bool(false), "Applications should be an array of objects")
+          return
+        }
+        
+        #expect(applicationsArray.count == 2, "Should contain 2 applications")
+        
+        // Test first application
+        try JSONTestUtilities.assertArrayContainsObjectWithProperty(
+          applicationsArray, property: "bundleId", equals: "com.test.app1"
+        )
+        try JSONTestUtilities.assertArrayContainsObjectWithProperty(
+          applicationsArray, property: "applicationName", equals: "Test App 1"
+        )
+        
+        // Test second application  
+        try JSONTestUtilities.assertArrayContainsObjectWithProperty(
+          applicationsArray, property: "bundleId", equals: "com.test.app2"
+        )
+        try JSONTestUtilities.assertArrayContainsObjectWithProperty(
+          applicationsArray, property: "applicationName", equals: "Test App 2"
+        )
+      }
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -518,11 +520,10 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
 
     // Verify the result content
     if case .text(let jsonString) = result[0] {
-      // Basic validation of JSON format
-      #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
-      #expect(
-        jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID",
-      )
+      try JSONTestUtilities.testJSONObject(jsonString) { json in
+        try JSONTestUtilities.assertProperty(json, property: "success", equals: true)
+        try JSONTestUtilities.assertProperty(json, property: "bundleId", equals: "com.test.app")
+      }
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -549,11 +550,10 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
 
     // Verify the result content
     if case .text(let jsonString) = result[0] {
-      // Basic validation of JSON format
-      #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
-      #expect(
-        jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID",
-      )
+      try JSONTestUtilities.testJSONObject(jsonString) { json in
+        try JSONTestUtilities.assertProperty(json, property: "success", equals: true)
+        try JSONTestUtilities.assertProperty(json, property: "bundleId", equals: "com.test.app")
+      }
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -580,11 +580,10 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
 
     // Verify the result content
     if case .text(let jsonString) = result[0] {
-      // Basic validation of JSON format
-      #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
-      #expect(
-        jsonString.contains("\"bundleId\": \"com.test.app\""), "Response should include bundle ID",
-      )
+      try JSONTestUtilities.testJSONObject(jsonString) { json in
+        try JSONTestUtilities.assertProperty(json, property: "success", equals: true)
+        try JSONTestUtilities.assertProperty(json, property: "bundleId", equals: "com.test.app")
+      }
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -611,12 +610,10 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
 
     // Verify the result content
     if case .text(let jsonString) = result[0] {
-      // Basic validation of JSON format
-      #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
-      #expect(
-        jsonString.contains("\"exceptBundleIdentifier\": \"com.test.app\""),
-        "Response should include except bundle ID",
-      )
+      try JSONTestUtilities.testJSONObject(jsonString) { json in
+        try JSONTestUtilities.assertProperty(json, property: "success", equals: true)
+        try JSONTestUtilities.assertProperty(json, property: "exceptBundleIdentifier", equals: "com.test.app")
+      }
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -643,24 +640,14 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
 
     // Verify the result content
     if case .text(let jsonString) = result[0] {
-      // Basic validation of JSON format
-      #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
-      #expect(
-        jsonString.contains("\"bundleId\": \"com.test.frontmost\""),
-        "Response should include bundle ID",
-      )
-      #expect(
-        jsonString.contains("\"applicationName\": \"Frontmost App\""),
-        "Response should include app name",
-      )
-      #expect(
-        jsonString.contains("\"processIdentifier\": 12345"), "Response should include process ID",
-      )
-      #expect(jsonString.contains("\"isActive\": true"), "Response should include active status")
-      #expect(
-        jsonString.contains("\"isFinishedLaunching\": true"),
-        "Response should include finished launching status",
-      )
+      try JSONTestUtilities.testJSONObject(jsonString) { json in
+        try JSONTestUtilities.assertProperty(json, property: "success", equals: true)
+        try JSONTestUtilities.assertProperty(json, property: "bundleId", equals: "com.test.frontmost")
+        try JSONTestUtilities.assertProperty(json, property: "applicationName", equals: "Frontmost App")
+        try JSONTestUtilities.assertProperty(json, property: "processIdentifier", equals: 12345)
+        try JSONTestUtilities.assertProperty(json, property: "isActive", equals: true)
+        try JSONTestUtilities.assertProperty(json, property: "isFinishedLaunching", equals: true)
+      }
     } else {
       #expect(Bool(false), "Result should be text content")
     }
@@ -689,12 +676,10 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
 
     // Verify the result content
     if case .text(let jsonString) = result[0] {
-      // Basic validation of JSON format
-      #expect(jsonString.contains("\"success\": true"), "Response should indicate success")
-      #expect(
-        jsonString.contains("\"hasFrontmostApplication\": false"),
-        "Response should indicate no frontmost app",
-      )
+      try JSONTestUtilities.testJSONObject(jsonString) { json in
+        try JSONTestUtilities.assertProperty(json, property: "success", equals: true)
+        try JSONTestUtilities.assertProperty(json, property: "hasFrontmostApplication", equals: false)
+      }
     } else {
       #expect(Bool(false), "Result should be text content")
     }
