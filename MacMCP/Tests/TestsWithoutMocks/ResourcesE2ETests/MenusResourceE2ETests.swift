@@ -49,7 +49,7 @@ import Testing
     if case .text(let jsonString) = content {
       try JSONTestUtilities.testJSONArray(jsonString) { menus in
         #expect(!menus.isEmpty, "Should have at least one menu")
-        
+
         // Verify basic menu structure
         let menuTitles = menus.compactMap { $0["title"] as? String }
         #expect(menuTitles.contains("File"), "Response should include File menu")
@@ -94,7 +94,7 @@ import Testing
     if case .text(let jsonString) = content {
       try JSONTestUtilities.testJSONArray(jsonString) { menuItems in
         #expect(!menuItems.isEmpty, "Should have File menu items")
-        
+
         // Verify File menu items
         let itemTitles = menuItems.compactMap { $0["title"] as? String }
         #expect(itemTitles.contains("New"), "Response should include New item")
@@ -146,17 +146,17 @@ import Testing
     if case .text(let jsonString) = content {
       try JSONTestUtilities.testJSONArray(jsonString) { formatMenuItems in
         #expect(!formatMenuItems.isEmpty, "Should have Format menu items")
-        
+
         // Format menu typically has Font submenu
         let itemTitles = formatMenuItems.compactMap { $0["title"] as? String }
         #expect(itemTitles.contains("Font"), "Response should include Font item")
-        
+
         // Since we requested includeSubmenus=true, we should see Font submenu items
         let hasSubmenuItems = formatMenuItems.contains { item in
           item["submenuItems"] != nil
         }
         #expect(hasSubmenuItems, "Response should include submenu items")
-        
+
         // Look for common Font submenu items in any submenu
         var foundFontItem = false
         for item in formatMenuItems {

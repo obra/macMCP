@@ -106,7 +106,7 @@ import Testing
     if case .text(let jsonString) = content {
       try JSONTestUtilities.testJSONArray(jsonString) { windows in
         #expect(!windows.isEmpty, "Should have at least one window")
-        
+
         // Verify basic window properties exist in at least one window
         for window in windows {
           try JSONTestUtilities.assertPropertyExists(window, property: "id")
@@ -114,7 +114,7 @@ import Testing
           try JSONTestUtilities.assertPropertyExists(window, property: "frame")
           try JSONTestUtilities.assertPropertyExists(window, property: "isMain")
         }
-        
+
         // TextEdit should have at least one window with expected title
         let hasExpectedTitle = windows.contains { window in
           if let title = window["title"] as? String {
@@ -163,20 +163,20 @@ import Testing
     if case .text(let jsonString) = content {
       try JSONTestUtilities.testJSONArray(jsonString) { windowsArray in
         #expect(!windowsArray.isEmpty, "Should have at least one window")
-        
+
         // Check that the first window has all the required state properties
         if let firstWindow = windowsArray.first {
           try JSONTestUtilities.assertPropertyExists(firstWindow, property: "isMinimized")
           try JSONTestUtilities.assertPropertyExists(firstWindow, property: "isVisible")
           try JSONTestUtilities.assertPropertyExists(firstWindow, property: "isMain")
         }
-        
+
         // Check for a window that isn't minimized (at least one window should not be minimized)
         let hasNonMinimizedWindow = windowsArray.contains { window in
           window["isMinimized"] as? Bool == false
         }
         #expect(hasNonMinimizedWindow, "There should be at least one non-minimized window")
-        
+
         // Check for a visible window (at least one window should be visible)
         let hasVisibleWindow = windowsArray.contains { window in
           window["isVisible"] as? Bool == true

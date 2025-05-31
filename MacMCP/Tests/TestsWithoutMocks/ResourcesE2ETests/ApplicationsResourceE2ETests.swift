@@ -68,7 +68,7 @@ import Testing
     if case .text(let jsonString) = content {
       try JSONTestUtilities.testJSONArray(jsonString) { applications in
         #expect(!applications.isEmpty, "Should have running applications")
-        
+
         // Verify standard system processes are listed
         let hasFinderApp = applications.contains { app in
           if let name = app["name"] as? String {
@@ -77,18 +77,18 @@ import Testing
           return false
         }
         #expect(hasFinderApp, "Response should include Finder")
-        
+
         // Our test app should be listed
         let hasCalculatorApp = applications.contains { app in
           (app["bundleId"] as? String)?.contains(calculatorBundleId) == true ||
-          (app["name"] as? String)?.contains("Calculator") == true
+            (app["name"] as? String)?.contains("Calculator") == true
         }
         #expect(hasCalculatorApp, "Response should include Calculator")
-        
+
         // Each application entry should have basic information
         for app in applications {
           try JSONTestUtilities.assertPropertyExists(app, property: "bundleId")
-          try JSONTestUtilities.assertPropertyExists(app, property: "name") 
+          try JSONTestUtilities.assertPropertyExists(app, property: "name")
           try JSONTestUtilities.assertPropertyExists(app, property: "processIdentifier")
         }
       }

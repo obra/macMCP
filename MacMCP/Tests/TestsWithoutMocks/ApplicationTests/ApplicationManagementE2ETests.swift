@@ -214,7 +214,7 @@ import Testing
     // since it may legitimately fail in some cases
     #expect(hideResult.count == 1, "Should return one content item")
 
-    if case .text(_) = hideResult[0] {
+    if case .text = hideResult[0] {
       // We don't assert on success since hiding can sometimes fail
       // when an app doesn't have focus in automated tests
     } else {

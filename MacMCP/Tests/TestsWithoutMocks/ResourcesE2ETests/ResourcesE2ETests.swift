@@ -68,11 +68,11 @@ import Testing
     if case .text(let jsonString) = content {
       try JSONTestUtilities.testJSONArray(jsonString) { applications in
         #expect(!applications.isEmpty, "Should have running applications")
-        
+
         // Verify Calculator is in the list
         let hasCalculatorApp = applications.contains { app in
           (app["bundleId"] as? String)?.contains(calculatorBundleId) == true ||
-          (app["name"] as? String)?.contains("Calculator") == true
+            (app["name"] as? String)?.contains("Calculator") == true
         }
         #expect(hasCalculatorApp, "Calculator should be in the applications list")
       }
@@ -109,17 +109,18 @@ import Testing
     if case .text(let jsonString) = content {
       try JSONTestUtilities.testJSONArray(jsonString) { windows in
         #expect(!windows.isEmpty, "Should have at least one window")
-        
+
         // Verify window information
         let hasCalculatorWindow = windows.contains { window in
           if let title = window["title"] as? String,
-             let id = window["id"] as? String {
+             let id = window["id"] as? String
+          {
             return title.contains("Calculator") || id.contains("AXWindow")
           }
           return false
         }
         #expect(hasCalculatorWindow, "Response should include Calculator window")
-        
+
         // Verify window properties exist
         for window in windows {
           try JSONTestUtilities.assertPropertyExists(window, property: "isMain")
@@ -162,13 +163,13 @@ import Testing
         if let role = element["role"] as? String {
           #expect(role.contains("AXApplication"), "Response should include AXApplication")
         }
-        
+
         if let name = element["name"] as? String {
           #expect(name.contains("Calculator"), "Response should include Calculator title")
         }
-        
+
         try JSONTestUtilities.assertPropertyExists(element, property: "children")
-        
+
         // Check if children contain AXWindow
         if let children = element["children"] as? [[String: Any]] {
           let hasWindow = children.contains { child in
@@ -214,7 +215,7 @@ import Testing
     if case .text(let jsonString) = content {
       try JSONTestUtilities.testJSONArray(jsonString) { interactableElements in
         #expect(!interactableElements.isEmpty, "Should have interactable elements")
-        
+
         // Verify we got interactable elements like buttons
         let hasButtons = interactableElements.contains { element in
           if let role = element["role"] as? String {
@@ -223,7 +224,7 @@ import Testing
           return false
         }
         #expect(hasButtons, "Response should include calculator buttons")
-        
+
         // Verify all returned elements have some kind of interactive action
         for element in interactableElements {
           try JSONTestUtilities.assertPropertyExists(element, property: "actions")
