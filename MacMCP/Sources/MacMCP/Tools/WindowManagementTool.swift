@@ -14,18 +14,26 @@ private struct WindowOperationResponse: Codable {
   let size: Size?
   let orderMode: String?
   let referenceWindowId: String?
-  
+
   struct Position: Codable {
     let x: CGFloat
     let y: CGFloat
   }
-  
+
   struct Size: Codable {
     let width: CGFloat
     let height: CGFloat
   }
-  
-  init(success: Bool, action: String, windowId: String, position: Position? = nil, size: Size? = nil, orderMode: String? = nil, referenceWindowId: String? = nil) {
+
+  init(
+    success: Bool,
+    action: String,
+    windowId: String,
+    position: Position? = nil,
+    size: Size? = nil,
+    orderMode: String? = nil,
+    referenceWindowId: String? = nil
+  ) {
     self.success = success
     self.action = action
     self.windowId = windowId
@@ -413,9 +421,9 @@ public struct WindowManagementTool: @unchecked Sendable {
 
       let response = WindowOperationResponse(
         success: true,
-        action: "moveWindow", 
+        action: "moveWindow",
         windowId: windowId,
-        position: WindowOperationResponse.Position(x: x, y: y)
+        position: WindowOperationResponse.Position(x: x, y: y),
       )
       return try formatResponse(response)
     } catch { throw MCPError.internalError("Failed to move window: \(error.localizedDescription)") }
@@ -453,7 +461,7 @@ public struct WindowManagementTool: @unchecked Sendable {
         success: true,
         action: "resizeWindow",
         windowId: windowId,
-        size: WindowOperationResponse.Size(width: width, height: height)
+        size: WindowOperationResponse.Size(width: width, height: height),
       )
       return try formatResponse(response)
     } catch {
@@ -475,7 +483,7 @@ public struct WindowManagementTool: @unchecked Sendable {
       let response = WindowOperationResponse(
         success: true,
         action: "minimizeWindow",
-        windowId: windowId
+        windowId: windowId,
       )
       return try formatResponse(response)
     } catch {
@@ -497,7 +505,7 @@ public struct WindowManagementTool: @unchecked Sendable {
       let response = WindowOperationResponse(
         success: true,
         action: "maximizeWindow",
-        windowId: windowId
+        windowId: windowId,
       )
       return try formatResponse(response)
     } catch {
@@ -519,7 +527,7 @@ public struct WindowManagementTool: @unchecked Sendable {
       let response = WindowOperationResponse(
         success: true,
         action: "closeWindow",
-        windowId: windowId
+        windowId: windowId,
       )
       return try formatResponse(response)
     } catch {
@@ -541,7 +549,7 @@ public struct WindowManagementTool: @unchecked Sendable {
       let response = WindowOperationResponse(
         success: true,
         action: "activateWindow",
-        windowId: windowId
+        windowId: windowId,
       )
       return try formatResponse(response)
     } catch {
@@ -586,7 +594,7 @@ public struct WindowManagementTool: @unchecked Sendable {
         action: "setWindowOrder",
         windowId: windowId,
         orderMode: orderMode.rawValue,
-        referenceWindowId: referenceWindowId
+        referenceWindowId: referenceWindowId,
       )
       return try formatResponse(response)
     } catch {
@@ -608,7 +616,7 @@ public struct WindowManagementTool: @unchecked Sendable {
       let response = WindowOperationResponse(
         success: true,
         action: "focusWindow",
-        windowId: windowId
+        windowId: windowId,
       )
       return try formatResponse(response)
     } catch {

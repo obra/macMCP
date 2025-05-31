@@ -72,7 +72,10 @@ public enum ElementPathParser {
           index = parsedIndex
           // Remove the index from the working string
           guard let fullMatchRange = Range(match.range(at: 0), in: workingString) else {
-            throw ElementPathError.invalidPathSyntax(segmentString, details: "Invalid index match range")
+            throw ElementPathError.invalidPathSyntax(
+              segmentString,
+              details: "Invalid index match range",
+            )
           }
           workingString.removeSubrange(fullMatchRange)
         }
@@ -102,7 +105,10 @@ public enum ElementPathParser {
          match.numberOfRanges >= 2
       {
         guard let invalidIndexRange = Range(match.range(at: 1), in: workingString) else {
-          throw ElementPathError.invalidPathSyntax(segmentString, details: "Invalid syntax check range")
+          throw ElementPathError.invalidPathSyntax(
+            segmentString,
+            details: "Invalid syntax check range",
+          )
         }
         let invalidIndexString = String(workingString[invalidIndexRange])
         throw ElementPathError.invalidIndexSyntax("#\(invalidIndexString)", atSegment: segmentIndex)
