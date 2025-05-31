@@ -469,29 +469,29 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
       try JSONTestUtilities.testJSONObject(jsonString) { json in
         try JSONTestUtilities.assertProperty(json, property: "success", equals: true)
         try JSONTestUtilities.assertPropertyExists(json, property: "applications")
-        
+
         // Test the applications array
         guard let applicationsArray = json["applications"] as? [[String: Any]] else {
           #expect(Bool(false), "Applications should be an array of objects")
           return
         }
-        
+
         #expect(applicationsArray.count == 2, "Should contain 2 applications")
-        
+
         // Test first application
         try JSONTestUtilities.assertArrayContainsObjectWithProperty(
-          applicationsArray, property: "bundleId", equals: "com.test.app1"
+          applicationsArray, property: "bundleId", equals: "com.test.app1",
         )
         try JSONTestUtilities.assertArrayContainsObjectWithProperty(
-          applicationsArray, property: "applicationName", equals: "Test App 1"
+          applicationsArray, property: "applicationName", equals: "Test App 1",
         )
-        
-        // Test second application  
+
+        // Test second application
         try JSONTestUtilities.assertArrayContainsObjectWithProperty(
-          applicationsArray, property: "bundleId", equals: "com.test.app2"
+          applicationsArray, property: "bundleId", equals: "com.test.app2",
         )
         try JSONTestUtilities.assertArrayContainsObjectWithProperty(
-          applicationsArray, property: "applicationName", equals: "Test App 2"
+          applicationsArray, property: "applicationName", equals: "Test App 2",
         )
       }
     } else {
@@ -612,7 +612,11 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
     if case .text(let jsonString) = result[0] {
       try JSONTestUtilities.testJSONObject(jsonString) { json in
         try JSONTestUtilities.assertProperty(json, property: "success", equals: true)
-        try JSONTestUtilities.assertProperty(json, property: "exceptBundleIdentifier", equals: "com.test.app")
+        try JSONTestUtilities.assertProperty(
+          json,
+          property: "exceptBundleIdentifier",
+          equals: "com.test.app",
+        )
       }
     } else {
       #expect(Bool(false), "Result should be text content")
@@ -642,8 +646,16 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
     if case .text(let jsonString) = result[0] {
       try JSONTestUtilities.testJSONObject(jsonString) { json in
         try JSONTestUtilities.assertProperty(json, property: "success", equals: true)
-        try JSONTestUtilities.assertProperty(json, property: "bundleId", equals: "com.test.frontmost")
-        try JSONTestUtilities.assertProperty(json, property: "applicationName", equals: "Frontmost App")
+        try JSONTestUtilities.assertProperty(
+          json,
+          property: "bundleId",
+          equals: "com.test.frontmost",
+        )
+        try JSONTestUtilities.assertProperty(
+          json,
+          property: "applicationName",
+          equals: "Frontmost App",
+        )
         try JSONTestUtilities.assertProperty(json, property: "processIdentifier", equals: 12345)
         try JSONTestUtilities.assertProperty(json, property: "isActive", equals: true)
         try JSONTestUtilities.assertProperty(json, property: "isFinishedLaunching", equals: true)
@@ -678,7 +690,11 @@ private class MockApplicationService: @unchecked Sendable, ApplicationServicePro
     if case .text(let jsonString) = result[0] {
       try JSONTestUtilities.testJSONObject(jsonString) { json in
         try JSONTestUtilities.assertProperty(json, property: "success", equals: true)
-        try JSONTestUtilities.assertProperty(json, property: "hasFrontmostApplication", equals: false)
+        try JSONTestUtilities.assertProperty(
+          json,
+          property: "hasFrontmostApplication",
+          equals: false,
+        )
       }
     } else {
       #expect(Bool(false), "Result should be text content")

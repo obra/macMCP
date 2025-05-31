@@ -81,13 +81,13 @@ import Testing
     if case .text(let jsonString) = result[0] {
       try JSONTestUtilities.testJSONArray(jsonString) { elements in
         #expect(!elements.isEmpty, "Should receive UI elements")
-        
+
         // Verify each element has the expected properties
         for element in elements {
           try JSONTestUtilities.assertPropertyExists(element, property: "id")
           try JSONTestUtilities.assertPropertyExists(element, property: "role")
           // Note: 'props' property is optional and only present when element has state/capabilities
-          
+
           // Note: frame data is only included when showCoordinates is true
           // In system scope, coordinates are typically not shown by default
         }
@@ -223,7 +223,7 @@ import Testing
         #expect(
           foundWindow, "Should find at least one window element in the Calculator app's hierarchy",
         )
-        
+
         // Verify window element properties if found
         if let window = windowElement {
           // Path information is encoded as opaque ID in the 'id' field

@@ -34,7 +34,7 @@ import Testing
     try JSONTestUtilities.assertDoesNotContainAny(jsonString, substrings: [
       "macos://ui/",
       "[@AXTitle=",
-      "\\\""
+      "\\\"",
     ], message: "Should use opaque ID format, not raw paths")
     print("EnhancedElementDescriptor successfully outputs opaque IDs!")
   }
@@ -70,7 +70,7 @@ import Testing
       "macos://ui/",
       "[@bundleId=",
       "\\\"",
-      "\\/"
+      "\\/",
     ], message: "Should use opaque ID format, not raw paths or escaped characters")
     print("WindowManagementTool and ResourcesUIElement now output clean opaque IDs!")
   }

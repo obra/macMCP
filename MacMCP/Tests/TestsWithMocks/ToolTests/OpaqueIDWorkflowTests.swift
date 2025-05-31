@@ -33,9 +33,9 @@ import Testing
     // 3. Verify that the JSON contains an opaque ID (not the raw path)
     try JSONTestUtilities.assertDoesNotContainAny(jsonString, substrings: [
       "macos://ui/",
-      "[@AXTitle="
+      "[@AXTitle=",
     ], message: "JSON should contain opaque ID, not raw path elements")
-    
+
     // 4. Extract the opaque ID from the JSON using robust parsing
     try JSONTestUtilities.testJSONObject(jsonString) { json in
       try JSONTestUtilities.assertPropertyExists(json, property: "id")
@@ -43,18 +43,18 @@ import Testing
         #expect(Bool(false), "ID should be a string")
         return
       }
-      
+
       print("Extracted opaque ID: \(opaqueID)")
       // 5. Test the decoding functionality directly (simulates what UIInteractionTool would do)
       let decodedPath = try OpaqueIDEncoder.decode(opaqueID)
       #expect(decodedPath == originalPath, "Decoded path should match original")
       print("Successfully decoded opaque ID back to: \(decodedPath)")
     }
-    
+
     // 6. Verify the JSON is clean (no escaping issues)
     try JSONTestUtilities.assertDoesNotContainAny(jsonString, substrings: [
       "\\\"",
-      "\\/"
+      "\\/",
     ], message: "JSON should not contain escaped characters")
   }
 
@@ -89,8 +89,15 @@ import Testing
     print("Raw path JSON (with escaping issues):")
     print(rawJsonString)
     // Verify opaque approach eliminates escaping
-    try JSONTestUtilities.assertDoesNotContain(jsonString, substring: "\\\"", message: "Opaque ID JSON should have no escaped quotes")
-    #expect(rawJsonString.contains("\\\""), "Raw path JSON should have escaped quotes for comparison")
+    try JSONTestUtilities.assertDoesNotContain(
+      jsonString,
+      substring: "\\\"",
+      message: "Opaque ID JSON should have no escaped quotes",
+    )
+    #expect(
+      rawJsonString.contains("\\\""),
+      "Raw path JSON should have escaped quotes for comparison",
+    )
     print("Opaque ID successfully eliminates JSON escaping issues!")
   }
 }

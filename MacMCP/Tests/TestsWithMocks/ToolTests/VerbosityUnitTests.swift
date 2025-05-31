@@ -67,12 +67,12 @@ import Testing
       attributes: [:],
     )
     let descriptor1 = EnhancedElementDescriptor.from(element: roleMatchElement)
-    
+
     try JSONTestUtilities.testElementDescriptor(descriptor1) { json in
       try JSONTestUtilities.assertPropertyDoesNotExist(json, property: "name")
       try JSONTestUtilities.assertProperty(json, property: "role", equals: "AXButton")
     }
-    
+
     // Create element where name matches identifier
     let identifierMatchElement = UIElement(
       path: "test://id-match",
@@ -85,12 +85,12 @@ import Testing
       attributes: [:],
     )
     let descriptor2 = EnhancedElementDescriptor.from(element: identifierMatchElement)
-    
+
     try JSONTestUtilities.testElementDescriptor(descriptor2) { json in
       try JSONTestUtilities.assertPropertyDoesNotExist(json, property: "name")
       try JSONTestUtilities.assertPropertyContains(json, property: "el", substring: "Save")
     }
-    
+
     // Create element with unique name - should include it
     let uniqueNameElement = UIElement(
       path: "test://unique",
@@ -103,7 +103,7 @@ import Testing
       attributes: [:],
     )
     let descriptor3 = EnhancedElementDescriptor.from(element: uniqueNameElement)
-    
+
     try JSONTestUtilities.testElementDescriptor(descriptor3) { json in
       try JSONTestUtilities.assertPropertyContains(json, property: "el", substring: "Click Me")
       try JSONTestUtilities.assertPropertyContains(json, property: "el", substring: "btn1")
@@ -130,7 +130,7 @@ import Testing
     let descriptor = EnhancedElementDescriptor.from(element: element)
     let jsonData = try JSONEncoder().encode(descriptor)
     let json = String(data: jsonData, encoding: .utf8)!
-    
+
     try JSONTestUtilities.testElementDescriptor(descriptor) { json in
       // Verify verbosity reduction
       try JSONTestUtilities.assertPropertyDoesNotExist(json, property: "name")
@@ -144,7 +144,7 @@ import Testing
         }
       }
     }
-    
+
     // JSON should be significantly shorter due to verbosity reduction
     #expect(json.count < 300, "JSON should be under 300 chars, got \(json.count)")
     print("Reduced JSON (\(json.count) chars): \(json)")

@@ -111,7 +111,7 @@ import Testing
     let mapper = OpaqueIDMapper(maxCapacity: 1000)
     let resultsQueue = DispatchQueue(label: "results", attributes: .concurrent)
     var results: [String] = []
-    
+
     DispatchQueue.concurrentPerform(iterations: 100) { i in
       let path = "path\(i)"
       let id = mapper.opaqueID(for: path)
@@ -122,10 +122,10 @@ import Testing
         }
       }
     }
-    
+
     // Wait for all async operations to complete
     resultsQueue.sync(flags: .barrier) {}
-    
+
     // All operations should succeed
     #expect(results.count == 100)
     #expect(mapper.cacheSize == 100)

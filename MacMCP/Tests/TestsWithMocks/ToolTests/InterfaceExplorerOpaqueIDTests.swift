@@ -33,23 +33,23 @@ import Testing
     // Verify opaque ID is used - should not contain raw path elements
     try JSONTestUtilities.assertDoesNotContainAny(jsonString, substrings: [
       "macos://ui/",
-      "[@AXTitle=", 
+      "[@AXTitle=",
       "\\\"",
-      "\\/"
+      "\\/",
     ], message: "Should use opaque ID format, not raw paths or escaped characters")
-    
+
     // Extract the opaque ID from the JSON array using robust parsing
     try JSONTestUtilities.testJSONArray(jsonString) { jsonArray in
       #expect(!jsonArray.isEmpty, "Should have at least one element")
       let firstElement = jsonArray[0]
       try JSONTestUtilities.assertPropertyExists(firstElement, property: "id")
-      
+
       // Get the opaque ID for round-trip testing
       guard let opaqueID = firstElement["id"] as? String else {
         #expect(Bool(false), "ID should be a string")
         return
       }
-      
+
       // Test that we can decode the opaque ID back to the original path
       let decodedPath = try OpaqueIDEncoder.decode(opaqueID)
       #expect(decodedPath == problematicPath, "Round-trip should work")

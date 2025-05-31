@@ -352,20 +352,28 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
         // Verify first window
         let firstWindow = windows[0]
         try JSONTestUtilities.assertProperty(
-          firstWindow, 
-          property: "id", 
-          equals: "macos://ui/AXWindow[@AXTitle=\"Test Window 1\"][@AXDescription=\"Test Window 1\"]"
+          firstWindow,
+          property: "id",
+          equals: "macos://ui/AXWindow[@AXTitle=\"Test Window 1\"][@AXDescription=\"Test Window 1\"]",
         )
-        try JSONTestUtilities.assertProperty(firstWindow, property: "title", equals: "Test Window 1")
+        try JSONTestUtilities.assertProperty(
+          firstWindow,
+          property: "title",
+          equals: "Test Window 1",
+        )
 
         // Verify second window
         let secondWindow = windows[1]
         try JSONTestUtilities.assertProperty(
-          secondWindow, 
-          property: "id", 
-          equals: "macos://ui/AXWindow[@AXTitle=\"Test Window 2\"][@AXDescription=\"Test Window 2\"]"
+          secondWindow,
+          property: "id",
+          equals: "macos://ui/AXWindow[@AXTitle=\"Test Window 2\"][@AXDescription=\"Test Window 2\"]",
         )
-        try JSONTestUtilities.assertProperty(secondWindow, property: "title", equals: "Test Window 2")
+        try JSONTestUtilities.assertProperty(
+          secondWindow,
+          property: "title",
+          equals: "Test Window 2",
+        )
       }
     } else {
       #expect(Bool(false), "Result should be text content")
@@ -434,11 +442,15 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
 
         let activeWindow = windows[0]
         try JSONTestUtilities.assertProperty(
-          activeWindow, 
-          property: "id", 
-          equals: "macos://ui/AXWindow[@AXTitle=\"Active Window\"][@AXDescription=\"Active Test Window\"]"
+          activeWindow,
+          property: "id",
+          equals: "macos://ui/AXWindow[@AXTitle=\"Active Window\"][@AXDescription=\"Active Test Window\"]",
         )
-        try JSONTestUtilities.assertProperty(activeWindow, property: "title", equals: "Active Window")
+        try JSONTestUtilities.assertProperty(
+          activeWindow,
+          property: "title",
+          equals: "Active Window",
+        )
         try JSONTestUtilities.assertProperty(activeWindow, property: "isMain", equals: true)
       }
     } else {
@@ -500,7 +512,7 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
         try JSONTestUtilities.assertPropertyExists(json, property: "action")
         try JSONTestUtilities.assertPropertyExists(json, property: "windowId")
         try JSONTestUtilities.assertPropertyExists(json, property: "position")
-        
+
         // Check position sub-object
         try JSONTestUtilities.assertPropertyExists(json, property: "position")
         if let position = json["position"] as? [String: Any] {
@@ -570,7 +582,7 @@ private class WindowManagementMockAccessibilityService: @unchecked Sendable,
         try JSONTestUtilities.assertPropertyExists(json, property: "action")
         try JSONTestUtilities.assertPropertyExists(json, property: "windowId")
         try JSONTestUtilities.assertPropertyExists(json, property: "size")
-        
+
         // Check size sub-object
         if let size = json["size"] as? [String: Any] {
           try JSONTestUtilities.assertPropertyExists(size, property: "width")
