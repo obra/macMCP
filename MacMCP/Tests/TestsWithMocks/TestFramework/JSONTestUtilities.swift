@@ -95,18 +95,21 @@ enum JSONTestUtilities {
     // First check if property exists
     try assertPropertyExists(json, property: property)
     let actualValue = json[property]!
-    // Check types match (allow String and NSString variants to match, and numeric types with NSNumber)
+    // Check types match (allow String and NSString variants to match, and numeric types with
+    // NSNumber)
     let expectedIsString = expectedValue is String
     let actualIsString = actualValue is String
     let expectedIsBool = expectedValue is Bool
     let actualIsBool = actualValue is Bool || actualValue is NSNumber
-    let expectedIsNumeric = expectedValue is Int || expectedValue is Double || expectedValue is Float || expectedValue is Bool
-    let actualIsNumeric = actualValue is NSNumber || actualValue is Int || actualValue is Double || actualValue is Float || actualValue is Bool
-    
-    let typesMatch = (expectedIsString && actualIsString) || 
-                     (expectedIsNumeric && actualIsNumeric) ||
-                     type(of: expectedValue) == type(of: actualValue)
-    
+    let expectedIsNumeric = expectedValue is Int || expectedValue is Double ||
+      expectedValue is Float || expectedValue is Bool
+    let actualIsNumeric = actualValue is NSNumber || actualValue is Int || actualValue is Double ||
+      actualValue is Float || actualValue is Bool
+
+    let typesMatch = (expectedIsString && actualIsString) ||
+      (expectedIsNumeric && actualIsNumeric) ||
+      type(of: expectedValue) == type(of: actualValue)
+
     if !typesMatch {
       throw JSONTestError.wrongPropertyType(
         property: property,
@@ -116,8 +119,8 @@ enum JSONTestUtilities {
     }
     // Check values match (handle numeric types and NSNumber comparison specially)
     var valuesMatch = false
-    
-    if expectedIsBool && actualIsBool {
+
+    if expectedIsBool, actualIsBool {
       // Handle Bool vs NSNumber comparison
       let expectedBool = expectedValue as! Bool
       if let actualNSNumber = actualValue as? NSNumber {
@@ -125,7 +128,7 @@ enum JSONTestUtilities {
       } else {
         valuesMatch = expectedBool == (actualValue as! Bool)
       }
-    } else if expectedIsNumeric && actualIsNumeric {
+    } else if expectedIsNumeric, actualIsNumeric {
       // Handle numeric vs NSNumber comparison
       if let actualNSNumber = actualValue as? NSNumber {
         if let expectedInt = expectedValue as? Int {
@@ -148,7 +151,7 @@ enum JSONTestUtilities {
       let actualStr = "\(actualValue)"
       valuesMatch = expectedStr == actualStr
     }
-    
+
     if !valuesMatch {
       let expectedStr = "\(expectedValue)"
       let actualStr = "\(actualValue)"
@@ -234,7 +237,11 @@ enum JSONTestUtilities {
   ///   - substring: The substring that should NOT be present
   ///   - message: Optional custom error message
   /// - Throws: JSONTestError if the substring is found
-  static func assertDoesNotContain(_ jsonString: String, substring: String, message: String? = nil) throws {
+  static func assertDoesNotContain(
+    _ jsonString: String,
+    substring: String,
+    message: String? = nil,
+  ) throws {
     if jsonString.contains(substring) {
       let errorMessage = message ?? "JSON should not contain '\(substring)'"
       throw JSONTestError.assertionFailed(errorMessage)
@@ -247,7 +254,11 @@ enum JSONTestUtilities {
   ///   - substrings: Array of substrings that should NOT be present
   ///   - message: Optional custom error message
   /// - Throws: JSONTestError if any substring is found
-  static func assertDoesNotContainAny(_ jsonString: String, substrings: [String], message: String? = nil) throws {
+  static func assertDoesNotContainAny(
+    _ jsonString: String,
+    substrings: [String],
+    message: String? = nil,
+  ) throws {
     for substring in substrings {
       if jsonString.contains(substring) {
         let errorMessage = message ?? "JSON should not contain '\(substring)'"
@@ -262,7 +273,11 @@ enum JSONTestUtilities {
   ///   - property: The property name that should NOT exist
   ///   - message: Optional custom error message
   /// - Throws: JSONTestError if the property exists
-  static func assertPropertyDoesNotExist(_ json: [String: Any], property: String, message: String? = nil) throws {
+  static func assertPropertyDoesNotExist(
+    _ json: [String: Any],
+    property: String,
+    message: String? = nil,
+  ) throws {
     if json[property] != nil {
       let errorMessage = message ?? "Property '\(property)' should not exist"
       throw JSONTestError.assertionFailed(errorMessage)
@@ -281,14 +296,14 @@ extension JSONTestUtilities {
   /// - Throws: JSONTestError if encoding/parsing fails or any assertion fails
   @discardableResult static func testElementDescriptor(
     _ descriptor: EnhancedElementDescriptor,
-    assertions: ([String: Any]) throws -> Void
+    assertions: ([String: Any]) throws -> Void,
   ) throws -> Bool {
     let encoder = JSONEncoder()
     let jsonData = try encoder.encode(descriptor)
     let jsonString = String(data: jsonData, encoding: .utf8)!
     return try testJSONObject(jsonString, assertions: assertions)
   }
-  
+
   /// Asserts that a property does NOT exist in the JSON object
   /// - Parameters:
   ///   - json: The JSON object to check
@@ -296,45 +311,46 @@ extension JSONTestUtilities {
   /// - Returns: True if the property doesn't exist
   /// - Throws: JSONTestError if the property exists
   @discardableResult static func assertPropertyDoesNotExist(
-    _ json: [String: Any], 
-    property: String
+    _ json: [String: Any],
+    property: String,
   ) throws -> Bool {
     if json[property] != nil {
       throw JSONTestError.missingProperty("Property '\(property)' should not exist but was found")
     }
     return true
   }
-  
+
   /// Asserts that a string property contains a specific substring
   /// - Parameters:
   ///   - json: The JSON object to check
   ///   - property: The property name to check
   ///   - substring: The substring that should be present
   /// - Returns: True if the property contains the substring
-  /// - Throws: JSONTestError if the property doesn't exist, isn't a string, or doesn't contain the substring
+  /// - Throws: JSONTestError if the property doesn't exist, isn't a string, or doesn't contain the
+  /// substring
   @discardableResult static func assertPropertyContains(
     _ json: [String: Any],
     property: String,
-    substring: String
+    substring: String,
   ) throws -> Bool {
     try assertPropertyExists(json, property: property)
-    
+
     guard let stringValue = json[property] as? String else {
       throw JSONTestError.wrongPropertyType(
         property: property,
         expectedType: "String",
-        actualType: "\(type(of: json[property]!))"
+        actualType: "\(type(of: json[property]!))",
       )
     }
-    
+
     if !stringValue.contains(substring) {
       throw JSONTestError.invalidPropertyValue(
         property: property,
         expected: "contains '\(substring)'",
-        actual: "'\(stringValue)'"
+        actual: "'\(stringValue)'",
       )
     }
-    
+
     return true
   }
 }
