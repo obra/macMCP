@@ -183,14 +183,17 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
     )
   }
 
-  /// Custom encoding to output compact format with coalesced fields
-  public func encode(to encoder: Encoder) throws {
-    var container = encoder.container(keyedBy: CodingKeys.self)
+  /// Convert to dictionary representation for JSON serialization
+  public func toDictionary() throws -> [String: Any] {
+    var result: [String: Any] = [:]
+
     // Encode id as opaque ID to eliminate escaping issues
     let opaqueID = try OpaqueIDEncoder.encode(id)
-    try container.encode(opaqueID, forKey: .id)
+    result["id"] = opaqueID
+
     // Encode pure role for filtering
-    try container.encode(role, forKey: .role)
+    result["role"] = role
+
     // Create el field with descriptive parts (without duplicating role): "{{identifier?
     // identifier." "}}{{ title ? title. " "}}{{ description ? description}}"
     var elParts: [String] = []
@@ -203,33 +206,79 @@ public struct EnhancedElementDescriptor: Codable, Sendable, Identifiable {
       if elValue.hasSuffix("."), description?.isEmpty != false {
         elValue = String(elValue.dropLast(1))
       }
-      try container.encode(elValue, forKey: .element)
+      result["el"] = elValue
     }
+
     // Include value if present
-    if let value, !value.isEmpty { try container.encode(value, forKey: .value) }
+    if let value, !value.isEmpty { result["value"] = value }
+
     // Include help if present
-    if let help, !help.isEmpty { try container.encode(help, forKey: .help) }
+    if let help, !help.isEmpty { result["help"] = help }
+
     // Only include frame/coordinates if requested
-    if showCoordinates { try container.encode(frame, forKey: .frame) }
+    if showCoordinates { result["frame"] = frame }
+
     // Convert props array to comma-separated string
     if !props.isEmpty {
       let propsString = props.joined(separator: ", ")
-      try container.encode(propsString, forKey: .props)
+      result["props"] = propsString
     }
+
     // Convert actions array to comma-separated string (always show, strip AX prefix)
     if !actions.isEmpty {
       let cleanedActions = actions.map { action in
         action.hasPrefix("AX") ? String(action.dropFirst(2)) : action
       }
       let actionsString = cleanedActions.joined(separator: ", ")
-      try container.encode(actionsString, forKey: .actions)
+      result["actions"] = actionsString
     }
+
     // Convert attributes dictionary to comma-separated string
     if !attributes.isEmpty {
       let attributesString = attributes.map { "\($0.key)=\($0.value)" }.joined(separator: ", ")
-      try container.encode(attributesString, forKey: .attributes)
+      result["attributes"] = attributesString
     }
-    if children?.isEmpty == false { try container.encodeIfPresent(children, forKey: .children) }
+
+    if let children = children, !children.isEmpty {
+      result["children"] = try children.map { try $0.toDictionary() }
+    }
+
+    return result
+  }
+
+  /// Custom encoding to output compact format with coalesced fields
+  public func encode(to encoder: Encoder) throws {
+    let dictionary = try toDictionary()
+    var container = encoder.container(keyedBy: CodingKeys.self)
+
+    // Map dictionary keys to coding keys
+    let keyMappings: [(String, CodingKeys, Any.Type)] = [
+      ("id", .id, String.self),
+      ("role", .role, String.self),
+      ("el", .element, String.self),
+      ("value", .value, String.self),
+      ("help", .help, String.self),
+      ("frame", .frame, ElementFrame.self),
+      ("props", .props, String.self),
+      ("actions", .actions, String.self),
+      ("attributes", .attributes, String.self),
+    ]
+
+    // Encode each field if present
+    for (dictKey, codingKey, type) in keyMappings {
+      if let value = dictionary[dictKey] {
+        if type == String.self, let stringValue = value as? String {
+          try container.encode(stringValue, forKey: codingKey)
+        } else if type == ElementFrame.self, let frameValue = value as? ElementFrame {
+          try container.encode(frameValue, forKey: codingKey)
+        }
+      }
+    }
+    
+    // Handle children separately since they need special encoding
+    if let children = children, !children.isEmpty {
+      try container.encode(children, forKey: .children)
+    }
   }
 
   /// Simple decode implementation for tests (only handles fields we actually encode)

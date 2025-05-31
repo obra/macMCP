@@ -62,21 +62,19 @@ public enum ChangeDetectionHelper {
       maxDepth: 1,
       showCoordinates: false, // Exclude frame for reduced verbosity
     )
-    // Convert to dictionary for JSON serialization
+    // Convert directly to dictionary (no JSON round-trip needed)
     do {
-      let jsonData = try JSONEncoder().encode(descriptor)
-      if let jsonObject = try JSONSerialization.jsonObject(with: jsonData) as? [String: Any] {
-        return jsonObject
-      }
+      return try descriptor.toDictionary()
     } catch {
-      // Fallback to manual formatting if encoding fails
+      // Fallback to minimal formatting if toDictionary fails
+      let logger = Logger(label: "ChangeDetectionHelper")
+      logger
+        .warning("EnhancedElementDescriptor.toDictionary() failed in change detection: \(error)")
       let opaqueID = (try? OpaqueIDEncoder.encode(element.path)) ?? element.path
       return [
-        "id": opaqueID, "role": element.role, "description": element.elementDescription ?? "",
+        "id": opaqueID, "role": element.role,
       ]
     }
-    // Final fallback
-    return ["id": element.path, "role": element.role]
   }
 
   /// Add change detection schema properties to a tool's input schema
