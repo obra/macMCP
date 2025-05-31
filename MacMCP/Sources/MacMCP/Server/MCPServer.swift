@@ -397,6 +397,18 @@ public actor MCPServer {
       handler: keyboardInteractionTool.handler,
     )
 
+    // Register the application management tool
+    let applicationManagementTool = ApplicationManagementTool(
+      applicationService: applicationService, logger: logger,
+    )
+    await registerTool(
+      name: applicationManagementTool.name,
+      description: applicationManagementTool.description,
+      inputSchema: applicationManagementTool.inputSchema,
+      annotations: applicationManagementTool.annotations,
+      handler: applicationManagementTool.handler,
+    )
+
     // Register the clipboard management tool
     let clipboardManagementTool = ClipboardManagementTool(clipboardService: clipboardService)
     await registerTool(
