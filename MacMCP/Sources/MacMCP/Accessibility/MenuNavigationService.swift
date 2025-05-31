@@ -389,11 +389,17 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
     guard let targetMenuItem = menuBar.children.first(where: { $0.title == menuBarItem.title })
     else { return [] }
     // Look for menu children in the accessibility tree (without physical activation)
-    let menuItems = targetMenuItem.children.filter { $0.role == "AXMenu" }.flatMap(\.children)
+    let allMenuItems = targetMenuItem.children.filter { $0.role == "AXMenu" }.flatMap(\.children)
+    // Filter out non-actionable items
+    let actionableMenuItems = allMenuItems.filter(isActionableMenuItem)
+    // Create disambiguated titles for all actionable items
+    let disambiguatedTitles = createDisambiguatedTitles(for: actionableMenuItems)
     var compactItems: [CompactMenuItem] = []
-    // Process each menu item and filter out non-actionable items
-    for menuItem in menuItems where isActionableMenuItem(menuItem) {
-      let itemPath = MenuPathResolver.buildPath(from: [parentPath, menuItem.title ?? ""])
+    
+    // Process each menu item with its disambiguated title
+    for (index, menuItem) in actionableMenuItems.enumerated() {
+      let disambiguatedTitle = disambiguatedTitles[index]
+      let itemPath = MenuPathResolver.buildPath(from: [parentPath, disambiguatedTitle])
       var children: [CompactMenuItem]?
       let hasSubmenu = menuItem.children.contains { $0.role == "AXMenu" }
       // Recursively explore submenus if we haven't reached max depth
@@ -408,7 +414,7 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
       }
       let compactItem = CompactMenuItem(
         path: itemPath,
-        title: menuItem.title ?? "",
+        title: disambiguatedTitle,
         enabled: !(menuItem.attributes["disabled"] as? Bool ?? false),
         shortcut: extractShortcut(from: menuItem),
         hasSubmenu: hasSubmenu,
@@ -470,11 +476,17 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
   ) async throws -> [CompactMenuItem] {
     guard currentDepth <= maxDepth else { return [] }
     // Look for submenu children in the current accessibility tree
-    let submenuItems = menuItem.children.filter { $0.role == "AXMenu" }.flatMap(\.children)
+    let allSubmenuItems = menuItem.children.filter { $0.role == "AXMenu" }.flatMap(\.children)
+    // Filter out non-actionable items
+    let actionableSubmenuItems = allSubmenuItems.filter(isActionableMenuItem)
+    // Create disambiguated titles for all actionable items
+    let disambiguatedTitles = createDisambiguatedTitles(for: actionableSubmenuItems)
     var compactItems: [CompactMenuItem] = []
-    // Process each submenu item and filter out non-actionable items
-    for subMenuItem in submenuItems where isActionableMenuItem(subMenuItem) {
-      let itemPath = MenuPathResolver.buildPath(from: [parentPath, subMenuItem.title ?? ""])
+    
+    // Process each submenu item with its disambiguated title
+    for (index, subMenuItem) in actionableSubmenuItems.enumerated() {
+      let disambiguatedTitle = disambiguatedTitles[index]
+      let itemPath = MenuPathResolver.buildPath(from: [parentPath, disambiguatedTitle])
       var children: [CompactMenuItem]?
       let hasSubmenu = subMenuItem.children.contains { $0.role == "AXMenu" }
       // Recursively explore deeper submenus if we haven't reached max depth
@@ -489,7 +501,7 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
       }
       let compactItem = CompactMenuItem(
         path: itemPath,
-        title: subMenuItem.title ?? "",
+        title: disambiguatedTitle,
         enabled: !(subMenuItem.attributes["disabled"] as? Bool ?? false),
         shortcut: extractShortcut(from: subMenuItem),
         hasSubmenu: hasSubmenu,
@@ -600,5 +612,45 @@ public actor MenuNavigationService: MenuNavigationServiceProtocol {
       return "⌘\(cmdChar)"
     }
     return nil
+  }
+
+  /// Create disambiguated menu item titles for a group of menu items
+  /// - Parameter menuItems: Array of menu items at the same level
+  /// - Returns: Array of disambiguated titles in the same order
+  private func createDisambiguatedTitles(for menuItems: [UIElement]) -> [String] {
+    var titleCounts: [String: Int] = [:]
+    var titleUsages: [String: Int] = [:]
+    var disambiguatedTitles: [String] = []
+
+    // First pass: count occurrences of each title
+    for menuItem in menuItems {
+      let title = menuItem.title ?? ""
+      titleCounts[title, default: 0] += 1
+    }
+
+    // Second pass: create disambiguated titles
+    for menuItem in menuItems {
+      let originalTitle = menuItem.title ?? ""
+      let count = titleCounts[originalTitle] ?? 1
+      
+      if count > 1 {
+        // This title appears multiple times, add disambiguation
+        titleUsages[originalTitle, default: 0] += 1
+        let usage = titleUsages[originalTitle]!
+        
+        if usage == 1 {
+          // First occurrence keeps original title
+          disambiguatedTitles.append(originalTitle)
+        } else {
+          // Subsequent occurrences get #2, #3, etc.
+          disambiguatedTitles.append("\(originalTitle) #\(usage)")
+        }
+      } else {
+        // Title is unique, use as-is
+        disambiguatedTitles.append(originalTitle)
+      }
+    }
+
+    return disambiguatedTitles
   }
 }

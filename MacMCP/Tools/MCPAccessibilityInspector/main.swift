@@ -189,12 +189,12 @@ let logger = Logger(label: "com.fsck.mac-mcp.mcp-ax-inspector")
           do {
             // Get application menus
             let arguments: [String: Value] = [
-              "action": .string("getApplicationMenus"), "bundleId": .string(appId),
+              "action": .string("showAllMenus"), "bundleId": .string(appId),
             ]
 
             print("Fetching menu structure for \(appId)...")
             let (content, isError) = try await mcpClient.callTool(
-              name: "macos_menu_navigation",
+              name: "macos_navigate_menus",
               arguments: arguments,
             )
 
@@ -211,12 +211,12 @@ let logger = Logger(label: "com.fsck.mac-mcp.mcp-ax-inspector")
               additionalOutput += "\nFetching items for menu '\(menuName)'...\n"
 
               let menuItemsArgs: [String: Value] = [
-                "action": .string("getMenuItems"), "bundleId": .string(appId),
-                "menuTitle": .string(menuName), "includeSubmenus": .bool(true),
+                "action": .string("showMenu"), "bundleId": .string(appId),
+                "menuPath": .string(menuName), "includeSubmenus": .bool(true),
               ]
 
               let (menuItemsContent, menuItemsError) = try await mcpClient.callTool(
-                name: "macos_menu_navigation",
+                name: "macos_navigate_menus",
                 arguments: menuItemsArgs,
               )
 
@@ -252,7 +252,7 @@ let logger = Logger(label: "com.fsck.mac-mcp.mcp-ax-inspector")
 
             print("Fetching window information for \(appId)...")
             let (content, isError) = try await mcpClient.callTool(
-              name: "macos_window_management",
+              name: "macos_manage_windows",
               arguments: arguments,
             )
 
@@ -274,7 +274,7 @@ let logger = Logger(label: "com.fsck.mac-mcp.mcp-ax-inspector")
               ]
 
               let (windowDetailsContent, windowDetailsError) = try await mcpClient.callTool(
-                name: "macos_window_management",
+                name: "macos_manage_windows",
                 arguments: windowDetailsArgs,
               )
 
@@ -770,13 +770,13 @@ struct MCPAccessibilityInspector: ParsableCommand {
 
     // Create the request parameters for the MenuNavigationTool
     var arguments: [String: Value] = [
-      "action": .string("getApplicationMenus"), "bundleId": .string(bundleId),
+      "action": .string("showAllMenus"), "bundleId": .string(bundleId),
     ]
 
     do {
       // First get all application menus
       let (content, isError) = try await mcpClient.callTool(
-        name: "macos_menu_navigation", arguments: arguments,
+        name: "macos_navigate_menus", arguments: arguments,
       )
 
       if let isError, isError { return "Error fetching menu structure: \(content)\n" }
@@ -794,13 +794,13 @@ struct MCPAccessibilityInspector: ParsableCommand {
 
         // Create parameters for getting menu items
         arguments = [
-          "action": .string("getMenuItems"), "bundleId": .string(bundleId),
-          "menuTitle": .string(menuTitle),
+          "action": .string("showMenu"), "bundleId": .string(bundleId),
+          "menuPath": .string(menuTitle),
           "includeSubmenus": .bool(true),
         ]
 
         let (menuItemsContent, menuItemsError) = try await mcpClient.callTool(
-          name: "macos_menu_navigation",
+          name: "macos_navigate_menus",
           arguments: arguments,
         )
 
@@ -836,7 +836,7 @@ struct MCPAccessibilityInspector: ParsableCommand {
     do {
       // First get all application windows
       let (content, isError) = try await mcpClient.callTool(
-        name: "macos_window_management",
+        name: "macos_manage_windows",
         arguments: arguments,
       )
 
@@ -860,7 +860,7 @@ struct MCPAccessibilityInspector: ParsableCommand {
         ]
 
         let (windowDetailsContent, windowDetailsError) = try await mcpClient.callTool(
-          name: "macos_window_management",
+          name: "macos_manage_windows",
           arguments: arguments,
         )
 
